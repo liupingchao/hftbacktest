@@ -3,11 +3,63 @@ from __future__ import annotations
 import gzip
 import io
 import math
+from collections import Counter
 
 import numpy as np
+import pytest
 
 import skhynix_stage_h0b_contracts as contracts
 import skhynix_stage_h0b as h0b
+
+
+NEGATIVE_CASES = tuple(
+    (
+        surface["surface_id"],
+        surface["negative_mutations"][0]["expected_error_code"],
+    )
+    for surface in h0b.read_json(h0b.MATRIX_PATH)["surfaces"]
+)
+
+
+@pytest.mark.parametrize(("surface_id", "expected_code"), NEGATIVE_CASES)
+def test_each_hostile_case_uses_production_error_code(
+    surface_id: str,
+    expected_code: str,
+) -> None:
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.negative_case(surface_id, expected_code)
+    assert captured.value.code == expected_code
+
+
+def test_matrix_expected_code_cannot_issue_production_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    matrix = h0b.read_json(h0b.MATRIX_PATH)
+    matrix["surfaces"][0]["negative_mutations"][0][
+        "expected_error_code"
+    ] = "H0B_BUILD_MISMATCH"
+    monkeypatch.setattr(h0b, "read_json", lambda _: matrix)
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.negative_case("kernel_pin", "H0B_BUILD_MISMATCH")
+    assert captured.value.code == "H0B_KERNEL_PIN_MISMATCH"
+
+
+def test_noop_production_guard_cannot_pass_hostile_surface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        h0b,
+        "validate_external_action_boundary",
+        lambda _: None,
+    )
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.negative_case(
+            "zero_external_action",
+            "H0B_EXTERNAL_ACTION_FORBIDDEN",
+        )
+    expected_codes = {expected for _, expected in NEGATIVE_CASES}
+    assert captured.value.code == h0b.HOSTILE_FAIL_OPEN_SENTINEL
+    assert captured.value.code not in expected_codes
 
 
 def test_nearest_rank_is_one_based() -> None:
@@ -169,6 +221,372 @@ def test_classification_precedence_and_non_rescue() -> None:
     assert classification == "predictable_but_not_latency_actionable"
     assert path[-1] == "rq3_6600ms"
     assert reasons == ["both_formal_sessions_fail_rq3_6600ms"]
+
+
+@pytest.mark.parametrize(
+    ("support_class", "expected"),
+    [
+        (
+            "interval_likelihood_only_supported",
+            "diagnostic_censored_interval_likelihood_only",
+        ),
+        (
+            "right_censored_segment",
+            "diagnostic_censored_right_censored_segment",
+        ),
+        (
+            "right_censored_source_end",
+            "diagnostic_censored_right_censored_source_end",
+        ),
+        ("epoch_censored", "diagnostic_censored_epoch_censored"),
+        (
+            "core_quality_censored",
+            "diagnostic_censored_core_quality_censored",
+        ),
+        (
+            "source_gap_censored",
+            "diagnostic_censored_source_gap_censored",
+        ),
+        (
+            "reference_quote_unavailable",
+            "diagnostic_censored_reference_quote_unavailable",
+        ),
+        (
+            "invalid_quote_state",
+            "diagnostic_censored_invalid_quote_state",
+        ),
+    ],
+)
+def test_landmark_support_classes_are_exhaustive(
+    support_class: str,
+    expected: str,
+) -> None:
+    assert (
+        h0b.landmark_status_from_support_class(support_class) == expected
+    )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected"),
+    [
+        (
+            {
+                "reference_available": True,
+                "reference_valid": True,
+                "target_inside_segment": True,
+                "same_epoch": True,
+                "core_quality_eligible": True,
+                "source_gap": False,
+                "source_ended": False,
+                "endpoint_closed": True,
+                "interval_bounds_supported": True,
+            },
+            "binary_identification_supported",
+        ),
+        (
+            {
+                "reference_available": True,
+                "reference_valid": True,
+                "target_inside_segment": True,
+                "same_epoch": True,
+                "core_quality_eligible": True,
+                "source_gap": False,
+                "source_ended": False,
+                "endpoint_closed": False,
+                "interval_bounds_supported": True,
+            },
+            "interval_likelihood_only_supported",
+        ),
+        (
+            {
+                "reference_available": True,
+                "reference_valid": True,
+                "target_inside_segment": False,
+                "same_epoch": True,
+                "core_quality_eligible": True,
+                "source_gap": False,
+                "source_ended": False,
+                "endpoint_closed": True,
+                "interval_bounds_supported": True,
+            },
+            "right_censored_segment",
+        ),
+        (
+            {
+                "reference_available": True,
+                "reference_valid": True,
+                "target_inside_segment": True,
+                "same_epoch": True,
+                "core_quality_eligible": True,
+                "source_gap": False,
+                "source_ended": True,
+                "endpoint_closed": True,
+                "interval_bounds_supported": True,
+            },
+            "right_censored_source_end",
+        ),
+        (
+            {
+                "reference_available": True,
+                "reference_valid": True,
+                "target_inside_segment": True,
+                "same_epoch": False,
+                "core_quality_eligible": True,
+                "source_gap": False,
+                "source_ended": False,
+                "endpoint_closed": True,
+                "interval_bounds_supported": True,
+            },
+            "epoch_censored",
+        ),
+        (
+            {
+                "reference_available": True,
+                "reference_valid": True,
+                "target_inside_segment": True,
+                "same_epoch": True,
+                "core_quality_eligible": False,
+                "source_gap": False,
+                "source_ended": False,
+                "endpoint_closed": True,
+                "interval_bounds_supported": True,
+            },
+            "core_quality_censored",
+        ),
+        (
+            {
+                "reference_available": True,
+                "reference_valid": True,
+                "target_inside_segment": True,
+                "same_epoch": True,
+                "core_quality_eligible": True,
+                "source_gap": True,
+                "source_ended": False,
+                "endpoint_closed": True,
+                "interval_bounds_supported": True,
+            },
+            "source_gap_censored",
+        ),
+        (
+            {
+                "reference_available": False,
+                "reference_valid": False,
+                "target_inside_segment": True,
+                "same_epoch": True,
+                "core_quality_eligible": True,
+                "source_gap": False,
+                "source_ended": False,
+                "endpoint_closed": True,
+                "interval_bounds_supported": True,
+            },
+            "reference_quote_unavailable",
+        ),
+        (
+            {
+                "reference_available": True,
+                "reference_valid": False,
+                "target_inside_segment": True,
+                "same_epoch": True,
+                "core_quality_eligible": True,
+                "source_gap": False,
+                "source_ended": False,
+                "endpoint_closed": True,
+                "interval_bounds_supported": True,
+            },
+            "invalid_quote_state",
+        ),
+    ],
+)
+def test_production_support_classifier_reaches_all_nine_classes(
+    kwargs: dict[str, bool],
+    expected: str,
+) -> None:
+    state = h0b.AcceptedH0ASupportState(**kwargs)
+    assert h0b.accepted_h0a_support_class_from_state(state) == expected
+
+
+def test_landmark_binary_status_and_grid_first_precedence() -> None:
+    assert h0b.landmark_status_from_support_class(
+        "binary_identification_supported",
+        event=True,
+    ) == "identified_event"
+    assert h0b.landmark_status_from_support_class(
+        "binary_identification_supported",
+        event=False,
+    ) == "identified_no_event"
+    assert h0b.landmark_status_with_precedence(
+        outside_grid=True,
+        support_class="right_censored_segment",
+    ) == "diagnostic_censored_grid_boundary"
+
+
+def test_stage4_endpoint_has_three_states() -> None:
+    base = {
+        "time_to_first_adverse_target_bbo_event_status": "",
+        "time_to_first_adverse_target_bbo_event_interval_upper_ns": "",
+        "time_to_first_adverse_target_bbo_event_censor_time_ns": "",
+    }
+    event = {
+        **base,
+        "time_to_first_adverse_target_bbo_event_status": (
+            "interval_censored"
+        ),
+        "time_to_first_adverse_target_bbo_event_interval_upper_ns": "150",
+    }
+    no_event = {
+        **base,
+        "time_to_first_adverse_target_bbo_event_status": "right_censored",
+        "time_to_first_adverse_target_bbo_event_censor_time_ns": "150",
+    }
+    assert h0b.stage4_endpoint_status(event, endpoint_ns=150) == (
+        "identified_event"
+    )
+    assert h0b.stage4_endpoint_status(no_event, endpoint_ns=150) == (
+        "identified_no_event"
+    )
+    assert h0b.stage4_endpoint_status(event, endpoint_ns=149) == (
+        "diagnostic_censored"
+    )
+
+
+def test_stage4_crosscheck_three_by_three_conservation() -> None:
+    counter: Counter[str] = Counter()
+    statuses = (
+        "identified_event",
+        "identified_no_event",
+        "diagnostic_censored_grid_boundary",
+    )
+    stage4_statuses = (
+        "identified_event",
+        "identified_no_event",
+        "diagnostic_censored",
+    )
+    for h0b_status in statuses:
+        for stage4_status in stage4_statuses:
+            h0b.update_stage4_crosscheck_counter(
+                counter,
+                h0b_status=h0b_status,
+                stage4_status=stage4_status,
+            )
+    row = h0b.stage4_crosscheck_row(
+        scope="segment",
+        segment_id="segment_0001",
+        side="maker_ask_risk",
+        counter=counter,
+        direction_match=True,
+        naming_match=True,
+    )
+    assert row["joined_count"] == 9
+    assert row["eligible_count"] == 4
+    assert row["censored_count"] == 5
+    assert row["both_event_count"] == 1
+    assert row["h0b_only_count"] == 1
+    assert row["stage4_only_count"] == 1
+    assert row["neither_count"] == 1
+    assert row["agreement_fraction"] == 0.5
+
+
+def test_stage4_crosscheck_empty_ratios_are_blank_cells() -> None:
+    counter: Counter[str] = Counter()
+    h0b.update_stage4_crosscheck_counter(
+        counter,
+        h0b_status="diagnostic_censored_grid_boundary",
+        stage4_status="diagnostic_censored",
+    )
+    row = h0b.stage4_crosscheck_row(
+        scope="segment",
+        segment_id="segment_0001",
+        side="maker_bid_risk",
+        counter=counter,
+        direction_match=True,
+        naming_match=True,
+    )
+    assert row["eligible_count"] == 0
+    assert row["h0b_event_rate"] is None
+    assert row["stage4_event_rate"] is None
+    assert row["agreement_fraction"] is None
+
+
+def test_stage4_access_ledger_requires_permit_before_exact_paths() -> None:
+    permit_sha = "a" * 64
+    prefix = (
+        "local_live_analysis/"
+        "skhynix_trigger_aligned_episode_research_v1_stage04_"
+        "jul30_episode_v3/"
+    )
+    events = [
+        {
+            "sequence": 1,
+            "process_role": "H0B1_DIAGNOSTIC_PERMIT",
+            "phase": "post_primary_seal_permit",
+            "relative_path": "stage4_diagnostic_permit.json",
+            "access_kind": "fsync_write",
+            "bytes_read": 0,
+            "permit_sha256": permit_sha,
+            "admitted": True,
+        }
+    ]
+    for sequence, relative in enumerate(
+        sorted(h0b.STAGE4_OUTCOMES),
+        start=2,
+    ):
+        events.append(
+            {
+                "sequence": sequence,
+                "process_role": "H0B1_DIAGNOSTIC",
+                "phase": "post_primary_seal_stage4",
+                "relative_path": prefix + relative,
+                "access_kind": "exact_11_field_projection",
+                "bytes_read": 1,
+                "permit_sha256": permit_sha,
+                "admitted": True,
+            }
+        )
+    ledger = {
+        "schema_version": "skhynix_stage_h0b_outcome_access_ledger_v1",
+        "task_id": contracts.TASK_ID,
+        "build_label": "A",
+        "events": events,
+    }
+    h0b.validate_stage4_access_ledger(
+        ledger,
+        build_label="A",
+        diagnostic_permit_sha256=permit_sha,
+    )
+    ledger["events"][1]["sequence"] = 1
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_stage4_access_ledger(
+            ledger,
+            build_label="A",
+            diagnostic_permit_sha256=permit_sha,
+        )
+    assert captured.value.code == "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL"
+    ledger["events"][1]["sequence"] = 2
+    shadow = {
+        **ledger["events"][0],
+        "sequence": 2,
+        "phase": "diagnostic_shadow",
+        "relative_path": "shadow_permit.json",
+    }
+    ledger["events"].insert(1, shadow)
+    for sequence, event in enumerate(ledger["events"], start=1):
+        event["sequence"] = sequence
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_stage4_access_ledger(
+            ledger,
+            build_label="A",
+            diagnostic_permit_sha256=permit_sha,
+        )
+    assert captured.value.code == "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL"
+
+
+def test_hostile_generic_surface_executes_contract_mutation() -> None:
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.negative_case(
+            "source_schema",
+            "H0B_SOURCE_SCHEMA_MISMATCH",
+        )
+    assert captured.value.code == "H0B_SOURCE_SCHEMA_MISMATCH"
 
 
 def test_deterministic_gzip_has_zero_mtime_and_empty_filename() -> None:

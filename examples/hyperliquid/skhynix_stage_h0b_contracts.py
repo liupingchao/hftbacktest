@@ -322,6 +322,23 @@ CSV_HEADERS = {
         "session",
         "segment_id",
         "side",
+        "joined_count",
+        "h0b_identified_count",
+        "h0b_censored_count",
+        "h0b_grid_boundary_censored_count",
+        "h0b_interval_likelihood_only_censored_count",
+        "h0b_right_censored_segment_count",
+        "h0b_right_censored_source_end_count",
+        "h0b_epoch_censored_count",
+        "h0b_core_quality_censored_count",
+        "h0b_source_gap_censored_count",
+        "h0b_reference_quote_unavailable_count",
+        "h0b_invalid_quote_state_count",
+        "stage4_identified_count",
+        "stage4_censored_count",
+        "h0b_only_censored_count",
+        "stage4_only_censored_count",
+        "both_censored_count",
         "eligible_count",
         "censored_count",
         "h0b_event_count",
@@ -388,6 +405,10 @@ E_FILES = (
     "primary_result_seal.json",
     "support_replay_receipt_build_a.json",
     "support_replay_receipt_build_b.json",
+    "stage4_diagnostic_permit_build_a.json",
+    "stage4_diagnostic_permit_build_b.json",
+    "stage4_diagnostic_receipt_build_a.json",
+    "stage4_diagnostic_receipt_build_b.json",
     "reports/h0b_conditional_risk_audit.md",
 )
 MANIFEST_FILE = "h0b_manifest.json"
@@ -1109,4 +1130,3 @@ def fsync_directory(path: Path) -> None:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
-

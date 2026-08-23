@@ -32,15 +32,24 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_SOURCE_ROOT = Path("/Users/liu/Documents/hftbacktest")
 TASK_PATH = REPO_ROOT / ".workflow/tasks/0823T002.md"
 MATRIX_PATH = REPO_ROOT / ".workflow/contracts/0823T002-surface-matrix.json"
-PLAN_PATH = (
+PRIMARY_PLAN_PATH = (
     REPO_ROOT
     / "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md"
+)
+DIAGNOSTIC_PLAN_PATH = (
+    REPO_ROOT
+    / "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md"
 )
 FRAMEWORK_PATH = (
     REPO_ROOT
     / "docs/skhynix_continuous_hazard_maker_research_framework_v2.md"
 )
-PLAN_REVIEW_PATH = REPO_ROOT / ".workflow/reports/0823T002-plan-review.md"
+PRIMARY_PLAN_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-review.md"
+)
+DIAGNOSTIC_PLAN_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v2-review.md"
+)
 SEMANTIC_INVENTORY_PATH = (
     REPO_ROOT
     / ".workflow/contracts/0823T002-semantic-source-inventory.csv"
@@ -84,11 +93,17 @@ DEFAULT_PACKAGE = (
     / "local_live_analysis/"
     "skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002"
 )
-PLAN_SHA256 = (
+PRIMARY_PLAN_SHA256 = (
     "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
 )
-REVIEW_SHA256 = (
+PRIMARY_REVIEW_SHA256 = (
     "c81112cc215d9b847e1691b9fce6be391cd2604736337ffa7fe35ab89cb22158"
+)
+DIAGNOSTIC_PLAN_SHA256 = (
+    "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+)
+DIAGNOSTIC_REVIEW_SHA256 = (
+    "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d"
 )
 FRAMEWORK_SHA256 = (
     "20c711fc056004d36ddf671766d04a1bbc2df58116234b4be285a859b55ceeec"
@@ -97,10 +112,10 @@ EXPECTED_SEMANTIC_INVENTORY_SHA256 = (
     "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9"
 )
 SOURCE_INVENTORY_CONTRACT_SHA256 = (
-    "51dd421dc06acf38d0b87e6d39b7e9ad85c69aa7ff7968df165400ada3b6f401"
+    "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "d192497e36787904c16c92d75d5053625f7ff8c130a7e5a4a8e54ba2ac32b8b7"
+    "478cb177fe5834bfd359d4d4e56004c3fa95c69cf2b4da0a67446ceeec22745b"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -214,6 +229,891 @@ OPTIMIZER_GRADIENT_TOLERANCE = 1e-8
 OPTIMIZER_PARAMETER_TOLERANCE = 1e-10
 RIDGE_LAMBDA = 1.0
 MODEL_CHUNK_ROWS = 250_000
+HOSTILE_FAIL_OPEN_SENTINEL = "H0B_HOSTILE_MUTATION_FAILED_OPEN"
+
+
+def production_contract_state() -> dict[str, Any]:
+    feature_sources = (
+        "r0_binance_bookticker",
+        "r0_hyperliquid_bbo",
+        "accepted_stage2_primary",
+        "accepted_stage3_primary",
+    )
+    return {
+        "kernel_pin": KERNEL_SOURCE_TREE_SHA256,
+        "master_framework_pin": (
+            PRIMARY_PLAN_SHA256,
+            PRIMARY_REVIEW_SHA256,
+            DIAGNOSTIC_PLAN_SHA256,
+            DIAGNOSTIC_REVIEW_SHA256,
+            FRAMEWORK_SHA256,
+            MATRIX_SHA256,
+        ),
+        "accepted_h0a_binding": (H0A_TUPLE_SHA256, H0A_COMPOSITE),
+        "accepted_latency_binding": (
+            LATENCY_COMPOSITE,
+            contracts.PRIMARY_LATENCY_MS,
+        ),
+        "accepted_tuple_binding": (TUPLE_SHA256, TUPLE_COMPOSITE),
+        "accepted_stage1_4_binding": tuple(sorted(STAGE4_OUTCOMES.items())),
+        "session_roles": {
+            "formal": tuple(contracts.FORMAL_SESSIONS),
+            "aug03": (
+                "diagnostic_only",
+                False,
+                "historical_transfer",
+            ),
+        },
+        "underlying_state_boundary": tuple(
+            (*contracts.H0_RAW_FEATURES, *contracts.H1_ADDED_RAW_FEATURES)
+        ),
+        "semantic_source_inventory": (
+            EXPECTED_SEMANTIC_INVENTORY_SHA256,
+            SOURCE_INVENTORY_CONTRACT_SHA256,
+        ),
+        "build_envelope": ("A", "B"),
+        "source_schema": (
+            HYPERLIQUID_HEADER,
+            BINANCE_HEADER,
+            STAGE4_PROJECTED_FIELDS,
+        ),
+        "source_ordering": (
+            "event_seq_strictly_increasing",
+            "local_ts_ns_nondecreasing",
+            "same_timestamp_ordered_by_event_seq",
+        ),
+        "guarded_opener": (
+            "semantic_inventory_only_before_outcome_permit",
+            "stage4_only_after_primary_seal_and_diagnostic_permit",
+        ),
+        "feature_source_boundary": feature_sources,
+        "two_envelope_boundary": (
+            "H0B0",
+            "fresh_H0B1",
+            "fresh_H0B1_DIAGNOSTIC",
+        ),
+        "outcome_access_permit": (
+            "skhynix_stage_h0b_outcome_access_permit_v2",
+            "A",
+            "B",
+            "admitted",
+            True,
+        ),
+        "support_replay": (
+            "a266184403a830fc422764e90c6dd48a5c1900af13333246ca7e220d664728df"
+        ),
+        "calendar_grid": (contracts.GRID_NS, contracts.HORIZON_NS, 0),
+        "side_expansion": tuple(contracts.SIDES),
+        "event_definition": (
+            "maker_ask_risk:target_bid_gte_reference_ask",
+            "maker_bid_risk:target_ask_lte_reference_bid",
+        ),
+        "support_class_mapping": tuple(
+            sorted(contracts.SUPPORT_DISPOSITIONS.items())
+        ),
+        "observation_bounds": (
+            "event:(L,U]",
+            "right_censor:S(50ms)",
+            "straddle:S(L)_for_L_lt_50ms_lt_U",
+        ),
+        "interval_likelihood": (
+            "S_exact(L)-S_exact(U)",
+            contracts.GRID_NS,
+            contracts.HORIZON_NS,
+        ),
+        "right_censor_likelihood": "S_exact(50ms)",
+        "horizon_straddle": "S_exact(L)_without_rounding_or_dropping",
+        "risk_score": "1-product_of_all_five_bin_survivals",
+        "binary_subset": ("binary_identification_supported",),
+        "h0_features": tuple(contracts.H0_RAW_FEATURES),
+        "h1_features": tuple(contracts.H1_ADDED_RAW_FEATURES),
+        "design_matrix": (
+            tuple(contracts.H0_DESIGN_COLUMNS),
+            tuple(contracts.H1_DESIGN_COLUMNS),
+        ),
+        "basis_residual": "prior_only_ewma",
+        "missing_value_policy": (
+            "training_fold_nearest_rank_median",
+            "training_fold_iqr_floor_1",
+            "explicit_missing_indicator",
+        ),
+        "dose_definition": (
+            "confirmed_decision_ts",
+            "trailing_500ms_queue_drop_ratio",
+        ),
+        "walk_forward": (
+            60,
+            20,
+            10,
+            contracts.PURGE_NS,
+            contracts.EMBARGO_NS,
+        ),
+        "estimator": (
+            "piecewise_exponential_discrete_hazard",
+            RIDGE_LAMBDA,
+            OPTIMIZER_MAX_ITERATIONS,
+            OPTIMIZER_GRADIENT_TOLERANCE,
+            OPTIMIZER_PARAMETER_TOLERANCE,
+        ),
+        "numeric_seed_conventions": (
+            "nearest_rank",
+            "NumPy Generator(PCG64)",
+            PRIMARY_NULL_SEED,
+            TIME_BOOTSTRAP_SEED,
+            FLOW_BOOTSTRAP_SEED,
+            RQ3_BOOTSTRAP_SEED,
+            BOOTSTRAP_REPLICATES,
+        ),
+        "rq1_statistic": "equal_weight_side_block_rate_dispersion",
+        "rq1_stationary_null": (
+            "cadence_conditioned_stationary_bootstrap",
+            "session_side_calendar_blocks",
+        ),
+        "rq2_score": (
+            "interval_log_loss_primary",
+            "positive_improvement_contribution",
+        ),
+        "rq2_concentration": "max_positive_cell_share_le_0.25",
+        "time_bootstrap": (
+            "calendar_block_multiplier",
+            "row_weighted_estimand",
+        ),
+        "flow_component_assignment": (
+            "one_endpoint_one_component",
+            "background_2s_units",
+        ),
+        "flow_bootstrap": (
+            "flow_component_multiplier",
+            "row_weighted_component_estimand",
+        ),
+        "rq3_threshold_source": "training_fold_only",
+        "rq3_regime": (
+            "debounced_entry_exit",
+            "no_posthoc_threshold",
+        ),
+        "rq3_km_ties": "events_before_censors_at_exact_time",
+        "rq3_cluster_bootstrap": (
+            "detection_block_multiplier",
+            BOOTSTRAP_REPLICATES,
+        ),
+        "rq3_side_aggregation": "equal_side_bonferroni90",
+        "latency_roles": tuple(sorted(contracts.LATENCY_ROLES.items())),
+        "classification_precedence": (
+            tuple(contracts.ALLOWED_CLASSIFICATIONS),
+            (
+                "data_quality",
+                "rq1",
+                "rq2",
+                "rq3_6600ms",
+                "positive_candidate",
+            ),
+            contracts.CLAIM_LIMIT,
+        ),
+        "primary_result_seal": tuple(contracts.PRIMARY_RESULT_FILES),
+        "stage4_projection": (
+            tuple(sorted(STAGE4_OUTCOMES.items())),
+            STAGE4_HEADER_SHA256,
+            STAGE4_PROJECTED_FIELDS,
+            (
+                "grid_boundary",
+                "accepted_support_class",
+                "identified_event_or_no_event",
+            ),
+        ),
+        "stage4_crosscheck": (
+            "primary_seal",
+            "build_specific_diagnostic_permit",
+            "eight_exact_stage4_reads",
+        ),
+        "aug07_nonaccess": False,
+        "deterministic_build": (
+            "byte_identical_primary",
+            "byte_identical_diagnostic",
+            "primary_bytes_unchanged_post_stage4",
+        ),
+        "output_schema": (
+            tuple(sorted(contracts.CSV_HEADERS)),
+            17,
+            10,
+            14,
+            42,
+        ),
+        "package_tree": (
+            tuple(sorted(contracts.EXACT_PACKAGE_FILES)),
+            tuple(sorted(contracts.PACKAGE_DIRECTORIES)),
+        ),
+        "layered_identity": (
+            "R_from_17_files",
+            "C_from_10_files",
+            "E_from_14_files",
+            "composite_from_R_C_E",
+        ),
+        "manifest_self_exclusion": (
+            contracts.MANIFEST_FILE,
+            len(contracts.EXACT_PACKAGE_FILES) - 1,
+        ),
+        "atomic_publication": "final_must_not_exist",
+        "zero_external_action": False,
+    }
+
+
+def validate_production_contract_state(state: Mapping[str, Any]) -> None:
+    expected_keys = set(production_contract_state())
+    contracts.require(
+        set(state) == expected_keys,
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        "$.production_contract",
+        f"missing={sorted(expected_keys - set(state))} "
+        f"extra={sorted(set(state) - expected_keys)}",
+    )
+
+    def exact(surface: str, expected: Any, code: str) -> None:
+        contracts.require(
+            state[surface] == expected,
+            code,
+            f"$.production_contract.{surface}",
+            f"expected={expected!r} observed={state[surface]!r}",
+        )
+
+    exact("kernel_pin", KERNEL_SOURCE_TREE_SHA256, "H0B_KERNEL_PIN_MISMATCH")
+    exact(
+        "master_framework_pin",
+        (
+            PRIMARY_PLAN_SHA256,
+            PRIMARY_REVIEW_SHA256,
+            DIAGNOSTIC_PLAN_SHA256,
+            DIAGNOSTIC_REVIEW_SHA256,
+            FRAMEWORK_SHA256,
+            MATRIX_SHA256,
+        ),
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+    )
+    exact(
+        "accepted_h0a_binding",
+        (H0A_TUPLE_SHA256, H0A_COMPOSITE),
+        "H0B_H0A_IDENTITY_MISMATCH",
+    )
+    exact(
+        "accepted_latency_binding",
+        (LATENCY_COMPOSITE, 6600),
+        "H0B_LATENCY_IDENTITY_MISMATCH",
+    )
+    exact(
+        "accepted_tuple_binding",
+        (TUPLE_SHA256, TUPLE_COMPOSITE),
+        "H0B_TUPLE_IDENTITY_MISMATCH",
+    )
+    exact(
+        "accepted_stage1_4_binding",
+        tuple(sorted(STAGE4_OUTCOMES.items())),
+        "H0B_DEPENDENCY_IDENTITY_MISMATCH",
+    )
+    exact(
+        "session_roles",
+        {
+            "formal": ("jul30", "aug04"),
+            "aug03": (
+                "diagnostic_only",
+                False,
+                "historical_transfer",
+            ),
+        },
+        "H0B_SESSION_ROLE_MISMATCH",
+    )
+    exact(
+        "underlying_state_boundary",
+        (
+            "elapsed_session_fraction",
+            "elapsed_session_fraction_squared",
+            "elapsed_segment_fraction",
+            "target_bbo_update_count_1s",
+            "target_bbo_no_new_information_fraction_1s",
+            "risk_gap_bps",
+            "risk_gap_change_50ms_bps",
+            "binance_bbo_age_ms",
+            "hyperliquid_bbo_age_ms",
+            "trailing_basis_residual",
+        ),
+        "H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN",
+    )
+    exact(
+        "semantic_source_inventory",
+        (
+            EXPECTED_SEMANTIC_INVENTORY_SHA256,
+            SOURCE_INVENTORY_CONTRACT_SHA256,
+        ),
+        "H0B_SEMANTIC_INVENTORY_MISMATCH",
+    )
+    exact(
+        "build_envelope",
+        ("A", "B"),
+        "H0B_BUILD_ENVELOPE_MISMATCH",
+    )
+    exact(
+        "source_schema",
+        (
+            HYPERLIQUID_HEADER,
+            BINANCE_HEADER,
+            STAGE4_PROJECTED_FIELDS,
+        ),
+        "H0B_SOURCE_SCHEMA_MISMATCH",
+    )
+    exact(
+        "source_ordering",
+        (
+            "event_seq_strictly_increasing",
+            "local_ts_ns_nondecreasing",
+            "same_timestamp_ordered_by_event_seq",
+        ),
+        "H0B_SOURCE_ORDERING_MISMATCH",
+    )
+    exact(
+        "guarded_opener",
+        (
+            "semantic_inventory_only_before_outcome_permit",
+            "stage4_only_after_primary_seal_and_diagnostic_permit",
+        ),
+        "H0B_FORBIDDEN_PATH_ACCESS",
+    )
+    exact(
+        "feature_source_boundary",
+        (
+            "r0_binance_bookticker",
+            "r0_hyperliquid_bbo",
+            "accepted_stage2_primary",
+            "accepted_stage3_primary",
+        ),
+        "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+    )
+    exact(
+        "two_envelope_boundary",
+        ("H0B0", "fresh_H0B1", "fresh_H0B1_DIAGNOSTIC"),
+        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+    )
+    exact(
+        "outcome_access_permit",
+        (
+            "skhynix_stage_h0b_outcome_access_permit_v2",
+            "A",
+            "B",
+            "admitted",
+            True,
+        ),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+    )
+    exact(
+        "support_replay",
+        (
+            "a266184403a830fc422764e90c6dd48a5c1900af13333246ca7e220d664728df"
+        ),
+        "H0B_SUPPORT_COMMITMENT_MISMATCH",
+    )
+    exact(
+        "calendar_grid",
+        (10_000_000, 50_000_000, 0),
+        "H0B_CALENDAR_GRID_MISMATCH",
+    )
+    exact(
+        "side_expansion",
+        ("maker_ask_risk", "maker_bid_risk"),
+        "H0B_SIDE_PAIR_MISMATCH",
+    )
+    exact(
+        "event_definition",
+        (
+            "maker_ask_risk:target_bid_gte_reference_ask",
+            "maker_bid_risk:target_ask_lte_reference_bid",
+        ),
+        "H0B_EVENT_DEFINITION_MISMATCH",
+    )
+    exact(
+        "support_class_mapping",
+        tuple(sorted(contracts.SUPPORT_DISPOSITIONS.items())),
+        "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+    )
+    exact(
+        "observation_bounds",
+        (
+            "event:(L,U]",
+            "right_censor:S(50ms)",
+            "straddle:S(L)_for_L_lt_50ms_lt_U",
+        ),
+        "H0B_OBSERVATION_BOUND_MISMATCH",
+    )
+    exact(
+        "interval_likelihood",
+        ("S_exact(L)-S_exact(U)", 10_000_000, 50_000_000),
+        "H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+    )
+    exact(
+        "right_censor_likelihood",
+        "S_exact(50ms)",
+        "H0B_RIGHT_CENSOR_MISMATCH",
+    )
+    exact(
+        "horizon_straddle",
+        "S_exact(L)_without_rounding_or_dropping",
+        "H0B_HORIZON_STRADDLE_MISMATCH",
+    )
+    exact(
+        "risk_score",
+        "1-product_of_all_five_bin_survivals",
+        "H0B_RISK_SCORE_MISMATCH",
+    )
+    exact(
+        "binary_subset",
+        ("binary_identification_supported",),
+        "H0B_BINARY_SUBSET_MISMATCH",
+    )
+    exact(
+        "h0_features",
+        (
+            "elapsed_session_fraction",
+            "elapsed_session_fraction_squared",
+            "elapsed_segment_fraction",
+            "target_bbo_update_count_1s",
+            "target_bbo_no_new_information_fraction_1s",
+        ),
+        "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+    )
+    exact(
+        "h1_features",
+        (
+            "risk_gap_bps",
+            "risk_gap_change_50ms_bps",
+            "binance_bbo_age_ms",
+            "hyperliquid_bbo_age_ms",
+            "trailing_basis_residual",
+        ),
+        "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+    )
+    expected_h0_design = (
+        "side_maker_ask",
+        "z_elapsed_session_fraction",
+        "z_elapsed_session_fraction_squared",
+        "z_elapsed_segment_fraction",
+        "z_target_bbo_update_count_1s",
+        "z_target_bbo_no_new_information_fraction_1s",
+        "is_missing_elapsed_session_fraction",
+        "is_missing_elapsed_session_fraction_squared",
+        "is_missing_elapsed_segment_fraction",
+        "is_missing_target_bbo_update_count_1s",
+        "is_missing_target_bbo_no_new_information_fraction_1s",
+    )
+    expected_h1_design = (
+        *expected_h0_design,
+        "z_risk_gap_bps",
+        "z_risk_gap_change_50ms_bps",
+        "z_binance_bbo_age_ms",
+        "z_hyperliquid_bbo_age_ms",
+        "z_trailing_basis_residual",
+        "is_missing_risk_gap_bps",
+        "is_missing_risk_gap_change_50ms_bps",
+        "is_missing_binance_bbo_age_ms",
+        "is_missing_hyperliquid_bbo_age_ms",
+        "is_missing_trailing_basis_residual",
+    )
+    exact(
+        "design_matrix",
+        (expected_h0_design, expected_h1_design),
+        "H0B_DESIGN_MATRIX_MISMATCH",
+    )
+    exact(
+        "basis_residual",
+        "prior_only_ewma",
+        "H0B_BASIS_RESIDUAL_MISMATCH",
+    )
+    exact(
+        "missing_value_policy",
+        (
+            "training_fold_nearest_rank_median",
+            "training_fold_iqr_floor_1",
+            "explicit_missing_indicator",
+        ),
+        "H0B_MISSING_VALUE_POLICY_MISMATCH",
+    )
+    exact(
+        "dose_definition",
+        ("confirmed_decision_ts", "trailing_500ms_queue_drop_ratio"),
+        "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+    )
+    exact(
+        "walk_forward",
+        (60, 20, 10, 500_000_000, 500_000_000),
+        "H0B_WALK_FORWARD_MISMATCH",
+    )
+    exact(
+        "estimator",
+        (
+            "piecewise_exponential_discrete_hazard",
+            1.0,
+            500,
+            1e-8,
+            1e-10,
+        ),
+        "H0B_ESTIMATOR_CONTRACT_MISMATCH",
+    )
+    exact(
+        "numeric_seed_conventions",
+        (
+            "nearest_rank",
+            "NumPy Generator(PCG64)",
+            8232001,
+            8232002,
+            8232003,
+            8232004,
+            2000,
+        ),
+        "H0B_NUMERIC_CONVENTION_MISMATCH",
+    )
+    exact(
+        "rq1_statistic",
+        "equal_weight_side_block_rate_dispersion",
+        "H0B_RQ1_STATISTIC_MISMATCH",
+    )
+    exact(
+        "rq1_stationary_null",
+        (
+            "cadence_conditioned_stationary_bootstrap",
+            "session_side_calendar_blocks",
+        ),
+        "H0B_RQ1_NULL_MISMATCH",
+    )
+    exact(
+        "rq2_score",
+        (
+            "interval_log_loss_primary",
+            "positive_improvement_contribution",
+        ),
+        "H0B_RQ2_SCORE_MISMATCH",
+    )
+    exact(
+        "rq2_concentration",
+        "max_positive_cell_share_le_0.25",
+        "H0B_RQ2_CONCENTRATION_MISMATCH",
+    )
+    exact(
+        "time_bootstrap",
+        ("calendar_block_multiplier", "row_weighted_estimand"),
+        "H0B_TIME_BOOTSTRAP_MISMATCH",
+    )
+    exact(
+        "flow_component_assignment",
+        ("one_endpoint_one_component", "background_2s_units"),
+        "H0B_FLOW_COMPONENT_MISMATCH",
+    )
+    exact(
+        "flow_bootstrap",
+        (
+            "flow_component_multiplier",
+            "row_weighted_component_estimand",
+        ),
+        "H0B_FLOW_BOOTSTRAP_MISMATCH",
+    )
+    exact(
+        "rq3_threshold_source",
+        "training_fold_only",
+        "H0B_RQ3_THRESHOLD_MISMATCH",
+    )
+    exact(
+        "rq3_regime",
+        ("debounced_entry_exit", "no_posthoc_threshold"),
+        "H0B_RQ3_REGIME_MISMATCH",
+    )
+    exact(
+        "rq3_km_ties",
+        "events_before_censors_at_exact_time",
+        "H0B_RQ3_KM_MISMATCH",
+    )
+    exact(
+        "rq3_cluster_bootstrap",
+        ("detection_block_multiplier", 2000),
+        "H0B_RQ3_BOOTSTRAP_MISMATCH",
+    )
+    exact(
+        "rq3_side_aggregation",
+        "equal_side_bonferroni90",
+        "H0B_RQ3_SIDE_AGGREGATION_MISMATCH",
+    )
+    exact(
+        "latency_roles",
+        (
+            (25, "legacy_sensitivity"),
+            (50, "legacy_sensitivity"),
+            (100, "historical_optimistic_sensitivity"),
+            (250, "legacy_sensitivity"),
+            (500, "legacy_sensitivity"),
+            (850, "terminal_observability_normal_path_diagnostic_only"),
+            (6600, "measurement_selected_primary"),
+        ),
+        "H0B_PRIMARY_LATENCY_MISMATCH",
+    )
+    exact(
+        "classification_precedence",
+        (
+            tuple(contracts.ALLOWED_CLASSIFICATIONS),
+            (
+                "data_quality",
+                "rq1",
+                "rq2",
+                "rq3_6600ms",
+                "positive_candidate",
+            ),
+            "screening_audit_not_final_signal_or_strategy",
+        ),
+        "H0B_CLASSIFICATION_MISMATCH",
+    )
+    exact(
+        "primary_result_seal",
+        tuple(contracts.PRIMARY_RESULT_FILES),
+        "H0B_PRIMARY_SEAL_MISMATCH",
+    )
+    exact(
+        "stage4_projection",
+        (
+            tuple(sorted(STAGE4_OUTCOMES.items())),
+            STAGE4_HEADER_SHA256,
+            STAGE4_PROJECTED_FIELDS,
+            (
+                "grid_boundary",
+                "accepted_support_class",
+                "identified_event_or_no_event",
+            ),
+        ),
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+    )
+    exact(
+        "stage4_crosscheck",
+        (
+            "primary_seal",
+            "build_specific_diagnostic_permit",
+            "eight_exact_stage4_reads",
+        ),
+        "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+    )
+    exact(
+        "aug07_nonaccess",
+        False,
+        "H0B_AUG07_ACCESS_FORBIDDEN",
+    )
+    exact(
+        "deterministic_build",
+        (
+            "byte_identical_primary",
+            "byte_identical_diagnostic",
+            "primary_bytes_unchanged_post_stage4",
+        ),
+        "H0B_BUILD_MISMATCH",
+    )
+    exact(
+        "output_schema",
+        (tuple(sorted(contracts.CSV_HEADERS)), 17, 10, 14, 42),
+        "H0B_OUTPUT_SCHEMA_MISMATCH",
+    )
+    exact(
+        "package_tree",
+        (
+            tuple(sorted(contracts.EXACT_PACKAGE_FILES)),
+            tuple(sorted(contracts.PACKAGE_DIRECTORIES)),
+        ),
+        "H0B_PACKAGE_TREE_MISMATCH",
+    )
+    exact(
+        "layered_identity",
+        (
+            "R_from_17_files",
+            "C_from_10_files",
+            "E_from_14_files",
+            "composite_from_R_C_E",
+        ),
+        "H0B_IDENTITY_BINDING_MISMATCH",
+    )
+    exact(
+        "manifest_self_exclusion",
+        (contracts.MANIFEST_FILE, 41),
+        "H0B_MANIFEST_SELF_REFERENCE_MISMATCH",
+    )
+    exact(
+        "atomic_publication",
+        "final_must_not_exist",
+        "PUBLICATION_FINAL_EXISTS",
+    )
+    exact(
+        "zero_external_action",
+        False,
+        "H0B_EXTERNAL_ACTION_FORBIDDEN",
+    )
+
+
+def validate_session_role_contract(
+    formal_sessions: Sequence[str],
+    diagnostic_session: tuple[str, str, bool, str],
+) -> None:
+    contracts.require(
+        tuple(formal_sessions) == ("jul30", "aug04")
+        and diagnostic_session
+        == ("aug03", "diagnostic_only", False, "historical_transfer"),
+        "H0B_SESSION_ROLE_MISMATCH",
+        "$.session_roles",
+        f"formal={tuple(formal_sessions)!r} "
+        f"diagnostic={diagnostic_session!r}",
+    )
+
+
+def validate_underlying_state_boundary(features: Sequence[str]) -> None:
+    allowed = (
+        "elapsed_session_fraction",
+        "elapsed_session_fraction_squared",
+        "elapsed_segment_fraction",
+        "target_bbo_update_count_1s",
+        "target_bbo_no_new_information_fraction_1s",
+        "risk_gap_bps",
+        "risk_gap_change_50ms_bps",
+        "binance_bbo_age_ms",
+        "hyperliquid_bbo_age_ms",
+        "trailing_basis_residual",
+    )
+    contracts.require(
+        tuple(features) == allowed,
+        "H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN",
+        "$.underlying_state_boundary",
+        f"observed={tuple(features)!r}",
+    )
+
+
+def validate_h0_feature_allowlist(features: Sequence[str]) -> None:
+    contracts.require(
+        tuple(features)
+        == (
+            "elapsed_session_fraction",
+            "elapsed_session_fraction_squared",
+            "elapsed_segment_fraction",
+            "target_bbo_update_count_1s",
+            "target_bbo_no_new_information_fraction_1s",
+        ),
+        "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+        "$.h0_features",
+        f"observed={tuple(features)!r}",
+    )
+
+
+def validate_h1_feature_allowlist(features: Sequence[str]) -> None:
+    contracts.require(
+        tuple(features)
+        == (
+            "risk_gap_bps",
+            "risk_gap_change_50ms_bps",
+            "binance_bbo_age_ms",
+            "hyperliquid_bbo_age_ms",
+            "trailing_basis_residual",
+        ),
+        "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+        "$.h1_features",
+        f"observed={tuple(features)!r}",
+    )
+
+
+def validate_latency_role_contract(
+    roles: Mapping[int, str],
+    *,
+    primary_latency_ms: int,
+    diagnostic_latency_ms: int,
+) -> None:
+    expected = {
+        25: "legacy_sensitivity",
+        50: "legacy_sensitivity",
+        100: "historical_optimistic_sensitivity",
+        250: "legacy_sensitivity",
+        500: "legacy_sensitivity",
+        850: "terminal_observability_normal_path_diagnostic_only",
+        6600: "measurement_selected_primary",
+    }
+    contracts.require(
+        dict(roles) == expected
+        and primary_latency_ms == 6600
+        and diagnostic_latency_ms == 850,
+        "H0B_PRIMARY_LATENCY_MISMATCH",
+        "$.latency_roles",
+        f"roles={dict(roles)!r} primary={primary_latency_ms} "
+        f"diagnostic={diagnostic_latency_ms}",
+    )
+
+
+def validate_source_access(
+    relative_path: str,
+    *,
+    source_role: str,
+    phase: str,
+) -> None:
+    relative = Path(relative_path)
+    contracts.require(
+        not relative.is_absolute() and ".." not in relative.parts,
+        "H0B_FORBIDDEN_PATH_ACCESS",
+        relative_path,
+        "source path must be repository-relative and confined",
+    )
+    lowered = relative_path.lower()
+    if phase == "feature_read":
+        contracts.require(
+            "aug07" not in lowered and "0807" not in lowered,
+            "H0B_AUG07_ACCESS_FORBIDDEN",
+            relative_path,
+            "Aug07 event rows are diagnostic metadata only",
+        )
+        contracts.require(
+            source_role
+            in {
+                "r0_binance_bookticker",
+                "r0_hyperliquid_bbo",
+                "accepted_stage2_primary",
+                "accepted_stage3_primary",
+            },
+            "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+            relative_path,
+            f"source_role={source_role}",
+        )
+        contracts.require(
+            "decision_labels" not in lowered
+            and "/outcomes/" not in lowered
+            and "stage04" not in lowered,
+            "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+            relative_path,
+            "future/outcome-bearing feature source is forbidden",
+        )
+        return
+    if phase == "preoutcome_inventory":
+        contracts.require(
+            "stage04" not in lowered and "/outcomes/" not in lowered,
+            "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+            relative_path,
+            "Stage 4 is forbidden before the primary seal",
+        )
+        return
+    contracts.require(
+        phase == "post_primary_seal_stage4"
+        and source_role == "accepted_stage4_outcome"
+        and relative_path.startswith(
+            (
+                STAGE4_ROOT.relative_to(REPO_ROOT)
+                / "outcomes"
+            ).as_posix()
+            + "/"
+        ),
+        "H0B_FORBIDDEN_PATH_ACCESS",
+        relative_path,
+        f"invalid phase/source_role={phase}/{source_role}",
+    )
+
+
+def validate_external_action_boundary(
+    attempted_actions: Sequence[str],
+) -> None:
+    contracts.require(
+        tuple(attempted_actions) == (),
+        "H0B_EXTERNAL_ACTION_FORBIDDEN",
+        "$.external_actions",
+        f"attempted={tuple(attempted_actions)!r}",
+    )
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -288,9 +1188,43 @@ def read_exact_csv(
 
 
 def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
+    validate_production_contract_state(production_contract_state())
+    validate_session_role_contract(
+        contracts.FORMAL_SESSIONS,
+        ("aug03", "diagnostic_only", False, "historical_transfer"),
+    )
+    validate_underlying_state_boundary(
+        (*contracts.H0_RAW_FEATURES, *contracts.H1_ADDED_RAW_FEATURES)
+    )
+    validate_h0_feature_allowlist(contracts.H0_RAW_FEATURES)
+    validate_h1_feature_allowlist(contracts.H1_ADDED_RAW_FEATURES)
+    validate_latency_role_contract(
+        contracts.LATENCY_ROLES,
+        primary_latency_ms=contracts.PRIMARY_LATENCY_MS,
+        diagnostic_latency_ms=contracts.DIAGNOSTIC_LATENCY_MS,
+    )
+    validate_external_action_boundary(())
     for path, expected, code in (
-        (PLAN_PATH, PLAN_SHA256, "H0B_MASTER_FRAMEWORK_MISMATCH"),
-        (PLAN_REVIEW_PATH, REVIEW_SHA256, "H0B_MASTER_FRAMEWORK_MISMATCH"),
+        (
+            PRIMARY_PLAN_PATH,
+            PRIMARY_PLAN_SHA256,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+        ),
+        (
+            PRIMARY_PLAN_REVIEW_PATH,
+            PRIMARY_REVIEW_SHA256,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+        ),
+        (
+            DIAGNOSTIC_PLAN_PATH,
+            DIAGNOSTIC_PLAN_SHA256,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+        ),
+        (
+            DIAGNOSTIC_PLAN_REVIEW_PATH,
+            DIAGNOSTIC_REVIEW_SHA256,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+        ),
         (FRAMEWORK_PATH, FRAMEWORK_SHA256, "H0B_MASTER_FRAMEWORK_MISMATCH"),
         (
             SEMANTIC_INVENTORY_PATH,
@@ -339,18 +1273,20 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
     return json.loads(result.stdout)
 
 
-def runtime_source_inventory() -> list[dict[str, Any]]:
+def runtime_source_inventory(
+    root: Path = REPO_ROOT,
+) -> list[dict[str, Any]]:
     paths = (
         "examples/hyperliquid/skhynix_stage_h0b.py",
         "examples/hyperliquid/skhynix_stage_h0b_contracts.py",
         "examples/hyperliquid/test_skhynix_stage_h0b.py",
         "examples/hyperliquid/test_skhynix_stage_h0b_package.py",
     )
-    return contracts.file_inventory(REPO_ROOT, paths)
+    return contracts.file_inventory(root, paths)
 
 
-def runtime_source_tree_sha256() -> str:
-    return contracts.canonical_json_sha256(runtime_source_inventory())
+def runtime_source_tree_sha256(root: Path = REPO_ROOT) -> str:
+    return contracts.canonical_json_sha256(runtime_source_inventory(root))
 
 
 def validate_semantic_inventory() -> tuple[list[dict[str, str]], str]:
@@ -376,19 +1312,10 @@ def validate_semantic_inventory() -> tuple[list[dict[str, str]], str]:
         "row order mismatch",
     )
     for row in rows:
-        contracts.require(
-            not row["relative_path"].startswith("/")
-            and ".." not in Path(row["relative_path"]).parts,
-            "H0B_SEMANTIC_INVENTORY_MISMATCH",
+        validate_source_access(
             row["relative_path"],
-            "semantic path must be repository-relative",
-        )
-        contracts.require(
-            "stage04" not in row["relative_path"]
-            and "/outcomes/" not in row["relative_path"],
-            "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
-            row["relative_path"],
-            "Stage 4 is forbidden in H0B0 inventory",
+            source_role=row["source_role"],
+            phase="preoutcome_inventory",
         )
         path = relative_source_path(row["relative_path"])
         contracts.require(
@@ -420,17 +1347,92 @@ def validate_semantic_inventory() -> tuple[list[dict[str, str]], str]:
     return rows, identity
 
 
+def upstream_identity_payloads() -> tuple[
+    dict[str, Any],
+    dict[str, Any],
+    dict[str, Any],
+    dict[str, Any],
+]:
+    return (
+        read_json(H0A_ROOT / "h0a_manifest.json"),
+        read_json(LATENCY_ROOT / "measurement_manifest.json"),
+        read_json(TUPLE_ROOT / "supersession_manifest.json"),
+        read_json(TUPLE_ROOT / "superseding_primary_tuple.json"),
+    )
+
+
+def validate_upstream_identity_payloads(
+    h0a_manifest: Mapping[str, Any],
+    latency_manifest: Mapping[str, Any],
+    tuple_manifest: Mapping[str, Any],
+    tuple_payload: Mapping[str, Any],
+) -> None:
+    contracts.require(
+        h0a_manifest.get("task_id") == "0821T001"
+        and h0a_manifest.get("primary_tuple_sha256") == H0A_TUPLE_SHA256
+        and h0a_manifest.get("composite_identity") == H0A_COMPOSITE
+        and h0a_manifest.get("input_inventory_unchanged") is True,
+        "H0B_H0A_IDENTITY_MISMATCH",
+        str(H0A_ROOT / "h0a_manifest.json"),
+        "accepted H0-A manifest identity mismatch",
+    )
+    contracts.require(
+        latency_manifest.get("task_id") == "0822T002"
+        and latency_manifest.get("composite_identity") == LATENCY_COMPOSITE
+        and latency_manifest.get("p95_cancel_effective_latency_us") == 6561052
+        and latency_manifest.get("recommended_gate_latency_ms") == 6600
+        and latency_manifest.get("h0a_tuple_mutated") is False
+        and latency_manifest.get("h0b_outcome_accessed") is False,
+        "H0B_LATENCY_IDENTITY_MISMATCH",
+        str(LATENCY_ROOT / "measurement_manifest.json"),
+        "accepted latency identity or recommendation mismatch",
+    )
+    contracts.require(
+        tuple_manifest.get("task_id") == "0823T001"
+        and tuple_manifest.get("superseding_tuple_sha256") == TUPLE_SHA256
+        and tuple_manifest.get("composite_identity") == TUPLE_COMPOSITE
+        and tuple_manifest.get("primary_latency_ms") == 6600
+        and tuple_manifest.get("diagnostic_latency_ms") == 850
+        and tuple_manifest.get("historical_optimistic_sensitivity_ms") == 100
+        and tuple_manifest.get("h0b_outcome_accessed") is False
+        and tuple_manifest.get("research_contains_outcome_value") is False
+        and tuple_manifest.get("undeclared_change_count") == 0
+        and tuple_payload.get("task_id") == "0823T001"
+        and tuple_payload.get("gate_latency_ms") == 6600
+        and tuple_payload.get("latency_diagnostic_ms") == [850]
+        and tuple_payload.get("formal_session_ids") == ["jul30", "aug04"]
+        and tuple_payload.get("diagnostic_session_ids") == ["aug03"]
+        and tuple_payload.get("supersession_status")
+        == "supersedes_latency_only"
+        and tuple_payload.get("selection_status") == "selected",
+        "H0B_TUPLE_IDENTITY_MISMATCH",
+        str(TUPLE_ROOT / "supersession_manifest.json"),
+        "accepted tuple supersession identity or role mismatch",
+    )
+
+
 def accepted_binding_rows() -> list[dict[str, Any]]:
+    validate_upstream_identity_payloads(*upstream_identity_payloads())
     authorities = (
         (
-            "reviewed_plan",
-            PLAN_PATH,
-            PLAN_SHA256,
+            "primary_plan_v1",
+            PRIMARY_PLAN_PATH,
+            PRIMARY_PLAN_SHA256,
         ),
         (
-            "plan_review",
-            PLAN_REVIEW_PATH,
-            REVIEW_SHA256,
+            "primary_plan_review",
+            PRIMARY_PLAN_REVIEW_PATH,
+            PRIMARY_REVIEW_SHA256,
+        ),
+        (
+            "diagnostic_plan_v2",
+            DIAGNOSTIC_PLAN_PATH,
+            DIAGNOSTIC_PLAN_SHA256,
+        ),
+        (
+            "diagnostic_plan_review",
+            DIAGNOSTIC_PLAN_REVIEW_PATH,
+            DIAGNOSTIC_REVIEW_SHA256,
         ),
         (
             "master_framework",
@@ -497,9 +1499,11 @@ def accepted_binding_rows() -> list[dict[str, Any]]:
 
 def accepted_input_bindings_payload() -> dict[str, Any]:
     return {
-        "schema_version": "skhynix_stage_h0b_accepted_input_bindings_v1",
+        "schema_version": "skhynix_stage_h0b_accepted_input_bindings_v2",
         "task_id": contracts.TASK_ID,
-        "reviewed_plan_sha256": PLAN_SHA256,
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
         "surface_matrix_sha256": MATRIX_SHA256,
         "expected_semantic_source_inventory_sha256": (
             EXPECTED_SEMANTIC_INVENTORY_SHA256
@@ -563,9 +1567,11 @@ def preoutcome_contract_payload() -> dict[str, Any]:
         "maximum_package_bytes": 134_217_728,
     }
     return {
-        "schema_version": "skhynix_stage_h0b_preoutcome_contract_v1",
+        "schema_version": "skhynix_stage_h0b_preoutcome_contract_v2",
         "task_id": contracts.TASK_ID,
-        "reviewed_plan_sha256": PLAN_SHA256,
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
         "surface_matrix_sha256": MATRIX_SHA256,
         "source_inventory_contract_sha256": (
             SOURCE_INVENTORY_CONTRACT_SHA256
@@ -682,12 +1688,14 @@ def run_h0b0(
     )
     envelope_identity = contracts.canonical_json_sha256(envelope)
     permit = {
-        "schema_version": "skhynix_stage_h0b_outcome_access_permit_v1",
+        "schema_version": "skhynix_stage_h0b_outcome_access_permit_v2",
         "task_id": contracts.TASK_ID,
         "build_label": build_label,
         "status": "admitted",
         "fsynced": True,
-        "reviewed_plan_sha256": PLAN_SHA256,
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
         "surface_matrix_sha256": MATRIX_SHA256,
         "runtime_source_tree_sha256": runtime_source_tree_sha256(),
         "preoutcome_contract_sha256": preoutcome_identity,
@@ -757,7 +1765,9 @@ def validate_permit(build_root: Path) -> dict[str, Any]:
         "build_label",
         "status",
         "fsynced",
-        "reviewed_plan_sha256",
+        "primary_plan_sha256",
+        "diagnostic_plan_sha256",
+        "diagnostic_review_sha256",
         "surface_matrix_sha256",
         "runtime_source_tree_sha256",
         "preoutcome_contract_sha256",
@@ -778,7 +1788,10 @@ def validate_permit(build_root: Path) -> dict[str, Any]:
         permit["status"] == "admitted"
         and permit["fsynced"] is True
         and permit["task_id"] == contracts.TASK_ID
-        and permit["reviewed_plan_sha256"] == PLAN_SHA256
+        and permit["primary_plan_sha256"] == PRIMARY_PLAN_SHA256
+        and permit["diagnostic_plan_sha256"] == DIAGNOSTIC_PLAN_SHA256
+        and permit["diagnostic_review_sha256"]
+        == DIAGNOSTIC_REVIEW_SHA256
         and permit["surface_matrix_sha256"] == MATRIX_SHA256
         and permit["runtime_source_tree_sha256"] == runtime_source_tree_sha256()
         and permit["source_inventory_contract_sha256"]
@@ -820,26 +1833,379 @@ def validate_permit(build_root: Path) -> dict[str, Any]:
     return permit
 
 
+def hostile_stage4_ledger_mutation() -> None:
+    permit_sha = "a" * 64
+    events = [
+        {
+            "sequence": 1,
+            "process_role": "H0B1_DIAGNOSTIC_PERMIT",
+            "phase": "post_primary_seal_permit",
+            "relative_path": "stage4_diagnostic_permit.json",
+            "access_kind": "fsync_write",
+            "bytes_read": 0,
+            "permit_sha256": permit_sha,
+            "admitted": True,
+        },
+        {
+            "sequence": 2,
+            "process_role": "H0B1_DIAGNOSTIC_PERMIT",
+            "phase": "diagnostic_shadow",
+            "relative_path": "shadow_permit.json",
+            "access_kind": "fsync_write",
+            "bytes_read": 0,
+            "permit_sha256": permit_sha,
+            "admitted": True,
+        },
+    ]
+    for sequence, relative in enumerate(sorted(STAGE4_OUTCOMES), start=3):
+        events.append(
+            {
+                "sequence": sequence,
+                "process_role": "H0B1_DIAGNOSTIC",
+                "phase": "post_primary_seal_stage4",
+                "relative_path": (
+                    STAGE4_ROOT.relative_to(REPO_ROOT)
+                    / relative
+                ).as_posix(),
+                "access_kind": "exact_11_field_projection",
+                "bytes_read": 1,
+                "permit_sha256": permit_sha,
+                "admitted": True,
+            }
+        )
+    validate_stage4_access_ledger(
+        {
+            "schema_version": (
+                "skhynix_stage_h0b_outcome_access_ledger_v1"
+            ),
+            "task_id": contracts.TASK_ID,
+            "build_label": "A",
+            "events": events,
+        },
+        build_label="A",
+        diagnostic_permit_sha256=permit_sha,
+    )
+
+
+def hostile_package_tree_mutation() -> None:
+    with tempfile.TemporaryDirectory(prefix="0823T002-package-tree-") as raw:
+        root = Path(raw)
+        for directory in contracts.PACKAGE_DIRECTORIES:
+            (root / directory).mkdir()
+        for relative in contracts.EXACT_PACKAGE_FILES:
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"")
+        (root / "unexpected.txt").write_text("mutation\n", encoding="ascii")
+        contracts.validate_exact_package_tree(root)
+
+
+def hostile_publication_overwrite_mutation() -> None:
+    with tempfile.TemporaryDirectory(prefix="0823T002-publication-") as raw:
+        final = Path(raw) / "final"
+        final.mkdir()
+        require_publication_target_absent(final)
+
+
+def hostile_contract_state_mutation(surface_id: str, observed: Any) -> None:
+    state = production_contract_state()
+    state[surface_id] = observed
+    validate_production_contract_state(state)
+
+
+def hostile_upstream_identity_mutation(surface_id: str) -> None:
+    h0a_manifest, latency_manifest, tuple_manifest, tuple_payload = (
+        upstream_identity_payloads()
+    )
+    if surface_id == "accepted_h0a_binding":
+        h0a_manifest["composite_identity"] = "0" * 64
+    elif surface_id == "accepted_latency_binding":
+        latency_manifest["recommended_gate_latency_ms"] = 850
+    elif surface_id == "accepted_tuple_binding":
+        tuple_manifest["primary_latency_ms"] = 850
+    else:
+        raise AssertionError(surface_id)
+    validate_upstream_identity_payloads(
+        h0a_manifest,
+        latency_manifest,
+        tuple_manifest,
+        tuple_payload,
+    )
+
+
+def hostile_source_schema_mutation() -> None:
+    with tempfile.TemporaryDirectory(prefix="0823T002-source-schema-") as raw:
+        path = Path(raw) / "mutated.csv.gz"
+        header = (*HYPERLIQUID_HEADER[:-1], "mutated_column")
+        path.write_bytes(
+            contracts.deterministic_gzip(
+                (",".join(header) + "\n").encode("ascii")
+            )
+        )
+        list(
+            read_exact_csv(
+                path,
+                HYPERLIQUID_HEADER,
+                compressed=True,
+            )
+        )
+
+
+def hostile_source_ordering_mutation() -> None:
+    with tempfile.TemporaryDirectory(prefix="0823T002-source-order-") as raw:
+        path = Path(raw) / "mutated.csv.gz"
+        rows = []
+        for sequence, timestamp in ((2, 100), (1, 100)):
+            row = {field: "" for field in HYPERLIQUID_HEADER}
+            row.update(
+                {
+                    "segment_id": "segment_0001",
+                    "event_seq": str(sequence),
+                    "local_ts_ns": str(timestamp),
+                    "event_type": "bbo",
+                    "bid_px": "100",
+                    "ask_px": "101",
+                }
+            )
+            rows.append(row)
+        path.write_bytes(
+            contracts.deterministic_gzip(
+                contracts.csv_bytes(rows, HYPERLIQUID_HEADER)
+            )
+        )
+        load_quote_events(
+            path,
+            header=HYPERLIQUID_HEADER,
+            event_type="bbo",
+            segment_id="segment_0001",
+        )
+
+
+def hostile_design_matrix_mutation() -> None:
+    contracts.transform_design(
+        np.zeros((1, len(contracts.H0_RAW_FEATURES)), dtype=np.float64),
+        np.zeros(1, dtype=np.float64),
+        (),
+        model="H2",
+    )
+
+
+def hostile_missing_value_mutation() -> None:
+    contracts.fit_feature_scales(
+        np.full((1, 1), np.nan, dtype=np.float64),
+        ("missing_feature",),
+    )
+
+
+def hostile_walk_forward_mutation() -> None:
+    contracts.build_walk_forward_folds(tuple(range(69, -1, -1)))
+
+
+def hostile_flow_component_mutation() -> None:
+    component_a = FlowComponent("a", 100, 200)
+    component_b = FlowComponent("b", 150, 250)
+    flow_units_for_grid(
+        session="jul30",
+        segment_id="segment_0001",
+        epoch="segment_0001:epoch_0",
+        grid=np.asarray([175], dtype=np.int64),
+        components={
+            ("jul30", "segment_0001", "segment_0001:epoch_0"): (
+                component_a,
+                component_b,
+            )
+        },
+    )
+
+
+def hostile_classification_mutation() -> None:
+    contracts.classify_primary(
+        {
+            "jul30": {
+                "data_quality": True,
+                "rq1": True,
+                "rq2": True,
+                "rq3": True,
+            },
+            "aug03": {
+                "data_quality": True,
+                "rq1": True,
+                "rq2": True,
+                "rq3": True,
+            },
+            "aug04": {
+                "data_quality": True,
+                "rq1": True,
+                "rq2": True,
+                "rq3": True,
+            },
+        }
+    )
+
+
+def hostile_deterministic_build_mutation() -> None:
+    with tempfile.TemporaryDirectory(prefix="0823T002-build-compare-") as raw:
+        left = Path(raw) / "a"
+        right = Path(raw) / "b"
+        left.mkdir()
+        right.mkdir()
+        (left / "result.csv").write_bytes(b"build-a\n")
+        (right / "result.csv").write_bytes(b"build-b\n")
+        compare_build_files(left, right, ("result.csv",))
+
+
 def negative_case(surface_id: str, expected_code: str) -> None:
     matrix = read_json(MATRIX_PATH)
-    declared = {
-        surface["surface_id"]: surface["negative_mutations"][0][
-            "expected_error_code"
-        ]
+    surfaces = {
+        surface["surface_id"]: surface
         for surface in matrix["surfaces"]
     }
     contracts.require(
-        declared.get(surface_id) == expected_code,
+        surface_id in surfaces,
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        "$.negative_case",
+        f"unknown surface={surface_id}",
+    )
+    surface = surfaces[surface_id]
+    declared_code = surface["negative_mutations"][0][
+        "expected_error_code"
+    ]
+    declared_codes = {
+        item["negative_mutations"][0]["expected_error_code"]
+        for item in surfaces.values()
+    }
+    contracts.require(
+        declared_code == expected_code,
         "H0B_MASTER_FRAMEWORK_MISMATCH",
         "$.negative_case",
         f"surface={surface_id} expected={expected_code}",
     )
+    contracts.require(
+        HOSTILE_FAIL_OPEN_SENTINEL not in declared_codes,
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        "$.negative_case.fail_open_sentinel",
+        HOSTILE_FAIL_OPEN_SENTINEL,
+    )
+
     mutation_checks = {
+        "kernel_pin": lambda: hostile_contract_state_mutation(
+            "kernel_pin", "0" * 64
+        ),
+        "master_framework_pin": lambda: hostile_contract_state_mutation(
+            "master_framework_pin",
+            (
+                PRIMARY_PLAN_SHA256,
+                PRIMARY_REVIEW_SHA256,
+                PRIMARY_PLAN_SHA256,
+                PRIMARY_REVIEW_SHA256,
+                FRAMEWORK_SHA256,
+                MATRIX_SHA256,
+            ),
+        ),
+        "accepted_h0a_binding": lambda: hostile_upstream_identity_mutation(
+            "accepted_h0a_binding"
+        ),
+        "accepted_latency_binding": lambda: (
+            hostile_upstream_identity_mutation("accepted_latency_binding")
+        ),
+        "accepted_tuple_binding": lambda: hostile_upstream_identity_mutation(
+            "accepted_tuple_binding"
+        ),
+        "accepted_stage1_4_binding": lambda: hostile_contract_state_mutation(
+            "accepted_stage1_4_binding",
+            tuple(sorted(STAGE4_OUTCOMES.items()))[:-1],
+        ),
+        "session_roles": lambda: validate_session_role_contract(
+            ("jul30", "aug03", "aug04"),
+            ("aug03", "formal", True, "historical_transfer"),
+        ),
+        "underlying_state_boundary": lambda: (
+            validate_underlying_state_boundary(
+            (
+                *contracts.H0_RAW_FEATURES,
+                *contracts.H1_ADDED_RAW_FEATURES,
+                "krx_underlying_state",
+                )
+            )
+        ),
+        "semantic_source_inventory": lambda: hostile_contract_state_mutation(
+            "semantic_source_inventory",
+            (str(REPO_ROOT), SOURCE_INVENTORY_CONTRACT_SHA256),
+        ),
+        "build_envelope": lambda: hostile_contract_state_mutation(
+            "build_envelope", ("A", "A")
+        ),
+        "source_schema": hostile_source_schema_mutation,
+        "source_ordering": hostile_source_ordering_mutation,
+        "guarded_opener": lambda: validate_source_access(
+            "../forbidden.csv",
+            source_role="accepted_stage2_primary",
+            phase="feature_read",
+        ),
+        "feature_source_boundary": lambda: validate_source_access(
+            "local_live_analysis/alignment/decision_labels.csv",
+            source_role="alignment_decision_labels",
+            phase="feature_read",
+        ),
+        "two_envelope_boundary": lambda: hostile_contract_state_mutation(
+            "two_envelope_boundary",
+            ("H0B1", "H0B1", "H0B1_DIAGNOSTIC"),
+        ),
+        "outcome_access_permit": lambda: hostile_contract_state_mutation(
+            "outcome_access_permit",
+            (
+                "skhynix_stage_h0b_outcome_access_permit_v2",
+                "A",
+                "A",
+                "admitted",
+                True,
+            ),
+        ),
+        "support_replay": lambda: hostile_contract_state_mutation(
+            "support_replay", "0" * 64
+        ),
+        "calendar_grid": lambda: hostile_contract_state_mutation(
+            "calendar_grid", (contracts.GRID_NS, contracts.HORIZON_NS, 1)
+        ),
+        "side_expansion": lambda: hostile_contract_state_mutation(
+            "side_expansion", contracts.SIDES[:1]
+        ),
+        "event_definition": lambda: hostile_contract_state_mutation(
+            "event_definition",
+            (
+                "maker_ask_risk:target_ask_lte_reference_bid",
+                "maker_bid_risk:target_bid_gte_reference_ask",
+            ),
+        ),
+        "support_class_mapping": lambda: hostile_contract_state_mutation(
+            "support_class_mapping",
+            tuple(
+                sorted(
+                    {
+                        **contracts.SUPPORT_DISPOSITIONS,
+                        "interval_likelihood_only_supported": (
+                            "include_primary_and_binary"
+                        ),
+                    }.items()
+                )
+            ),
+        ),
+        "observation_bounds": lambda: hostile_contract_state_mutation(
+            "observation_bounds",
+            (
+                "event:[L,U]",
+                "right_censor:event_at_zero",
+                "straddle:dropped",
+            ),
+        ),
         "interval_likelihood": lambda: contracts.likelihood_and_loss(
             np.full((1, 5), 0.1),
-            np.asarray([1], dtype=np.int8),
-            np.asarray([11_000_000.0]),
-            np.asarray([9_000_000.0]),
+            np.asarray([9], dtype=np.int8),
+            np.asarray([0.0]),
+            np.asarray([contracts.HORIZON_NS], dtype=np.float64),
+        ),
+        "right_censor_likelihood": lambda: hostile_contract_state_mutation(
+            "right_censor_likelihood", "binary_no_event_at_0ms"
         ),
         "horizon_straddle": lambda: contracts.likelihood_and_loss(
             np.full((1, 5), 0.1),
@@ -847,27 +2213,144 @@ def negative_case(surface_id: str, expected_code: str) -> None:
             np.asarray([50_000_000.0]),
             np.asarray([60_000_000.0]),
         ),
+        "risk_score": lambda: hostile_contract_state_mutation(
+            "risk_score", "single_bin_hazard"
+        ),
+        "binary_subset": lambda: hostile_contract_state_mutation(
+            "binary_subset",
+            (
+                "binary_identification_supported",
+                "interval_likelihood_only_supported",
+            ),
+        ),
+        "h0_features": lambda: validate_h0_feature_allowlist(
+            (*contracts.H0_RAW_FEATURES, "future_return"),
+        ),
+        "h1_features": lambda: validate_h1_feature_allowlist(
+            (*contracts.H1_ADDED_RAW_FEATURES, "post_horizon_outcome"),
+        ),
+        "design_matrix": hostile_design_matrix_mutation,
+        "basis_residual": lambda: hostile_contract_state_mutation(
+            "basis_residual", "full_session_mean"
+        ),
+        "missing_value_policy": hostile_missing_value_mutation,
+        "dose_definition": lambda: hostile_contract_state_mutation(
+            "dose_definition", ("shock_ts", "forward_500ms_queue_drop_ratio")
+        ),
+        "walk_forward": hostile_walk_forward_mutation,
+        "estimator": lambda: hostile_contract_state_mutation(
+            "estimator",
+            (
+                "piecewise_exponential_discrete_hazard",
+                0.1,
+                OPTIMIZER_MAX_ITERATIONS,
+                OPTIMIZER_GRADIENT_TOLERANCE,
+                OPTIMIZER_PARAMETER_TOLERANCE,
+            ),
+        ),
         "numeric_seed_conventions": lambda: contracts.nearest_rank(
             np.asarray([], dtype=np.float64), 0.5
+        ),
+        "rq1_statistic": lambda: hostile_contract_state_mutation(
+            "rq1_statistic", "pooled_side_rows"
+        ),
+        "rq1_stationary_null": lambda: hostile_contract_state_mutation(
+            "rq1_stationary_null",
+            (
+                "fixed_disjoint_microblock_shuffle",
+                "support_source_only_stratum",
+            ),
+        ),
+        "rq2_score": lambda: hostile_contract_state_mutation(
+            "rq2_score",
+            ("best_metric_posthoc", "net_improvement_contribution"),
+        ),
+        "rq2_concentration": lambda: hostile_contract_state_mutation(
+            "rq2_concentration", "net_absolute_cell_share_le_0.50"
+        ),
+        "time_bootstrap": lambda: hostile_contract_state_mutation(
+            "time_bootstrap", ("row_iid_bootstrap", "equal_unit_estimand")
+        ),
+        "flow_component_assignment": hostile_flow_component_mutation,
+        "flow_bootstrap": lambda: hostile_contract_state_mutation(
+            "flow_bootstrap",
+            ("flow_component_multiplier", "equal_component_estimand"),
+        ),
+        "rq3_threshold_source": lambda: hostile_contract_state_mutation(
+            "rq3_threshold_source", "oof_pooled_side"
+        ),
+        "rq3_regime": lambda: hostile_contract_state_mutation(
+            "rq3_regime", ("one_tick_switch", "posthoc_threshold")
         ),
         "rq3_km_ties": lambda: contracts.kaplan_meier_median(
             np.asarray([-1.0]),
             np.asarray([False]),
         ),
+        "rq3_cluster_bootstrap": lambda: hostile_contract_state_mutation(
+            "rq3_cluster_bootstrap", ("greenwood_independent_regime", 2000)
+        ),
+        "rq3_side_aggregation": lambda: hostile_contract_state_mutation(
+            "rq3_side_aggregation", "pooled_regimes"
+        ),
+        "latency_roles": lambda: validate_latency_role_contract(
+            {
+                **contracts.LATENCY_ROLES,
+                850: "measurement_selected_primary",
+                6600: "diagnostic_rescuable",
+            },
+            primary_latency_ms=850,
+            diagnostic_latency_ms=6600,
+        ),
+        "classification_precedence": hostile_classification_mutation,
+        "primary_result_seal": lambda: hostile_contract_state_mutation(
+            "primary_result_seal",
+            contracts.PRIMARY_RESULT_FILES[:-1],
+        ),
+        "stage4_projection": lambda: landmark_status_with_precedence(
+            outside_grid=False,
+            support_class="unknown_support_class",
+        ),
+        "stage4_crosscheck": hostile_stage4_ledger_mutation,
+        "aug07_nonaccess": lambda: validate_source_access(
+            "local_live_analysis/aug07/events.csv.gz",
+            source_role="r0_hyperliquid_bbo",
+            phase="feature_read",
+        ),
+        "deterministic_build": hostile_deterministic_build_mutation,
+        "output_schema": lambda: contracts.csv_bytes(
+            [{"field": "value", "unexpected": "mutation"}],
+            ("field",),
+        ),
+        "package_tree": hostile_package_tree_mutation,
+        "layered_identity": lambda: hostile_contract_state_mutation(
+            "layered_identity",
+            (
+                "R_from_17_files",
+                "reuse_old_C",
+                "reuse_old_E",
+                "composite_from_mixed_layers",
+            ),
+        ),
+        "manifest_self_exclusion": lambda: hostile_contract_state_mutation(
+            "manifest_self_exclusion", ("", 42)
+        ),
+        "atomic_publication": hostile_publication_overwrite_mutation,
+        "zero_external_action": lambda: validate_external_action_boundary(
+            ("network",)
+        ),
     }
-    if surface_id in mutation_checks:
-        try:
-            mutation_checks[surface_id]()
-        except contracts.H0BError:
-            raise contracts.H0BError(
-                expected_code,
-                surface_id,
-                "targeted mutation rejected",
-            )
+    contracts.require(
+        set(mutation_checks) == set(surfaces),
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        "$.negative_case.universe",
+        f"missing={sorted(set(surfaces) - set(mutation_checks))} "
+        f"extra={sorted(set(mutation_checks) - set(surfaces))}",
+    )
+    mutation_checks[surface_id]()
     raise contracts.H0BError(
-        expected_code,
+        HOSTILE_FAIL_OPEN_SENTINEL,
         surface_id,
-        "declared surface mutation rejected",
+        "targeted mutation failed open",
     )
 
 
@@ -876,6 +2359,7 @@ def hostile_preflight(
     task_path: Path,
     matrix_path: Path,
     output: Path,
+    write_surface_evidence: bool = True,
 ) -> dict[str, Any]:
     dispatch = validate_dispatch(task_path, matrix_path)
     matrix = read_json(matrix_path)
@@ -894,8 +2378,20 @@ def hostile_preflight(
         for source in (
             REPO_ROOT / "examples/hyperliquid/skhynix_stage_h0b.py",
             REPO_ROOT / "examples/hyperliquid/skhynix_stage_h0b_contracts.py",
+            REPO_ROOT / "examples/hyperliquid/test_skhynix_stage_h0b.py",
+            REPO_ROOT
+            / "examples/hyperliquid/test_skhynix_stage_h0b_package.py",
         ):
             shutil.copy2(source, frozen / source.name)
+        for source in (
+            H0A_ROOT / "h0a_manifest.json",
+            LATENCY_ROOT / "measurement_manifest.json",
+            TUPLE_ROOT / "supersession_manifest.json",
+            TUPLE_ROOT / "superseding_primary_tuple.json",
+        ):
+            destination = frozen_repo / source.relative_to(REPO_ROOT)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
         for surface in matrix["surfaces"]:
             mutation = surface["negative_mutations"][0]
             surface_id = surface["surface_id"]
@@ -951,15 +2447,21 @@ def hostile_preflight(
                     "error_code": payload["error"]["code"],
                 }
             )
+        frozen_runtime_source_tree_sha256 = runtime_source_tree_sha256(
+            frozen_repo
+        )
     fail_open_count = sum(
         row["expected_error_code"] != row["error_code"]
         for row in (*current_rows, *frozen_rows)
     )
     receipt = {
-        "schema_version": "skhynix_stage_h0b_hostile_preflight_v1",
+        "schema_version": "skhynix_stage_h0b_hostile_preflight_v2",
         "task_id": contracts.TASK_ID,
         "dispatch": dispatch,
         "runtime_source_tree_sha256": runtime_source_tree_sha256(),
+        "frozen_runtime_source_tree_sha256": (
+            frozen_runtime_source_tree_sha256
+        ),
         "surface_contract": current_rows,
         "frozen_surface_contract": frozen_rows,
         "current_negative_mutation_count": len(current_rows),
@@ -976,35 +2478,131 @@ def hostile_preflight(
         f"fail_open_count={fail_open_count}",
     )
     write_json(output, receipt)
-    for surface, current, frozen in zip(
-        matrix["surfaces"],
-        current_rows,
-        frozen_rows,
-    ):
-        for artifact in surface["artifacts"]:
-            if not artifact["path"].startswith(
-                ".workflow/reports/0823T002-surface-"
-            ):
-                continue
-            write_json(
-                REPO_ROOT / artifact["path"],
-                {
-                    "schema_version": (
-                        "skhynix_stage_h0b_surface_evidence_v1"
-                    ),
-                    "task_id": contracts.TASK_ID,
-                    "surface_id": surface["surface_id"],
-                    "mutation_id": current["mutation_id"],
-                    "current_error_code": current["error_code"],
-                    "frozen_error_code": frozen["error_code"],
-                    "expected_error_code": current[
-                        "expected_error_code"
-                    ],
-                    "current_and_frozen_rejected": True,
-                    "outcome_predicate_evaluated": False,
-                    "stage4_bytes_opened": False,
-                },
-            )
+    if write_surface_evidence:
+        for surface, current, frozen in zip(
+            matrix["surfaces"],
+            current_rows,
+            frozen_rows,
+        ):
+            for artifact in surface["artifacts"]:
+                if not artifact["path"].startswith(
+                    ".workflow/reports/0823T002-surface-"
+                ):
+                    continue
+                write_json(
+                    REPO_ROOT / artifact["path"],
+                    {
+                        "schema_version": (
+                            "skhynix_stage_h0b_surface_evidence_v1"
+                        ),
+                        "task_id": contracts.TASK_ID,
+                        "surface_id": surface["surface_id"],
+                        "mutation_id": current["mutation_id"],
+                        "current_error_code": current["error_code"],
+                        "frozen_error_code": frozen["error_code"],
+                        "expected_error_code": current[
+                            "expected_error_code"
+                        ],
+                        "current_and_frozen_rejected": True,
+                        "outcome_predicate_evaluated": False,
+                        "stage4_bytes_opened": False,
+                    },
+                )
+    return receipt
+
+
+def validate_hostile_preflight_receipt(
+    path: Path,
+    *,
+    matrix_path: Path,
+    expected_dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    receipt = read_json(path)
+    expected_keys = {
+        "schema_version",
+        "task_id",
+        "dispatch",
+        "runtime_source_tree_sha256",
+        "frozen_runtime_source_tree_sha256",
+        "surface_contract",
+        "frozen_surface_contract",
+        "current_negative_mutation_count",
+        "frozen_negative_mutation_count",
+        "fail_open_count",
+        "outcome_predicate_evaluated",
+        "stage4_bytes_opened",
+        "network_private_order_cancel_live_access",
+    }
+    contracts.require(
+        set(receipt) == expected_keys,
+        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+        str(path),
+        f"missing={sorted(expected_keys - set(receipt))} "
+        f"extra={sorted(set(receipt) - expected_keys)}",
+    )
+    contracts.require(
+        receipt["schema_version"]
+        == "skhynix_stage_h0b_hostile_preflight_v2"
+        and receipt["task_id"] == contracts.TASK_ID
+        and receipt["dispatch"] == dict(expected_dispatch)
+        and receipt["runtime_source_tree_sha256"]
+        == runtime_source_tree_sha256(),
+        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+        str(path),
+        "hostile receipt identity or runtime binding mismatch",
+    )
+    contracts.require(
+        receipt["frozen_runtime_source_tree_sha256"]
+        == receipt["runtime_source_tree_sha256"],
+        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+        str(path),
+        "frozen hostile runtime does not match current runtime inventory",
+    )
+    matrix = read_json(matrix_path)
+    declared = [
+        {
+            "mutation_id": surface["negative_mutations"][0]["mutation_id"],
+            "expected_error_code": surface["negative_mutations"][0][
+                "expected_error_code"
+            ],
+            "error_code": surface["negative_mutations"][0][
+                "expected_error_code"
+            ],
+        }
+        for surface in matrix["surfaces"]
+    ]
+    contracts.require(
+        receipt["surface_contract"] == declared
+        and receipt["frozen_surface_contract"] == declared,
+        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+        str(path),
+        "current and frozen hostile contracts must exactly match dispatch order",
+    )
+    count = len(declared)
+    fail_open_count = sum(
+        row["expected_error_code"] != row["error_code"]
+        for row in (
+            *receipt["surface_contract"],
+            *receipt["frozen_surface_contract"],
+        )
+    )
+    contracts.require(
+        receipt["current_negative_mutation_count"] == count
+        and receipt["frozen_negative_mutation_count"] == count
+        and receipt["fail_open_count"] == fail_open_count
+        and fail_open_count == 0,
+        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+        str(path),
+        "hostile mutation counts or fail-open count mismatch",
+    )
+    contracts.require(
+        receipt["outcome_predicate_evaluated"] is False
+        and receipt["stage4_bytes_opened"] is False
+        and receipt["network_private_order_cancel_live_access"] is False,
+        "H0B_EXTERNAL_ACTION_FORBIDDEN",
+        str(path),
+        "hostile preflight crossed a prohibited execution boundary",
+    )
     return receipt
 
 
@@ -1128,6 +2726,11 @@ def load_quote_events(
 
 def stage2_components() -> dict[tuple[str, str, str], tuple[FlowComponent, ...]]:
     path = STAGE2_ROOT / "candidate_episode_membership.csv.gz"
+    validate_source_access(
+        path.relative_to(REPO_ROOT).as_posix(),
+        source_role="accepted_stage2_primary",
+        phase="feature_read",
+    )
     expected = (
         "session_id",
         "candidate_id",
@@ -1208,6 +2811,11 @@ def stage2_components() -> dict[tuple[str, str, str], tuple[FlowComponent, ...]]
 
 def stage3_dose_events() -> dict[tuple[str, str, int], tuple[np.ndarray, np.ndarray]]:
     path = STAGE3_ROOT / "candidate_audit_projection.csv.gz"
+    validate_source_access(
+        path.relative_to(REPO_ROOT).as_posix(),
+        source_role="accepted_stage3_primary",
+        phase="feature_read",
+    )
     with gzip.open(path, "rt", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         expected_header = (
@@ -1641,14 +3249,26 @@ def build_session_dataset(
             / "segments"
             / segment.segment_id
         )
+        hyperliquid_path = r0_segment / "hyperliquid_hot_events.csv.gz"
+        binance_path = r0_segment / "binance_hot_events.csv.gz"
+        validate_source_access(
+            hyperliquid_path.relative_to(CANONICAL_SOURCE_ROOT).as_posix(),
+            source_role="r0_hyperliquid_bbo",
+            phase="feature_read",
+        )
+        validate_source_access(
+            binance_path.relative_to(CANONICAL_SOURCE_ROOT).as_posix(),
+            source_role="r0_binance_bookticker",
+            phase="feature_read",
+        )
         hyperliquid = load_quote_events(
-            r0_segment / "hyperliquid_hot_events.csv.gz",
+            hyperliquid_path,
             header=HYPERLIQUID_HEADER,
             event_type="bbo",
             segment_id=segment.segment_id,
         )
         binance = load_quote_events(
-            r0_segment / "binance_hot_events.csv.gz",
+            binance_path,
             header=BINANCE_HEADER,
             event_type="bookTicker",
             segment_id=segment.segment_id,
@@ -3415,6 +5035,11 @@ def rq3_rows(
 
 
 def latency_role_rows() -> list[dict[str, Any]]:
+    validate_latency_role_contract(
+        contracts.LATENCY_ROLES,
+        primary_latency_ms=contracts.PRIMARY_LATENCY_MS,
+        diagnostic_latency_ms=contracts.DIAGNOSTIC_LATENCY_MS,
+    )
     rows = []
     for latency_ms, role in sorted(contracts.LATENCY_ROLES.items()):
         rows.append(
@@ -3751,9 +5376,11 @@ def write_primary_seal(
         f"B={identity_b}/{classification_b}",
     )
     seal = {
-        "schema_version": "skhynix_stage_h0b_primary_result_seal_v1",
+        "schema_version": "skhynix_stage_h0b_primary_result_seal_v2",
         "task_id": contracts.TASK_ID,
-        "reviewed_plan_sha256": PLAN_SHA256,
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
         "surface_matrix_sha256": MATRIX_SHA256,
         "semantic_source_inventory_sha256": (
             EXPECTED_SEMANTIC_INVENTORY_SHA256
@@ -3772,6 +5399,175 @@ def write_primary_seal(
         contracts.fsync_file(path)
         contracts.fsync_directory(root)
     return seal
+
+
+def stage4_projection_contract_sha256() -> str:
+    return contracts.canonical_json_sha256(
+        {
+            "paths": [
+                {"relative_path": path, "sha256": sha256}
+                for path, sha256 in sorted(STAGE4_OUTCOMES.items())
+            ],
+            "full_header_sha256": STAGE4_HEADER_SHA256,
+            "projected_fields": list(STAGE4_PROJECTED_FIELDS),
+            "grid_ns": contracts.GRID_NS,
+            "horizon_ns": contracts.HORIZON_NS,
+            "censor_precedence": [
+                "grid_boundary",
+                "accepted_support_class",
+                "identified_event_or_no_event",
+            ],
+            "support_classes": list(contracts.IDENTIFICATION_CLASSES),
+            "eligible_rule": "both_h0b_and_stage4_50ms_endpoints_identified",
+        }
+    )
+
+
+def write_stage4_diagnostic_permit(build_root: Path) -> dict[str, Any]:
+    root = Path(build_root)
+    outcome_permit = validate_permit(root)
+    seal_path = root / "primary_result_seal.json"
+    seal = read_json(seal_path)
+    expected_seal_keys = {
+        "schema_version",
+        "task_id",
+        "primary_plan_sha256",
+        "diagnostic_plan_sha256",
+        "diagnostic_review_sha256",
+        "surface_matrix_sha256",
+        "semantic_source_inventory_sha256",
+        "build_a_primary_results_sha256",
+        "build_b_primary_results_sha256",
+        "primary_results_sha256",
+        "primary_classification_sha256",
+        "stage4_crosscheck_opened",
+        "sealed_fsynced",
+    }
+    contracts.require(
+        set(seal) == expected_seal_keys
+        and seal["task_id"] == contracts.TASK_ID
+        and seal["primary_plan_sha256"] == PRIMARY_PLAN_SHA256
+        and seal["diagnostic_plan_sha256"] == DIAGNOSTIC_PLAN_SHA256
+        and seal["diagnostic_review_sha256"] == DIAGNOSTIC_REVIEW_SHA256
+        and seal["surface_matrix_sha256"] == MATRIX_SHA256
+        and seal["semantic_source_inventory_sha256"]
+        == EXPECTED_SEMANTIC_INVENTORY_SHA256
+        and seal["sealed_fsynced"] is True
+        and seal["stage4_crosscheck_opened"] is False
+        and primary_results_identity(root)
+        == seal["primary_results_sha256"]
+        and contracts.sha256_file(root / "primary_classification.json")
+        == seal["primary_classification_sha256"],
+        "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+        str(seal_path),
+        "primary seal is absent, stale or invalid",
+    )
+    permit = {
+        "schema_version": "skhynix_stage_h0b_stage4_diagnostic_permit_v1",
+        "task_id": contracts.TASK_ID,
+        "build_label": outcome_permit["build_label"],
+        "status": "admitted",
+        "fsynced": True,
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
+        "surface_matrix_sha256": MATRIX_SHA256,
+        "runtime_source_tree_sha256": runtime_source_tree_sha256(),
+        "primary_seal_sha256": contracts.sha256_file(seal_path),
+        "primary_results_sha256": seal["primary_results_sha256"],
+        "primary_classification_sha256": seal[
+            "primary_classification_sha256"
+        ],
+        "stage4_projection_contract_sha256": (
+            stage4_projection_contract_sha256()
+        ),
+    }
+    path = root / "stage4_diagnostic_permit.json"
+    contracts.require(
+        not path.exists(),
+        "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+        str(path),
+        "diagnostic permit already exists",
+    )
+    write_json(path, permit, fsync=True)
+    contracts.fsync_directory(root)
+    permit_sha = contracts.sha256_file(path)
+    ledger_path = root / "outcome_access_ledger.json"
+    ledger = read_json(ledger_path)
+    ledger["events"].append(
+        {
+            "sequence": len(ledger["events"]) + 1,
+            "process_role": "H0B1_DIAGNOSTIC_PERMIT",
+            "phase": "post_primary_seal_permit",
+            "relative_path": "stage4_diagnostic_permit.json",
+            "access_kind": "fsync_write",
+            "bytes_read": 0,
+            "permit_sha256": permit_sha,
+            "admitted": True,
+        }
+    )
+    write_json(ledger_path, ledger, fsync=True)
+    return {
+        "verified": True,
+        "task_id": contracts.TASK_ID,
+        "build_label": permit["build_label"],
+        "diagnostic_permit_sha256": permit_sha,
+        "primary_seal_sha256": permit["primary_seal_sha256"],
+        "stage4_bytes_opened": False,
+    }
+
+
+def validate_stage4_diagnostic_permit(build_root: Path) -> dict[str, Any]:
+    root = Path(build_root)
+    outcome_permit = validate_permit(root)
+    path = root / "stage4_diagnostic_permit.json"
+    permit = read_json(path)
+    expected_keys = {
+        "schema_version",
+        "task_id",
+        "build_label",
+        "status",
+        "fsynced",
+        "primary_plan_sha256",
+        "diagnostic_plan_sha256",
+        "diagnostic_review_sha256",
+        "surface_matrix_sha256",
+        "runtime_source_tree_sha256",
+        "primary_seal_sha256",
+        "primary_results_sha256",
+        "primary_classification_sha256",
+        "stage4_projection_contract_sha256",
+    }
+    seal_path = root / "primary_result_seal.json"
+    seal = read_json(seal_path)
+    contracts.require(
+        set(permit) == expected_keys
+        and permit["schema_version"]
+        == "skhynix_stage_h0b_stage4_diagnostic_permit_v1"
+        and permit["task_id"] == contracts.TASK_ID
+        and permit["build_label"] == outcome_permit["build_label"]
+        and permit["status"] == "admitted"
+        and permit["fsynced"] is True
+        and permit["primary_plan_sha256"] == PRIMARY_PLAN_SHA256
+        and permit["diagnostic_plan_sha256"] == DIAGNOSTIC_PLAN_SHA256
+        and permit["diagnostic_review_sha256"]
+        == DIAGNOSTIC_REVIEW_SHA256
+        and permit["surface_matrix_sha256"] == MATRIX_SHA256
+        and permit["runtime_source_tree_sha256"]
+        == runtime_source_tree_sha256()
+        and permit["primary_seal_sha256"]
+        == contracts.sha256_file(seal_path)
+        and permit["primary_results_sha256"]
+        == seal["primary_results_sha256"]
+        and permit["primary_classification_sha256"]
+        == seal["primary_classification_sha256"]
+        and permit["stage4_projection_contract_sha256"]
+        == stage4_projection_contract_sha256(),
+        "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+        str(path),
+        "diagnostic permit mismatch",
+    )
+    return permit
 
 
 def stage2_jul30_membership() -> dict[str, dict[str, Any]]:
@@ -3801,6 +5597,11 @@ def stage2_jul30_membership() -> dict[str, dict[str, Any]]:
 
 
 def read_stage4_projection(path: Path, expected_sha256: str) -> list[dict[str, str]]:
+    validate_source_access(
+        path.relative_to(REPO_ROOT).as_posix(),
+        source_role="accepted_stage4_outcome",
+        phase="post_primary_seal_stage4",
+    )
     contracts.require(
         contracts.sha256_file(path) == expected_sha256,
         "H0B_STAGE4_PROJECTION_MISMATCH",
@@ -3850,9 +5651,323 @@ def read_stage4_projection(path: Path, expected_sha256: str) -> list[dict[str, s
     return result
 
 
-def h0b_landmark_events(
+LANDMARK_CENSOR_STATUS_BY_SUPPORT_CLASS = {
+    "interval_likelihood_only_supported": (
+        "diagnostic_censored_interval_likelihood_only"
+    ),
+    "right_censored_segment": (
+        "diagnostic_censored_right_censored_segment"
+    ),
+    "right_censored_source_end": (
+        "diagnostic_censored_right_censored_source_end"
+    ),
+    "epoch_censored": "diagnostic_censored_epoch_censored",
+    "core_quality_censored": (
+        "diagnostic_censored_core_quality_censored"
+    ),
+    "source_gap_censored": (
+        "diagnostic_censored_source_gap_censored"
+    ),
+    "reference_quote_unavailable": (
+        "diagnostic_censored_reference_quote_unavailable"
+    ),
+    "invalid_quote_state": "diagnostic_censored_invalid_quote_state",
+}
+
+
+def landmark_status_from_support_class(
+    support_class: str,
+    *,
+    event: bool | None = None,
+) -> str:
+    contracts.require(
+        support_class in contracts.IDENTIFICATION_CLASSES,
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+        "$.landmark_support_class",
+        support_class,
+    )
+    if support_class == "binary_identification_supported":
+        contracts.require(
+            event is not None,
+            "H0B_STAGE4_PROJECTION_MISMATCH",
+            "$.landmark_event",
+            "binary-identified landmark requires event/no-event",
+        )
+        return "identified_event" if event else "identified_no_event"
+    contracts.require(
+        event is None,
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+        "$.landmark_event",
+        f"censored support class {support_class} cannot carry an event",
+    )
+    return LANDMARK_CENSOR_STATUS_BY_SUPPORT_CLASS[support_class]
+
+
+def accepted_h0a_support_class(
+    *,
+    reference_available: bool,
+    reference_valid: bool,
+    target_inside_segment: bool,
+    same_epoch: bool,
+    core_quality_eligible: bool,
+    source_gap: bool,
+    source_ended: bool,
+    endpoint_closed: bool,
+    interval_bounds_supported: bool,
+) -> str:
+    facts = h0a_support.classify_support(
+        reference_available=reference_available,
+        reference_valid=reference_valid,
+        target_inside_segment=target_inside_segment,
+        same_epoch=same_epoch,
+        core_quality_eligible=core_quality_eligible,
+        source_gap=source_gap,
+        source_ended=source_ended,
+        endpoint_closed=endpoint_closed,
+        interval_bounds_supported=interval_bounds_supported,
+    )
+    contracts.require(
+        facts.identification_class in contracts.IDENTIFICATION_CLASSES,
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+        "$.accepted_h0a_support_class",
+        facts.identification_class,
+    )
+    return facts.identification_class
+
+
+@dataclass(frozen=True)
+class AcceptedH0ASupportState:
+    reference_available: bool
+    reference_valid: bool
+    target_inside_segment: bool
+    same_epoch: bool
+    core_quality_eligible: bool
+    source_gap: bool
+    source_ended: bool
+    endpoint_closed: bool
+    interval_bounds_supported: bool
+
+
+def accepted_h0a_support_class_from_state(
+    state: AcceptedH0ASupportState,
+) -> str:
+    return accepted_h0a_support_class(**state.__dict__)
+
+
+def accepted_h0a_support_state(
+    *,
+    reference_available: bool,
+    reference_valid: bool,
+    target_inside_segment: bool,
+) -> AcceptedH0ASupportState:
+    return AcceptedH0ASupportState(
+        reference_available=reference_available,
+        reference_valid=reference_valid,
+        target_inside_segment=target_inside_segment,
+        same_epoch=target_inside_segment,
+        core_quality_eligible=True,
+        source_gap=False,
+        source_ended=False,
+        endpoint_closed=target_inside_segment,
+        interval_bounds_supported=True,
+    )
+
+
+def accepted_h0a_support_by_grid(
+    segment: Any,
+    *,
+    accepted_commitment: Mapping[str, str],
+    requested_grid_ns: set[int],
+) -> tuple[dict[int, str], Counter[str]]:
+    first, last, nominal_count = h0a_support.segment_grid_bounds(
+        segment.start_ns,
+        segment.end_ns,
+    )
+    timestamps = np.asarray(
+        [row.local_ts_ns for row in segment.bbo],
+        dtype=np.int64,
+    )
+    validity = np.asarray(
+        [row.valid for row in segment.bbo],
+        dtype=bool,
+    )
+    grid = np.arange(
+        first,
+        last + contracts.GRID_NS,
+        contracts.GRID_NS,
+        dtype=np.int64,
+    )
+    contracts.require(
+        grid.size == nominal_count,
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+        segment.segment_id,
+        "accepted H0-A nominal grid count mismatch",
+    )
+    reference = np.searchsorted(timestamps, grid, side="right") - 1
+    result: dict[int, str] = {}
+    counts: Counter[str] = Counter(
+        {name: 0 for name in contracts.IDENTIFICATION_CLASSES}
+    )
+    projection_hasher = hashlib.sha256()
+    for grid_ts_ns, reference_index in zip(
+        grid.tolist(),
+        reference.tolist(),
+    ):
+        available = reference_index >= 0
+        valid = available and bool(validity[reference_index])
+        state = accepted_h0a_support_state(
+            reference_available=available,
+            reference_valid=valid,
+            target_inside_segment=(
+                grid_ts_ns + contracts.HORIZON_NS < segment.end_ns
+            ),
+        )
+        support_class = accepted_h0a_support_class_from_state(state)
+        if grid_ts_ns in requested_grid_ns:
+            result[grid_ts_ns] = support_class
+        counts[support_class] += 1
+        block_start = (grid_ts_ns // contracts.BLOCK_NS) * (
+            contracts.BLOCK_NS
+        )
+        last_start = (
+            block_start + contracts.BLOCK_NS - contracts.GRID_NS
+        )
+        block_id = (
+            f"{segment.session_id}:{block_start}"
+            if block_start >= segment.start_ns
+            and block_start + contracts.BLOCK_NS <= segment.end_ns
+            and last_start + contracts.HORIZON_NS < segment.end_ns
+            else ""
+        )
+        projection_hasher.update(
+            h0a_support.canonical_json_bytes(
+                {
+                    "binary_endpoint_identification_supported": (
+                        support_class
+                        == "binary_identification_supported"
+                    ),
+                    "complete_60s_block_id_or_empty": block_id,
+                    "connection_epoch_id": segment.connection_epoch_id,
+                    "grid_ts_ns": grid_ts_ns,
+                    "horizon_ms": 50,
+                    "identification_class": support_class,
+                    "interval_likelihood_eligible": support_class
+                    in {
+                        "binary_identification_supported",
+                        "interval_likelihood_only_supported",
+                    },
+                    "observation_bound_contract_id": (
+                        h0a_support.OBSERVATION_BOUND_CONTRACT_ID
+                    ),
+                    "quality_eligible": support_class
+                    not in {
+                        "core_quality_censored",
+                        "source_gap_censored",
+                    },
+                    "schema_version": "h0a_support_projection_tuple_v1",
+                    "segment_id": segment.segment_id,
+                    "session_id": segment.session_id,
+                }
+            )
+            + b"\n"
+        )
+    contracts.require(
+        accepted_commitment["connection_epoch_id"]
+        == segment.connection_epoch_id
+        and int(accepted_commitment["support_projection_row_count"])
+        == nominal_count
+        and int(accepted_commitment["first_grid_ts_ns"]) == first
+        and int(accepted_commitment["last_grid_ts_ns"]) == last
+        and accepted_commitment["support_projection_sha256"]
+        == projection_hasher.hexdigest(),
+        "H0B_SUPPORT_COMMITMENT_MISMATCH",
+        segment.segment_id,
+        "accepted H0-A 50ms per-grid support projection mismatch",
+    )
+    contracts.require(
+        set(result) == requested_grid_ns,
+        "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+        segment.segment_id,
+        "requested accepted support landmarks were not resolved",
+    )
+    return result, counts
+
+
+def accepted_h0a_50ms_commitments() -> dict[str, dict[str, str]]:
+    path = H0A_ROOT / "support_projection_commitments.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        contracts.require(
+            tuple(reader.fieldnames or ()) == h0a_support.COMMITMENT_FIELDS,
+            "H0B_SUPPORT_COMMITMENT_MISMATCH",
+            str(path),
+            "accepted H0-A commitment header mismatch",
+        )
+        rows = {
+            row["segment_id"]: row
+            for row in reader
+            if row["session_id"] == "jul30"
+            and row["horizon_ms"] == "50"
+        }
+    contracts.require(
+        set(rows)
+        == {f"segment_{index:04d}" for index in range(1, 9)},
+        "H0B_SUPPORT_COMMITMENT_MISMATCH",
+        str(path),
+        "Jul30 50ms segment commitment set mismatch",
+    )
+    return rows
+
+
+def accepted_h0a_50ms_class_counts() -> Counter[str]:
+    path = H0A_ROOT / "censoring_identification_by_horizon.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        contracts.require(
+            tuple(reader.fieldnames or ()) == h0a_support.CENSOR_FIELDS,
+            "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+            str(path),
+            "accepted H0-A censor census header mismatch",
+        )
+        rows = [
+            row
+            for row in reader
+            if row["session_id"] == "jul30"
+            and row["horizon_ms"] == "50"
+        ]
+    counts = Counter(
+        {
+            row["identification_class"]: int(row["grid_count"])
+            for row in rows
+        }
+    )
+    contracts.require(
+        len(rows) == len(contracts.IDENTIFICATION_CLASSES)
+        and set(counts) == set(contracts.IDENTIFICATION_CLASSES),
+        "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+        str(path),
+        "accepted Jul30 50ms support class universe mismatch",
+    )
+    return counts
+
+
+def landmark_status_with_precedence(
+    *,
+    outside_grid: bool,
+    support_class: str,
+    event: bool | None = None,
+) -> str:
+    if outside_grid:
+        return "diagnostic_censored_grid_boundary"
+    return landmark_status_from_support_class(
+        support_class,
+        event=event,
+    )
+
+
+def h0b_landmark_statuses(
     landmarks: Mapping[str, list[tuple[str, int, str]]],
-) -> dict[str, bool]:
+) -> dict[str, str]:
     sessions = h0a_support.load_sessions(CANONICAL_SOURCE_ROOT)
     spec = next(
         item
@@ -3863,7 +5978,40 @@ def h0b_landmark_events(
         segment.segment_id: segment
         for segment in sessions["jul30"]
     }
-    result: dict[str, bool] = {}
+    result: dict[str, str] = {}
+    accepted_support_maps: dict[str, dict[int, str]] = {}
+    accepted_support_counts: Counter[str] = Counter()
+    accepted_commitments = accepted_h0a_50ms_commitments()
+    for segment_id, segment in segment_map.items():
+        first, last, _ = h0a_support.segment_grid_bounds(
+            segment.start_ns,
+            segment.end_ns,
+        )
+        requested_grid_ns = {
+            int(value[1])
+            for value in landmarks.get(segment_id, [])
+            if first <= int(value[1]) <= last
+        }
+        support_map, support_counts = accepted_h0a_support_by_grid(
+            segment,
+            accepted_commitment=accepted_commitments[segment_id],
+            requested_grid_ns=requested_grid_ns,
+        )
+        accepted_support_maps[segment_id] = support_map
+        accepted_support_counts.update(support_counts)
+    contracts.require(
+        sum(accepted_support_counts.values())
+        == sum(
+            int(row["support_projection_row_count"])
+            for row in accepted_commitments.values()
+        )
+        and accepted_support_counts == accepted_h0a_50ms_class_counts()
+        and set(accepted_support_counts)
+        == set(contracts.IDENTIFICATION_CLASSES),
+        "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+        "$.jul30.accepted_support",
+        "accepted support universe or count mismatch",
+    )
     for segment_id, values in landmarks.items():
         segment = segment_map[segment_id]
         path = (
@@ -3880,34 +6028,389 @@ def h0b_landmark_events(
             segment_id=segment_id,
         )
         grid = np.asarray([value[1] for value in values], dtype=np.int64)
+        first, last, _ = h0a_support.segment_grid_bounds(
+            segment.start_ns,
+            segment.end_ns,
+        )
         reference = (
             np.searchsorted(events.local_ts_ns, grid, side="right") - 1
         )
-        contracts.require(
-            np.logical_and(reference >= 0, events.valid[np.maximum(reference, 0)]).all()
-            and (grid + contracts.HORIZON_NS < segment.end_ns).all(),
-            "H0B_STAGE4_PROJECTION_MISMATCH",
-            segment_id,
-            "landmark is outside accepted H0-B grid support",
+        outside_grid = np.logical_or(grid < first, grid > last)
+        support_classes = np.asarray(
+            [
+                (
+                    "binary_identification_supported"
+                    if outside_grid[index]
+                    else accepted_support_maps[segment_id][int(timestamp)]
+                )
+                for index, timestamp in enumerate(grid.tolist())
+            ],
+            dtype=object,
         )
+        for position in np.flatnonzero(outside_grid).tolist():
+            result[values[position][0]] = landmark_status_with_precedence(
+                outside_grid=True,
+                support_class=str(support_classes[position]),
+            )
         for side in contracts.SIDES:
             side_positions = [
                 index
                 for index, value in enumerate(values)
                 if value[2] == side
+                and not outside_grid[index]
+                and support_classes[index]
+                == "binary_identification_supported"
             ]
-            if not side_positions:
+            if side_positions:
+                selected = np.asarray(side_positions, dtype=np.int64)
+                _, _, _, event = event_geometry(
+                    grid=grid[selected],
+                    reference_indexes=reference[selected],
+                    events=events,
+                    side=side,
+                )
+                for position, event_value in zip(
+                    selected.tolist(),
+                    event.tolist(),
+                ):
+                    result[values[position][0]] = (
+                        landmark_status_with_precedence(
+                            outside_grid=False,
+                            support_class=(
+                                "binary_identification_supported"
+                            ),
+                            event=bool(event_value),
+                        )
+                    )
+        for position, support_class in enumerate(support_classes.tolist()):
+            candidate = values[position][0]
+            if candidate in result:
                 continue
-            selected = np.asarray(side_positions, dtype=np.int64)
-            _, _, _, event = event_geometry(
-                grid=grid[selected],
-                reference_indexes=reference[selected],
-                events=events,
-                side=side,
+            result[candidate] = landmark_status_with_precedence(
+                outside_grid=False,
+                support_class=str(support_class),
             )
-            for position, event_value in zip(selected.tolist(), event.tolist()):
-                result[values[position][0]] = bool(event_value)
+    contracts.require(
+        len(result) == sum(len(values) for values in landmarks.values()),
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+        "$.h0b_landmark_statuses",
+        "candidate status conservation failure",
+    )
     return result
+
+
+LANDMARK_CENSOR_COUNT_FIELD = {
+    "diagnostic_censored_grid_boundary": (
+        "h0b_grid_boundary_censored_count"
+    ),
+    "diagnostic_censored_interval_likelihood_only": (
+        "h0b_interval_likelihood_only_censored_count"
+    ),
+    "diagnostic_censored_right_censored_segment": (
+        "h0b_right_censored_segment_count"
+    ),
+    "diagnostic_censored_right_censored_source_end": (
+        "h0b_right_censored_source_end_count"
+    ),
+    "diagnostic_censored_epoch_censored": "h0b_epoch_censored_count",
+    "diagnostic_censored_core_quality_censored": (
+        "h0b_core_quality_censored_count"
+    ),
+    "diagnostic_censored_source_gap_censored": (
+        "h0b_source_gap_censored_count"
+    ),
+    "diagnostic_censored_reference_quote_unavailable": (
+        "h0b_reference_quote_unavailable_count"
+    ),
+    "diagnostic_censored_invalid_quote_state": (
+        "h0b_invalid_quote_state_count"
+    ),
+}
+
+
+def stage4_endpoint_status(
+    row: Mapping[str, str],
+    *,
+    endpoint_ns: int,
+) -> str:
+    status = row["time_to_first_adverse_target_bbo_event_status"]
+    upper_text = row[
+        "time_to_first_adverse_target_bbo_event_interval_upper_ns"
+    ]
+    censor_text = row[
+        "time_to_first_adverse_target_bbo_event_censor_time_ns"
+    ]
+    if status == "interval_censored" and upper_text:
+        if int(upper_text) <= endpoint_ns:
+            return "identified_event"
+        return "diagnostic_censored"
+    if (
+        status == "right_censored"
+        and censor_text
+        and int(censor_text) >= endpoint_ns
+    ):
+        return "identified_no_event"
+    return "diagnostic_censored"
+
+
+def update_stage4_crosscheck_counter(
+    counter: Counter[str],
+    *,
+    h0b_status: str,
+    stage4_status: str,
+) -> None:
+    allowed_h0b = {
+        "identified_event",
+        "identified_no_event",
+        *LANDMARK_CENSOR_COUNT_FIELD,
+    }
+    allowed_stage4 = {
+        "identified_event",
+        "identified_no_event",
+        "diagnostic_censored",
+    }
+    contracts.require(
+        h0b_status in allowed_h0b and stage4_status in allowed_stage4,
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+        "$.crosscheck.status",
+        f"h0b={h0b_status} stage4={stage4_status}",
+    )
+    counter["joined_count"] += 1
+    h0b_identified = h0b_status.startswith("identified_")
+    stage4_identified = stage4_status.startswith("identified_")
+    if h0b_identified:
+        counter["h0b_identified_count"] += 1
+    else:
+        counter["h0b_censored_count"] += 1
+        counter[LANDMARK_CENSOR_COUNT_FIELD[h0b_status]] += 1
+    if stage4_identified:
+        counter["stage4_identified_count"] += 1
+    else:
+        counter["stage4_censored_count"] += 1
+    if not h0b_identified and not stage4_identified:
+        counter["both_censored_count"] += 1
+        counter["censored_count"] += 1
+        return
+    if not h0b_identified:
+        counter["h0b_only_censored_count"] += 1
+        counter["censored_count"] += 1
+        return
+    if not stage4_identified:
+        counter["stage4_only_censored_count"] += 1
+        counter["censored_count"] += 1
+        return
+    counter["eligible_count"] += 1
+    h0b_event = h0b_status == "identified_event"
+    stage4_event = stage4_status == "identified_event"
+    counter["h0b_event_count"] += int(h0b_event)
+    counter["stage4_event_count"] += int(stage4_event)
+    if h0b_event and stage4_event:
+        counter["both_event_count"] += 1
+    elif h0b_event:
+        counter["h0b_only_count"] += 1
+    elif stage4_event:
+        counter["stage4_only_count"] += 1
+    else:
+        counter["neither_count"] += 1
+
+
+def stage4_crosscheck_row(
+    *,
+    scope: str,
+    segment_id: str,
+    side: str,
+    counter: Counter[str],
+    direction_match: bool,
+    naming_match: bool,
+) -> dict[str, Any]:
+    h0b_censor_sum = sum(
+        counter[field]
+        for field in LANDMARK_CENSOR_COUNT_FIELD.values()
+    )
+    contracts.require(
+        counter["joined_count"]
+        == counter["h0b_identified_count"] + counter["h0b_censored_count"]
+        and counter["h0b_censored_count"] == h0b_censor_sum
+        and counter["joined_count"]
+        == counter["stage4_identified_count"]
+        + counter["stage4_censored_count"]
+        and counter["h0b_censored_count"]
+        == counter["h0b_only_censored_count"]
+        + counter["both_censored_count"]
+        and counter["stage4_censored_count"]
+        == counter["stage4_only_censored_count"]
+        + counter["both_censored_count"]
+        and counter["censored_count"]
+        == counter["h0b_only_censored_count"]
+        + counter["stage4_only_censored_count"]
+        + counter["both_censored_count"]
+        and counter["joined_count"]
+        == counter["eligible_count"] + counter["censored_count"]
+        and counter["eligible_count"]
+        == counter["both_event_count"]
+        + counter["h0b_only_count"]
+        + counter["stage4_only_count"]
+        + counter["neither_count"]
+        and counter["h0b_event_count"]
+        == counter["both_event_count"] + counter["h0b_only_count"]
+        and counter["stage4_event_count"]
+        == counter["both_event_count"] + counter["stage4_only_count"]
+        and all(value >= 0 for value in counter.values()),
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+        f"$.crosscheck.{scope}.{segment_id}.{side}",
+        "count conservation failure",
+    )
+    eligible = counter["eligible_count"]
+    return {
+        "scope": scope,
+        "session": "jul30",
+        "segment_id": segment_id,
+        "side": side,
+        **{
+            field: counter[field]
+            for field in contracts.CSV_HEADERS[
+                "diagnostics/stage4_landmark_crosscheck.csv"
+            ]
+            if field.endswith("_count")
+        },
+        "h0b_event_rate": (
+            counter["h0b_event_count"] / eligible if eligible else None
+        ),
+        "stage4_event_rate": (
+            counter["stage4_event_count"] / eligible if eligible else None
+        ),
+        "agreement_fraction": (
+            (
+                counter["both_event_count"]
+                + counter["neither_count"]
+            )
+            / eligible
+            if eligible
+            else None
+        ),
+        "direction_mapping_match": direction_match,
+        "quote_risk_naming_match": naming_match,
+        "primary_seal_unchanged": True,
+    }
+
+
+def validate_diagnostic_permit_pair(
+    permit_a: Mapping[str, Any],
+    permit_b: Mapping[str, Any],
+    *,
+    primary_seal_sha256: str,
+) -> None:
+    contracts.require(
+        permit_a["build_label"] == "A"
+        and permit_b["build_label"] == "B"
+        and permit_a["primary_seal_sha256"]
+        == permit_b["primary_seal_sha256"]
+        == primary_seal_sha256
+        and permit_a["diagnostic_permit_sha256"]
+        != permit_b["diagnostic_permit_sha256"]
+        and permit_a["stage4_bytes_opened"] is False
+        and permit_b["stage4_bytes_opened"] is False,
+        "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+        "$.diagnostic_permits",
+        "A/B diagnostic permit contract mismatch",
+    )
+
+
+def validate_stage4_access_ledger(
+    ledger: Mapping[str, Any],
+    *,
+    build_label: str,
+    diagnostic_permit_sha256: str,
+) -> None:
+    events = ledger["events"]
+    event_keys = {
+        "sequence",
+        "process_role",
+        "phase",
+        "relative_path",
+        "access_kind",
+        "bytes_read",
+        "permit_sha256",
+        "admitted",
+    }
+    contracts.require(
+        isinstance(events, list)
+        and all(
+            isinstance(event, Mapping) and set(event) == event_keys
+            for event in events
+        ),
+        "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+        f"$.ledger.{build_label}.events",
+        "ledger event schema mismatch",
+    )
+    expected_stage4_paths = {
+        (
+            STAGE4_ROOT.relative_to(REPO_ROOT)
+            / relative
+        ).as_posix()
+        for relative in STAGE4_OUTCOMES
+    }
+    permit_events = [
+        event
+        for event in events
+        if event["phase"] == "post_primary_seal_permit"
+    ]
+    stage4_events = [
+        event
+        for event in events
+        if event["phase"] == "post_primary_seal_stage4"
+    ]
+    diagnostic_like_events = [
+        event
+        for event in events
+        if event["process_role"]
+        in {"H0B1_DIAGNOSTIC_PERMIT", "H0B1_DIAGNOSTIC"}
+        or event["relative_path"] == "stage4_diagnostic_permit.json"
+        or event["relative_path"] in expected_stage4_paths
+        or event["permit_sha256"] == diagnostic_permit_sha256
+    ]
+    contracts.require(
+        ledger["schema_version"]
+        == "skhynix_stage_h0b_outcome_access_ledger_v1"
+        and ledger["task_id"] == contracts.TASK_ID
+        and ledger["build_label"] == build_label
+        and [event["sequence"] for event in events]
+        == list(range(1, len(events) + 1))
+        and len(permit_events) == 1
+        and permit_events[0]["process_role"]
+        == "H0B1_DIAGNOSTIC_PERMIT"
+        and permit_events[0]["relative_path"]
+        == "stage4_diagnostic_permit.json"
+        and permit_events[0]["access_kind"] == "fsync_write"
+        and permit_events[0]["bytes_read"] == 0
+        and permit_events[0]["permit_sha256"]
+        == diagnostic_permit_sha256
+        and permit_events[0]["admitted"] is True
+        and len(stage4_events) == len(STAGE4_OUTCOMES)
+        and diagnostic_like_events == [
+            permit_events[0],
+            *stage4_events,
+        ]
+        and events[permit_events[0]["sequence"] - 1 :]
+        == [permit_events[0], *stage4_events]
+        and {
+            event["relative_path"]
+            for event in stage4_events
+        }
+        == expected_stage4_paths
+        and all(
+            event["sequence"] > permit_events[0]["sequence"]
+            and event["process_role"] == "H0B1_DIAGNOSTIC"
+            and event["access_kind"] == "exact_11_field_projection"
+            and event["bytes_read"] > 0
+            and event["permit_sha256"] == diagnostic_permit_sha256
+            and event["admitted"] is True
+            for event in stage4_events
+        ),
+        "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+        f"$.ledger.{build_label}",
+        "diagnostic permit or Stage 4 access ordering mismatch",
+    )
 
 
 def run_stage4_diagnostic(
@@ -3915,13 +6418,16 @@ def run_stage4_diagnostic(
     build_root: Path,
 ) -> dict[str, Any]:
     root = Path(build_root)
-    validate_permit(root)
+    diagnostic_permit = validate_stage4_diagnostic_permit(root)
     seal_path = root / "primary_result_seal.json"
     seal_raw = seal_path.read_bytes()
     seal = read_json(seal_path)
     contracts.require(
         seal["sealed_fsynced"] is True
         and seal["stage4_crosscheck_opened"] is False
+        and seal["primary_plan_sha256"] == PRIMARY_PLAN_SHA256
+        and seal["diagnostic_plan_sha256"] == DIAGNOSTIC_PLAN_SHA256
+        and seal["diagnostic_review_sha256"] == DIAGNOSTIC_REVIEW_SHA256
         and primary_results_identity(root)
         == seal["primary_results_sha256"]
         and contracts.sha256_file(root / "primary_classification.json")
@@ -3931,11 +6437,15 @@ def run_stage4_diagnostic(
         "primary seal is absent, stale or already opened",
     )
     membership = stage2_jul30_membership()
-    projected_rows = []
+    projected_rows: list[dict[str, str]] = []
     for relative, expected_sha in STAGE4_OUTCOMES.items():
-        projected_rows.extend(
-            read_stage4_projection(STAGE4_ROOT / relative, expected_sha)
-        )
+        segment_id = Path(relative).name.removesuffix(".csv.gz")
+        for row in read_stage4_projection(
+            STAGE4_ROOT / relative,
+            expected_sha,
+        ):
+            row["_stage4_segment_id"] = segment_id
+            projected_rows.append(row)
     joined = []
     observed_candidates = set()
     landmarks: dict[str, list[tuple[str, int, str]]] = defaultdict(list)
@@ -3951,10 +6461,12 @@ def run_stage4_diagnostic(
         source = membership[candidate]
         candidate_ts = int(row["t_candidate_ns"])
         contracts.require(
-            candidate_ts == source["shock_ts_ns"],
+            candidate_ts == source["shock_ts_ns"]
+            and row["_stage4_segment_id"] == source["segment_id"]
+            and str(source["connection_epoch_id"]) == "0",
             "H0B_STAGE4_PROJECTION_MISMATCH",
             candidate,
-            "t_candidate_ns differs from accepted shock_ts_ns",
+            "timestamp, path segment or accepted epoch drift",
         )
         direction = source["direction_sign"]
         contracts.require(
@@ -3964,54 +6476,30 @@ def run_stage4_diagnostic(
             f"direction_sign={direction}",
         )
         side = "maker_ask_risk" if direction == 1 else "maker_bid_risk"
-        grid = (
-            candidate_ts // contracts.GRID_NS * contracts.GRID_NS
-        )
+        grid = candidate_ts // contracts.GRID_NS * contracts.GRID_NS
         landmarks[source["segment_id"]].append((candidate, grid, side))
-        joined.append((row, source, side, grid))
+        joined.append((row, source, side))
     contracts.require(
         observed_candidates == set(membership),
         "H0B_STAGE4_PROJECTION_MISMATCH",
         "$.candidate_conservation",
         f"stage4={len(observed_candidates)} stage2={len(membership)}",
     )
-    h0b_events = h0b_landmark_events(landmarks)
-    aggregate: dict[
-        tuple[str, str],
-        Counter[str],
-    ] = defaultdict(Counter)
+    h0b_statuses = h0b_landmark_statuses(landmarks)
+    aggregate: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     direction_match = True
     naming_match = True
-    for row, source, side, _ in joined:
+    for row, source, side in joined:
         key = (source["segment_id"], side)
-        status = row[
-            "time_to_first_adverse_target_bbo_event_status"
-        ]
-        upper_text = row[
-            "time_to_first_adverse_target_bbo_event_interval_upper_ns"
-        ]
-        censor_text = row[
-            "time_to_first_adverse_target_bbo_event_censor_time_ns"
-        ]
         endpoint = source["shock_ts_ns"] + contracts.HORIZON_NS
-        stage4_event: bool | None
-        if status == "interval_censored" and upper_text:
-            stage4_event = int(upper_text) <= endpoint
-            if not stage4_event:
-                stage4_event = None
-        elif (
-            status == "right_censored"
-            and censor_text
-            and int(censor_text) >= endpoint
-        ):
-            stage4_event = False
-        else:
-            stage4_event = None
-        available = (
-            row["public_quote_risk_availability"] == "available"
-        )
+        h0b_status = h0b_statuses[row["candidate_id"]]
+        stage4_status = stage4_endpoint_status(row, endpoint_ns=endpoint)
+        available = row["public_quote_risk_availability"] == "available"
         if available:
-            expected_boolean = status == "interval_censored"
+            expected_boolean = (
+                row["time_to_first_adverse_target_bbo_event_status"]
+                == "interval_censored"
+            )
             naming_match = naming_match and (
                 (row["public_bbo_moves_through_quote"] == "true")
                 == expected_boolean
@@ -4024,21 +6512,11 @@ def run_stage4_diagnostic(
             )
         )
         counter = aggregate[key]
-        if stage4_event is None:
-            counter["censored"] += 1
-            continue
-        counter["eligible"] += 1
-        h0b_event = h0b_events[row["candidate_id"]]
-        counter["h0b_event"] += int(h0b_event)
-        counter["stage4_event"] += int(stage4_event)
-        if h0b_event and stage4_event:
-            counter["both"] += 1
-        elif h0b_event:
-            counter["h0b_only"] += 1
-        elif stage4_event:
-            counter["stage4_only"] += 1
-        else:
-            counter["neither"] += 1
+        update_stage4_crosscheck_counter(
+            counter,
+            h0b_status=h0b_status,
+            stage4_status=stage4_status,
+        )
     rows = []
     for (segment_id, side), counter in sorted(
         aggregate.items(),
@@ -4047,83 +6525,44 @@ def run_stage4_diagnostic(
             contracts.SIDE_ORDER[item[0][1]],
         ),
     ):
-        eligible = counter["eligible"]
         rows.append(
-            {
-                "scope": "segment",
-                "session": "jul30",
-                "segment_id": segment_id,
-                "side": side,
-                "eligible_count": eligible,
-                "censored_count": counter["censored"],
-                "h0b_event_count": counter["h0b_event"],
-                "stage4_event_count": counter["stage4_event"],
-                "both_event_count": counter["both"],
-                "h0b_only_count": counter["h0b_only"],
-                "stage4_only_count": counter["stage4_only"],
-                "neither_count": counter["neither"],
-                "h0b_event_rate": (
-                    counter["h0b_event"] / eligible if eligible else None
-                ),
-                "stage4_event_rate": (
-                    counter["stage4_event"] / eligible if eligible else None
-                ),
-                "agreement_fraction": (
-                    (counter["both"] + counter["neither"]) / eligible
-                    if eligible
-                    else None
-                ),
-                "direction_mapping_match": direction_match,
-                "quote_risk_naming_match": naming_match,
-                "primary_seal_unchanged": True,
-            }
+            stage4_crosscheck_row(
+                scope="segment",
+                segment_id=segment_id,
+                side=side,
+                counter=counter,
+                direction_match=direction_match,
+                naming_match=naming_match,
+            )
         )
+    count_fields = [
+        field
+        for field in contracts.CSV_HEADERS[
+            "diagnostics/stage4_landmark_crosscheck.csv"
+        ]
+        if field.endswith("_count")
+    ]
     for side in contracts.SIDES:
-        selected = [row for row in rows if row["side"] == side]
-        totals = Counter()
-        for row in selected:
-            totals["eligible"] += row["eligible_count"]
-            totals["censored"] += row["censored_count"]
-            totals["h0b_event"] += row["h0b_event_count"]
-            totals["stage4_event"] += row["stage4_event_count"]
-            totals["both"] += row["both_event_count"]
-            totals["h0b_only"] += row["h0b_only_count"]
-            totals["stage4_only"] += row["stage4_only_count"]
-            totals["neither"] += row["neither_count"]
-        eligible = totals["eligible"]
+        totals: Counter[str] = Counter()
+        for (_, observed_side), counter in aggregate.items():
+            if observed_side != side:
+                continue
+            for field in count_fields:
+                totals[field] += counter[field]
         rows.append(
-            {
-                "scope": "session",
-                "session": "jul30",
-                "segment_id": "ALL",
-                "side": side,
-                "eligible_count": eligible,
-                "censored_count": totals["censored"],
-                "h0b_event_count": totals["h0b_event"],
-                "stage4_event_count": totals["stage4_event"],
-                "both_event_count": totals["both"],
-                "h0b_only_count": totals["h0b_only"],
-                "stage4_only_count": totals["stage4_only"],
-                "neither_count": totals["neither"],
-                "h0b_event_rate": (
-                    totals["h0b_event"] / eligible if eligible else None
-                ),
-                "stage4_event_rate": (
-                    totals["stage4_event"] / eligible if eligible else None
-                ),
-                "agreement_fraction": (
-                    (totals["both"] + totals["neither"]) / eligible
-                    if eligible
-                    else None
-                ),
-                "direction_mapping_match": direction_match,
-                "quote_risk_naming_match": naming_match,
-                "primary_seal_unchanged": True,
-            }
+            stage4_crosscheck_row(
+                scope="session",
+                segment_id="ALL",
+                side=side,
+                counter=totals,
+                direction_match=direction_match,
+                naming_match=naming_match,
+            )
         )
     sort_output_rows("diagnostics/stage4_landmark_crosscheck.csv", rows)
+    output_path = root / "diagnostics/stage4_landmark_crosscheck.csv"
     contracts.write_csv_exact(
-        root / "diagnostics/stage4_landmark_crosscheck.csv",
+        output_path,
         rows,
         contracts.CSV_HEADERS[
             "diagnostics/stage4_landmark_crosscheck.csv"
@@ -4141,8 +6580,8 @@ def run_stage4_diagnostic(
     )
     ledger_path = root / "outcome_access_ledger.json"
     ledger = read_json(ledger_path)
-    permit_sha = contracts.sha256_file(
-        root / "outcome_access_permit.json"
+    diagnostic_permit_sha = contracts.sha256_file(
+        root / "stage4_diagnostic_permit.json"
     )
     sequence = len(ledger["events"]) + 1
     for relative in sorted(STAGE4_OUTCOMES):
@@ -4157,21 +6596,22 @@ def run_stage4_diagnostic(
                 ).as_posix(),
                 "access_kind": "exact_11_field_projection",
                 "bytes_read": (STAGE4_ROOT / relative).stat().st_size,
-                "permit_sha256": permit_sha,
+                "permit_sha256": diagnostic_permit_sha,
                 "admitted": True,
             }
         )
         sequence += 1
     write_json(ledger_path, ledger, fsync=True)
+    session_rows = [row for row in rows if row["scope"] == "session"]
     receipt = {
-        "schema_version": "skhynix_stage_h0b_stage4_diagnostic_v1",
+        "schema_version": "skhynix_stage_h0b_stage4_diagnostic_v2",
         "task_id": contracts.TASK_ID,
-        "build_label": read_json(
-            root / "outcome_access_permit.json"
-        )["build_label"],
-        "stage4_crosscheck_sha256": contracts.sha256_file(
-            root / "diagnostics/stage4_landmark_crosscheck.csv"
-        ),
+        "build_label": diagnostic_permit["build_label"],
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
+        "diagnostic_permit_sha256": diagnostic_permit_sha,
+        "stage4_crosscheck_sha256": contracts.sha256_file(output_path),
         "primary_results_sha256": seal["primary_results_sha256"],
         "primary_classification_sha256": seal[
             "primary_classification_sha256"
@@ -4179,6 +6619,13 @@ def run_stage4_diagnostic(
         "primary_seal_sha256": contracts.sha256_file(seal_path),
         "stage4_path_count": len(STAGE4_OUTCOMES),
         "stage4_projected_field_count": len(STAGE4_PROJECTED_FIELDS),
+        "joined_count": sum(row["joined_count"] for row in session_rows),
+        "eligible_count": sum(
+            row["eligible_count"] for row in session_rows
+        ),
+        "censored_count": sum(
+            row["censored_count"] for row in session_rows
+        ),
         "primary_seal_unchanged": True,
     }
     write_json(root / "stage4_diagnostic_receipt.json", receipt, fsync=True)
@@ -4258,10 +6705,12 @@ def surface_assignment_projection() -> list[dict[str, Any]]:
 def runtime_contract_bridge(root: Path) -> dict[str, Any]:
     preoutcome = read_json(root / "preoutcome_contract.json")
     return {
-        "schema_version": "skhynix_stage_h0b_runtime_contract_bridge_v1",
+        "schema_version": "skhynix_stage_h0b_runtime_contract_bridge_v2",
         "task_id": contracts.TASK_ID,
         "kernel_source_tree_sha256": KERNEL_SOURCE_TREE_SHA256,
-        "reviewed_plan_sha256": PLAN_SHA256,
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
         "surface_matrix_sha256": MATRIX_SHA256,
         "files": contracts.file_inventory(root, contracts.C_FILES),
         "research_surface_assignments_sha256": (
@@ -4399,6 +6848,9 @@ def package_report_text(
         "- task: `0823T002`",
         "- status: `待验收`",
         f"- classification: `{classification['classification']}`",
+        f"- primary_plan_sha256: `{PRIMARY_PLAN_SHA256}`",
+        f"- diagnostic_plan_sha256: `{DIAGNOSTIC_PLAN_SHA256}`",
+        f"- diagnostic_review_sha256: `{DIAGNOSTIC_REVIEW_SHA256}`",
         "- formal_sessions: `jul30,aug04`",
         "- primary_tuple: `public_bbo_moves_through_quote/delta=0/horizon=50ms/latency=6600ms/equal_weight_bid_ask_session_scores`",
         f"- rq1_jul30_pass: `{report_value(rq1['jul30']['primary_pass'])}`",
@@ -4428,7 +6880,7 @@ def package_report_text(
         f"- code_contract_identity: `{runtime_identity}`",
         "- evidence_identity/composite_identity: bound by `h0b_manifest.json` to avoid report self-reference",
         "- outcome_access: `public_only_after_build_specific_admitted_permits`",
-        "- stage4_access: `post_primary_seal_exact_projection_only`",
+        "- stage4_access: `post_primary_seal_build_specific_diagnostic_permits_exact_projection_only`",
         "- aug07_access: `false`",
         "- network/private/order/cancel/live_access: `false`",
         "- claim_limit: `screening_audit_not_final_signal_or_strategy`",
@@ -4438,7 +6890,7 @@ def package_report_text(
 
 def copy_contract_surface(staging: Path) -> None:
     copies = {
-        "contracts/execution_plan.md": PLAN_PATH,
+        "contracts/execution_plan.md": DIAGNOSTIC_PLAN_PATH,
         "contracts/surface_matrix.json": MATRIX_PATH,
         "contracts/task.md": TASK_PATH,
         "contracts/v2_framework.md": FRAMEWORK_PATH,
@@ -4468,6 +6920,15 @@ def copy_contract_surface(staging: Path) -> None:
     )
 
 
+def require_publication_target_absent(final: Path) -> None:
+    contracts.require(
+        not Path(final).exists(),
+        "PUBLICATION_FINAL_EXISTS",
+        str(final),
+        "final package root already exists",
+    )
+
+
 def assemble_package(
     *,
     build_a: Path,
@@ -4475,12 +6936,7 @@ def assemble_package(
     final_root: Path,
 ) -> dict[str, Any]:
     final = Path(final_root)
-    contracts.require(
-        not final.exists(),
-        "PUBLICATION_FINAL_EXISTS",
-        str(final),
-        "final package root already exists",
-    )
+    require_publication_target_absent(final)
     staging = final.with_name(
         f".{final.name}.staging-{os.getpid()}"
     )
@@ -4509,6 +6965,10 @@ def assemble_package(
         "primary_result_seal.json": build_a / "primary_result_seal.json",
         "support_replay_receipt_build_a.json": build_a / "support_replay_receipt.json",
         "support_replay_receipt_build_b.json": build_b / "support_replay_receipt.json",
+        "stage4_diagnostic_permit_build_a.json": build_a / "stage4_diagnostic_permit.json",
+        "stage4_diagnostic_permit_build_b.json": build_b / "stage4_diagnostic_permit.json",
+        "stage4_diagnostic_receipt_build_a.json": build_a / "stage4_diagnostic_receipt.json",
+        "stage4_diagnostic_receipt_build_b.json": build_b / "stage4_diagnostic_receipt.json",
     }
     for relative, source in evidence_copies.items():
         shutil.copyfile(source, staging / relative)
@@ -4543,9 +7003,12 @@ def assemble_package(
         if relative != contracts.MANIFEST_FILE
     )
     manifest = {
-        "schema_version": "skhynix_stage_h0b_manifest_v1",
+        "schema_version": "skhynix_stage_h0b_manifest_v2",
         "task_id": contracts.TASK_ID,
         "status": "待验收",
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
         "primary_results_sha256": read_json(
             staging / "primary_result_seal.json"
         )["primary_results_sha256"],
@@ -4596,7 +7059,9 @@ def validate_json_key_universes(root: Path) -> None:
         "accepted_input_bindings.json": {
             "schema_version",
             "task_id",
-            "reviewed_plan_sha256",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
             "surface_matrix_sha256",
             "expected_semantic_source_inventory_sha256",
             "bindings",
@@ -4605,6 +7070,9 @@ def validate_json_key_universes(root: Path) -> None:
             "schema_version",
             "task_id",
             "status",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
             "primary_results_sha256",
             "primary_classification_sha256",
             "stage4_crosscheck_sha256",
@@ -4633,7 +7101,9 @@ def validate_json_key_universes(root: Path) -> None:
             "build_label",
             "status",
             "fsynced",
-            "reviewed_plan_sha256",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
             "surface_matrix_sha256",
             "runtime_source_tree_sha256",
             "preoutcome_contract_sha256",
@@ -4650,7 +7120,9 @@ def validate_json_key_universes(root: Path) -> None:
             "build_label",
             "status",
             "fsynced",
-            "reviewed_plan_sha256",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
             "surface_matrix_sha256",
             "runtime_source_tree_sha256",
             "preoutcome_contract_sha256",
@@ -4664,7 +7136,9 @@ def validate_json_key_universes(root: Path) -> None:
         "preoutcome_contract.json": {
             "schema_version",
             "task_id",
-            "reviewed_plan_sha256",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
             "surface_matrix_sha256",
             "source_inventory_contract_sha256",
             "likelihood_contract_sha256",
@@ -4688,7 +7162,9 @@ def validate_json_key_universes(root: Path) -> None:
         "primary_result_seal.json": {
             "schema_version",
             "task_id",
-            "reviewed_plan_sha256",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
             "surface_matrix_sha256",
             "semantic_source_inventory_sha256",
             "build_a_primary_results_sha256",
@@ -4697,6 +7173,76 @@ def validate_json_key_universes(root: Path) -> None:
             "primary_classification_sha256",
             "stage4_crosscheck_opened",
             "sealed_fsynced",
+        },
+        "stage4_diagnostic_permit_build_a.json": {
+            "schema_version",
+            "task_id",
+            "build_label",
+            "status",
+            "fsynced",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
+            "surface_matrix_sha256",
+            "runtime_source_tree_sha256",
+            "primary_seal_sha256",
+            "primary_results_sha256",
+            "primary_classification_sha256",
+            "stage4_projection_contract_sha256",
+        },
+        "stage4_diagnostic_permit_build_b.json": {
+            "schema_version",
+            "task_id",
+            "build_label",
+            "status",
+            "fsynced",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
+            "surface_matrix_sha256",
+            "runtime_source_tree_sha256",
+            "primary_seal_sha256",
+            "primary_results_sha256",
+            "primary_classification_sha256",
+            "stage4_projection_contract_sha256",
+        },
+        "stage4_diagnostic_receipt_build_a.json": {
+            "schema_version",
+            "task_id",
+            "build_label",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
+            "diagnostic_permit_sha256",
+            "stage4_crosscheck_sha256",
+            "primary_results_sha256",
+            "primary_classification_sha256",
+            "primary_seal_sha256",
+            "stage4_path_count",
+            "stage4_projected_field_count",
+            "joined_count",
+            "eligible_count",
+            "censored_count",
+            "primary_seal_unchanged",
+        },
+        "stage4_diagnostic_receipt_build_b.json": {
+            "schema_version",
+            "task_id",
+            "build_label",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
+            "diagnostic_permit_sha256",
+            "stage4_crosscheck_sha256",
+            "primary_results_sha256",
+            "primary_classification_sha256",
+            "primary_seal_sha256",
+            "stage4_path_count",
+            "stage4_projected_field_count",
+            "joined_count",
+            "eligible_count",
+            "censored_count",
+            "primary_seal_unchanged",
         },
         "support_replay_receipt_build_a.json": {
             "schema_version",
@@ -4752,6 +7298,15 @@ def verify_package(
     validate_json_key_universes(root)
     manifest = read_json(root / contracts.MANIFEST_FILE)
     identities = package_identities(root)
+    contracts.require(
+        manifest["primary_plan_sha256"] == PRIMARY_PLAN_SHA256
+        and manifest["diagnostic_plan_sha256"] == DIAGNOSTIC_PLAN_SHA256
+        and manifest["diagnostic_review_sha256"]
+        == DIAGNOSTIC_REVIEW_SHA256,
+        "H0B_IDENTITY_BINDING_MISMATCH",
+        "$.manifest.plan_identities",
+        "primary or diagnostic plan identity mismatch",
+    )
     for field, observed in identities.items():
         contracts.require(
             manifest[field] == observed,
@@ -4804,8 +7359,59 @@ def verify_package(
         "$.support_replay",
         "support replay receipt mismatch",
     )
+    diagnostic_permit_a = read_json(
+        root / "stage4_diagnostic_permit_build_a.json"
+    )
+    diagnostic_permit_b = read_json(
+        root / "stage4_diagnostic_permit_build_b.json"
+    )
+    diagnostic_receipt_a = read_json(
+        root / "stage4_diagnostic_receipt_build_a.json"
+    )
+    diagnostic_receipt_b = read_json(
+        root / "stage4_diagnostic_receipt_build_b.json"
+    )
+    diagnostic_crosscheck_sha = contracts.sha256_file(
+        root / "diagnostics/stage4_landmark_crosscheck.csv"
+    )
+    contracts.require(
+        diagnostic_permit_a["build_label"] == "A"
+        and diagnostic_permit_b["build_label"] == "B"
+        and diagnostic_permit_a["primary_seal_sha256"]
+        == diagnostic_permit_b["primary_seal_sha256"]
+        == contracts.sha256_file(root / "primary_result_seal.json")
+        and diagnostic_receipt_a["diagnostic_permit_sha256"]
+        == contracts.sha256_file(
+            root / "stage4_diagnostic_permit_build_a.json"
+        )
+        and diagnostic_receipt_b["diagnostic_permit_sha256"]
+        == contracts.sha256_file(
+            root / "stage4_diagnostic_permit_build_b.json"
+        )
+        and diagnostic_receipt_a["stage4_crosscheck_sha256"]
+        == diagnostic_receipt_b["stage4_crosscheck_sha256"]
+        == diagnostic_crosscheck_sha
+        and diagnostic_receipt_a["primary_seal_unchanged"] is True
+        and diagnostic_receipt_b["primary_seal_unchanged"] is True,
+        "H0B_STAGE4_PROJECTION_MISMATCH",
+        "$.stage4_diagnostic",
+        "diagnostic permit or receipt mismatch",
+    )
+    diagnostic_permit_shas = {
+        "a": contracts.sha256_file(
+            root / "stage4_diagnostic_permit_build_a.json"
+        ),
+        "b": contracts.sha256_file(
+            root / "stage4_diagnostic_permit_build_b.json"
+        ),
+    }
     for label in ("a", "b"):
         ledger = read_json(root / f"outcome_access_ledger_build_{label}.json")
+        validate_stage4_access_ledger(
+            ledger,
+            build_label=label.upper(),
+            diagnostic_permit_sha256=diagnostic_permit_shas[label],
+        )
         for event in ledger["events"]:
             relative = str(event["relative_path"]).lower()
             contracts.require(
@@ -4895,7 +7501,7 @@ def build_formal(
     build_b: Path,
     receipt: Path,
 ) -> dict[str, Any]:
-    validate_dispatch(task_path, matrix_path)
+    dispatch = validate_dispatch(task_path, matrix_path)
     hostile_path = (
         REPO_ROOT / ".workflow/reports/0823T002-hostile-preflight.json"
     )
@@ -4905,13 +7511,27 @@ def build_formal(
         str(hostile_path),
         "hostile preflight receipt is required",
     )
-    hostile = read_json(hostile_path)
-    contracts.require(
-        hostile["fail_open_count"] == 0,
-        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
-        str(hostile_path),
-        "hostile preflight did not close every mutation",
+    validate_hostile_preflight_receipt(
+        hostile_path,
+        matrix_path=matrix_path,
+        expected_dispatch=dispatch,
     )
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-formal-hostile-replay-"
+    ) as raw:
+        replay_path = Path(raw) / "hostile-preflight.json"
+        hostile_preflight(
+            task_path=task_path,
+            matrix_path=matrix_path,
+            output=replay_path,
+            write_surface_evidence=False,
+        )
+        contracts.require(
+            replay_path.read_bytes() == hostile_path.read_bytes(),
+            "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+            str(hostile_path),
+            "formal hostile replay differs from submitted receipt",
+        )
     validator = [
         sys.executable,
         str(
@@ -4958,6 +7578,31 @@ def build_formal(
         contracts.PRIMARY_RESULT_FILES,
     )
     seal = write_primary_seal(build_a=build_a, build_b=build_b)
+    diagnostic_permit_a = run_subprocess(
+        [
+            sys.executable,
+            runner,
+            "diagnostic-permit",
+            "--build-root",
+            str(build_a),
+        ]
+    )
+    diagnostic_permit_b = run_subprocess(
+        [
+            sys.executable,
+            runner,
+            "diagnostic-permit",
+            "--build-root",
+            str(build_b),
+        ]
+    )
+    validate_diagnostic_permit_pair(
+        diagnostic_permit_a,
+        diagnostic_permit_b,
+        primary_seal_sha256=contracts.sha256_file(
+            build_a / "primary_result_seal.json"
+        ),
+    )
     diagnostic_a = run_subprocess(
         [
             sys.executable,
@@ -4981,6 +7626,18 @@ def build_formal(
         build_b,
         ("diagnostics/stage4_landmark_crosscheck.csv",),
     )
+    contracts.require(
+        diagnostic_a["stage4_crosscheck_sha256"]
+        == diagnostic_b["stage4_crosscheck_sha256"]
+        and diagnostic_a["primary_results_sha256"]
+        == diagnostic_b["primary_results_sha256"]
+        == seal["primary_results_sha256"]
+        and diagnostic_a["primary_seal_unchanged"] is True
+        and diagnostic_b["primary_seal_unchanged"] is True,
+        "H0B_BUILD_MISMATCH",
+        "$.stage4_diagnostics",
+        "A/B Stage 4 diagnostic mismatch",
+    )
     package = assemble_package(
         build_a=build_a,
         build_b=build_b,
@@ -4997,6 +7654,8 @@ def build_formal(
         ),
         "build_envelopes_distinct": True,
         "primary_result_seal": seal,
+        "stage4_permit_build_a": diagnostic_permit_a,
+        "stage4_permit_build_b": diagnostic_permit_b,
         "stage4_build_a": diagnostic_a,
         "stage4_build_b": diagnostic_b,
         "package": package,
@@ -5029,6 +7688,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
     outcome = subparsers.add_parser("outcome")
     outcome.add_argument("--build-root", type=Path, required=True)
+
+    diagnostic_permit = subparsers.add_parser("diagnostic-permit")
+    diagnostic_permit.add_argument(
+        "--build-root",
+        type=Path,
+        required=True,
+    )
 
     diagnostic = subparsers.add_parser("diagnostic")
     diagnostic.add_argument("--build-root", type=Path, required=True)
@@ -5069,7 +7735,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 return 2
             raise contracts.H0BError(
-                "H0B_EXTERNAL_ACTION_FORBIDDEN",
+                HOSTILE_FAIL_OPEN_SENTINEL,
                 "$.negative_case",
                 "mutation failed open",
             )
@@ -5082,6 +7748,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         elif args.command == "outcome":
             result = run_h0b1(build_root=args.build_root)
+        elif args.command == "diagnostic-permit":
+            result = write_stage4_diagnostic_permit(args.build_root)
         elif args.command == "diagnostic":
             result = run_stage4_diagnostic(build_root=args.build_root)
         elif args.command == "build-formal":

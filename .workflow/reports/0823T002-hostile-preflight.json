@@ -1,10 +1,10 @@
 {
   "current_negative_mutation_count": 61,
   "dispatch": {
-    "artifact_count": 73,
+    "artifact_count": 76,
     "classification": "research_package",
     "exit_criterion_count": 7,
-    "matrix_sha256": "d192497e36787904c16c92d75d5053625f7ff8c130a7e5a4a8e54ba2ac32b8b7",
+    "matrix_sha256": "478cb177fe5834bfd359d4d4e56004c3fa95c69cf2b4da0a67446ceeec22745b",
     "negative_mutation_count": 61,
     "surface_count": 61,
     "task_id": "0823T002",
@@ -12,6 +12,7 @@
   },
   "fail_open_count": 0,
   "frozen_negative_mutation_count": 61,
+  "frozen_runtime_source_tree_sha256": "0208b29eedbd40d10f3c8580a24f85731e0ed5075164470cdb11ed2a69184249",
   "frozen_surface_contract": [
     {
       "error_code": "H0B_KERNEL_PIN_MISMATCH",
@@ -321,8 +322,8 @@
   ],
   "network_private_order_cancel_live_access": false,
   "outcome_predicate_evaluated": false,
-  "runtime_source_tree_sha256": "65993c6ccf12dff5cb0a532d018d5d69e89b3fded7ba92808f10359af153d31b",
-  "schema_version": "skhynix_stage_h0b_hostile_preflight_v1",
+  "runtime_source_tree_sha256": "0208b29eedbd40d10f3c8580a24f85731e0ed5075164470cdb11ed2a69184249",
+  "schema_version": "skhynix_stage_h0b_hostile_preflight_v2",
   "stage4_bytes_opened": false,
   "surface_contract": [
     {
