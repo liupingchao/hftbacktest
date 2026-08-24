@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-08-24 H0-B V4 Round 5 Candidate Prepared
+
+- Exact Round 4 candidate `4df43f92` was independently rejected at
+  `P0/P1/P2/P3=0/1/0/0`; review commit `83c0ac48` preserves the finding.
+- Hostile temporary roots now use the resolved system temporary directory, so
+  macOS `/var` cannot short-circuit formal-attempt mutations.
+- Hostile receipt v3 retains Trust Kernel-compatible error-code rows and adds
+  ordered current/frozen normalized error-location target rows.
+- Root and parent-chain symlink mutations are distinct. The canonical contract
+  is `65 surfaces / 89 mutations / 99 artifacts`.
+- No research outcome or formal build was run. The existing 42-file package
+  and all research identities remain unchanged.
+
 ## 2026-08-24 H0-B V4 Round 4 Candidate Prepared
 
 - Exact Round 3 candidate `43c97bc7` was independently rejected at

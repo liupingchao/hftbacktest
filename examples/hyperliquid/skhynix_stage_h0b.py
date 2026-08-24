@@ -73,8 +73,11 @@ CONTROL_ROUND2_CANDIDATE_RECEIPT_PATH = (
 CONTROL_ROUND3_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round3.json"
 )
-CONTROL_CANDIDATE_RECEIPT_PATH = (
+CONTROL_ROUND4_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round4.json"
+)
+CONTROL_CANDIDATE_RECEIPT_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round5.json"
 )
 CONTROL_REMEDIATION_REVIEW_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review.md"
@@ -102,6 +105,13 @@ CONTROL_ROUND3_REVIEW_PATH = (
 CONTROL_ROUND3_REVIEW_SUBMISSION_PATH = (
     REPO_ROOT
     / ".workflow/reports/0823T002-plan-v4-review-round3-submission.md"
+)
+CONTROL_ROUND4_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review-round4.md"
+)
+CONTROL_ROUND4_REVIEW_SUBMISSION_PATH = (
+    REPO_ROOT
+    / ".workflow/reports/0823T002-plan-v4-review-round4-submission.md"
 )
 WORKFLOW_TRANSITION_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-workflow-transition.json"
@@ -413,10 +423,10 @@ PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
 PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
 PUBLICATION_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
 CONTROL_REMEDIATION_PLAN_SHA256 = (
-    "eb382f0a9c7c3f5c90bcd7b79ac0dd508df6354482139794dc76423f83a83998"
+    "03050180ba115bb9a93ada9c090989a47afbbb98bffe46448304c3ac4aca3826"
 )
 CONTROL_CANDIDATE_RECEIPT_SCHEMA = (
-    "skhynix_stage_h0b_v4_candidate_receipt_v4"
+    "skhynix_stage_h0b_v4_candidate_receipt_v5"
 )
 CONTROL_REMEDIATION_REVIEW_SCHEMA = (
     "skhynix_stage_h0b_v4_independent_review_v1"
@@ -520,7 +530,7 @@ SOURCE_INVENTORY_CONTRACT_SHA256 = (
     "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "2e5f90a71925f5d53d8c4fc3f4aa398f66fd224c4504649ab8fbe0876ac1cfab"
+    "8255d49917eaf0abedc62f74ef9609dfc1ccac9fea4e98abbcc764445ccee25d"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -635,6 +645,165 @@ OPTIMIZER_PARAMETER_TOLERANCE = 1e-10
 RIDGE_LAMBDA = 1.0
 MODEL_CHUNK_ROWS = 250_000
 HOSTILE_FAIL_OPEN_SENTINEL = "H0B_HOSTILE_MUTATION_FAILED_OPEN"
+HOSTILE_EXPECTED_ERROR_LOCATIONS = {
+    "mutate_kernel_pin": "$.production_contract.kernel_pin",
+    "mutate_master_framework_pin": (
+        "$.production_contract.master_framework_pin"
+    ),
+    "mutate_accepted_h0a_binding": (
+        "$REPO_ROOT/local_live_analysis/"
+        "skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/"
+        "h0a_manifest.json"
+    ),
+    "mutate_accepted_latency_binding": (
+        "$REPO_ROOT/local_live_analysis/"
+        "skhynix_c6in_hyperliquid_execution_latency_0822T002/"
+        "measurement_manifest.json"
+    ),
+    "mutate_accepted_tuple_binding": (
+        "$REPO_ROOT/local_live_analysis/"
+        "skhynix_h0b_primary_tuple_supersession_0823T001/"
+        "supersession_manifest.json"
+    ),
+    "mutate_accepted_stage1_4_binding": (
+        "$.production_contract.accepted_stage1_4_binding"
+    ),
+    "mutate_session_roles": "$.session_roles",
+    "mutate_underlying_state_boundary": "$.underlying_state_boundary",
+    "mutate_semantic_source_inventory": (
+        "$.production_contract.semantic_source_inventory"
+    ),
+    "mutate_build_envelope": "$.production_contract.build_envelope",
+    "mutate_source_schema": "$HOSTILE_TEMP/mutated.csv.gz",
+    "mutate_source_ordering": "$HOSTILE_TEMP/mutated.csv.gz",
+    "mutate_guarded_opener": "$.publication_projection.ledger.A",
+    "mutate_feature_source_boundary": (
+        "local_live_analysis/alignment/decision_labels.csv"
+    ),
+    "mutate_two_envelope_boundary": (
+        "$.production_contract.two_envelope_boundary"
+    ),
+    "mutate_outcome_access_permit": (
+        "$HOSTILE_TEMP/outcome_access_permit.json"
+    ),
+    "mutate_packaged_runtime_source": "$.publication_projection.permit.A",
+    "mutate_runtime_source_external_oracle": (
+        "$.expected_runtime_source_tree_sha256"
+    ),
+    "mutate_support_replay": "$.production_contract.support_replay",
+    "mutate_calendar_grid": "$.production_contract.calendar_grid",
+    "mutate_side_expansion": "$.production_contract.side_expansion",
+    "mutate_event_definition": "$.production_contract.event_definition",
+    "mutate_support_class_mapping": (
+        "$.production_contract.support_class_mapping"
+    ),
+    "mutate_observation_bounds": (
+        "$.production_contract.observation_bounds"
+    ),
+    "mutate_interval_likelihood": "$.branch",
+    "mutate_right_censor_likelihood": (
+        "$.production_contract.right_censor_likelihood"
+    ),
+    "mutate_horizon_straddle": "$.straddle_bounds",
+    "mutate_risk_score": "$.production_contract.risk_score",
+    "mutate_binary_subset": "$.production_contract.binary_subset",
+    "mutate_h0_features": "$.h0_features",
+    "mutate_h1_features": "$.h1_features",
+    "mutate_design_matrix": "$.model",
+    "mutate_basis_residual": "$.production_contract.basis_residual",
+    "mutate_missing_value_policy": "$.features.missing_feature",
+    "mutate_dose_definition": "$.production_contract.dose_definition",
+    "mutate_walk_forward": "$.complete_blocks",
+    "mutate_estimator": "$.production_contract.estimator",
+    "mutate_numeric_seed_conventions": "$.nearest_rank.values",
+    "mutate_rq1_statistic": "$.production_contract.rq1_statistic",
+    "mutate_rq1_stationary_null": (
+        "$.production_contract.rq1_stationary_null"
+    ),
+    "mutate_rq2_score": "$.production_contract.rq2_score",
+    "mutate_rq2_concentration": (
+        "$.production_contract.rq2_concentration"
+    ),
+    "mutate_time_bootstrap": "$.production_contract.time_bootstrap",
+    "mutate_flow_component_assignment": "jul30/segment_0001/b",
+    "mutate_flow_bootstrap": "$.production_contract.flow_bootstrap",
+    "mutate_rq3_threshold_source": (
+        "$.production_contract.rq3_threshold_source"
+    ),
+    "mutate_rq3_regime": "$.production_contract.rq3_regime",
+    "mutate_rq3_km_ties": "$.km",
+    "mutate_rq3_cluster_bootstrap": (
+        "$.production_contract.rq3_cluster_bootstrap"
+    ),
+    "mutate_rq3_side_aggregation": (
+        "$.production_contract.rq3_side_aggregation"
+    ),
+    "mutate_latency_roles": "$.latency_roles",
+    "mutate_classification_precedence": "$.formal_session_facts",
+    "mutate_primary_result_seal": (
+        "$.production_contract.primary_result_seal"
+    ),
+    "mutate_stage4_projection": "$.landmark_support_class",
+    "mutate_stage4_crosscheck": "$.ledger.A",
+    "mutate_aug07_nonaccess": "local_live_analysis/aug07/events.csv.gz",
+    "mutate_deterministic_build": "result.csv",
+    "mutate_complete_package_portability": (
+        "outcome_access_permit_build_a.json"
+    ),
+    "mutate_output_schema": "$.csv.row",
+    "mutate_external_receipt_binding": "$.build_receipt.runtime_evidence",
+    "mutate_package_tree": "$.files",
+    "mutate_layered_identity": "$.production_contract.layered_identity",
+    "mutate_manifest_self_exclusion": (
+        "$.production_contract.manifest_self_exclusion"
+    ),
+    "mutate_atomic_publication": "$HOSTILE_TEMP/final",
+    "mutate_zero_external_action": "$.external_actions",
+    "mutate_execution_authority_task": "$.execution_authority.pins",
+    "mutate_execution_authority_commit": "$.execution_authority.pins",
+    "mutate_execution_authority_package_object": "rq1_block_rates.csv",
+    "mutate_frozen_git_object_store": "$HOSTILE_TEMP/.git",
+    "mutate_formal_attempt_reuse": "$HOSTILE_TEMP",
+    "mutate_formal_staging_reuse": "$HOSTILE_TEMP",
+    "mutate_formal_attempt_missing_receipt": (
+        "$HOSTILE_TEMP/missing-attempt/attempt_receipt.json"
+    ),
+    "mutate_formal_partial_hard_stop_recovery": (
+        "$.formal_attempt.completed_entry_identities"
+    ),
+    "mutate_formal_torn_receipt": (
+        "$HOSTILE_TEMP/torn-receipt/attempt_receipt.json"
+    ),
+    "mutate_formal_attempts_root_escape": "$HOSTILE_TEMP",
+    "mutate_formal_bootstrap_recovery": (
+        "$HOSTILE_TEMP/bootstrap-crash/attempt_bootstrap.json"
+    ),
+    "mutate_formal_subcommand_without_attempt": (
+        "$.formal_subcommand.outcome"
+    ),
+    "mutate_formal_attempts_parent_fsync": "$.formal_attempts_root",
+    "mutate_formal_concurrent_claim": (
+        "$HOSTILE_TEMP/.duplicate.bootstrap.json"
+    ),
+    "mutate_formal_bootstrap_receipt_cross_binding": (
+        "$.formal_attempt.bootstrap_binding"
+    ),
+    "mutate_formal_attempts_root_symlink": "$HOSTILE_TEMP/attempts",
+    "mutate_formal_attempts_parent_symlink": (
+        "$HOSTILE_TEMP/linked-parent"
+    ),
+    "mutate_review_same_actor": "$.review.actors",
+    "mutate_review_candidate_commit": "$.review.candidate_commit",
+    "mutate_review_post_introduction_rewrite": (
+        "$.review.introduction_blob"
+    ),
+    "mutate_review_receipt_chronology": "$.review.commit_chain",
+    "mutate_review_commit_scope": "$.review.commit_scope",
+    "mutate_workflow_transition_identity": "$.workflow_transition",
+    "mutate_workflow_status_without_transition": (
+        "$.workflow_transition.state"
+    ),
+}
 
 
 def production_contract_state() -> dict[str, Any]:
@@ -2411,7 +2580,7 @@ def validate_reviewer_actor_binding(
         and reviewer_actor_id != controller_actor_id
         and re.fullmatch(
             (
-                r"codex-independent-reviewer-0823T002-v4-round4-"
+                r"codex-independent-reviewer-0823T002-v4-round5-"
                 r"[0-9a-f]{8,40}"
             ),
             reviewer_actor_id,
@@ -4451,8 +4620,48 @@ def hostile_runtime_permit_fixture(
     }
 
 
+def hostile_temp_parent() -> Path:
+    return Path(tempfile.gettempdir()).resolve()
+
+
+def hostile_temporary_directory(
+    *,
+    prefix: str,
+) -> tempfile.TemporaryDirectory:
+    return tempfile.TemporaryDirectory(
+        prefix=prefix,
+        dir=hostile_temp_parent(),
+    )
+
+
+def normalize_hostile_error_location(
+    location: str,
+    *,
+    repo_root: Path = REPO_ROOT,
+) -> str:
+    path = Path(location)
+    if not path.is_absolute():
+        return location
+    try:
+        relative = path.relative_to(repo_root)
+    except ValueError:
+        pass
+    else:
+        return f"$REPO_ROOT/{relative.as_posix()}"
+    try:
+        relative = path.relative_to(hostile_temp_parent())
+    except ValueError:
+        return location
+    parts = relative.parts
+    for index, component in enumerate(parts):
+        if component.startswith("0823T002-"):
+            suffix = "/".join(parts[index + 1 :])
+            return "$HOSTILE_TEMP" + (f"/{suffix}" if suffix else "")
+    return location
+
+
 def hostile_outcome_access_permit_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-outcome-permit-"
     ) as raw:
         root = Path(raw)
@@ -4483,7 +4692,7 @@ def hostile_packaged_runtime_source_mutation() -> None:
 
 
 def hostile_runtime_source_external_oracle_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-runtime-oracle-"
     ) as raw:
         task = Path(raw) / "task.md"
@@ -4498,7 +4707,7 @@ def hostile_runtime_source_external_oracle_mutation() -> None:
 
 
 def hostile_external_receipt_binding_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-receipt-binding-"
     ) as raw:
         root = Path(raw)
@@ -4781,7 +4990,7 @@ def assemble_portability_fixture_package(
 
 
 def hostile_complete_package_portability_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-complete-package-parity-"
     ) as raw:
         root = Path(raw)
@@ -4834,7 +5043,9 @@ def hostile_complete_package_portability_mutation() -> None:
 
 
 def hostile_package_tree_mutation() -> None:
-    with tempfile.TemporaryDirectory(prefix="0823T002-package-tree-") as raw:
+    with hostile_temporary_directory(
+        prefix="0823T002-package-tree-"
+    ) as raw:
         root = Path(raw)
         for directory in contracts.PACKAGE_DIRECTORIES:
             (root / directory).mkdir()
@@ -4847,7 +5058,9 @@ def hostile_package_tree_mutation() -> None:
 
 
 def hostile_publication_overwrite_mutation() -> None:
-    with tempfile.TemporaryDirectory(prefix="0823T002-publication-") as raw:
+    with hostile_temporary_directory(
+        prefix="0823T002-publication-"
+    ) as raw:
         final = Path(raw) / "final"
         final.mkdir()
         require_publication_target_absent(final)
@@ -4880,7 +5093,9 @@ def hostile_upstream_identity_mutation(surface_id: str) -> None:
 
 
 def hostile_source_schema_mutation() -> None:
-    with tempfile.TemporaryDirectory(prefix="0823T002-source-schema-") as raw:
+    with hostile_temporary_directory(
+        prefix="0823T002-source-schema-"
+    ) as raw:
         path = Path(raw) / "mutated.csv.gz"
         header = (*HYPERLIQUID_HEADER[:-1], "mutated_column")
         path.write_bytes(
@@ -4898,7 +5113,9 @@ def hostile_source_schema_mutation() -> None:
 
 
 def hostile_source_ordering_mutation() -> None:
-    with tempfile.TemporaryDirectory(prefix="0823T002-source-order-") as raw:
+    with hostile_temporary_directory(
+        prefix="0823T002-source-order-"
+    ) as raw:
         path = Path(raw) / "mutated.csv.gz"
         rows = []
         for sequence, timestamp in ((2, 100), (1, 100)):
@@ -4990,7 +5207,9 @@ def hostile_classification_mutation() -> None:
 
 
 def hostile_deterministic_build_mutation() -> None:
-    with tempfile.TemporaryDirectory(prefix="0823T002-build-compare-") as raw:
+    with hostile_temporary_directory(
+        prefix="0823T002-build-compare-"
+    ) as raw:
         left = Path(raw) / "a"
         right = Path(raw) / "b"
         left.mkdir()
@@ -5049,28 +5268,28 @@ def hostile_workflow_missing_transition_mutation() -> None:
 
 
 def hostile_formal_attempt_reuse_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-reuse-"
     ) as raw:
         require_formal_attempt_root_absent(Path(raw))
 
 
 def hostile_formal_staging_reuse_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-staging-reuse-"
     ) as raw:
         require_publication_staging_absent(Path(raw))
 
 
 def hostile_formal_attempt_missing_receipt_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-missing-receipt-"
     ) as raw:
         validate_formal_attempt_receipt(Path(raw) / "missing-attempt")
 
 
 def hostile_formal_partial_hard_stop_recovery_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-partial-"
     ) as raw:
         paths, payload = begin_formal_attempt(
@@ -5104,7 +5323,7 @@ def hostile_formal_partial_hard_stop_recovery_mutation() -> None:
 
 
 def hostile_formal_torn_receipt_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-torn-"
     ) as raw:
         paths, _ = begin_formal_attempt(
@@ -5117,7 +5336,7 @@ def hostile_formal_torn_receipt_mutation() -> None:
 
 
 def hostile_formal_attempts_root_escape_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-root-escape-"
     ) as raw:
         require_canonical_formal_attempt_root(
@@ -5126,7 +5345,7 @@ def hostile_formal_attempts_root_escape_mutation() -> None:
 
 
 def hostile_formal_attempts_root_symlink_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-root-symlink-"
     ) as raw:
         base = Path(raw)
@@ -5141,8 +5360,24 @@ def hostile_formal_attempts_root_symlink_mutation() -> None:
         )
 
 
+def hostile_formal_attempts_parent_symlink_mutation() -> None:
+    with hostile_temporary_directory(
+        prefix="0823T002-attempt-parent-symlink-"
+    ) as raw:
+        base = Path(raw)
+        external = base / "external"
+        external.mkdir()
+        linked_parent = base / "linked-parent"
+        linked_parent.symlink_to(external, target_is_directory=True)
+        begin_formal_attempt(
+            attempt_id="parent-symlink-escape",
+            dispatch={"verified": True},
+            attempts_root=linked_parent / "attempts",
+        )
+
+
 def hostile_formal_bootstrap_recovery_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-bootstrap-"
     ) as raw:
         paths = formal_attempt_paths(
@@ -5193,7 +5428,7 @@ def hostile_formal_attempts_parent_fsync_mutation() -> None:
 
 
 def hostile_formal_concurrent_claim_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-claim-"
     ) as raw:
         claim = Path(raw) / ".duplicate.bootstrap.json"
@@ -5206,7 +5441,7 @@ def hostile_formal_concurrent_claim_mutation() -> None:
 
 
 def hostile_formal_bootstrap_receipt_cross_binding_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-attempt-cross-binding-"
     ) as raw:
         paths, _ = begin_formal_attempt(
@@ -5266,7 +5501,7 @@ def hostile_review_commit_scope_mutation() -> None:
 
 
 def hostile_frozen_git_object_store_mutation() -> None:
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-frozen-git-store-"
     ) as raw:
         validate_frozen_git_object_store(Path(raw))
@@ -5610,6 +5845,9 @@ def negative_case(
             "mutate_formal_attempts_root_symlink": (
                 hostile_formal_attempts_root_symlink_mutation
             ),
+            "mutate_formal_attempts_parent_symlink": (
+                hostile_formal_attempts_parent_symlink_mutation
+            ),
             "mutate_formal_bootstrap_recovery": (
                 hostile_formal_bootstrap_recovery_mutation
             ),
@@ -5646,7 +5884,9 @@ def negative_case(
     }
     contracts.require(
         set(surface_checks) == set(surfaces)
-        and set(mutation_checks) == declared_mutation_ids,
+        and set(mutation_checks) == declared_mutation_ids
+        and set(HOSTILE_EXPECTED_ERROR_LOCATIONS)
+        == declared_mutation_ids,
         "H0B_MASTER_FRAMEWORK_MISMATCH",
         "$.negative_case.universe",
         (
@@ -5655,7 +5895,11 @@ def negative_case(
             "mutation_missing="
             f"{sorted(declared_mutation_ids - set(mutation_checks))} "
             "mutation_extra="
-            f"{sorted(set(mutation_checks) - declared_mutation_ids)}"
+            f"{sorted(set(mutation_checks) - declared_mutation_ids)} "
+            "location_missing="
+            f"{sorted(declared_mutation_ids - set(HOSTILE_EXPECTED_ERROR_LOCATIONS))} "
+            "location_extra="
+            f"{sorted(set(HOSTILE_EXPECTED_ERROR_LOCATIONS) - declared_mutation_ids)}"
         ),
     )
     mutation_checks[mutation_id]()
@@ -5692,6 +5936,9 @@ def frozen_hostile_authority_paths() -> tuple[Path, ...]:
         CONTROL_ROUND3_CANDIDATE_RECEIPT_PATH,
         CONTROL_ROUND3_REVIEW_PATH,
         CONTROL_ROUND3_REVIEW_SUBMISSION_PATH,
+        CONTROL_ROUND4_CANDIDATE_RECEIPT_PATH,
+        CONTROL_ROUND4_REVIEW_PATH,
+        CONTROL_ROUND4_REVIEW_SUBMISSION_PATH,
         CONTROL_CANDIDATE_RECEIPT_PATH,
         CONTROL_REMEDIATION_REVIEW_PATH,
         CONTROL_REVIEW_SUBMISSION_PATH,
@@ -5711,7 +5958,11 @@ def hostile_preflight(
     matrix = read_json(matrix_path)
     current_rows = []
     frozen_rows = []
-    with tempfile.TemporaryDirectory(prefix="0823T002-frozen-runtime-") as raw:
+    current_target_rows = []
+    frozen_target_rows = []
+    with hostile_temporary_directory(
+        prefix="0823T002-frozen-runtime-"
+    ) as raw:
         frozen_repo = Path(raw) / "repo"
         frozen = frozen_repo / "examples/hyperliquid"
         frozen.mkdir(parents=True)
@@ -5753,15 +6004,28 @@ def hostile_preflight(
             for mutation in surface["negative_mutations"]:
                 mutation_id = mutation["mutation_id"]
                 expected = mutation["expected_error_code"]
+                expected_location = HOSTILE_EXPECTED_ERROR_LOCATIONS[
+                    mutation_id
+                ]
                 try:
                     negative_case(surface_id, mutation_id, expected)
                 except contracts.H0BError as exc:
                     observed = exc.code
+                    observed_location = normalize_hostile_error_location(
+                        exc.location
+                    )
                 current_rows.append(
                     {
                         "mutation_id": mutation_id,
                         "expected_error_code": expected,
                         "error_code": observed,
+                    }
+                )
+                current_target_rows.append(
+                    {
+                        "mutation_id": mutation_id,
+                        "expected_error_location": expected_location,
+                        "error_location": observed_location,
                     }
                 )
                 command = [
@@ -5806,15 +6070,28 @@ def hostile_preflight(
                         "error_code": payload["error"]["code"],
                     }
                 )
+                frozen_target_rows.append(
+                    {
+                        "mutation_id": mutation_id,
+                        "expected_error_location": expected_location,
+                        "error_location": normalize_hostile_error_location(
+                            payload["error"]["location"],
+                            repo_root=frozen_repo,
+                        ),
+                    }
+                )
         frozen_runtime_source_tree_sha256 = runtime_source_tree_sha256(
             frozen_repo
         )
     fail_open_count = sum(
         row["expected_error_code"] != row["error_code"]
         for row in (*current_rows, *frozen_rows)
+    ) + sum(
+        row["expected_error_location"] != row["error_location"]
+        for row in (*current_target_rows, *frozen_target_rows)
     )
     receipt = {
-        "schema_version": "skhynix_stage_h0b_hostile_preflight_v2",
+        "schema_version": "skhynix_stage_h0b_hostile_preflight_v3",
         "task_id": contracts.TASK_ID,
         "dispatch": dispatch,
         "runtime_source_tree_sha256": runtime_source_tree_sha256(),
@@ -5823,6 +6100,8 @@ def hostile_preflight(
         ),
         "surface_contract": current_rows,
         "frozen_surface_contract": frozen_rows,
+        "target_contract": current_target_rows,
+        "frozen_target_contract": frozen_target_rows,
         "current_negative_mutation_count": len(current_rows),
         "frozen_negative_mutation_count": len(frozen_rows),
         "fail_open_count": fail_open_count,
@@ -5850,6 +6129,14 @@ def hostile_preflight(
                 mutation_id = mutation["mutation_id"]
                 current = current_by_id[mutation_id]
                 frozen = frozen_by_id[mutation_id]
+                current_target = {
+                    row["mutation_id"]: row
+                    for row in current_target_rows
+                }[mutation_id]
+                frozen_target = {
+                    row["mutation_id"]: row
+                    for row in frozen_target_rows
+                }[mutation_id]
                 mutation_evidence.append(
                     {
                         "mutation_id": mutation_id,
@@ -5857,6 +6144,15 @@ def hostile_preflight(
                         "frozen_error_code": frozen["error_code"],
                         "expected_error_code": current[
                             "expected_error_code"
+                        ],
+                        "current_error_location": current_target[
+                            "error_location"
+                        ],
+                        "frozen_error_location": frozen_target[
+                            "error_location"
+                        ],
+                        "expected_error_location": current_target[
+                            "expected_error_location"
                         ],
                     }
                 )
@@ -5869,7 +6165,7 @@ def hostile_preflight(
                     REPO_ROOT / artifact["path"],
                     {
                         "schema_version": (
-                            "skhynix_stage_h0b_surface_evidence_v2"
+                            "skhynix_stage_h0b_surface_evidence_v3"
                         ),
                         "task_id": contracts.TASK_ID,
                         "surface_id": surface["surface_id"],
@@ -5897,6 +6193,8 @@ def validate_hostile_preflight_receipt(
         "frozen_runtime_source_tree_sha256",
         "surface_contract",
         "frozen_surface_contract",
+        "target_contract",
+        "frozen_target_contract",
         "current_negative_mutation_count",
         "frozen_negative_mutation_count",
         "fail_open_count",
@@ -5913,7 +6211,7 @@ def validate_hostile_preflight_receipt(
     )
     contracts.require(
         receipt["schema_version"]
-        == "skhynix_stage_h0b_hostile_preflight_v2"
+        == "skhynix_stage_h0b_hostile_preflight_v3"
         and receipt["task_id"] == contracts.TASK_ID
         and receipt["dispatch"] == dict(expected_dispatch)
         and receipt["runtime_source_tree_sha256"]
@@ -5939,9 +6237,24 @@ def validate_hostile_preflight_receipt(
         for surface in matrix["surfaces"]
         for mutation in surface["negative_mutations"]
     ]
+    declared_targets = [
+        {
+            "mutation_id": mutation["mutation_id"],
+            "expected_error_location": HOSTILE_EXPECTED_ERROR_LOCATIONS[
+                mutation["mutation_id"]
+            ],
+            "error_location": HOSTILE_EXPECTED_ERROR_LOCATIONS[
+                mutation["mutation_id"]
+            ],
+        }
+        for surface in matrix["surfaces"]
+        for mutation in surface["negative_mutations"]
+    ]
     contracts.require(
         receipt["surface_contract"] == declared
-        and receipt["frozen_surface_contract"] == declared,
+        and receipt["frozen_surface_contract"] == declared
+        and receipt["target_contract"] == declared_targets
+        and receipt["frozen_target_contract"] == declared_targets,
         "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
         str(path),
         "current and frozen hostile contracts must exactly match dispatch order",
@@ -5952,6 +6265,12 @@ def validate_hostile_preflight_receipt(
         for row in (
             *receipt["surface_contract"],
             *receipt["frozen_surface_contract"],
+        )
+    ) + sum(
+        row["expected_error_location"] != row["error_location"]
+        for row in (
+            *receipt["target_contract"],
+            *receipt["frozen_target_contract"],
         )
     )
     contracts.require(
@@ -12167,7 +12486,7 @@ def _execute_formal_attempt(
         task_path,
         "expected_runtime_source_tree_sha256",
     )
-    with tempfile.TemporaryDirectory(
+    with hostile_temporary_directory(
         prefix="0823T002-formal-hostile-replay-"
     ) as raw:
         replay_path = Path(raw) / "hostile-preflight.json"
@@ -12559,7 +12878,7 @@ def require_no_symlink_path_components(
         contracts.require(
             not cursor.is_symlink(),
             "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
-            location,
+            str(cursor),
             f"formal attempt path component is a symlink: {cursor}",
         )
     return target

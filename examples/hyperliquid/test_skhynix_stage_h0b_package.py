@@ -59,9 +59,22 @@ def valid_hostile_receipt(
         for surface in matrix["surfaces"]
         for mutation in surface["negative_mutations"]
     ]
+    target_rows = [
+        {
+            "mutation_id": mutation["mutation_id"],
+            "expected_error_location": h0b.HOSTILE_EXPECTED_ERROR_LOCATIONS[
+                mutation["mutation_id"]
+            ],
+            "error_location": h0b.HOSTILE_EXPECTED_ERROR_LOCATIONS[
+                mutation["mutation_id"]
+            ],
+        }
+        for surface in matrix["surfaces"]
+        for mutation in surface["negative_mutations"]
+    ]
     return (
         {
-            "schema_version": "skhynix_stage_h0b_hostile_preflight_v2",
+            "schema_version": "skhynix_stage_h0b_hostile_preflight_v3",
             "task_id": contracts.TASK_ID,
             "dispatch": dispatch,
             "runtime_source_tree_sha256": h0b.runtime_source_tree_sha256(),
@@ -70,6 +83,8 @@ def valid_hostile_receipt(
             ),
             "surface_contract": rows,
             "frozen_surface_contract": copy.deepcopy(rows),
+            "target_contract": target_rows,
+            "frozen_target_contract": copy.deepcopy(target_rows),
             "current_negative_mutation_count": len(rows),
             "frozen_negative_mutation_count": len(rows),
             "fail_open_count": 0,
@@ -107,6 +122,9 @@ def test_hostile_receipt_is_bound_to_current_and_frozen_runtime(
     missing_frozen = copy.deepcopy(receipt)
     missing_frozen["frozen_surface_contract"] = []
     mutations.append(missing_frozen)
+    wrong_target = copy.deepcopy(receipt)
+    wrong_target["target_contract"][0]["error_location"] = "$.wrong_target"
+    mutations.append(wrong_target)
     wrong_count = copy.deepcopy(receipt)
     wrong_count["frozen_negative_mutation_count"] = 0
     mutations.append(wrong_count)
@@ -307,6 +325,9 @@ def test_frozen_hostile_authority_inventory_is_complete() -> None:
         h0b.CONTROL_ROUND3_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_ROUND3_REVIEW_PATH,
         h0b.CONTROL_ROUND3_REVIEW_SUBMISSION_PATH,
+        h0b.CONTROL_ROUND4_CANDIDATE_RECEIPT_PATH,
+        h0b.CONTROL_ROUND4_REVIEW_PATH,
+        h0b.CONTROL_ROUND4_REVIEW_SUBMISSION_PATH,
         h0b.CONTROL_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_REMEDIATION_REVIEW_PATH,
         h0b.CONTROL_REVIEW_SUBMISSION_PATH,
@@ -365,7 +386,7 @@ def test_dispatch_and_surface_assignment_oracles() -> None:
         len(surface["artifacts"])
         for surface in h0b.read_json(h0b.MATRIX_PATH)["surfaces"]
     )
-    assert artifact_count == 96
+    assert artifact_count == 99
     assert len(projection) == artifact_count
     assert (
         len({(row["path"], row["surface_id"]) for row in projection})
@@ -1115,6 +1136,68 @@ def test_formal_attempts_root_symlink_is_rejected(
     assert not tuple(external.iterdir())
 
 
+def test_formal_attempts_parent_symlink_is_rejected(
+    tmp_path: Path,
+) -> None:
+    external = tmp_path / "external-parent"
+    external.mkdir()
+    linked_parent = tmp_path / "linked-parent"
+    linked_parent.symlink_to(external, target_is_directory=True)
+    attempts_root = linked_parent / "attempts"
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.begin_formal_attempt(
+            attempt_id="parent-symlink-escape",
+            dispatch={"verified": True},
+            attempts_root=attempts_root,
+        )
+    assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
+    assert captured.value.location == str(linked_parent)
+    assert not tuple(external.iterdir())
+
+
+@pytest.mark.parametrize(
+    ("mutation_id", "expected_location"),
+    (
+        (
+            "mutate_formal_partial_hard_stop_recovery",
+            "$.formal_attempt.completed_entry_identities",
+        ),
+        (
+            "mutate_formal_torn_receipt",
+            "$HOSTILE_TEMP/torn-receipt/attempt_receipt.json",
+        ),
+        ("mutate_formal_attempts_root_escape", "$HOSTILE_TEMP"),
+        (
+            "mutate_formal_bootstrap_receipt_cross_binding",
+            "$.formal_attempt.bootstrap_binding",
+        ),
+        (
+            "mutate_formal_attempts_root_symlink",
+            "$HOSTILE_TEMP/attempts",
+        ),
+        (
+            "mutate_formal_attempts_parent_symlink",
+            "$HOSTILE_TEMP/linked-parent",
+        ),
+    ),
+)
+def test_formal_hostile_mutations_reach_declared_target(
+    mutation_id: str,
+    expected_location: str,
+) -> None:
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.negative_case(
+            "formal_attempt_protocol",
+            mutation_id,
+            "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        )
+    assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
+    assert (
+        h0b.normalize_hostile_error_location(captured.value.location)
+        == expected_location
+    )
+
+
 def test_formal_bootstrap_recovers_root_before_receipt_crash(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1259,9 +1342,10 @@ def test_full_hostile_preflight_executes_current_and_frozen_runtime(
         output=tmp_path / "hostile.json",
         write_surface_evidence=False,
     )
-    assert receipt["current_negative_mutation_count"] == 88
-    assert receipt["frozen_negative_mutation_count"] == 88
+    assert receipt["current_negative_mutation_count"] == 89
+    assert receipt["frozen_negative_mutation_count"] == 89
     assert receipt["fail_open_count"] == 0
+    assert receipt["target_contract"] == receipt["frozen_target_contract"]
     with pytest.raises(contracts.H0BError) as captured:
         h0b.validate_commit_path_scope(
             observed_paths=("review.md", "runtime.py"),

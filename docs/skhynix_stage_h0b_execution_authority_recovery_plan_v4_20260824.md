@@ -42,6 +42,12 @@ The exact Round 3 candidate `43c97bc7` was subsequently rejected at
 and its existing parent chain, adds the corresponding production hostile
 mutation and locks the accepted-path artifact count to the canonical matrix.
 
+The exact Round 4 candidate `4df43f92` was subsequently rejected at
+`P0/P1/P2/P3=0/1/0/0`. Round 5 creates every hostile temporary tree beneath
+the resolved non-symlink system temporary root and binds each current/frozen
+mutation to both its expected error code and normalized rejection location.
+It also adds a distinct parent-chain symlink mutation.
+
 ## 2. Immutable Execution Authority
 
 The package execution authority is the exact Git object:
@@ -296,13 +302,13 @@ review attestation.
 The controller then issues:
 
 ```text
-.workflow/reports/0823T002-v4-candidate-receipt-round4.json
+.workflow/reports/0823T002-v4-candidate-receipt-round5.json
 ```
 
 with schema:
 
 ```text
-skhynix_stage_h0b_v4_candidate_receipt_v4
+skhynix_stage_h0b_v4_candidate_receipt_v5
 ```
 
 and exact keys:
@@ -407,6 +413,17 @@ Frozen hostile execution uses copied frozen files plus a read-only link to the
 candidate's Git object store. Git-dependent mutations must execute with their
 declared codes in both current and frozen runtimes.
 
+The generic Trust Kernel continues to consume its compatible three-field
+error-code contract. The H0-B composed gate additionally requires ordered
+current/frozen target contracts. Each target row binds the mutation ID,
+expected normalized `error.location` and observed normalized
+`error.location`. Absolute candidate roots normalize to `$REPO_ROOT`; hostile
+temporary roots normalize to `$HOSTILE_TEMP`.
+
+All hostile temporary directories are created below
+`Path(tempfile.gettempdir()).resolve()`. An ambient symlink such as macOS
+`/var -> /private/var` cannot satisfy a mutation before its declared target.
+
 ## 11. Required Regression And Negative Coverage
 
 Before handoff:
@@ -438,9 +455,13 @@ Before handoff:
 23. a symlink at the canonical attempts namespace or its parent chain fails
     before any bootstrap, receipt or attempt entry is created;
 24. the accepted-review regression binds the canonical artifact count;
-25. an occupied package staging path fails without deletion;
-26. receipt/review commits containing implementation changes fail;
-27. the current and frozen hostile suites reject every declared mutation with
+25. root-symlink and parent-chain-symlink mutations are independently
+    exercised;
+26. every hostile mutation matches both its declared error code and normalized
+    rejection location;
+27. an occupied package staging path fails without deletion;
+28. receipt/review commits containing implementation changes fail;
+29. the current and frozen hostile suites reject every declared mutation with
     `fail_open_count=0`.
 
 ## 12. Handoff

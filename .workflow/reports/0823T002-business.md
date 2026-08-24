@@ -13,8 +13,8 @@
 - 否
 
 QA说明：
-- QA Round 2 尚未开始。V4 Round 3 candidate `43c97bc7` 已由独立
-  review 以 `P0/P1/P2/P3=0/0/2/0` 拒绝并保留；Round 4 control
+- QA Round 2 尚未开始。V4 Round 4 candidate `4df43f92` 已由独立
+  review 以 `P0/P1/P2/P3=0/1/0/0` 拒绝并保留；Round 5 control
   candidate 已完成实现，仍需 exact candidate receipt 和独立 review。
 
 files：
@@ -34,6 +34,9 @@ files：
 - `.workflow/reports/0823T002-v4-candidate-receipt-round3.json`
 - `.workflow/reports/0823T002-plan-v4-review-round3.md`
 - `.workflow/reports/0823T002-plan-v4-review-round3-submission.md`
+- `.workflow/reports/0823T002-v4-candidate-receipt-round4.json`
+- `.workflow/reports/0823T002-plan-v4-review-round4.md`
+- `.workflow/reports/0823T002-plan-v4-review-round4-submission.md`
 - `docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md`
 - `.workflow/reports/0823T002-qa-round1-rejected-formal/`
 - `.workflow/reports/0823T002-v3-receipt-schema-failed-formal/`
@@ -48,6 +51,10 @@ files：
 - `findings.md`
 
 action：
+- 将 hostile temporary root 固定到解析后的无 symlink 系统临时目录。
+- hostile receipt v3 保留通用 error-code rows，并增加 current/frozen
+  normalized `error.location` target rows。
+- 将 root symlink 与 parent-chain symlink 拆成两个独立 mutation。
 - 对 attempts namespace 使用 lexical identity，并在证据创建前拒绝其
   既有 parent chain 中的任何 symlink。
 - 新增 `mutate_formal_attempts_root_symlink`，并将 accepted-path
@@ -87,12 +94,12 @@ action：
 - 发布 42-file exact package tree，并执行独立 zero-write verify。
 
 verify：
-- Round 4 完整 production hostile-preflight regression 通过：
-  `88 current + 88 frozen / fail_open_count=0`。
-- V4 Round 4 candidate 本地验证为 `183 passed`；Ruff、compileall、
+- Round 5 完整 production hostile-preflight regression 通过：
+  `89 current + 89 frozen` code/target exact，`fail_open_count=0`。
+- V4 Round 5 candidate 本地验证为 `191 passed`；Ruff、compileall、
   `git diff --check` 通过。
 - research-package validator 为
-  `65 surfaces / 88 mutations / 96 artifacts / 7 exit criteria`。
+  `65 surfaces / 89 mutations / 99 artifacts / 7 exit criteria`。
 - V3 historical `83/83` direct hostile mutations 均返回声明错误码，
   fail-open 为零。
 - 旧 formal package 仍为
@@ -141,8 +148,8 @@ done：
   并核对上述 identities。
 
 blockers：
-- Round 4 candidate 尚未冻结并签发 candidate receipt。
-- Round 4 independent review 尚未接受 exact candidate；workflow
+- Round 5 candidate 尚未冻结并签发 candidate receipt。
+- Round 5 independent review 尚未接受 exact candidate；workflow
   transition receipt 不得提前签发，QA Round 2 不得提前开始。
 
 commit：

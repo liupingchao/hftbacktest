@@ -1,5 +1,17 @@
 # Findings
 
+## 2026-08-24 H0-B V4 Round 4 Review Findings
+
+- On macOS, the default temporary root traverses `/var`, which is a symlink.
+  The new path guard could therefore reject the ambient test root before a
+  mutation reached its intended target.
+- Error-code-only hostile evidence cannot distinguish a true target rejection
+  from an earlier rejection with the same stable code.
+- H0-B negative evidence needs an additional ordered target fingerprint while
+  retaining the generic Trust Kernel-compatible error-code rows.
+- These are evidence-quality findings only. The 42-file package and research
+  identities did not change.
+
 ## 2026-08-24 H0-B V4 Round 3 Review Findings
 
 - Comparing `resolve()` on both the supplied and canonical attempts roots

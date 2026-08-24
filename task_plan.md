@@ -1,5 +1,19 @@
 # Task Plan
 
+## 2026-08-24 Stage H0-B V4 Round 5 Candidate Ready
+
+- Preserve Round 4 candidate `4df43f92`, receipt `c522cb35` and rejected
+  independent review `83c0ac48` at `P0/P1/P2/P3=0/1/0/0`.
+- Create every hostile temporary directory below the resolved non-symlink
+  system temporary root.
+- Preserve the generic error-code evidence and add H0-B current/frozen target
+  contracts binding normalized `error.location` for every mutation.
+- Add a distinct parent-chain symlink mutation and require exact
+  `89 current + 89 frozen` code and target matches with zero fail-open.
+- Freeze a Round 5 candidate and obtain fresh independent acceptance before
+  any transition receipt or QA Round 2 handoff.
+- Continue to prohibit outcome, diagnostic, H0B0 and formal-build commands.
+
 ## 2026-08-24 Stage H0-B V4 Round 4 Candidate Ready
 
 - Preserve Round 3 candidate `43c97bc7`, receipt `9a6f64ac` and rejected
