@@ -1,5 +1,18 @@
 # Findings
 
+## 2026-08-24 H0-B V4 Round 5 Review Findings
+
+- Matching an error code and normalized rejection location is not sufficient
+  when a mutation constructs a shallower invalid input than the Surface
+  Matrix promises.
+- Seven Round 5 cases did not exercise their declared rounding, drop,
+  reorder, test-median, random-split, numeric-convention or KM tie semantics.
+- Expected locations must be a reviewed contract outside the runtime that
+  executes the mutations. The repaired semantic cases also need explicit
+  current/frozen probe identities.
+- These are negative-evidence quality findings only. The formal 42-file
+  package, classification and R/C/E/composite identities did not change.
+
 ## 2026-08-24 H0-B V4 Round 4 Review Findings
 
 - On macOS, the default temporary root traverses `/var`, which is a symlink.

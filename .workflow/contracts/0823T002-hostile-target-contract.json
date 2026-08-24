@@ -1,0 +1,897 @@
+{
+  "schema_version": "skhynix_stage_h0b_hostile_target_contract_v1",
+  "surface_matrix_sha256": "8255d49917eaf0abedc62f74ef9609dfc1ccac9fea4e98abbcc764445ccee25d",
+  "targets": [
+    {
+      "expected_error_code": "H0B_KERNEL_PIN_MISMATCH",
+      "expected_error_location": "$.production_contract.kernel_pin",
+      "matrix_description": "alter registry/kernel pin",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "kernel_pin",
+      "mutation_id": "mutate_kernel_pin",
+      "semantic_probe": null,
+      "surface_id": "kernel_pin"
+    },
+    {
+      "expected_error_code": "H0B_MASTER_FRAMEWORK_MISMATCH",
+      "expected_error_location": "$.production_contract.master_framework_pin",
+      "matrix_description": "alter framework SHA",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "master_framework_pin",
+      "mutation_id": "mutate_master_framework_pin",
+      "semantic_probe": null,
+      "surface_id": "master_framework_pin"
+    },
+    {
+      "expected_error_code": "H0B_H0A_IDENTITY_MISMATCH",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/h0a_manifest.json",
+      "matrix_description": "alter one identity",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "accepted_h0a_binding",
+      "mutation_id": "mutate_accepted_h0a_binding",
+      "semantic_probe": null,
+      "surface_id": "accepted_h0a_binding"
+    },
+    {
+      "expected_error_code": "H0B_LATENCY_IDENTITY_MISMATCH",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/measurement_manifest.json",
+      "matrix_description": "alter one identity",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "accepted_latency_binding",
+      "mutation_id": "mutate_accepted_latency_binding",
+      "semantic_probe": null,
+      "surface_id": "accepted_latency_binding"
+    },
+    {
+      "expected_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "matrix_description": "alter one identity",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "accepted_tuple_binding",
+      "mutation_id": "mutate_accepted_tuple_binding",
+      "semantic_probe": null,
+      "surface_id": "accepted_tuple_binding"
+    },
+    {
+      "expected_error_code": "H0B_DEPENDENCY_IDENTITY_MISMATCH",
+      "expected_error_location": "$.production_contract.accepted_stage1_4_binding",
+      "matrix_description": "substitute package",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "accepted_stage1_4_binding",
+      "mutation_id": "mutate_accepted_stage1_4_binding",
+      "semantic_probe": null,
+      "surface_id": "accepted_stage1_4_binding"
+    },
+    {
+      "expected_error_code": "H0B_SESSION_ROLE_MISMATCH",
+      "expected_error_location": "$.session_roles",
+      "matrix_description": "promote Aug03",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "session_roles",
+      "mutation_id": "mutate_session_roles",
+      "semantic_probe": null,
+      "surface_id": "session_roles"
+    },
+    {
+      "expected_error_code": "H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN",
+      "expected_error_location": "$.underlying_state_boundary",
+      "matrix_description": "inject KRX state",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "underlying_state_boundary",
+      "mutation_id": "mutate_underlying_state_boundary",
+      "semantic_probe": null,
+      "surface_id": "underlying_state_boundary"
+    },
+    {
+      "expected_error_code": "H0B_SEMANTIC_INVENTORY_MISMATCH",
+      "expected_error_location": "$.production_contract.semantic_source_inventory",
+      "matrix_description": "add/remove source",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "semantic_source_inventory",
+      "mutation_id": "mutate_semantic_source_inventory",
+      "semantic_probe": null,
+      "surface_id": "semantic_source_inventory"
+    },
+    {
+      "expected_error_code": "H0B_BUILD_ENVELOPE_MISMATCH",
+      "expected_error_location": "$.production_contract.build_envelope",
+      "matrix_description": "copy A envelope to B",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "build_envelope",
+      "mutation_id": "mutate_build_envelope",
+      "semantic_probe": null,
+      "surface_id": "build_envelope"
+    },
+    {
+      "expected_error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "matrix_description": "alter one header",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "source_schema",
+      "mutation_id": "mutate_source_schema",
+      "semantic_probe": null,
+      "surface_id": "source_schema"
+    },
+    {
+      "expected_error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "matrix_description": "swap same-ts sequence",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "source_ordering",
+      "mutation_id": "mutate_source_ordering",
+      "semantic_probe": null,
+      "surface_id": "source_ordering"
+    },
+    {
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_location": "$.publication_projection.ledger.A",
+      "matrix_description": "forge publication ledger path/access/bytes/event order",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "guarded_opener",
+      "mutation_id": "mutate_guarded_opener",
+      "semantic_probe": null,
+      "surface_id": "guarded_opener"
+    },
+    {
+      "expected_error_code": "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+      "expected_error_location": "local_live_analysis/alignment/decision_labels.csv",
+      "matrix_description": "open R1 future labels",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "feature_source_boundary",
+      "mutation_id": "mutate_feature_source_boundary",
+      "semantic_probe": null,
+      "surface_id": "feature_source_boundary"
+    },
+    {
+      "expected_error_code": "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+      "expected_error_location": "$.production_contract.two_envelope_boundary",
+      "matrix_description": "reuse process",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "two_envelope_boundary",
+      "mutation_id": "mutate_two_envelope_boundary",
+      "semantic_probe": null,
+      "surface_id": "two_envelope_boundary"
+    },
+    {
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/outcome_access_permit.json",
+      "matrix_description": "stale/copy permit or post-H0B0 current Surface Matrix byte drift",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "outcome_access_permit",
+      "mutation_id": "mutate_outcome_access_permit",
+      "semantic_probe": null,
+      "surface_id": "outcome_access_permit"
+    },
+    {
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_location": "$.publication_projection.permit.A",
+      "matrix_description": "replace packaged runtime source and internal runtime SHA fields self-consistently",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "outcome_access_permit",
+      "mutation_id": "mutate_packaged_runtime_source",
+      "semantic_probe": null,
+      "surface_id": "outcome_access_permit"
+    },
+    {
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_location": "$.expected_runtime_source_tree_sha256",
+      "matrix_description": "replace dispatch-pinned runtime-source tree with a self-consistent stale tree",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "outcome_access_permit",
+      "mutation_id": "mutate_runtime_source_external_oracle",
+      "semantic_probe": null,
+      "surface_id": "outcome_access_permit"
+    },
+    {
+      "expected_error_code": "H0B_SUPPORT_COMMITMENT_MISMATCH",
+      "expected_error_location": "$.production_contract.support_replay",
+      "matrix_description": "alter one commitment",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "support_replay",
+      "mutation_id": "mutate_support_replay",
+      "semantic_probe": null,
+      "surface_id": "support_replay"
+    },
+    {
+      "expected_error_code": "H0B_CALENDAR_GRID_MISMATCH",
+      "expected_error_location": "$.production_contract.calendar_grid",
+      "matrix_description": "drift origin by 1ns",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "calendar_grid",
+      "mutation_id": "mutate_calendar_grid",
+      "semantic_probe": null,
+      "surface_id": "calendar_grid"
+    },
+    {
+      "expected_error_code": "H0B_SIDE_PAIR_MISMATCH",
+      "expected_error_location": "$.production_contract.side_expansion",
+      "matrix_description": "drop one side",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "side_expansion",
+      "mutation_id": "mutate_side_expansion",
+      "semantic_probe": null,
+      "surface_id": "side_expansion"
+    },
+    {
+      "expected_error_code": "H0B_EVENT_DEFINITION_MISMATCH",
+      "expected_error_location": "$.production_contract.event_definition",
+      "matrix_description": "use midpoint/retreat",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "event_definition",
+      "mutation_id": "mutate_event_definition",
+      "semantic_probe": null,
+      "surface_id": "event_definition"
+    },
+    {
+      "expected_error_code": "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+      "expected_error_location": "$.production_contract.support_class_mapping",
+      "matrix_description": "coerce interval-only",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "support_class_mapping",
+      "mutation_id": "mutate_support_class_mapping",
+      "semantic_probe": null,
+      "surface_id": "support_class_mapping"
+    },
+    {
+      "expected_error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+      "expected_error_location": "$.production_contract.observation_bounds",
+      "matrix_description": "truncate interval-only search",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "observation_bounds",
+      "mutation_id": "mutate_observation_bounds",
+      "semantic_probe": null,
+      "surface_id": "observation_bounds"
+    },
+    {
+      "expected_error_code": "H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+      "expected_error_location": "$.semantic_probe.interval_likelihood.rounded_bounds",
+      "matrix_description": "round bounds to bins",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "interval_likelihood",
+      "mutation_id": "mutate_interval_likelihood",
+      "semantic_probe": "interval_bounds_rounded_to_grid",
+      "surface_id": "interval_likelihood"
+    },
+    {
+      "expected_error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+      "expected_error_location": "$.production_contract.right_censor_likelihood",
+      "matrix_description": "encode no-event as zero-time",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "right_censor_likelihood",
+      "mutation_id": "mutate_right_censor_likelihood",
+      "semantic_probe": null,
+      "surface_id": "right_censor_likelihood"
+    },
+    {
+      "expected_error_code": "H0B_HORIZON_STRADDLE_MISMATCH",
+      "expected_error_location": "$.semantic_probe.horizon_straddle.dropped_row",
+      "matrix_description": "drop straddle row",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "horizon_straddle",
+      "mutation_id": "mutate_horizon_straddle",
+      "semantic_probe": "horizon_straddle_row_dropped",
+      "surface_id": "horizon_straddle"
+    },
+    {
+      "expected_error_code": "H0B_RISK_SCORE_MISMATCH",
+      "expected_error_location": "$.production_contract.risk_score",
+      "matrix_description": "use one-bin hazard",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "risk_score",
+      "mutation_id": "mutate_risk_score",
+      "semantic_probe": null,
+      "surface_id": "risk_score"
+    },
+    {
+      "expected_error_code": "H0B_BINARY_SUBSET_MISMATCH",
+      "expected_error_location": "$.production_contract.binary_subset",
+      "matrix_description": "include interval-only",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "binary_subset",
+      "mutation_id": "mutate_binary_subset",
+      "semantic_probe": null,
+      "surface_id": "binary_subset"
+    },
+    {
+      "expected_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+      "expected_error_location": "$.h0_features",
+      "matrix_description": "add future/calendar feature",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "h0_features",
+      "mutation_id": "mutate_h0_features",
+      "semantic_probe": null,
+      "surface_id": "h0_features"
+    },
+    {
+      "expected_error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+      "expected_error_location": "$.h1_features",
+      "matrix_description": "add outcome/post-t feature",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "h1_features",
+      "mutation_id": "mutate_h1_features",
+      "semantic_probe": null,
+      "surface_id": "h1_features"
+    },
+    {
+      "expected_error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+      "expected_error_location": "$.semantic_probe.design_matrix.dropped_indicator",
+      "matrix_description": "reorder/drop indicator",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "design_matrix",
+      "mutation_id": "mutate_design_matrix",
+      "semantic_probe": "design_indicator_reordered_or_dropped",
+      "surface_id": "design_matrix"
+    },
+    {
+      "expected_error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+      "expected_error_location": "$.production_contract.basis_residual",
+      "matrix_description": "full-session demean",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "basis_residual",
+      "mutation_id": "mutate_basis_residual",
+      "semantic_probe": null,
+      "surface_id": "basis_residual"
+    },
+    {
+      "expected_error_code": "H0B_MISSING_VALUE_POLICY_MISMATCH",
+      "expected_error_location": "$.semantic_probe.missing_value_policy.test_fold_median",
+      "matrix_description": "use test median",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "missing_value_policy",
+      "mutation_id": "mutate_missing_value_policy",
+      "semantic_probe": "missing_value_test_fold_median",
+      "surface_id": "missing_value_policy"
+    },
+    {
+      "expected_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+      "expected_error_location": "$.production_contract.dose_definition",
+      "matrix_description": "use shock before confirm",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "dose_definition",
+      "mutation_id": "mutate_dose_definition",
+      "semantic_probe": null,
+      "surface_id": "dose_definition"
+    },
+    {
+      "expected_error_code": "H0B_WALK_FORWARD_MISMATCH",
+      "expected_error_location": "$.semantic_probe.walk_forward.random_split",
+      "matrix_description": "random split",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "walk_forward",
+      "mutation_id": "mutate_walk_forward",
+      "semantic_probe": "walk_forward_random_split",
+      "surface_id": "walk_forward"
+    },
+    {
+      "expected_error_code": "H0B_ESTIMATOR_CONTRACT_MISMATCH",
+      "expected_error_location": "$.production_contract.estimator",
+      "matrix_description": "tune lambda after outcome",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "estimator",
+      "mutation_id": "mutate_estimator",
+      "semantic_probe": null,
+      "surface_id": "estimator"
+    },
+    {
+      "expected_error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+      "expected_error_location": "$.semantic_probe.numeric_seed_conventions.changed_quantile_rng",
+      "matrix_description": "change quantile/RNG",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "numeric_seed_conventions",
+      "mutation_id": "mutate_numeric_seed_conventions",
+      "semantic_probe": "quantile_rng_convention_changed",
+      "surface_id": "numeric_seed_conventions"
+    },
+    {
+      "expected_error_code": "H0B_RQ1_STATISTIC_MISMATCH",
+      "expected_error_location": "$.production_contract.rq1_statistic",
+      "matrix_description": "pool side rows",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq1_statistic",
+      "mutation_id": "mutate_rq1_statistic",
+      "semantic_probe": null,
+      "surface_id": "rq1_statistic"
+    },
+    {
+      "expected_error_code": "H0B_RQ1_NULL_MISMATCH",
+      "expected_error_location": "$.production_contract.rq1_stationary_null",
+      "matrix_description": "resample support/source-only stratum",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq1_stationary_null",
+      "mutation_id": "mutate_rq1_stationary_null",
+      "semantic_probe": null,
+      "surface_id": "rq1_stationary_null"
+    },
+    {
+      "expected_error_code": "H0B_RQ2_SCORE_MISMATCH",
+      "expected_error_location": "$.production_contract.rq2_score",
+      "matrix_description": "choose favorable metric",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq2_score",
+      "mutation_id": "mutate_rq2_score",
+      "semantic_probe": null,
+      "surface_id": "rq2_score"
+    },
+    {
+      "expected_error_code": "H0B_RQ2_CONCENTRATION_MISMATCH",
+      "expected_error_location": "$.production_contract.rq2_concentration",
+      "matrix_description": "use net/absolute cell sum",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq2_concentration",
+      "mutation_id": "mutate_rq2_concentration",
+      "semantic_probe": null,
+      "surface_id": "rq2_concentration"
+    },
+    {
+      "expected_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+      "expected_error_location": "$.production_contract.time_bootstrap",
+      "matrix_description": "row bootstrap",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "time_bootstrap",
+      "mutation_id": "mutate_time_bootstrap",
+      "semantic_probe": null,
+      "surface_id": "time_bootstrap"
+    },
+    {
+      "expected_error_code": "H0B_FLOW_COMPONENT_MISMATCH",
+      "expected_error_location": "jul30/segment_0001/b",
+      "matrix_description": "double-assign endpoint",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "flow_component_assignment",
+      "mutation_id": "mutate_flow_component_assignment",
+      "semantic_probe": null,
+      "surface_id": "flow_component_assignment"
+    },
+    {
+      "expected_error_code": "H0B_FLOW_BOOTSTRAP_MISMATCH",
+      "expected_error_location": "$.production_contract.flow_bootstrap",
+      "matrix_description": "equal-unit estimand",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "flow_bootstrap",
+      "mutation_id": "mutate_flow_bootstrap",
+      "semantic_probe": null,
+      "surface_id": "flow_bootstrap"
+    },
+    {
+      "expected_error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+      "expected_error_location": "$.production_contract.rq3_threshold_source",
+      "matrix_description": "use OOF/pooled threshold",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq3_threshold_source",
+      "mutation_id": "mutate_rq3_threshold_source",
+      "semantic_probe": null,
+      "surface_id": "rq3_threshold_source"
+    },
+    {
+      "expected_error_code": "H0B_RQ3_REGIME_MISMATCH",
+      "expected_error_location": "$.production_contract.rq3_regime",
+      "matrix_description": "post-hoc threshold/debounce",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq3_regime",
+      "mutation_id": "mutate_rq3_regime",
+      "semantic_probe": null,
+      "surface_id": "rq3_regime"
+    },
+    {
+      "expected_error_code": "H0B_RQ3_KM_MISMATCH",
+      "expected_error_location": "$.semantic_probe.rq3_km_ties.censor_first_interpolate",
+      "matrix_description": "censor first/interpolate",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq3_km_ties",
+      "mutation_id": "mutate_rq3_km_ties",
+      "semantic_probe": "km_censor_first_or_interpolated",
+      "surface_id": "rq3_km_ties"
+    },
+    {
+      "expected_error_code": "H0B_RQ3_BOOTSTRAP_MISMATCH",
+      "expected_error_location": "$.production_contract.rq3_cluster_bootstrap",
+      "matrix_description": "Greenwood gate CI",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq3_cluster_bootstrap",
+      "mutation_id": "mutate_rq3_cluster_bootstrap",
+      "semantic_probe": null,
+      "surface_id": "rq3_cluster_bootstrap"
+    },
+    {
+      "expected_error_code": "H0B_RQ3_SIDE_AGGREGATION_MISMATCH",
+      "expected_error_location": "$.production_contract.rq3_side_aggregation",
+      "matrix_description": "pool regimes",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "rq3_side_aggregation",
+      "mutation_id": "mutate_rq3_side_aggregation",
+      "semantic_probe": null,
+      "surface_id": "rq3_side_aggregation"
+    },
+    {
+      "expected_error_code": "H0B_PRIMARY_LATENCY_MISMATCH",
+      "expected_error_location": "$.latency_roles",
+      "matrix_description": "promote/rescue with 850",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "latency_roles",
+      "mutation_id": "mutate_latency_roles",
+      "semantic_probe": null,
+      "surface_id": "latency_roles"
+    },
+    {
+      "expected_error_code": "H0B_CLASSIFICATION_MISMATCH",
+      "expected_error_location": "$.formal_session_facts",
+      "matrix_description": "issue final signal claim",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "classification_precedence",
+      "mutation_id": "mutate_classification_precedence",
+      "semantic_probe": null,
+      "surface_id": "classification_precedence"
+    },
+    {
+      "expected_error_code": "H0B_PRIMARY_SEAL_MISMATCH",
+      "expected_error_location": "$.production_contract.primary_result_seal",
+      "matrix_description": "omit/mutate sealed path or collapse identities",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "primary_result_seal",
+      "mutation_id": "mutate_primary_result_seal",
+      "semantic_probe": null,
+      "surface_id": "primary_result_seal"
+    },
+    {
+      "expected_error_code": "H0B_STAGE4_PROJECTION_MISMATCH",
+      "expected_error_location": "$.landmark_support_class",
+      "matrix_description": "read extra field or alter boundary disposition",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "stage4_projection",
+      "mutation_id": "mutate_stage4_projection",
+      "semantic_probe": null,
+      "surface_id": "stage4_projection"
+    },
+    {
+      "expected_error_code": "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+      "expected_error_location": "$.ledger.A",
+      "matrix_description": "open before permit/seal or copy permit",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "stage4_crosscheck",
+      "mutation_id": "mutate_stage4_crosscheck",
+      "semantic_probe": null,
+      "surface_id": "stage4_crosscheck"
+    },
+    {
+      "expected_error_code": "H0B_AUG07_ACCESS_FORBIDDEN",
+      "expected_error_location": "local_live_analysis/aug07/events.csv.gz",
+      "matrix_description": "open one Aug07 row",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "aug07_nonaccess",
+      "mutation_id": "mutate_aug07_nonaccess",
+      "semantic_probe": null,
+      "surface_id": "aug07_nonaccess"
+    },
+    {
+      "expected_error_code": "H0B_BUILD_MISMATCH",
+      "expected_error_location": "result.csv",
+      "matrix_description": "mutate Build B",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "deterministic_build",
+      "mutation_id": "mutate_deterministic_build",
+      "semantic_probe": null,
+      "surface_id": "deterministic_build"
+    },
+    {
+      "expected_error_code": "H0B_BUILD_MISMATCH",
+      "expected_error_location": "outcome_access_permit_build_a.json",
+      "matrix_description": "assemble and fully admit two complete fresh-root packages, prove 42/42 and R/C/E/composite equality, then drift one real packaged permit",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "deterministic_build",
+      "mutation_id": "mutate_complete_package_portability",
+      "semantic_probe": null,
+      "surface_id": "deterministic_build"
+    },
+    {
+      "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "expected_error_location": "$.csv.row",
+      "matrix_description": "add/reorder field or report line",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "output_schema",
+      "mutation_id": "mutate_output_schema",
+      "semantic_probe": null,
+      "surface_id": "output_schema"
+    },
+    {
+      "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "expected_error_location": "$.build_receipt.runtime_evidence",
+      "matrix_description": "break raw-runtime/publication dual binding or substitute a diagnostic-permit CLI summary for a complete durable permit in the external receipt",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "output_schema",
+      "mutation_id": "mutate_external_receipt_binding",
+      "semantic_probe": null,
+      "surface_id": "output_schema"
+    },
+    {
+      "expected_error_code": "H0B_PACKAGE_TREE_MISMATCH",
+      "expected_error_location": "$.files",
+      "matrix_description": "add extra/symlink",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "package_tree",
+      "mutation_id": "mutate_package_tree",
+      "semantic_probe": null,
+      "surface_id": "package_tree"
+    },
+    {
+      "expected_error_code": "H0B_IDENTITY_BINDING_MISMATCH",
+      "expected_error_location": "$.production_contract.layered_identity",
+      "matrix_description": "mutate bridge/reuse old C/E",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "layered_identity",
+      "mutation_id": "mutate_layered_identity",
+      "semantic_probe": null,
+      "surface_id": "layered_identity"
+    },
+    {
+      "expected_error_code": "H0B_MANIFEST_SELF_REFERENCE_MISMATCH",
+      "expected_error_location": "$.production_contract.manifest_self_exclusion",
+      "matrix_description": "include/exclude another file",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "manifest_self_exclusion",
+      "mutation_id": "mutate_manifest_self_exclusion",
+      "semantic_probe": null,
+      "surface_id": "manifest_self_exclusion"
+    },
+    {
+      "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "expected_error_location": "$HOSTILE_TEMP/final",
+      "matrix_description": "precreate final",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "atomic_publication",
+      "mutation_id": "mutate_atomic_publication",
+      "semantic_probe": null,
+      "surface_id": "atomic_publication"
+    },
+    {
+      "expected_error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
+      "expected_error_location": "$.external_actions",
+      "matrix_description": "attempt endpoint",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "zero_external_action",
+      "mutation_id": "mutate_zero_external_action",
+      "semantic_probe": null,
+      "surface_id": "zero_external_action"
+    },
+    {
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_location": "$.execution_authority.pins",
+      "matrix_description": "replace formal task SHA with mutable workflow task SHA",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "execution_authority_task_sha256",
+      "mutation_id": "mutate_execution_authority_task",
+      "semantic_probe": null,
+      "surface_id": "execution_authority"
+    },
+    {
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_location": "$.execution_authority.pins",
+      "matrix_description": "alter formal authority commit while preserving other pins",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "execution_authority_commit",
+      "mutation_id": "mutate_execution_authority_commit",
+      "semantic_probe": null,
+      "surface_id": "execution_authority"
+    },
+    {
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_location": "rq1_block_rates.csv",
+      "matrix_description": "alter one of the 42 packaged files while preserving package self-identities",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_package_git_object_binding",
+      "mutation_id": "mutate_execution_authority_package_object",
+      "semantic_probe": null,
+      "surface_id": "execution_authority"
+    },
+    {
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/.git",
+      "matrix_description": "execute frozen hostile mutations without a readable Git object store",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "frozen_runtime_git_object_store",
+      "mutation_id": "mutate_frozen_git_object_store",
+      "semantic_probe": null,
+      "surface_id": "execution_authority"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "matrix_description": "reuse an occupied attempt ID",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_attempt_root",
+      "mutation_id": "mutate_formal_attempt_reuse",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "PUBLICATION_STAGING_EXISTS",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "matrix_description": "reuse an occupied package staging root",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "package_staging_root",
+      "mutation_id": "mutate_formal_staging_reuse",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/missing-attempt/attempt_receipt.json",
+      "matrix_description": "remove the durable attempt receipt",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "attempt_receipt",
+      "mutation_id": "mutate_formal_attempt_missing_receipt",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$.formal_attempt.completed_entry_identities",
+      "matrix_description": "mutate partial evidence after dead-PID recovery seals the attempt",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "attempt_evidence_inventory",
+      "mutation_id": "mutate_formal_partial_hard_stop_recovery",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/torn-receipt/attempt_receipt.json",
+      "matrix_description": "replace the durable attempt receipt with torn JSON",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "attempt_receipt_atomicity",
+      "mutation_id": "mutate_formal_torn_receipt",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "matrix_description": "select a formal attempt root outside the canonical namespace",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_attempt_root",
+      "mutation_id": "mutate_formal_attempts_root_escape",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/bootstrap-crash/attempt_bootstrap.json",
+      "matrix_description": "mutate bootstrap evidence after root-before-receipt crash recovery",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "attempt_bootstrap",
+      "mutation_id": "mutate_formal_bootstrap_recovery",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$.formal_subcommand.outcome",
+      "matrix_description": "invoke an outcome-bearing subcommand without an active attempt context",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_subcommand_entrypoint",
+      "mutation_id": "mutate_formal_subcommand_without_attempt",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$.formal_attempts_root",
+      "matrix_description": "create the attempts namespace without fsyncing its parent directory entry",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_attempts_root_parent",
+      "mutation_id": "mutate_formal_attempts_parent_fsync",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/.duplicate.bootstrap.json",
+      "matrix_description": "allow a second caller to replace an existing bootstrap claim",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_attempt_bootstrap_claim",
+      "mutation_id": "mutate_formal_concurrent_claim",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$.formal_attempt.bootstrap_binding",
+      "matrix_description": "accept receipt and bootstrap records from different callers",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_attempt_bootstrap_binding",
+      "mutation_id": "mutate_formal_bootstrap_receipt_cross_binding",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/attempts",
+      "matrix_description": "redirect the canonical attempts namespace through a symlink",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_attempts_root_symlink",
+      "mutation_id": "mutate_formal_attempts_root_symlink",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/linked-parent",
+      "matrix_description": "redirect an existing attempts parent component through a symlink",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "formal_attempts_parent_symlink",
+      "mutation_id": "mutate_formal_attempts_parent_symlink",
+      "semantic_probe": null,
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.actors",
+      "matrix_description": "reuse the controller actor ID as reviewer",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "reviewer_actor_id",
+      "mutation_id": "mutate_review_same_actor",
+      "semantic_probe": null,
+      "surface_id": "independent_review_provenance"
+    },
+    {
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.candidate_commit",
+      "matrix_description": "bind review to a different candidate commit",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "candidate_commit",
+      "mutation_id": "mutate_review_candidate_commit",
+      "semantic_probe": null,
+      "surface_id": "independent_review_provenance"
+    },
+    {
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.introduction_blob",
+      "matrix_description": "rewrite review bytes after their introduction commit",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "review_introduction_blob",
+      "mutation_id": "mutate_review_post_introduction_rewrite",
+      "semantic_probe": null,
+      "surface_id": "independent_review_provenance"
+    },
+    {
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.commit_chain",
+      "matrix_description": "place the review commit outside the candidate-receipt ancestry chain",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "candidate_receipt_commit",
+      "mutation_id": "mutate_review_receipt_chronology",
+      "semantic_probe": null,
+      "surface_id": "independent_review_provenance"
+    },
+    {
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.commit_scope",
+      "matrix_description": "include implementation changes in the receipt or review commit",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "review_commit_changed_paths",
+      "mutation_id": "mutate_review_commit_scope",
+      "semantic_probe": null,
+      "surface_id": "independent_review_provenance"
+    },
+    {
+      "expected_error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "expected_error_location": "$.workflow_transition",
+      "matrix_description": "alter one formal package identity in the transition receipt",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "workflow_transition_receipt",
+      "mutation_id": "mutate_workflow_transition_identity",
+      "semantic_probe": null,
+      "surface_id": "workflow_transition"
+    },
+    {
+      "expected_error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "expected_error_location": "$.workflow_transition.state",
+      "matrix_description": "set handoff status without a transition receipt",
+      "matrix_operation": "other_explicit",
+      "matrix_target": "workflow_status",
+      "mutation_id": "mutate_workflow_status_without_transition",
+      "semantic_probe": null,
+      "surface_id": "workflow_transition"
+    }
+  ],
+  "task_id": "0823T002"
+}

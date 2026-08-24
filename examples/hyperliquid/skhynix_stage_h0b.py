@@ -33,6 +33,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_SOURCE_ROOT = Path("/Users/liu/Documents/hftbacktest")
 TASK_PATH = REPO_ROOT / ".workflow/tasks/0823T002.md"
 MATRIX_PATH = REPO_ROOT / ".workflow/contracts/0823T002-surface-matrix.json"
+HOSTILE_TARGET_CONTRACT_PATH = (
+    REPO_ROOT
+    / ".workflow/contracts/0823T002-hostile-target-contract.json"
+)
 PRIMARY_PLAN_PATH = (
     REPO_ROOT
     / "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md"
@@ -76,8 +80,11 @@ CONTROL_ROUND3_CANDIDATE_RECEIPT_PATH = (
 CONTROL_ROUND4_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round4.json"
 )
-CONTROL_CANDIDATE_RECEIPT_PATH = (
+CONTROL_ROUND5_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round5.json"
+)
+CONTROL_CANDIDATE_RECEIPT_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round6.json"
 )
 CONTROL_REMEDIATION_REVIEW_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review.md"
@@ -112,6 +119,13 @@ CONTROL_ROUND4_REVIEW_PATH = (
 CONTROL_ROUND4_REVIEW_SUBMISSION_PATH = (
     REPO_ROOT
     / ".workflow/reports/0823T002-plan-v4-review-round4-submission.md"
+)
+CONTROL_ROUND5_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review-round5.md"
+)
+CONTROL_ROUND5_REVIEW_SUBMISSION_PATH = (
+    REPO_ROOT
+    / ".workflow/reports/0823T002-plan-v4-review-round5-submission.md"
 )
 WORKFLOW_TRANSITION_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-workflow-transition.json"
@@ -423,10 +437,13 @@ PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
 PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
 PUBLICATION_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
 CONTROL_REMEDIATION_PLAN_SHA256 = (
-    "03050180ba115bb9a93ada9c090989a47afbbb98bffe46448304c3ac4aca3826"
+    "c1d78dbdd00adf34a06973dd8e7d4b5e759c5ad1b07bd2f4a2618d0e909658a7"
+)
+HOSTILE_TARGET_CONTRACT_SHA256 = (
+    "67e1977b6d29a07f86e6542eb5c2a8a8fc70fc4e42fc1f296213c123f2e6ba72"
 )
 CONTROL_CANDIDATE_RECEIPT_SCHEMA = (
-    "skhynix_stage_h0b_v4_candidate_receipt_v5"
+    "skhynix_stage_h0b_v4_candidate_receipt_v6"
 )
 CONTROL_REMEDIATION_REVIEW_SCHEMA = (
     "skhynix_stage_h0b_v4_independent_review_v1"
@@ -645,165 +662,6 @@ OPTIMIZER_PARAMETER_TOLERANCE = 1e-10
 RIDGE_LAMBDA = 1.0
 MODEL_CHUNK_ROWS = 250_000
 HOSTILE_FAIL_OPEN_SENTINEL = "H0B_HOSTILE_MUTATION_FAILED_OPEN"
-HOSTILE_EXPECTED_ERROR_LOCATIONS = {
-    "mutate_kernel_pin": "$.production_contract.kernel_pin",
-    "mutate_master_framework_pin": (
-        "$.production_contract.master_framework_pin"
-    ),
-    "mutate_accepted_h0a_binding": (
-        "$REPO_ROOT/local_live_analysis/"
-        "skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/"
-        "h0a_manifest.json"
-    ),
-    "mutate_accepted_latency_binding": (
-        "$REPO_ROOT/local_live_analysis/"
-        "skhynix_c6in_hyperliquid_execution_latency_0822T002/"
-        "measurement_manifest.json"
-    ),
-    "mutate_accepted_tuple_binding": (
-        "$REPO_ROOT/local_live_analysis/"
-        "skhynix_h0b_primary_tuple_supersession_0823T001/"
-        "supersession_manifest.json"
-    ),
-    "mutate_accepted_stage1_4_binding": (
-        "$.production_contract.accepted_stage1_4_binding"
-    ),
-    "mutate_session_roles": "$.session_roles",
-    "mutate_underlying_state_boundary": "$.underlying_state_boundary",
-    "mutate_semantic_source_inventory": (
-        "$.production_contract.semantic_source_inventory"
-    ),
-    "mutate_build_envelope": "$.production_contract.build_envelope",
-    "mutate_source_schema": "$HOSTILE_TEMP/mutated.csv.gz",
-    "mutate_source_ordering": "$HOSTILE_TEMP/mutated.csv.gz",
-    "mutate_guarded_opener": "$.publication_projection.ledger.A",
-    "mutate_feature_source_boundary": (
-        "local_live_analysis/alignment/decision_labels.csv"
-    ),
-    "mutate_two_envelope_boundary": (
-        "$.production_contract.two_envelope_boundary"
-    ),
-    "mutate_outcome_access_permit": (
-        "$HOSTILE_TEMP/outcome_access_permit.json"
-    ),
-    "mutate_packaged_runtime_source": "$.publication_projection.permit.A",
-    "mutate_runtime_source_external_oracle": (
-        "$.expected_runtime_source_tree_sha256"
-    ),
-    "mutate_support_replay": "$.production_contract.support_replay",
-    "mutate_calendar_grid": "$.production_contract.calendar_grid",
-    "mutate_side_expansion": "$.production_contract.side_expansion",
-    "mutate_event_definition": "$.production_contract.event_definition",
-    "mutate_support_class_mapping": (
-        "$.production_contract.support_class_mapping"
-    ),
-    "mutate_observation_bounds": (
-        "$.production_contract.observation_bounds"
-    ),
-    "mutate_interval_likelihood": "$.branch",
-    "mutate_right_censor_likelihood": (
-        "$.production_contract.right_censor_likelihood"
-    ),
-    "mutate_horizon_straddle": "$.straddle_bounds",
-    "mutate_risk_score": "$.production_contract.risk_score",
-    "mutate_binary_subset": "$.production_contract.binary_subset",
-    "mutate_h0_features": "$.h0_features",
-    "mutate_h1_features": "$.h1_features",
-    "mutate_design_matrix": "$.model",
-    "mutate_basis_residual": "$.production_contract.basis_residual",
-    "mutate_missing_value_policy": "$.features.missing_feature",
-    "mutate_dose_definition": "$.production_contract.dose_definition",
-    "mutate_walk_forward": "$.complete_blocks",
-    "mutate_estimator": "$.production_contract.estimator",
-    "mutate_numeric_seed_conventions": "$.nearest_rank.values",
-    "mutate_rq1_statistic": "$.production_contract.rq1_statistic",
-    "mutate_rq1_stationary_null": (
-        "$.production_contract.rq1_stationary_null"
-    ),
-    "mutate_rq2_score": "$.production_contract.rq2_score",
-    "mutate_rq2_concentration": (
-        "$.production_contract.rq2_concentration"
-    ),
-    "mutate_time_bootstrap": "$.production_contract.time_bootstrap",
-    "mutate_flow_component_assignment": "jul30/segment_0001/b",
-    "mutate_flow_bootstrap": "$.production_contract.flow_bootstrap",
-    "mutate_rq3_threshold_source": (
-        "$.production_contract.rq3_threshold_source"
-    ),
-    "mutate_rq3_regime": "$.production_contract.rq3_regime",
-    "mutate_rq3_km_ties": "$.km",
-    "mutate_rq3_cluster_bootstrap": (
-        "$.production_contract.rq3_cluster_bootstrap"
-    ),
-    "mutate_rq3_side_aggregation": (
-        "$.production_contract.rq3_side_aggregation"
-    ),
-    "mutate_latency_roles": "$.latency_roles",
-    "mutate_classification_precedence": "$.formal_session_facts",
-    "mutate_primary_result_seal": (
-        "$.production_contract.primary_result_seal"
-    ),
-    "mutate_stage4_projection": "$.landmark_support_class",
-    "mutate_stage4_crosscheck": "$.ledger.A",
-    "mutate_aug07_nonaccess": "local_live_analysis/aug07/events.csv.gz",
-    "mutate_deterministic_build": "result.csv",
-    "mutate_complete_package_portability": (
-        "outcome_access_permit_build_a.json"
-    ),
-    "mutate_output_schema": "$.csv.row",
-    "mutate_external_receipt_binding": "$.build_receipt.runtime_evidence",
-    "mutate_package_tree": "$.files",
-    "mutate_layered_identity": "$.production_contract.layered_identity",
-    "mutate_manifest_self_exclusion": (
-        "$.production_contract.manifest_self_exclusion"
-    ),
-    "mutate_atomic_publication": "$HOSTILE_TEMP/final",
-    "mutate_zero_external_action": "$.external_actions",
-    "mutate_execution_authority_task": "$.execution_authority.pins",
-    "mutate_execution_authority_commit": "$.execution_authority.pins",
-    "mutate_execution_authority_package_object": "rq1_block_rates.csv",
-    "mutate_frozen_git_object_store": "$HOSTILE_TEMP/.git",
-    "mutate_formal_attempt_reuse": "$HOSTILE_TEMP",
-    "mutate_formal_staging_reuse": "$HOSTILE_TEMP",
-    "mutate_formal_attempt_missing_receipt": (
-        "$HOSTILE_TEMP/missing-attempt/attempt_receipt.json"
-    ),
-    "mutate_formal_partial_hard_stop_recovery": (
-        "$.formal_attempt.completed_entry_identities"
-    ),
-    "mutate_formal_torn_receipt": (
-        "$HOSTILE_TEMP/torn-receipt/attempt_receipt.json"
-    ),
-    "mutate_formal_attempts_root_escape": "$HOSTILE_TEMP",
-    "mutate_formal_bootstrap_recovery": (
-        "$HOSTILE_TEMP/bootstrap-crash/attempt_bootstrap.json"
-    ),
-    "mutate_formal_subcommand_without_attempt": (
-        "$.formal_subcommand.outcome"
-    ),
-    "mutate_formal_attempts_parent_fsync": "$.formal_attempts_root",
-    "mutate_formal_concurrent_claim": (
-        "$HOSTILE_TEMP/.duplicate.bootstrap.json"
-    ),
-    "mutate_formal_bootstrap_receipt_cross_binding": (
-        "$.formal_attempt.bootstrap_binding"
-    ),
-    "mutate_formal_attempts_root_symlink": "$HOSTILE_TEMP/attempts",
-    "mutate_formal_attempts_parent_symlink": (
-        "$HOSTILE_TEMP/linked-parent"
-    ),
-    "mutate_review_same_actor": "$.review.actors",
-    "mutate_review_candidate_commit": "$.review.candidate_commit",
-    "mutate_review_post_introduction_rewrite": (
-        "$.review.introduction_blob"
-    ),
-    "mutate_review_receipt_chronology": "$.review.commit_chain",
-    "mutate_review_commit_scope": "$.review.commit_scope",
-    "mutate_workflow_transition_identity": "$.workflow_transition",
-    "mutate_workflow_status_without_transition": (
-        "$.workflow_transition.state"
-    ),
-}
 
 
 def production_contract_state() -> dict[str, Any]:
@@ -1804,6 +1662,113 @@ def write_json(path: Path, value: Any, *, fsync: bool = False) -> None:
         contracts.fsync_file(path)
 
 
+def validate_hostile_target_contract(
+    matrix_path: Path = MATRIX_PATH,
+    target_contract_path: Path = HOSTILE_TARGET_CONTRACT_PATH,
+) -> dict[str, Any]:
+    matrix = read_json(matrix_path)
+    target_contract = read_json(target_contract_path)
+    expected_keys = {
+        "schema_version",
+        "task_id",
+        "surface_matrix_sha256",
+        "targets",
+    }
+    contracts.require(
+        set(target_contract) == expected_keys
+        and target_contract["schema_version"]
+        == "skhynix_stage_h0b_hostile_target_contract_v1"
+        and target_contract["task_id"] == contracts.TASK_ID
+        and contracts.sha256_file(target_contract_path)
+        == HOSTILE_TARGET_CONTRACT_SHA256
+        and target_contract["surface_matrix_sha256"]
+        == contracts.sha256_file(matrix_path),
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        str(target_contract_path),
+        "hostile target contract identity or schema mismatch",
+    )
+    declared = [
+        {
+            "mutation_id": mutation["mutation_id"],
+            "surface_id": surface["surface_id"],
+            "matrix_target": mutation["target"],
+            "matrix_operation": mutation["operation"],
+            "matrix_description": mutation["description"],
+            "expected_error_code": mutation["expected_error_code"],
+        }
+        for surface in matrix["surfaces"]
+        for mutation in surface["negative_mutations"]
+    ]
+    targets = target_contract["targets"]
+    contracts.require(
+        type(targets) is list and len(targets) == len(declared),
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        f"{target_contract_path}:$.targets",
+        "target rows must match the canonical mutation count",
+    )
+    observed_ids = []
+    semantic_probe_count = 0
+    for index, (row, expected) in enumerate(zip(targets, declared)):
+        contracts.require(
+            type(row) is dict
+            and set(row)
+            == {
+                *expected,
+                "expected_error_location",
+                "semantic_probe",
+            }
+            and all(row[key] == value for key, value in expected.items())
+            and type(row["expected_error_location"]) is str
+            and row["expected_error_location"] != ""
+            and (
+                row["semantic_probe"] is None
+                or (
+                    type(row["semantic_probe"]) is str
+                    and re.fullmatch(
+                        r"[a-z][a-z0-9_]*",
+                        row["semantic_probe"],
+                    )
+                    is not None
+                )
+            ),
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+            f"{target_contract_path}:$.targets[{index}]",
+            "target row differs from the canonical Surface Matrix",
+        )
+        observed_ids.append(row["mutation_id"])
+        semantic_probe_count += row["semantic_probe"] is not None
+    contracts.require(
+        len(observed_ids) == len(set(observed_ids))
+        and semantic_probe_count == 7,
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        f"{target_contract_path}:$.targets",
+        "target mutation IDs must be unique and seven semantic probes required",
+    )
+    return target_contract
+
+
+def hostile_target_rows_by_mutation(
+    matrix_path: Path = MATRIX_PATH,
+    target_contract_path: Path = HOSTILE_TARGET_CONTRACT_PATH,
+) -> dict[str, dict[str, Any]]:
+    target_contract = validate_hostile_target_contract(
+        matrix_path,
+        target_contract_path,
+    )
+    return {
+        row["mutation_id"]: row
+        for row in target_contract["targets"]
+    }
+
+
+def semantic_probe_from_error_detail(detail: str) -> str | None:
+    match = re.search(
+        r"(?:^|;)semantic_probe=([a-z][a-z0-9_]*)(?:;|$)",
+        detail,
+    )
+    return match.group(1) if match is not None else None
+
+
 def task_field_pin(task_path: Path, key: str) -> str:
     prefix = f"- {key}="
     values = [
@@ -2144,6 +2109,8 @@ def validate_control_candidate_receipt(
         "plan_sha256",
         "surface_matrix_path",
         "surface_matrix_sha256",
+        "hostile_target_contract_path",
+        "hostile_target_contract_sha256",
         "runtime_source_tree_sha256",
         "review_path",
         "review_submission_path",
@@ -2177,6 +2144,9 @@ def validate_control_candidate_receipt(
         REPO_ROOT
     ).as_posix()
     matrix_path = MATRIX_PATH.relative_to(REPO_ROOT).as_posix()
+    target_contract_path = HOSTILE_TARGET_CONTRACT_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
     review_path = CONTROL_REMEDIATION_REVIEW_PATH.relative_to(
         REPO_ROOT
     ).as_posix()
@@ -2201,6 +2171,12 @@ def validate_control_candidate_receipt(
         and receipt["surface_matrix_sha256"]
         == sha256_bytes(git_object_bytes(candidate, matrix_path))
         == MATRIX_SHA256
+        and receipt["hostile_target_contract_path"] == target_contract_path
+        and receipt["hostile_target_contract_sha256"]
+        == sha256_bytes(
+            git_object_bytes(candidate, target_contract_path)
+        )
+        == HOSTILE_TARGET_CONTRACT_SHA256
         and receipt["runtime_source_tree_sha256"]
         == runtime_source_tree_sha256_from_git(candidate)
         and receipt["review_path"] == review_path
@@ -2387,6 +2363,12 @@ def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
         "control_review_submission_path": (
             CONTROL_REVIEW_SUBMISSION_PATH.relative_to(REPO_ROOT).as_posix()
         ),
+        "hostile_target_contract_path": (
+            HOSTILE_TARGET_CONTRACT_PATH.relative_to(REPO_ROOT).as_posix()
+        ),
+        "hostile_target_contract_sha256": (
+            HOSTILE_TARGET_CONTRACT_SHA256
+        ),
         "controller_actor_id": CONTROLLER_ACTOR_ID,
         "control_final_severity": CONTROL_REMEDIATION_ACCEPTED_SEVERITY,
         "execution_authority_commit": EXECUTION_AUTHORITY_COMMIT,
@@ -2534,6 +2516,9 @@ def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
         "candidate_receipt_sha256": candidate_receipt_sha,
         "reviewed_plan_sha256": CONTROL_REMEDIATION_PLAN_SHA256,
         "reviewed_surface_matrix_sha256": MATRIX_SHA256,
+        "reviewed_hostile_target_contract_sha256": (
+            HOSTILE_TARGET_CONTRACT_SHA256
+        ),
         "reviewed_runtime_source_tree_sha256": candidate[
             "runtime_source_tree_sha256"
         ],
@@ -2580,7 +2565,7 @@ def validate_reviewer_actor_binding(
         and reviewer_actor_id != controller_actor_id
         and re.fullmatch(
             (
-                r"codex-independent-reviewer-0823T002-v4-round5-"
+                r"codex-independent-reviewer-0823T002-v4-round6-"
                 r"[0-9a-f]{8,40}"
             ),
             reviewer_actor_id,
@@ -3028,6 +3013,11 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
             SOURCE_INVENTORY_CONTRACT_SHA256,
             "H0B_SEMANTIC_INVENTORY_MISMATCH",
         ),
+        (
+            HOSTILE_TARGET_CONTRACT_PATH,
+            HOSTILE_TARGET_CONTRACT_SHA256,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+        ),
         (matrix_path, MATRIX_SHA256, "H0B_MASTER_FRAMEWORK_MISMATCH"),
     ):
         observed = contracts.sha256_file(path)
@@ -3038,6 +3028,10 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
             f"expected={expected} observed={observed}",
         )
     matrix = read_json(matrix_path)
+    validate_hostile_target_contract(
+        matrix_path,
+        HOSTILE_TARGET_CONTRACT_PATH,
+    )
     validate_task_surface_matrix_table(task_path, matrix)
     command = [
         sys.executable,
@@ -3115,6 +3109,9 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
         ),
         "control_remediation_plan_sha256": (
             CONTROL_REMEDIATION_PLAN_SHA256
+        ),
+        "hostile_target_contract_sha256": (
+            HOSTILE_TARGET_CONTRACT_SHA256
         ),
         "control_candidate_commit": control_review["candidate"][
             "candidate_commit"
@@ -5072,6 +5069,212 @@ def hostile_contract_state_mutation(surface_id: str, observed: Any) -> None:
     validate_production_contract_state(state)
 
 
+def require_semantic_probe_rejected(
+    *,
+    condition: bool,
+    code: str,
+    location: str,
+    semantic_probe: str,
+    detail: str,
+) -> None:
+    contracts.require(
+        condition,
+        code,
+        location,
+        f"semantic_probe={semantic_probe};{detail}",
+    )
+
+
+def hostile_interval_likelihood_semantic_mutation() -> None:
+    q = np.full((1, 5), 0.1, dtype=np.float64)
+    branch = np.asarray([1], dtype=np.int8)
+    lower = np.asarray([9_000_000.0], dtype=np.float64)
+    upper = np.asarray([11_000_000.0], dtype=np.float64)
+    canonical, _ = contracts.likelihood_and_loss(
+        q,
+        branch,
+        lower,
+        upper,
+    )
+    rounded_lower = np.floor(lower / contracts.GRID_NS) * contracts.GRID_NS
+    rounded_upper = np.ceil(upper / contracts.GRID_NS) * contracts.GRID_NS
+    rounded, _ = contracts.likelihood_and_loss(
+        q,
+        branch,
+        rounded_lower,
+        rounded_upper,
+    )
+    require_semantic_probe_rejected(
+        condition=np.array_equal(canonical, rounded),
+        code="H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+        location="$.semantic_probe.interval_likelihood.rounded_bounds",
+        semantic_probe="interval_bounds_rounded_to_grid",
+        detail=(
+            f"canonical={canonical.tolist()!r};"
+            f"rounded={rounded.tolist()!r}"
+        ),
+    )
+
+
+def hostile_horizon_straddle_semantic_mutation() -> None:
+    q = np.full((1, 5), 0.1, dtype=np.float64)
+    canonical, _ = contracts.likelihood_and_loss(
+        q,
+        np.asarray([3], dtype=np.int8),
+        np.asarray([40_000_000.0], dtype=np.float64),
+        np.asarray([60_000_000.0], dtype=np.float64),
+    )
+    dropped = canonical[:0]
+    require_semantic_probe_rejected(
+        condition=dropped.shape == canonical.shape,
+        code="H0B_HORIZON_STRADDLE_MISMATCH",
+        location="$.semantic_probe.horizon_straddle.dropped_row",
+        semantic_probe="horizon_straddle_row_dropped",
+        detail=(
+            f"canonical_row_count={canonical.size};"
+            f"mutated_row_count={dropped.size}"
+        ),
+    )
+
+
+def hostile_design_matrix_semantic_mutation() -> None:
+    raw = np.asarray(
+        [
+            [0.1, 0.01, 0.2, 2.0, 0.8],
+            [0.2, 0.04, 0.3, np.nan, 0.7],
+            [0.3, 0.09, 0.4, 4.0, 0.6],
+        ],
+        dtype=np.float64,
+    )
+    scales = contracts.fit_feature_scales(raw, contracts.H0_RAW_FEATURES)
+    canonical = contracts.transform_design(
+        raw,
+        np.asarray([1.0, 0.0, 1.0]),
+        scales,
+        model="H0",
+    )
+    dropped_indicator = np.delete(canonical, canonical.shape[1] - 1, axis=1)
+    require_semantic_probe_rejected(
+        condition=dropped_indicator.shape == canonical.shape,
+        code="H0B_DESIGN_MATRIX_MISMATCH",
+        location="$.semantic_probe.design_matrix.dropped_indicator",
+        semantic_probe="design_indicator_reordered_or_dropped",
+        detail=(
+            f"canonical_columns={canonical.shape[1]};"
+            f"mutated_columns={dropped_indicator.shape[1]}"
+        ),
+    )
+
+
+def hostile_missing_value_semantic_mutation() -> None:
+    training = np.asarray([[0.0], [np.nan], [2.0]], dtype=np.float64)
+    test = np.asarray([[100.0], [101.0], [102.0]], dtype=np.float64)
+    training_scale = contracts.fit_feature_scales(
+        training,
+        ("missing_feature",),
+    )[0]
+    test_scale = contracts.fit_feature_scales(
+        test,
+        ("missing_feature",),
+    )[0]
+    canonical_imputation = training_scale.median
+    mutated_imputation = test_scale.median
+    require_semantic_probe_rejected(
+        condition=canonical_imputation == mutated_imputation,
+        code="H0B_MISSING_VALUE_POLICY_MISMATCH",
+        location=(
+            "$.semantic_probe.missing_value_policy.test_fold_median"
+        ),
+        semantic_probe="missing_value_test_fold_median",
+        detail=(
+            f"training_median={canonical_imputation!r};"
+            f"test_median={mutated_imputation!r}"
+        ),
+    )
+
+
+def hostile_walk_forward_semantic_mutation() -> None:
+    complete_blocks = np.asarray(
+        [index * contracts.BLOCK_NS for index in range(80)],
+        dtype=np.int64,
+    )
+    canonical = contracts.build_walk_forward_folds(
+        complete_blocks.tolist()
+    )[0]
+    generator = np.random.Generator(np.random.PCG64(PRIMARY_NULL_SEED))
+    shuffled = generator.permutation(complete_blocks)
+    random_train = tuple(int(value) for value in shuffled[:60])
+    random_test = tuple(int(value) for value in shuffled[60:80])
+    require_semantic_probe_rejected(
+        condition=(
+            random_train == canonical.train_blocks
+            and random_test == canonical.test_blocks
+        ),
+        code="H0B_WALK_FORWARD_MISMATCH",
+        location="$.semantic_probe.walk_forward.random_split",
+        semantic_probe="walk_forward_random_split",
+        detail=(
+            f"canonical_test_head={canonical.test_blocks[:3]!r};"
+            f"random_test_head={random_test[:3]!r}"
+        ),
+    )
+
+
+def hostile_numeric_seed_semantic_mutation() -> None:
+    values = np.asarray([0.0, 10.0, 20.0, 30.0], dtype=np.float64)
+    canonical = (
+        contracts.nearest_rank(values, 0.5),
+        type(np.random.PCG64()).__name__,
+    )
+    mutated = (
+        float(np.quantile(values, 0.5, method="linear")),
+        type(np.random.MT19937()).__name__,
+    )
+    require_semantic_probe_rejected(
+        condition=mutated == canonical,
+        code="H0B_NUMERIC_CONVENTION_MISMATCH",
+        location=(
+            "$.semantic_probe.numeric_seed_conventions."
+            "changed_quantile_rng"
+        ),
+        semantic_probe="quantile_rng_convention_changed",
+        detail=f"canonical={canonical!r};mutated={mutated!r}",
+    )
+
+
+def hostile_rq3_km_tie_semantic_mutation() -> None:
+    durations = np.asarray([10.0, 10.0, 20.0], dtype=np.float64)
+    censored = np.asarray([False, True, False])
+    canonical = contracts.kaplan_meier_median(durations, censored)
+    risk = float(durations.size)
+    survival = 1.0
+    censor_first_median = None
+    for value in np.unique(durations):
+        at_value = durations == value
+        censor_mass = float(np.logical_and(at_value, censored).sum())
+        event_mass = float(np.logical_and(at_value, ~censored).sum())
+        risk -= censor_mass
+        if event_mass > 0.0:
+            survival *= 1.0 - event_mass / risk
+            if survival <= 0.5:
+                censor_first_median = float(value)
+                break
+        risk -= event_mass
+    require_semantic_probe_rejected(
+        condition=censor_first_median == canonical,
+        code="H0B_RQ3_KM_MISMATCH",
+        location=(
+            "$.semantic_probe.rq3_km_ties."
+            "censor_first_interpolate"
+        ),
+        semantic_probe="km_censor_first_or_interpolated",
+        detail=(
+            f"canonical_median={canonical!r};"
+            f"censor_first_median={censor_first_median!r}"
+        ),
+    )
+
+
 def hostile_upstream_identity_mutation(surface_id: str) -> None:
     h0a_manifest, latency_manifest, tuple_manifest, tuple_payload = (
         upstream_identity_payloads()
@@ -5142,26 +5345,6 @@ def hostile_source_ordering_mutation() -> None:
             event_type="bbo",
             segment_id="segment_0001",
         )
-
-
-def hostile_design_matrix_mutation() -> None:
-    contracts.transform_design(
-        np.zeros((1, len(contracts.H0_RAW_FEATURES)), dtype=np.float64),
-        np.zeros(1, dtype=np.float64),
-        (),
-        model="H2",
-    )
-
-
-def hostile_missing_value_mutation() -> None:
-    contracts.fit_feature_scales(
-        np.full((1, 1), np.nan, dtype=np.float64),
-        ("missing_feature",),
-    )
-
-
-def hostile_walk_forward_mutation() -> None:
-    contracts.build_walk_forward_folds(tuple(range(69, -1, -1)))
 
 
 def hostile_flow_component_mutation() -> None:
@@ -5654,20 +5837,14 @@ def negative_case(
                 "straddle:dropped",
             ),
         ),
-        "interval_likelihood": lambda: contracts.likelihood_and_loss(
-            np.full((1, 5), 0.1),
-            np.asarray([9], dtype=np.int8),
-            np.asarray([0.0]),
-            np.asarray([contracts.HORIZON_NS], dtype=np.float64),
+        "interval_likelihood": (
+            hostile_interval_likelihood_semantic_mutation
         ),
         "right_censor_likelihood": lambda: hostile_contract_state_mutation(
             "right_censor_likelihood", "binary_no_event_at_0ms"
         ),
-        "horizon_straddle": lambda: contracts.likelihood_and_loss(
-            np.full((1, 5), 0.1),
-            np.asarray([3], dtype=np.int8),
-            np.asarray([50_000_000.0]),
-            np.asarray([60_000_000.0]),
+        "horizon_straddle": (
+            hostile_horizon_straddle_semantic_mutation
         ),
         "risk_score": lambda: hostile_contract_state_mutation(
             "risk_score", "single_bin_hazard"
@@ -5685,15 +5862,15 @@ def negative_case(
         "h1_features": lambda: validate_h1_feature_allowlist(
             (*contracts.H1_ADDED_RAW_FEATURES, "post_horizon_outcome"),
         ),
-        "design_matrix": hostile_design_matrix_mutation,
+        "design_matrix": hostile_design_matrix_semantic_mutation,
         "basis_residual": lambda: hostile_contract_state_mutation(
             "basis_residual", "full_session_mean"
         ),
-        "missing_value_policy": hostile_missing_value_mutation,
+        "missing_value_policy": hostile_missing_value_semantic_mutation,
         "dose_definition": lambda: hostile_contract_state_mutation(
             "dose_definition", ("shock_ts", "forward_500ms_queue_drop_ratio")
         ),
-        "walk_forward": hostile_walk_forward_mutation,
+        "walk_forward": hostile_walk_forward_semantic_mutation,
         "estimator": lambda: hostile_contract_state_mutation(
             "estimator",
             (
@@ -5704,9 +5881,7 @@ def negative_case(
                 OPTIMIZER_PARAMETER_TOLERANCE,
             ),
         ),
-        "numeric_seed_conventions": lambda: contracts.nearest_rank(
-            np.asarray([], dtype=np.float64), 0.5
-        ),
+        "numeric_seed_conventions": hostile_numeric_seed_semantic_mutation,
         "rq1_statistic": lambda: hostile_contract_state_mutation(
             "rq1_statistic", "pooled_side_rows"
         ),
@@ -5738,10 +5913,7 @@ def negative_case(
         "rq3_regime": lambda: hostile_contract_state_mutation(
             "rq3_regime", ("one_tick_switch", "posthoc_threshold")
         ),
-        "rq3_km_ties": lambda: contracts.kaplan_meier_median(
-            np.asarray([-1.0]),
-            np.asarray([False]),
-        ),
+        "rq3_km_ties": hostile_rq3_km_tie_semantic_mutation,
         "rq3_cluster_bootstrap": lambda: hostile_contract_state_mutation(
             "rq3_cluster_bootstrap", ("greenwood_independent_regime", 2000)
         ),
@@ -5884,9 +6056,7 @@ def negative_case(
     }
     contracts.require(
         set(surface_checks) == set(surfaces)
-        and set(mutation_checks) == declared_mutation_ids
-        and set(HOSTILE_EXPECTED_ERROR_LOCATIONS)
-        == declared_mutation_ids,
+        and set(mutation_checks) == declared_mutation_ids,
         "H0B_MASTER_FRAMEWORK_MISMATCH",
         "$.negative_case.universe",
         (
@@ -5896,10 +6066,6 @@ def negative_case(
             f"{sorted(declared_mutation_ids - set(mutation_checks))} "
             "mutation_extra="
             f"{sorted(set(mutation_checks) - declared_mutation_ids)} "
-            "location_missing="
-            f"{sorted(declared_mutation_ids - set(HOSTILE_EXPECTED_ERROR_LOCATIONS))} "
-            "location_extra="
-            f"{sorted(set(HOSTILE_EXPECTED_ERROR_LOCATIONS) - declared_mutation_ids)}"
         ),
     )
     mutation_checks[mutation_id]()
@@ -5939,9 +6105,13 @@ def frozen_hostile_authority_paths() -> tuple[Path, ...]:
         CONTROL_ROUND4_CANDIDATE_RECEIPT_PATH,
         CONTROL_ROUND4_REVIEW_PATH,
         CONTROL_ROUND4_REVIEW_SUBMISSION_PATH,
+        CONTROL_ROUND5_CANDIDATE_RECEIPT_PATH,
+        CONTROL_ROUND5_REVIEW_PATH,
+        CONTROL_ROUND5_REVIEW_SUBMISSION_PATH,
         CONTROL_CANDIDATE_RECEIPT_PATH,
         CONTROL_REMEDIATION_REVIEW_PATH,
         CONTROL_REVIEW_SUBMISSION_PATH,
+        HOSTILE_TARGET_CONTRACT_PATH,
         SEMANTIC_INVENTORY_PATH,
         SOURCE_INVENTORY_CONTRACT_PATH,
     )
@@ -5956,10 +6126,16 @@ def hostile_preflight(
 ) -> dict[str, Any]:
     dispatch = validate_dispatch(task_path, matrix_path)
     matrix = read_json(matrix_path)
+    target_rows = hostile_target_rows_by_mutation(
+        matrix_path,
+        HOSTILE_TARGET_CONTRACT_PATH,
+    )
     current_rows = []
     frozen_rows = []
     current_target_rows = []
     frozen_target_rows = []
+    current_semantic_probe_rows = []
+    frozen_semantic_probe_rows = []
     with hostile_temporary_directory(
         prefix="0823T002-frozen-runtime-"
     ) as raw:
@@ -6004,15 +6180,18 @@ def hostile_preflight(
             for mutation in surface["negative_mutations"]:
                 mutation_id = mutation["mutation_id"]
                 expected = mutation["expected_error_code"]
-                expected_location = HOSTILE_EXPECTED_ERROR_LOCATIONS[
-                    mutation_id
-                ]
+                target_row = target_rows[mutation_id]
+                expected_location = target_row["expected_error_location"]
+                expected_semantic_probe = target_row["semantic_probe"]
                 try:
                     negative_case(surface_id, mutation_id, expected)
                 except contracts.H0BError as exc:
                     observed = exc.code
                     observed_location = normalize_hostile_error_location(
                         exc.location
+                    )
+                    observed_semantic_probe = (
+                        semantic_probe_from_error_detail(exc.detail)
                     )
                 current_rows.append(
                     {
@@ -6028,6 +6207,16 @@ def hostile_preflight(
                         "error_location": observed_location,
                     }
                 )
+                if expected_semantic_probe is not None:
+                    current_semantic_probe_rows.append(
+                        {
+                            "mutation_id": mutation_id,
+                            "expected_semantic_probe": (
+                                expected_semantic_probe
+                            ),
+                            "semantic_probe": observed_semantic_probe,
+                        }
+                    )
                 command = [
                     sys.executable,
                     str(frozen / "skhynix_stage_h0b.py"),
@@ -6080,6 +6269,18 @@ def hostile_preflight(
                         ),
                     }
                 )
+                if expected_semantic_probe is not None:
+                    frozen_semantic_probe_rows.append(
+                        {
+                            "mutation_id": mutation_id,
+                            "expected_semantic_probe": (
+                                expected_semantic_probe
+                            ),
+                            "semantic_probe": semantic_probe_from_error_detail(
+                                payload["error"]["detail"]
+                            ),
+                        }
+                    )
         frozen_runtime_source_tree_sha256 = runtime_source_tree_sha256(
             frozen_repo
         )
@@ -6089,9 +6290,15 @@ def hostile_preflight(
     ) + sum(
         row["expected_error_location"] != row["error_location"]
         for row in (*current_target_rows, *frozen_target_rows)
+    ) + sum(
+        row["expected_semantic_probe"] != row["semantic_probe"]
+        for row in (
+            *current_semantic_probe_rows,
+            *frozen_semantic_probe_rows,
+        )
     )
     receipt = {
-        "schema_version": "skhynix_stage_h0b_hostile_preflight_v3",
+        "schema_version": "skhynix_stage_h0b_hostile_preflight_v4",
         "task_id": contracts.TASK_ID,
         "dispatch": dispatch,
         "runtime_source_tree_sha256": runtime_source_tree_sha256(),
@@ -6102,6 +6309,8 @@ def hostile_preflight(
         "frozen_surface_contract": frozen_rows,
         "target_contract": current_target_rows,
         "frozen_target_contract": frozen_target_rows,
+        "semantic_probe_contract": current_semantic_probe_rows,
+        "frozen_semantic_probe_contract": frozen_semantic_probe_rows,
         "current_negative_mutation_count": len(current_rows),
         "frozen_negative_mutation_count": len(frozen_rows),
         "fail_open_count": fail_open_count,
@@ -6122,6 +6331,14 @@ def hostile_preflight(
         }
         frozen_by_id = {
             row["mutation_id"]: row for row in frozen_rows
+        }
+        current_semantic_by_id = {
+            row["mutation_id"]: row
+            for row in current_semantic_probe_rows
+        }
+        frozen_semantic_by_id = {
+            row["mutation_id"]: row
+            for row in frozen_semantic_probe_rows
         }
         for surface in matrix["surfaces"]:
             mutation_evidence = []
@@ -6154,6 +6371,21 @@ def hostile_preflight(
                         "expected_error_location": current_target[
                             "expected_error_location"
                         ],
+                        "current_semantic_probe": (
+                            current_semantic_by_id.get(
+                                mutation_id,
+                                {},
+                            ).get("semantic_probe")
+                        ),
+                        "frozen_semantic_probe": (
+                            frozen_semantic_by_id.get(
+                                mutation_id,
+                                {},
+                            ).get("semantic_probe")
+                        ),
+                        "expected_semantic_probe": target_rows[
+                            mutation_id
+                        ]["semantic_probe"],
                     }
                 )
             for artifact in surface["artifacts"]:
@@ -6165,7 +6397,7 @@ def hostile_preflight(
                     REPO_ROOT / artifact["path"],
                     {
                         "schema_version": (
-                            "skhynix_stage_h0b_surface_evidence_v3"
+                            "skhynix_stage_h0b_surface_evidence_v4"
                         ),
                         "task_id": contracts.TASK_ID,
                         "surface_id": surface["surface_id"],
@@ -6195,6 +6427,8 @@ def validate_hostile_preflight_receipt(
         "frozen_surface_contract",
         "target_contract",
         "frozen_target_contract",
+        "semantic_probe_contract",
+        "frozen_semantic_probe_contract",
         "current_negative_mutation_count",
         "frozen_negative_mutation_count",
         "fail_open_count",
@@ -6211,7 +6445,7 @@ def validate_hostile_preflight_receipt(
     )
     contracts.require(
         receipt["schema_version"]
-        == "skhynix_stage_h0b_hostile_preflight_v3"
+        == "skhynix_stage_h0b_hostile_preflight_v4"
         and receipt["task_id"] == contracts.TASK_ID
         and receipt["dispatch"] == dict(expected_dispatch)
         and receipt["runtime_source_tree_sha256"]
@@ -6228,6 +6462,10 @@ def validate_hostile_preflight_receipt(
         "frozen hostile runtime does not match current runtime inventory",
     )
     matrix = read_json(matrix_path)
+    target_rows = hostile_target_rows_by_mutation(
+        matrix_path,
+        HOSTILE_TARGET_CONTRACT_PATH,
+    )
     declared = [
         {
             "mutation_id": mutation["mutation_id"],
@@ -6240,21 +6478,39 @@ def validate_hostile_preflight_receipt(
     declared_targets = [
         {
             "mutation_id": mutation["mutation_id"],
-            "expected_error_location": HOSTILE_EXPECTED_ERROR_LOCATIONS[
+            "expected_error_location": target_rows[
                 mutation["mutation_id"]
-            ],
-            "error_location": HOSTILE_EXPECTED_ERROR_LOCATIONS[
-                mutation["mutation_id"]
+            ]["expected_error_location"],
+            "error_location": target_rows[mutation["mutation_id"]][
+                "expected_error_location"
             ],
         }
         for surface in matrix["surfaces"]
         for mutation in surface["negative_mutations"]
     ]
+    declared_semantic_probes = [
+        {
+            "mutation_id": mutation["mutation_id"],
+            "expected_semantic_probe": target_rows[
+                mutation["mutation_id"]
+            ]["semantic_probe"],
+            "semantic_probe": target_rows[mutation["mutation_id"]][
+                "semantic_probe"
+            ],
+        }
+        for surface in matrix["surfaces"]
+        for mutation in surface["negative_mutations"]
+        if target_rows[mutation["mutation_id"]]["semantic_probe"] is not None
+    ]
     contracts.require(
         receipt["surface_contract"] == declared
         and receipt["frozen_surface_contract"] == declared
         and receipt["target_contract"] == declared_targets
-        and receipt["frozen_target_contract"] == declared_targets,
+        and receipt["frozen_target_contract"] == declared_targets
+        and receipt["semantic_probe_contract"]
+        == declared_semantic_probes
+        and receipt["frozen_semantic_probe_contract"]
+        == declared_semantic_probes,
         "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
         str(path),
         "current and frozen hostile contracts must exactly match dispatch order",
@@ -6271,6 +6527,12 @@ def validate_hostile_preflight_receipt(
         for row in (
             *receipt["target_contract"],
             *receipt["frozen_target_contract"],
+        )
+    ) + sum(
+        row["expected_semantic_probe"] != row["semantic_probe"]
+        for row in (
+            *receipt["semantic_probe_contract"],
+            *receipt["frozen_semantic_probe_contract"],
         )
     )
     contracts.require(

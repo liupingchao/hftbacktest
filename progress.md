@@ -1,5 +1,24 @@
 # Progress
 
+## 2026-08-24 H0-B V4 Round 6 Semantic Repair In Progress
+
+- Exact Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and independent
+  rejection `848af128` are frozen. Severity is
+  `P0/P1/P2/P3=0/1/0/0`; formal-build remains NO-GO.
+- The Round 5 reviewer confirmed all 89 current/frozen code and normalized
+  location rows, but found seven semantic false-positives caused by shallower
+  invalid inputs.
+- A new hostile target contract externalizes all 89 expected locations and
+  binds them to the canonical matrix. Seven repaired mutations also bind
+  explicit semantic probe IDs.
+- Full candidate regression passes `199` tests. The production hostile test
+  executes `89 current + 89 frozen` code/location rows and
+  `7 current + 7 frozen` semantic-probe rows with zero fail-open.
+- Generic task validation passes `65/89/99/7`; Ruff, compileall and diff
+  checks pass. Candidate freeze remains pending.
+- No outcome, diagnostic, H0B0 or formal-build command was run. The existing
+  42-file package and all research identities remain unchanged.
+
 ## 2026-08-24 H0-B V4 Round 5 Candidate Prepared
 
 - Exact Round 4 candidate `4df43f92` was independently rejected at

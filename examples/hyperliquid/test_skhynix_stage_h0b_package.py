@@ -50,6 +50,7 @@ def valid_hostile_receipt(
             ),
         }
     matrix = h0b.read_json(h0b.MATRIX_PATH)
+    hostile_targets = h0b.hostile_target_rows_by_mutation()
     rows = [
         {
             "mutation_id": mutation["mutation_id"],
@@ -62,19 +63,34 @@ def valid_hostile_receipt(
     target_rows = [
         {
             "mutation_id": mutation["mutation_id"],
-            "expected_error_location": h0b.HOSTILE_EXPECTED_ERROR_LOCATIONS[
+            "expected_error_location": hostile_targets[
                 mutation["mutation_id"]
-            ],
-            "error_location": h0b.HOSTILE_EXPECTED_ERROR_LOCATIONS[
-                mutation["mutation_id"]
+            ]["expected_error_location"],
+            "error_location": hostile_targets[mutation["mutation_id"]][
+                "expected_error_location"
             ],
         }
         for surface in matrix["surfaces"]
         for mutation in surface["negative_mutations"]
     ]
+    semantic_probe_rows = [
+        {
+            "mutation_id": mutation["mutation_id"],
+            "expected_semantic_probe": hostile_targets[
+                mutation["mutation_id"]
+            ]["semantic_probe"],
+            "semantic_probe": hostile_targets[mutation["mutation_id"]][
+                "semantic_probe"
+            ],
+        }
+        for surface in matrix["surfaces"]
+        for mutation in surface["negative_mutations"]
+        if hostile_targets[mutation["mutation_id"]]["semantic_probe"]
+        is not None
+    ]
     return (
         {
-            "schema_version": "skhynix_stage_h0b_hostile_preflight_v3",
+            "schema_version": "skhynix_stage_h0b_hostile_preflight_v4",
             "task_id": contracts.TASK_ID,
             "dispatch": dispatch,
             "runtime_source_tree_sha256": h0b.runtime_source_tree_sha256(),
@@ -85,6 +101,10 @@ def valid_hostile_receipt(
             "frozen_surface_contract": copy.deepcopy(rows),
             "target_contract": target_rows,
             "frozen_target_contract": copy.deepcopy(target_rows),
+            "semantic_probe_contract": semantic_probe_rows,
+            "frozen_semantic_probe_contract": copy.deepcopy(
+                semantic_probe_rows
+            ),
             "current_negative_mutation_count": len(rows),
             "frozen_negative_mutation_count": len(rows),
             "fail_open_count": 0,
@@ -125,6 +145,11 @@ def test_hostile_receipt_is_bound_to_current_and_frozen_runtime(
     wrong_target = copy.deepcopy(receipt)
     wrong_target["target_contract"][0]["error_location"] = "$.wrong_target"
     mutations.append(wrong_target)
+    wrong_semantic_probe = copy.deepcopy(receipt)
+    wrong_semantic_probe["semantic_probe_contract"][0][
+        "semantic_probe"
+    ] = "wrong_semantic_probe"
+    mutations.append(wrong_semantic_probe)
     wrong_count = copy.deepcopy(receipt)
     wrong_count["frozen_negative_mutation_count"] = 0
     mutations.append(wrong_count)
@@ -328,9 +353,13 @@ def test_frozen_hostile_authority_inventory_is_complete() -> None:
         h0b.CONTROL_ROUND4_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_ROUND4_REVIEW_PATH,
         h0b.CONTROL_ROUND4_REVIEW_SUBMISSION_PATH,
+        h0b.CONTROL_ROUND5_CANDIDATE_RECEIPT_PATH,
+        h0b.CONTROL_ROUND5_REVIEW_PATH,
+        h0b.CONTROL_ROUND5_REVIEW_SUBMISSION_PATH,
         h0b.CONTROL_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_REMEDIATION_REVIEW_PATH,
         h0b.CONTROL_REVIEW_SUBMISSION_PATH,
+        h0b.HOSTILE_TARGET_CONTRACT_PATH,
         h0b.SEMANTIC_INVENTORY_PATH,
         h0b.SOURCE_INVENTORY_CONTRACT_PATH,
     }
@@ -1311,6 +1340,80 @@ def test_review_commit_chronology_fails_closed() -> None:
     assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
 
 
+def test_hostile_target_contract_is_external_and_matrix_bound() -> None:
+    target_contract = h0b.validate_hostile_target_contract()
+    matrix = h0b.read_json(h0b.MATRIX_PATH)
+    declared_ids = [
+        mutation["mutation_id"]
+        for surface in matrix["surfaces"]
+        for mutation in surface["negative_mutations"]
+    ]
+    assert [
+        row["mutation_id"] for row in target_contract["targets"]
+    ] == declared_ids
+    assert sum(
+        row["semantic_probe"] is not None
+        for row in target_contract["targets"]
+    ) == 7
+    assert not hasattr(h0b, "HOSTILE_EXPECTED_ERROR_LOCATIONS")
+
+
+@pytest.mark.parametrize(
+    ("surface_id", "mutation_id", "expected_code"),
+    (
+        (
+            "interval_likelihood",
+            "mutate_interval_likelihood",
+            "H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+        ),
+        (
+            "horizon_straddle",
+            "mutate_horizon_straddle",
+            "H0B_HORIZON_STRADDLE_MISMATCH",
+        ),
+        (
+            "design_matrix",
+            "mutate_design_matrix",
+            "H0B_DESIGN_MATRIX_MISMATCH",
+        ),
+        (
+            "missing_value_policy",
+            "mutate_missing_value_policy",
+            "H0B_MISSING_VALUE_POLICY_MISMATCH",
+        ),
+        (
+            "walk_forward",
+            "mutate_walk_forward",
+            "H0B_WALK_FORWARD_MISMATCH",
+        ),
+        (
+            "numeric_seed_conventions",
+            "mutate_numeric_seed_conventions",
+            "H0B_NUMERIC_CONVENTION_MISMATCH",
+        ),
+        (
+            "rq3_km_ties",
+            "mutate_rq3_km_ties",
+            "H0B_RQ3_KM_MISMATCH",
+        ),
+    ),
+)
+def test_semantic_hostile_mutations_reach_reviewed_probe(
+    surface_id: str,
+    mutation_id: str,
+    expected_code: str,
+) -> None:
+    target = h0b.hostile_target_rows_by_mutation()[mutation_id]
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.negative_case(surface_id, mutation_id, expected_code)
+    assert captured.value.code == expected_code
+    assert captured.value.location == target["expected_error_location"]
+    assert (
+        h0b.semantic_probe_from_error_detail(captured.value.detail)
+        == target["semantic_probe"]
+    )
+
+
 def test_full_hostile_preflight_executes_current_and_frozen_runtime(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1346,6 +1449,11 @@ def test_full_hostile_preflight_executes_current_and_frozen_runtime(
     assert receipt["frozen_negative_mutation_count"] == 89
     assert receipt["fail_open_count"] == 0
     assert receipt["target_contract"] == receipt["frozen_target_contract"]
+    assert len(receipt["semantic_probe_contract"]) == 7
+    assert (
+        receipt["semantic_probe_contract"]
+        == receipt["frozen_semantic_probe_contract"]
+    )
     with pytest.raises(contracts.H0BError) as captured:
         h0b.validate_commit_path_scope(
             observed_paths=("review.md", "runtime.py"),

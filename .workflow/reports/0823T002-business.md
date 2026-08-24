@@ -13,11 +13,12 @@
 - 否
 
 QA说明：
-- QA Round 2 尚未开始。V4 Round 4 candidate `4df43f92` 已由独立
-  review 以 `P0/P1/P2/P3=0/1/0/0` 拒绝并保留；Round 5 control
-  candidate 已完成实现，仍需 exact candidate receipt 和独立 review。
+- QA Round 2 尚未开始。V4 Round 5 candidate `72257a3b` 已由独立
+  review 以 `P0/P1/P2/P3=0/1/0/0` 拒绝并保留；Round 6 control
+  remediation 正在施工，formal-build 继续 NO-GO。
 
 files：
+- `.workflow/contracts/0823T002-hostile-target-contract.json`
 - `.workflow/contracts/0823T002-surface-matrix.json`
 - `.workflow/reports/0823T002-hostile-preflight.json`
 - `.workflow/reports/0823T002-build-a/`
@@ -37,6 +38,9 @@ files：
 - `.workflow/reports/0823T002-v4-candidate-receipt-round4.json`
 - `.workflow/reports/0823T002-plan-v4-review-round4.md`
 - `.workflow/reports/0823T002-plan-v4-review-round4-submission.md`
+- `.workflow/reports/0823T002-v4-candidate-receipt-round5.json`
+- `.workflow/reports/0823T002-plan-v4-review-round5.md`
+- `.workflow/reports/0823T002-plan-v4-review-round5-submission.md`
 - `docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md`
 - `.workflow/reports/0823T002-qa-round1-rejected-formal/`
 - `.workflow/reports/0823T002-v3-receipt-schema-failed-formal/`
@@ -51,6 +55,15 @@ files：
 - `findings.md`
 
 action：
+- 将全部 89 个 expected error locations 从 runtime 常量移入独立
+  reviewed hostile target contract，并逐项绑定 canonical Surface Matrix
+  的 surface、target、operation、description 和 expected code。
+- 将 Round 5 review 指出的 7 个浅层 mutation 替换为实际 rounding、
+  dropped straddle、dropped indicator、test-fold median、random split、
+  changed quantile/RNG 和 censor-first KM semantic probes。
+- hostile receipt v4 在 generic 三字段 code contract 和 current/frozen
+  location contract 之外，增加 7 个 exact current/frozen semantic probe
+  rows。
 - 将 hostile temporary root 固定到解析后的无 symlink 系统临时目录。
 - hostile receipt v3 保留通用 error-code rows，并增加 current/frozen
   normalized `error.location` target rows。
@@ -94,8 +107,17 @@ action：
 - 发布 42-file exact package tree，并执行独立 zero-write verify。
 
 verify：
-- Round 5 完整 production hostile-preflight regression 通过：
-  `89 current + 89 frozen` code/target exact，`fail_open_count=0`。
+- Round 5 独立 review 重放 `89 current + 89 frozen` code/location 后发现
+  7 个 semantic false-positive，最终
+  `P0/P1/P2/P3=0/1/0/0 / REJECTED / formal-build=NO-GO`。
+- Round 6 的 7 个 direct semantic probe tests 已通过，且 target contract
+  为 `89 rows / 7 semantic probes`。
+- Round 6 完整 candidate regression 为 `199 passed`；其中 production
+  current/frozen hostile test 为 `89 + 89` code/location exact、
+  `7 + 7` semantic probes exact、`fail_open_count=0`。
+- research-package validator 为
+  `65 surfaces / 89 mutations / 99 artifacts / 7 exit criteria`；Ruff、
+  compileall 和 `git diff --check` 通过。
 - V4 Round 5 candidate 本地验证为 `191 passed`；Ruff、compileall、
   `git diff --check` 通过。
 - research-package validator 为
@@ -148,8 +170,8 @@ done：
   并核对上述 identities。
 
 blockers：
-- Round 5 candidate 尚未冻结并签发 candidate receipt。
-- Round 5 independent review 尚未接受 exact candidate；workflow
+- Round 6 candidate 尚未冻结并签发 candidate receipt。
+- Round 6 independent review 尚未接受 exact candidate；workflow
   transition receipt 不得提前签发，QA Round 2 不得提前开始。
 
 commit：

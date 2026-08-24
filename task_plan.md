@@ -1,5 +1,20 @@
 # Task Plan
 
+## 2026-08-24 Stage H0-B V4 Round 6 Semantic Oracle Repair
+
+- Preserve Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and rejected
+  independent review `848af128` at `P0/P1/P2/P3=0/1/0/0`.
+- Externalize all 89 expected error locations into a reviewed target contract
+  bound row-for-row to the canonical Surface Matrix.
+- Replace seven shallow invalid-input mutations with actual rounding, row
+  drop, indicator drop, test-median, random-split, quantile/RNG and KM
+  tie-order semantic probes.
+- Require hostile receipt v4 to match `89 current + 89 frozen` code/location
+  rows plus `7 current + 7 frozen` semantic-probe rows with zero fail-open.
+- Freeze a Round 6 candidate and obtain fresh independent acceptance before
+  any transition receipt or QA Round 2 handoff.
+- Continue to prohibit outcome, diagnostic, H0B0 and formal-build commands.
+
 ## 2026-08-24 Stage H0-B V4 Round 5 Candidate Ready
 
 - Preserve Round 4 candidate `4df43f92`, receipt `c522cb35` and rejected

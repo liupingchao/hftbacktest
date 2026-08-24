@@ -48,6 +48,13 @@ the resolved non-symlink system temporary root and binds each current/frozen
 mutation to both its expected error code and normalized rejection location.
 It also adds a distinct parent-chain symlink mutation.
 
+The exact Round 5 candidate `72257a3b` was subsequently rejected at
+`P0/P1/P2/P3=0/1/0/0`. Although all 89 current and frozen code/location rows
+matched, seven mutations failed on shallower invalid inputs instead of
+constructing the Surface Matrix semantics. Round 6 externalizes all 89
+expected locations into a reviewed target contract and adds explicit
+current/frozen semantic probes for the seven rejected mutations.
+
 ## 2. Immutable Execution Authority
 
 The package execution authority is the exact Git object:
@@ -302,13 +309,13 @@ review attestation.
 The controller then issues:
 
 ```text
-.workflow/reports/0823T002-v4-candidate-receipt-round5.json
+.workflow/reports/0823T002-v4-candidate-receipt-round6.json
 ```
 
 with schema:
 
 ```text
-skhynix_stage_h0b_v4_candidate_receipt_v5
+skhynix_stage_h0b_v4_candidate_receipt_v6
 ```
 
 and exact keys:
@@ -325,6 +332,8 @@ plan_path
 plan_sha256
 surface_matrix_path
 surface_matrix_sha256
+hostile_target_contract_path
+hostile_target_contract_sha256
 runtime_source_tree_sha256
 review_path
 review_submission_path
@@ -356,6 +365,7 @@ candidate_tree_oid=<exact candidate tree object ID>
 candidate_receipt_sha256=<exact candidate receipt>
 reviewed_plan_sha256=<candidate V4 plan>
 reviewed_surface_matrix_sha256=<candidate matrix>
+reviewed_hostile_target_contract_sha256=<candidate target contract>
 reviewed_runtime_source_tree_sha256=<candidate runtime tree>
 review_submission_sha256=<SHA256 of the independent reviewer submission>
 final_severity=P0/P1/P2/P3=0/0/0/0
@@ -420,6 +430,28 @@ expected normalized `error.location` and observed normalized
 `error.location`. Absolute candidate roots normalize to `$REPO_ROOT`; hostile
 temporary roots normalize to `$HOSTILE_TEMP`.
 
+Expected locations are not declared by the runtime. They are frozen in:
+
+```text
+.workflow/contracts/0823T002-hostile-target-contract.json
+```
+
+The contract binds each of the 89 mutation IDs to its Surface Matrix surface,
+target, operation, description, expected code and expected location. Seven
+Round 5 rejection cases also bind a semantic probe ID. Hostile receipt v4
+must contain exact ordered current/frozen semantic-probe rows for those seven
+mutations:
+
+```text
+interval_bounds_rounded_to_grid
+horizon_straddle_row_dropped
+design_indicator_reordered_or_dropped
+missing_value_test_fold_median
+walk_forward_random_split
+quantile_rng_convention_changed
+km_censor_first_or_interpolated
+```
+
 All hostile temporary directories are created below
 `Path(tempfile.gettempdir()).resolve()`. An ambient symlink such as macOS
 `/var -> /private/var` cannot satisfy a mutation before its declared target.
@@ -463,6 +495,9 @@ Before handoff:
 28. receipt/review commits containing implementation changes fail;
 29. the current and frozen hostile suites reject every declared mutation with
     `fail_open_count=0`.
+30. the seven Round 5 rejection cases construct the declared semantic
+    mutations and match the reviewed semantic-probe IDs in both current and
+    frozen runtimes.
 
 ## 12. Handoff
 
