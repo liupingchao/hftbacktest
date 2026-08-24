@@ -15,8 +15,8 @@
 QA说明：
 - V4 Round 6 candidate `180572c6` 已由独立 review 以
   `P0/P1/P2/P3=0/0/0/0` 接受。controller 已签发 exact workflow
-  transition receipt `fcb39e10...739e`，任务迁移到 `待验收`；最终状态
-  hostile/Gate 0 重放完成后派发 QA Round 2。
+  transition receipt `fcb39e10...739e`，任务迁移到 `待验收`。最终状态
+  hostile/Gate 0/package zero-write 重放已通过，QA Round 2 已派发。
 
 files：
 - `.workflow/contracts/0823T002-hostile-target-contract.json`
@@ -116,6 +116,13 @@ verify：
 - Round 6 完整 candidate regression 为 `199 passed`；其中 production
   current/frozen hostile test 为 `89 + 89` code/location exact、
   `7 + 7` semantic probes exact、`fail_open_count=0`。
+- 最终 `待验收` 状态 hostile evidence SHA256 为
+  `8743545c2ae4ddc5b7c7a58f829515be843ce4cbb9fae5586ec650012145abd0`；
+  composed Gate 0 为 `verified=true`，task SHA256 为
+  `bf834fac617346c546f083a628a81bc36bae50f4bf169dc7f529095dbbec8a25`。
+- 最终 package admission 仍为
+  `42 files / 5 directories / verified=true / zero_write=true`，并显式
+  绑定 execution authority commit `71adbfa6`。
 - research-package validator 为
   `65 surfaces / 89 mutations / 99 artifacts / 7 exit criteria`；Ruff、
   compileall 和 `git diff --check` 通过。
@@ -171,13 +178,12 @@ done：
   并核对上述 identities。
 
 blockers：
-- 仍需在 `待验收` task bytes 和 exact transition receipt 下重放
-  production hostile preflight、composed Gate 0 和 package zero-write
-  verify。
-- 上述最终状态控制证据通过前，不得把 QA Round 2 表述为已开始。
+- 无业务线程 blocker；等待独立 QA Round 2 验收结论。
 
 commit：
 - `71adbfa678ff3646982160d220f5c223e0f7e59f`
+- control handoff `2092924eb40637653be6cd6cafbbf4b73d654e9a`
+- final control evidence `efa0ace7d32a4458f6843c0d7737934559ad31fe`
 
 提交信息：
 - `research: freeze stage h0b v3 portable evidence`

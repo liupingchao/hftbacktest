@@ -15,8 +15,10 @@
   `2a87677f` are frozen and accepted at `P0/P1/P2/P3=0/0/0/0`.
 - Exact workflow transition receipt `fcb39e10...739e` moves the mutable task
   state to `待验收` while preserving formal authority `71adbfa6`.
-- Replay production hostile/Gate 0/zero-write evidence against the final task
-  bytes, then dispatch independent QA Round 2.
+- Final-state production hostile/Gate 0/zero-write evidence is frozen at
+  `efa0ace7` and passes against task SHA `bf834fac...a25`.
+- Independent read-only QA Round 2 is dispatched; controller acceptance
+  remains blocked until its verdict.
 - Continue to prohibit outcome, diagnostic, H0B0 and formal-build commands.
 
 ## 2026-08-24 Stage H0-B V4 Round 5 Candidate Ready

@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-24 H0-B V4 Round 6 Accepted, Transition In Progress
+## 2026-08-24 H0-B V4 Round 6 Awaiting QA Round 2
 
 - Exact Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and independent
   rejection `848af128` are frozen. Severity is
@@ -22,8 +22,11 @@
 - Exact workflow transition receipt `fcb39e10...739e` binds immutable formal
   authority `71adbfa6`, the accepted Round 6 candidate/review and unchanged
   package identities. Task status is now `待验收`.
-- Production hostile/Gate 0/zero-write evidence must be replayed once more
-  against the final task bytes before QA Round 2 is dispatched.
+- Final-state hostile evidence is frozen at `efa0ace7` with SHA256
+  `8743545c...abd0`: `89 current + 89 frozen`, `7 + 7` semantic probes and
+  zero fail-open. Composed Gate 0 and 42-file package zero-write admission pass.
+- QA Round 2 is dispatched as an independent read-only audit of the immutable
+  formal authority and V4 control/handoff chain.
 - No outcome, diagnostic, H0B0 or formal-build command was run. The existing
   42-file package and all research identities remain unchanged.
 
