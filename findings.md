@@ -1,5 +1,25 @@
 # Findings
 
+## 2026-08-24 H0-B V4 Round 1 Review Findings
+
+- A running attempt receipt must tolerate in-progress disk drift so recovery
+  can inventory and seal partial evidence; terminal receipts must require
+  exact identity equality.
+- Receipt durability requires file fsync, atomic replacement and parent fsync.
+  A sibling bootstrap is needed to cover the crash window before the attempt
+  root contains its receipt.
+- A canonical versioned root is insufficient if `h0b0`, `outcome` or Stage 4
+  subcommands can still be invoked without that attempt context.
+- Package self-identities do not prove immutable authority. All 42 package
+  files must equal the corresponding formal Git blobs.
+- Candidate and review ancestry alone is insufficient. Current attestation
+  bytes must equal their introduction blobs, receipt/review commits must have
+  exact path scopes, and current runtime must remain the reviewed candidate
+  runtime.
+- Repository-visible actor separation is an auditable workflow claim, not
+  cryptographic proof of human identity; the plan now states that limit
+  explicitly.
+
 ## 2026-08-24 H0-B Post-Handoff Review Findings
 
 - Severity is `P0/P1/P2/P3=0/2/1/0`; these are governance defects and do not

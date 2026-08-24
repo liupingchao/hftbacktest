@@ -280,6 +280,9 @@ def test_frozen_hostile_authority_inventory_is_complete() -> None:
         h0b.PUBLICATION_REMEDIATION_PLAN_PATH,
         h0b.PUBLICATION_REMEDIATION_REVIEW_PATH,
         h0b.CONTROL_REMEDIATION_PLAN_PATH,
+        h0b.CONTROL_ROUND1_CANDIDATE_RECEIPT_PATH,
+        h0b.CONTROL_ROUND1_REVIEW_PATH,
+        h0b.CONTROL_ROUND1_REVIEW_SUBMISSION_PATH,
         h0b.CONTROL_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_REMEDIATION_REVIEW_PATH,
         h0b.CONTROL_REVIEW_SUBMISSION_PATH,
@@ -745,11 +748,25 @@ def test_existing_package_uses_immutable_execution_authority() -> None:
     )
 
 
+def test_execution_authority_binds_all_42_package_git_blobs() -> None:
+    authority_root = h0b.DEFAULT_PACKAGE.relative_to(
+        h0b.REPO_ROOT
+    ).as_posix()
+    assert len(contracts.EXACT_PACKAGE_FILES) == 42
+    for relative in contracts.EXACT_PACKAGE_FILES:
+        assert (h0b.DEFAULT_PACKAGE / relative).read_bytes() == (
+            h0b.git_object_bytes(
+                h0b.EXECUTION_AUTHORITY_COMMIT,
+                f"{authority_root}/{relative}",
+            )
+        )
+
+
 def test_execution_authority_rejects_mutable_task_identity() -> None:
     with pytest.raises(contracts.H0BError) as captured:
         h0b.validate_execution_authority_pins(
             commit=h0b.EXECUTION_AUTHORITY_COMMIT,
-            tree_sha256=h0b.EXECUTION_AUTHORITY_TREE_SHA256,
+            tree_oid=h0b.EXECUTION_AUTHORITY_TREE_OID,
             task_sha256=contracts.sha256_file(h0b.TASK_PATH),
         )
     assert captured.value.code == "H0B_EXECUTION_AUTHORITY_MISMATCH"
@@ -828,6 +845,10 @@ def test_formal_attempt_receipt_precedes_build_roots_and_reuse_fails(
     )
     assert paths["attempt_receipt"].is_file()
     assert payload["status"] == "running"
+    assert payload["completed_entry_identities"][
+        "attempt_evidence_inventory"
+    ]["entry_count"] == 1
+    assert paths["attempt_bootstrap"].is_file()
     assert not paths["build_a"].exists()
     assert not paths["build_b"].exists()
     before = paths["attempt_receipt"].read_bytes()
@@ -866,12 +887,16 @@ def test_formal_attempt_failure_is_durable_and_preserves_evidence(
         "_execute_formal_attempt",
         fail_after_partial_evidence,
     )
+    monkeypatch.setattr(
+        h0b,
+        "FORMAL_ATTEMPTS_ROOT",
+        tmp_path / "attempts",
+    )
     with pytest.raises(contracts.H0BError):
         h0b.build_formal(
             task_path=tmp_path / "task.md",
             matrix_path=tmp_path / "matrix.json",
             attempt_id="failed-one",
-            attempts_root=tmp_path / "attempts",
         )
     attempt_root = tmp_path / "attempts/failed-one"
     receipt = h0b.read_json(attempt_root / "attempt_receipt.json")
@@ -884,7 +909,13 @@ def test_formal_attempt_failure_is_durable_and_preserves_evidence(
 
 def test_formal_attempt_recovery_requires_dead_pid(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(
+        h0b,
+        "FORMAL_ATTEMPTS_ROOT",
+        tmp_path / "attempts",
+    )
     paths, payload = h0b.begin_formal_attempt(
         attempt_id="interrupted-one",
         dispatch={"verified": True},
@@ -905,6 +936,159 @@ def test_formal_attempt_recovery_requires_dead_pid(
     assert recovered["error"]["code"] == "H0B_FORMAL_ATTEMPT_INTERRUPTED"
 
 
+def test_formal_attempt_recovery_seals_partial_hard_stop_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        h0b,
+        "FORMAL_ATTEMPTS_ROOT",
+        tmp_path / "attempts",
+    )
+    paths, payload = h0b.begin_formal_attempt(
+        attempt_id="partial-hard-stop",
+        dispatch={"verified": True},
+        attempts_root=tmp_path / "attempts",
+    )
+    partial = paths["root"] / ".package.staging-123"
+    partial.mkdir()
+    (partial / "partial.bin").write_bytes(b"partial")
+    payload["controller_pid"] = 2_147_483_647
+    h0b.write_formal_attempt_receipt(paths["attempt_receipt"], payload)
+    inspected = h0b.recover_formal_attempt(
+        attempt_root=paths["root"],
+        action="inspect",
+    )
+    assert inspected["identity_drift"] is True
+    recovered = h0b.recover_formal_attempt(
+        attempt_root=paths["root"],
+        action="mark-interrupted",
+    )
+    assert recovered["status"] == "interrupted"
+    assert recovered["completed_entry_identities"][
+        "attempt_evidence_inventory"
+    ]["entry_count"] == 3
+    h0b.validate_formal_attempt_receipt(paths["root"])
+
+
+def test_formal_attempt_torn_receipt_fails_with_stable_code(
+    tmp_path: Path,
+) -> None:
+    paths, _ = h0b.begin_formal_attempt(
+        attempt_id="torn-receipt",
+        dispatch={"verified": True},
+        attempts_root=tmp_path / "attempts",
+    )
+    paths["attempt_receipt"].write_bytes(b"{")
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_formal_attempt_receipt(paths["root"])
+    assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
+
+
+def test_formal_attempt_receipt_update_is_atomic(tmp_path: Path) -> None:
+    paths, payload = h0b.begin_formal_attempt(
+        attempt_id="atomic-receipt",
+        dispatch={"verified": True},
+        attempts_root=tmp_path / "attempts",
+    )
+    updated = h0b.update_formal_attempt(
+        paths,
+        payload,
+        phase="gate0_validated",
+    )
+    assert h0b.read_json(paths["attempt_receipt"]) == updated
+    assert not tuple(
+        paths["root"].glob(".attempt_receipt.json.tmp-*")
+    )
+
+
+def test_formal_entrypoint_rejects_attempts_root_escape(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.require_canonical_formal_attempts_root(tmp_path)
+    assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
+
+
+def test_formal_bootstrap_recovers_root_before_receipt_crash(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts_root = tmp_path / "attempts"
+    attempts_root.mkdir()
+    monkeypatch.setattr(h0b, "FORMAL_ATTEMPTS_ROOT", attempts_root)
+    paths = h0b.formal_attempt_paths(
+        "bootstrap-crash",
+        attempts_root=attempts_root,
+    )
+    bootstrap = {
+        "schema_version": h0b.FORMAL_ATTEMPT_BOOTSTRAP_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "attempt_id": "bootstrap-crash",
+        "controller_pid": 2_147_483_647,
+        "dispatch": {"verified": True},
+        "paths": h0b.formal_attempt_public_paths(paths),
+        "outcome_rerun": True,
+    }
+    h0b.write_formal_attempt_receipt(
+        paths["bootstrap_staging"],
+        bootstrap,
+    )
+    inspected = h0b.recover_formal_attempt(
+        attempt_root=paths["root"],
+        action="inspect",
+    )
+    assert inspected["status"] == "initializing"
+    recovered = h0b.recover_formal_attempt(
+        attempt_root=paths["root"],
+        action="mark-interrupted",
+    )
+    assert recovered["status"] == "interrupted"
+    assert paths["attempt_bootstrap"].is_file()
+    h0b.validate_formal_attempt_receipt(paths["root"])
+
+
+def test_formal_subcommand_requires_active_attempt() -> None:
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_formal_subcommand_context(
+            command="outcome",
+            attempt_root=None,
+            build_root=Path("/tmp/outside-attempt"),
+        )
+    assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
+
+
+def test_formal_subcommand_accepts_active_canonical_attempt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts_root = tmp_path / "attempts"
+    monkeypatch.setattr(h0b, "FORMAL_ATTEMPTS_ROOT", attempts_root)
+    paths, payload = h0b.begin_formal_attempt(
+        attempt_id="active-command",
+        dispatch={"verified": True},
+        attempts_root=attempts_root,
+    )
+    h0b.update_formal_attempt(
+        paths,
+        payload,
+        phase="gate0_validated",
+    )
+    admitted = h0b.validate_formal_subcommand_context(
+        command="outcome",
+        attempt_root=paths["root"],
+        build_root=paths["build_a"],
+    )
+    assert admitted["status"] == "running"
+
+
+def test_formal_cli_requires_attempt_context() -> None:
+    with pytest.raises(SystemExit):
+        h0b.parse_args(
+            ["outcome", "--build-root", "/tmp/outside-attempt"]
+        )
+
+
 def test_occupied_package_staging_is_preserved(tmp_path: Path) -> None:
     staging = tmp_path / "occupied-staging"
     staging.mkdir()
@@ -921,6 +1105,34 @@ def test_reviewer_actor_and_candidate_binding_fail_closed() -> None:
         h0b.validate_reviewer_actor_binding(
             controller_actor_id=h0b.CONTROLLER_ACTOR_ID,
             reviewer_actor_id=h0b.CONTROLLER_ACTOR_ID,
+        )
+    assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
+
+
+def test_review_commit_chronology_fails_closed() -> None:
+    head = h0b.git_output_bytes(
+        "rev-parse",
+        "HEAD",
+    ).decode("ascii").strip()
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_review_commit_chronology(
+            candidate_commit=head,
+            candidate_receipt_commit=h0b.EXECUTION_AUTHORITY_COMMIT,
+            review_commit=head,
+        )
+    assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_commit_path_scope(
+            observed_paths=("review.md", "runtime.py"),
+            expected_paths=("review.md",),
+            location="$.review.commit_scope",
+        )
+    assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_introduction_blob_bytes(
+            current_bytes=b"rewritten",
+            introduction_bytes=b"introduced",
+            location="$.review",
         )
     assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
     with pytest.raises(contracts.H0BError) as captured:

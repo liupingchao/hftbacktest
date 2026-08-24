@@ -1,5 +1,29 @@
 # Progress
 
+## 2026-08-24 H0-B V4 Round 2 Candidate Prepared
+
+- Round 1 V4 review is preserved at commit `4413d36f` and rejected at
+  `P0/P1/P2/P3=0/3/2/1`; a second read-only audit independently confirmed the
+  recovery/provenance defects and added full 42-file authority plus formal
+  subcommand-entry findings.
+- Package admission now compares all 42 files with formal commit
+  `71adbfa6` Git blobs. The untracked accepted latency manifest is admitted
+  only by its frozen `944` bytes /
+  `8ac3b362...62afd` identity, never by mutable worktree bytes.
+- Formal attempts now use a pre-root durable bootstrap, atomic receipt
+  replacement, exact evidence inventory, dead-PID recovery, canonical roots
+  and mandatory attempt context for every outcome-bearing subcommand.
+- Review authority now binds the exact candidate-receipt introduction commit,
+  exact review/submission introduction commit and blobs, commit path scopes,
+  distinct reviewer actor format and current runtime equality with the
+  candidate.
+- Verification is `173 passed`, Ruff/compileall/diff checks pass,
+  task validation is `65/83/90`, all `83` direct hostile cases return their
+  declared codes, and the existing package remains
+  `42 files / 5 directories / verified=true / zero_write=true`.
+- No H0-B outcome or formal build command was run. Task `0823T002` remains
+  `执行中` pending the exact Round 2 candidate receipt and independent review.
+
 ## 2026-08-24 H0-B QA Round 2 Handoff Withdrawn
 
 - Post-handoff review found `P0/P1/P2/P3=0/2/1/0`; QA Round 2 did not reach

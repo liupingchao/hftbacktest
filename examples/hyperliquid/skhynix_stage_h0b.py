@@ -64,14 +64,24 @@ CONTROL_REMEDIATION_PLAN_PATH = (
     / "docs/"
     "skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md"
 )
-CONTROL_CANDIDATE_RECEIPT_PATH = (
+CONTROL_ROUND1_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt.json"
+)
+CONTROL_CANDIDATE_RECEIPT_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round2.json"
 )
 CONTROL_REMEDIATION_REVIEW_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review.md"
 )
 CONTROL_REVIEW_SUBMISSION_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review-submission.md"
+)
+CONTROL_ROUND1_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review-round1.md"
+)
+CONTROL_ROUND1_REVIEW_SUBMISSION_PATH = (
+    REPO_ROOT
+    / ".workflow/reports/0823T002-plan-v4-review-round1-submission.md"
 )
 WORKFLOW_TRANSITION_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-workflow-transition.json"
@@ -383,10 +393,10 @@ PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
 PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
 PUBLICATION_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
 CONTROL_REMEDIATION_PLAN_SHA256 = (
-    "1a51dcf142734a05e29154c710715cd345c66679ccdab93e7eea44c5de086543"
+    "40a6df1ee20a790e64a5bcb200afaaeba6f520d40f3c32a8e274b7e5f0a6afcb"
 )
 CONTROL_CANDIDATE_RECEIPT_SCHEMA = (
-    "skhynix_stage_h0b_v4_candidate_receipt_v1"
+    "skhynix_stage_h0b_v4_candidate_receipt_v2"
 )
 CONTROL_REMEDIATION_REVIEW_SCHEMA = (
     "skhynix_stage_h0b_v4_independent_review_v1"
@@ -397,13 +407,16 @@ WORKFLOW_TRANSITION_RECEIPT_SCHEMA = (
 FORMAL_ATTEMPT_RECEIPT_SCHEMA = (
     "skhynix_stage_h0b_formal_attempt_receipt_v1"
 )
+FORMAL_ATTEMPT_BOOTSTRAP_SCHEMA = (
+    "skhynix_stage_h0b_formal_attempt_bootstrap_v1"
+)
 CONTROL_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
 CONTROL_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
 CONTROLLER_ACTOR_ID = "codex-main-controller"
 EXECUTION_AUTHORITY_COMMIT = (
     "71adbfa678ff3646982160d220f5c223e0f7e59f"
 )
-EXECUTION_AUTHORITY_TREE_SHA256 = (
+EXECUTION_AUTHORITY_TREE_OID = (
     "4c15ab4f613178e1e9468db600885f091244aadc"
 )
 EXECUTION_AUTHORITY_TASK_SHA256 = (
@@ -414,6 +427,10 @@ EXECUTION_AUTHORITY_MATRIX_SHA256 = (
 )
 EXECUTION_AUTHORITY_RUNTIME_SHA256 = (
     "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66"
+)
+EXECUTION_AUTHORITY_LATENCY_MANIFEST_BYTES = 944
+EXECUTION_AUTHORITY_LATENCY_MANIFEST_SHA256 = (
+    "8ac3b362e8d64cbd81232eaf7ed5856bada63ece20408e0d0b3fb5f84c562afd"
 )
 FORMAL_PACKAGE_MANIFEST_SHA256 = (
     "a27d4ea36b1424e01b427c634133638b89c25f1ea1c293f31fd0a888eeef8824"
@@ -483,7 +500,7 @@ SOURCE_INVENTORY_CONTRACT_SHA256 = (
     "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "e5d8c337defd7ebd09491fb7a04b28d2c550931c2c4bf6a8f5263ce0e25a2660"
+    "34f3ba621e9ecc5f8df15390c95ec0385878c4e1b9e263feeda083257a1d5e1e"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -621,7 +638,7 @@ def production_contract_state() -> dict[str, Any]:
         ),
         "execution_authority": (
             EXECUTION_AUTHORITY_COMMIT,
-            EXECUTION_AUTHORITY_TREE_SHA256,
+            EXECUTION_AUTHORITY_TREE_OID,
             EXECUTION_AUTHORITY_TASK_SHA256,
             EXECUTION_AUTHORITY_MATRIX_SHA256,
             EXECUTION_AUTHORITY_RUNTIME_SHA256,
@@ -899,7 +916,7 @@ def validate_production_contract_state(state: Mapping[str, Any]) -> None:
         "execution_authority",
         (
             EXECUTION_AUTHORITY_COMMIT,
-            EXECUTION_AUTHORITY_TREE_SHA256,
+            EXECUTION_AUTHORITY_TREE_OID,
             EXECUTION_AUTHORITY_TASK_SHA256,
             EXECUTION_AUTHORITY_MATRIX_SHA256,
             EXECUTION_AUTHORITY_RUNTIME_SHA256,
@@ -1780,12 +1797,12 @@ def runtime_source_tree_sha256_from_git(commit: str) -> str:
 def validate_execution_authority_pins(
     *,
     commit: str,
-    tree_sha256: str,
+    tree_oid: str,
     task_sha256: str,
 ) -> None:
     contracts.require(
         commit == EXECUTION_AUTHORITY_COMMIT
-        and tree_sha256 == EXECUTION_AUTHORITY_TREE_SHA256
+        and tree_oid == EXECUTION_AUTHORITY_TREE_OID
         and task_sha256 == EXECUTION_AUTHORITY_TASK_SHA256,
         "H0B_EXECUTION_AUTHORITY_MISMATCH",
         "$.execution_authority.pins",
@@ -1809,10 +1826,10 @@ def execution_authority_payload() -> dict[str, Any]:
     runtime_sha256 = runtime_source_tree_sha256_from_git(
         EXECUTION_AUTHORITY_COMMIT
     )
-    tree_sha256 = git_revision(EXECUTION_AUTHORITY_COMMIT, "^{tree}")
+    tree_oid = git_revision(EXECUTION_AUTHORITY_COMMIT, "^{tree}")
     validate_execution_authority_pins(
         commit=EXECUTION_AUTHORITY_COMMIT,
-        tree_sha256=tree_sha256,
+        tree_oid=tree_oid,
         task_sha256=sha256_bytes(task_bytes),
     )
     contracts.require(
@@ -1866,7 +1883,7 @@ def execution_authority_payload() -> dict[str, Any]:
         "schema_version": "skhynix_stage_h0b_execution_authority_v1",
         "task_id": contracts.TASK_ID,
         "commit": EXECUTION_AUTHORITY_COMMIT,
-        "tree_sha256": tree_sha256,
+        "tree_oid": tree_oid,
         "task_path": task_relative,
         "task_sha256": EXECUTION_AUTHORITY_TASK_SHA256,
         "matrix_path": matrix_relative,
@@ -1923,13 +1940,14 @@ def validate_control_candidate_receipt(
     receipt_path: Path,
     *,
     expected_sha256: str,
+    candidate_receipt_commit: str,
 ) -> dict[str, Any]:
     receipt = read_json(receipt_path)
     expected_keys = {
         "schema_version",
         "task_id",
         "candidate_commit",
-        "candidate_tree_sha256",
+        "candidate_tree_oid",
         "candidate_parent_commit",
         "controller_actor_id",
         "execution_authority_commit",
@@ -1979,8 +1997,12 @@ def validate_control_candidate_receipt(
     candidate_receipt_path = CONTROL_CANDIDATE_RECEIPT_PATH.relative_to(
         REPO_ROOT
     ).as_posix()
+    observed_receipt_commit = review_introduction_commit(
+        candidate_receipt_path
+    )
     contracts.require(
-        receipt["candidate_tree_sha256"] == tree
+        candidate_receipt_commit == observed_receipt_commit
+        and receipt["candidate_tree_oid"] == tree
         and receipt["candidate_parent_commit"] == parent
         and receipt["plan_path"] == plan_path
         and receipt["plan_sha256"]
@@ -2001,10 +2023,17 @@ def validate_control_candidate_receipt(
         and not git_object_exists(candidate, submission_path)
         and not git_object_exists(candidate, candidate_receipt_path)
         and git_is_ancestor(EXECUTION_AUTHORITY_COMMIT, candidate)
-        and git_is_ancestor(candidate),
+        and git_is_ancestor(candidate, candidate_receipt_commit)
+        and git_is_ancestor(candidate_receipt_commit)
+        and not git_object_exists(candidate_receipt_commit, review_path)
+        and not git_object_exists(candidate_receipt_commit, submission_path),
         "H0B_REVIEW_PROVENANCE_MISMATCH",
         str(receipt_path),
         "candidate Git objects, absence proof or ancestry mismatch",
+    )
+    validate_review_blob_binding(
+        current_path=Path(receipt_path),
+        introduction_commit=candidate_receipt_commit,
     )
     return receipt
 
@@ -2042,6 +2071,81 @@ def review_introduction_commit(relative_path: str) -> str:
     return history[0]
 
 
+def validate_commit_path_scope(
+    *,
+    observed_paths: Sequence[str],
+    expected_paths: Sequence[str],
+    location: str,
+) -> None:
+    contracts.require(
+        tuple(observed_paths) == tuple(expected_paths),
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        location,
+        (
+            f"expected_paths={tuple(expected_paths)!r} "
+            f"observed_paths={tuple(observed_paths)!r}"
+        ),
+    )
+
+
+def git_commit_changed_paths(commit: str) -> tuple[str, ...]:
+    require_git_hex(commit, location="$.git.commit")
+    paths = git_output_bytes(
+        "diff-tree",
+        "--no-commit-id",
+        "--name-only",
+        "-r",
+        commit,
+    ).decode("utf-8").splitlines()
+    return tuple(sorted(paths, key=lambda value: value.encode("utf-8")))
+
+
+def validate_review_blob_binding(
+    *,
+    current_path: Path,
+    introduction_commit: str,
+) -> None:
+    relative = Path(current_path).relative_to(REPO_ROOT).as_posix()
+    validate_introduction_blob_bytes(
+        current_bytes=Path(current_path).read_bytes(),
+        introduction_bytes=git_object_bytes(
+            introduction_commit,
+            relative,
+        ),
+        location=relative,
+    )
+
+
+def validate_introduction_blob_bytes(
+    *,
+    current_bytes: bytes,
+    introduction_bytes: bytes,
+    location: str,
+) -> None:
+    contracts.require(
+        current_bytes == introduction_bytes,
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        location,
+        "current bytes differ from the exact introduction-commit blob",
+    )
+
+
+def validate_review_commit_chronology(
+    *,
+    candidate_commit: str,
+    candidate_receipt_commit: str,
+    review_commit: str,
+) -> None:
+    contracts.require(
+        git_is_ancestor(candidate_commit, candidate_receipt_commit)
+        and git_is_ancestor(candidate_receipt_commit, review_commit)
+        and git_is_ancestor(review_commit),
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        "$.review.commit_chain",
+        "required candidate -> receipt -> review -> HEAD chronology failed",
+    )
+
+
 def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
     exact_values = {
         "control_remediation_plan_path": (
@@ -2062,8 +2166,8 @@ def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
         "controller_actor_id": CONTROLLER_ACTOR_ID,
         "control_final_severity": CONTROL_REMEDIATION_ACCEPTED_SEVERITY,
         "execution_authority_commit": EXECUTION_AUTHORITY_COMMIT,
-        "execution_authority_tree_sha256": (
-            EXECUTION_AUTHORITY_TREE_SHA256
+        "execution_authority_tree_oid": (
+            EXECUTION_AUTHORITY_TREE_OID
         ),
         "execution_authority_task_sha256": (
             EXECUTION_AUTHORITY_TASK_SHA256
@@ -2079,6 +2183,10 @@ def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
     candidate_receipt_sha = task_sha256_pin(
         task_path,
         "control_candidate_receipt_sha256",
+    )
+    candidate_receipt_commit = require_git_hex(
+        task_field_pin(task_path, "control_candidate_receipt_commit"),
+        location="$.task.control_candidate_receipt_commit",
     )
     review_sha = task_sha256_pin(
         task_path,
@@ -2096,18 +2204,54 @@ def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
     candidate = validate_control_candidate_receipt(
         CONTROL_CANDIDATE_RECEIPT_PATH,
         expected_sha256=candidate_receipt_sha,
+        candidate_receipt_commit=candidate_receipt_commit,
+    )
+    candidate_receipt_relative = CONTROL_CANDIDATE_RECEIPT_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
+    validate_commit_path_scope(
+        observed_paths=git_commit_changed_paths(candidate_receipt_commit),
+        expected_paths=(candidate_receipt_relative,),
+        location="$.candidate_receipt.commit_scope",
     )
     review_relative = CONTROL_REMEDIATION_REVIEW_PATH.relative_to(
         REPO_ROOT
     ).as_posix()
+    submission_relative = CONTROL_REVIEW_SUBMISSION_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
     observed_review_commit = review_introduction_commit(review_relative)
+    observed_submission_commit = review_introduction_commit(
+        submission_relative
+    )
+    validate_candidate_revision_binding(
+        candidate_commit=candidate["candidate_commit"],
+        expected_candidate_commit=task_field_pin(
+            task_path,
+            "control_candidate_commit",
+        ),
+    )
+    validate_review_commit_chronology(
+        candidate_commit=candidate["candidate_commit"],
+        candidate_receipt_commit=candidate_receipt_commit,
+        review_commit=review_commit,
+    )
+    validate_commit_path_scope(
+        observed_paths=git_commit_changed_paths(review_commit),
+        expected_paths=tuple(
+            sorted(
+                (review_relative, submission_relative),
+                key=lambda value: value.encode("utf-8"),
+            )
+        ),
+        location="$.review.commit_scope",
+    )
     contracts.require(
         review_commit == observed_review_commit
-        and git_is_ancestor(candidate["candidate_commit"], review_commit)
-        and git_is_ancestor(review_commit),
+        and review_commit == observed_submission_commit,
         "H0B_REVIEW_PROVENANCE_MISMATCH",
         "$.review.commit",
-        "review commit is not the exact post-candidate introduction commit",
+        "review and submission must be introduced by the exact review commit",
     )
     author = git_output_bytes(
         "show",
@@ -2135,6 +2279,26 @@ def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
         "$.review.files",
         "review or independent submission identity mismatch",
     )
+    validate_review_blob_binding(
+        current_path=CONTROL_REMEDIATION_REVIEW_PATH,
+        introduction_commit=review_commit,
+    )
+    candidate_runtime_sha256 = candidate["runtime_source_tree_sha256"]
+    contracts.require(
+        task_sha256_pin(
+            task_path,
+            "expected_runtime_source_tree_sha256",
+        )
+        == candidate_runtime_sha256
+        and runtime_source_tree_sha256() == candidate_runtime_sha256,
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        "$.review.runtime_source_tree_sha256",
+        "current runtime differs from the exact reviewed candidate runtime",
+    )
+    validate_review_blob_binding(
+        current_path=CONTROL_REVIEW_SUBMISSION_PATH,
+        introduction_commit=review_commit,
+    )
     expected_fields = {
         "schema_version": CONTROL_REMEDIATION_REVIEW_SCHEMA,
         "task_id": contracts.TASK_ID,
@@ -2142,7 +2306,7 @@ def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
         "reviewer_actor_id": reviewer_actor_id,
         "controller_actor_id": CONTROLLER_ACTOR_ID,
         "candidate_commit": candidate["candidate_commit"],
-        "candidate_tree_sha256": candidate["candidate_tree_sha256"],
+        "candidate_tree_oid": candidate["candidate_tree_oid"],
         "candidate_receipt_sha256": candidate_receipt_sha,
         "reviewed_plan_sha256": CONTROL_REMEDIATION_PLAN_SHA256,
         "reviewed_surface_matrix_sha256": MATRIX_SHA256,
@@ -2173,6 +2337,7 @@ def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
         )
     return {
         "candidate": candidate,
+        "candidate_receipt_commit": candidate_receipt_commit,
         "review_commit": review_commit,
         "review_sha256": review_sha,
         "review_submission_sha256": submission_sha,
@@ -2188,7 +2353,15 @@ def validate_reviewer_actor_binding(
     contracts.require(
         controller_actor_id == CONTROLLER_ACTOR_ID
         and reviewer_actor_id != ""
-        and reviewer_actor_id != controller_actor_id,
+        and reviewer_actor_id != controller_actor_id
+        and re.fullmatch(
+            (
+                r"codex-independent-reviewer-0823T002-v4-round2-"
+                r"[0-9a-f]{8,40}"
+            ),
+            reviewer_actor_id,
+        )
+        is not None,
         "H0B_REVIEW_PROVENANCE_MISMATCH",
         "$.review.actors",
         "controller and reviewer actor IDs must be distinct and bound",
@@ -2206,8 +2379,8 @@ def expected_workflow_transition_payload(
         "from_status": "执行中",
         "to_status": "待验收",
         "execution_authority_commit": EXECUTION_AUTHORITY_COMMIT,
-        "execution_authority_tree_sha256": (
-            EXECUTION_AUTHORITY_TREE_SHA256
+        "execution_authority_tree_oid": (
+            EXECUTION_AUTHORITY_TREE_OID
         ),
         "execution_authority_task_sha256": (
             EXECUTION_AUTHORITY_TASK_SHA256
@@ -2240,6 +2413,36 @@ def validate_workflow_transition_payload(
     )
 
 
+def validate_workflow_transition_state_contract(
+    *,
+    status: str,
+    receipt_pin: str,
+    receipt_exists: bool,
+) -> None:
+    if status == "执行中":
+        valid = receipt_pin == "PENDING_HANDOFF" and not receipt_exists
+    else:
+        valid = (
+            status == "待验收"
+            and len(receipt_pin) == 64
+            and receipt_pin == receipt_pin.lower()
+            and all(
+                character in "0123456789abcdef"
+                for character in receipt_pin
+            )
+            and receipt_exists
+        )
+    contracts.require(
+        valid,
+        "H0B_WORKFLOW_TRANSITION_MISMATCH",
+        "$.workflow_transition.state",
+        (
+            f"status={status!r} receipt_pin={receipt_pin!r} "
+            f"receipt_exists={receipt_exists!r}"
+        ),
+    )
+
+
 def validate_workflow_transition_authority(
     task_path: Path,
     *,
@@ -2260,26 +2463,23 @@ def validate_workflow_transition_authority(
         task_path,
         "workflow_transition_receipt_sha256",
     )
+    receipt_exists = (
+        WORKFLOW_TRANSITION_RECEIPT_PATH.is_file()
+        and not WORKFLOW_TRANSITION_RECEIPT_PATH.is_symlink()
+    )
+    validate_workflow_transition_state_contract(
+        status=status,
+        receipt_pin=receipt_pin,
+        receipt_exists=receipt_exists,
+    )
     if status == "执行中":
-        contracts.require(
-            receipt_pin == "PENDING_HANDOFF"
-            and not WORKFLOW_TRANSITION_RECEIPT_PATH.exists(),
-            "H0B_WORKFLOW_TRANSITION_MISMATCH",
-            str(WORKFLOW_TRANSITION_RECEIPT_PATH),
-            "execution status requires an absent pending handoff receipt",
-        )
         return {
             "status": status,
             "transition": "pending",
             "receipt_sha256": None,
         }
     contracts.require(
-        len(receipt_pin) == 64
-        and receipt_pin == receipt_pin.lower()
-        and all(character in "0123456789abcdef" for character in receipt_pin)
-        and WORKFLOW_TRANSITION_RECEIPT_PATH.is_file()
-        and not WORKFLOW_TRANSITION_RECEIPT_PATH.is_symlink()
-        and contracts.sha256_file(WORKFLOW_TRANSITION_RECEIPT_PATH)
+        contracts.sha256_file(WORKFLOW_TRANSITION_RECEIPT_PATH)
         == receipt_pin,
         "H0B_WORKFLOW_TRANSITION_MISMATCH",
         str(WORKFLOW_TRANSITION_RECEIPT_PATH),
@@ -2759,6 +2959,20 @@ def packaged_runtime_source_tree_sha256(package_root: Path) -> str:
     )
 
 
+def validate_packaged_authority_object_bytes(
+    *,
+    package_path: str,
+    packaged_bytes: bytes,
+    authority_bytes: bytes,
+) -> None:
+    contracts.require(
+        packaged_bytes == authority_bytes,
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        package_path,
+        "packaged bytes differ from the immutable formal Git object",
+    )
+
+
 def validate_execution_authority_package(
     root: Path,
     *,
@@ -2766,6 +2980,21 @@ def validate_execution_authority_package(
     accepted_bindings: Mapping[str, Any],
 ) -> dict[str, Any]:
     authority = execution_authority_payload()
+    authority_package_root = DEFAULT_PACKAGE.relative_to(
+        REPO_ROOT
+    ).as_posix()
+    for package_path in sorted(
+        contracts.EXACT_PACKAGE_FILES,
+        key=lambda value: value.encode("utf-8"),
+    ):
+        validate_packaged_authority_object_bytes(
+            package_path=package_path,
+            packaged_bytes=(root / package_path).read_bytes(),
+            authority_bytes=git_object_bytes(
+                EXECUTION_AUTHORITY_COMMIT,
+                f"{authority_package_root}/{package_path}",
+            ),
+        )
     object_pairs = {
         "contracts/task.md": authority["task_path"],
         "contracts/surface_matrix.json": authority["matrix_path"],
@@ -2879,7 +3108,6 @@ def validate_execution_authority_package(
             observed_bytes = len(payload)
             observed_sha256 = sha256_bytes(payload)
         else:
-            source = REPO_ROOT / relative
             contracts.require(
                 relative
                 == (
@@ -2887,14 +3115,16 @@ def validate_execution_authority_package(
                     "skhynix_c6in_hyperliquid_execution_latency_0822T002/"
                     "measurement_manifest.json"
                 )
-                and source.is_file()
-                and not source.is_symlink(),
+                and row["bytes"]
+                == EXECUTION_AUTHORITY_LATENCY_MANIFEST_BYTES
+                and row["sha256"]
+                == EXECUTION_AUTHORITY_LATENCY_MANIFEST_SHA256,
                 "H0B_EXECUTION_AUTHORITY_MISMATCH",
                 relative,
-                "untracked formal authority path is not explicitly admitted",
+                "untracked latency authority identity is not exactly pinned",
             )
-            observed_bytes = source.stat().st_size
-            observed_sha256 = contracts.sha256_file(source)
+            observed_bytes = EXECUTION_AUTHORITY_LATENCY_MANIFEST_BYTES
+            observed_sha256 = EXECUTION_AUTHORITY_LATENCY_MANIFEST_SHA256
         contracts.require(
             row["bytes"] == observed_bytes
             and row["sha256"] == observed_sha256,
@@ -4718,7 +4948,7 @@ def hostile_deterministic_build_mutation() -> None:
 def hostile_execution_authority_mutation() -> None:
     validate_execution_authority_pins(
         commit=EXECUTION_AUTHORITY_COMMIT,
-        tree_sha256=EXECUTION_AUTHORITY_TREE_SHA256,
+        tree_oid=EXECUTION_AUTHORITY_TREE_OID,
         task_sha256="0" * 64,
     )
 
@@ -4726,8 +4956,16 @@ def hostile_execution_authority_mutation() -> None:
 def hostile_execution_authority_commit_mutation() -> None:
     validate_execution_authority_pins(
         commit="0" * 40,
-        tree_sha256=EXECUTION_AUTHORITY_TREE_SHA256,
+        tree_oid=EXECUTION_AUTHORITY_TREE_OID,
         task_sha256=EXECUTION_AUTHORITY_TASK_SHA256,
+    )
+
+
+def hostile_execution_authority_package_object_mutation() -> None:
+    validate_packaged_authority_object_bytes(
+        package_path="rq1_block_rates.csv",
+        packaged_bytes=b"mutated package bytes",
+        authority_bytes=b"immutable authority bytes",
     )
 
 
@@ -4748,12 +4986,10 @@ def hostile_workflow_transition_mutation() -> None:
 
 
 def hostile_workflow_missing_transition_mutation() -> None:
-    validate_workflow_transition_payload(
-        {},
-        {
-            "schema_version": WORKFLOW_TRANSITION_RECEIPT_SCHEMA,
-            "task_id": contracts.TASK_ID,
-        },
+    validate_workflow_transition_state_contract(
+        status="待验收",
+        receipt_pin="PENDING_HANDOFF",
+        receipt_exists=False,
     )
 
 
@@ -4778,6 +5014,99 @@ def hostile_formal_attempt_missing_receipt_mutation() -> None:
         validate_formal_attempt_receipt(Path(raw) / "missing-attempt")
 
 
+def hostile_formal_partial_hard_stop_recovery_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-partial-"
+    ) as raw:
+        paths, payload = begin_formal_attempt(
+            attempt_id="partial-hard-stop",
+            dispatch={"verified": True},
+            attempts_root=Path(raw),
+        )
+        partial = paths["root"] / ".package.staging-123"
+        partial.mkdir()
+        (partial / "partial.bin").write_bytes(b"partial")
+        payload["controller_pid"] = 2_147_483_647
+        write_formal_attempt_receipt(paths["attempt_receipt"], payload)
+        recovered = recover_formal_attempt_state(
+            attempt_root=paths["root"],
+            action="mark-interrupted",
+        )
+        contracts.require(
+            recovered["status"] == "interrupted",
+            "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+            str(paths["root"]),
+            "partial hard-stop recovery did not seal interrupted evidence",
+        )
+        (partial / "partial.bin").write_bytes(b"post-seal mutation")
+        validate_formal_attempt_receipt(paths["root"])
+
+
+def hostile_formal_torn_receipt_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-torn-"
+    ) as raw:
+        paths, _ = begin_formal_attempt(
+            attempt_id="torn-receipt",
+            dispatch={"verified": True},
+            attempts_root=Path(raw),
+        )
+        paths["attempt_receipt"].write_bytes(b"{")
+        validate_formal_attempt_receipt(paths["root"])
+
+
+def hostile_formal_attempts_root_escape_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-root-escape-"
+    ) as raw:
+        require_canonical_formal_attempt_root(
+            Path(raw) / "escaped-attempt"
+        )
+
+
+def hostile_formal_bootstrap_recovery_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-bootstrap-"
+    ) as raw:
+        paths = formal_attempt_paths(
+            "bootstrap-crash",
+            attempts_root=Path(raw),
+        )
+        bootstrap = {
+            "schema_version": FORMAL_ATTEMPT_BOOTSTRAP_SCHEMA,
+            "task_id": contracts.TASK_ID,
+            "attempt_id": "bootstrap-crash",
+            "controller_pid": 2_147_483_647,
+            "dispatch": {"verified": True},
+            "paths": formal_attempt_public_paths(paths),
+            "outcome_rerun": True,
+        }
+        write_formal_attempt_receipt(
+            paths["bootstrap_staging"],
+            bootstrap,
+        )
+        recovered = recover_formal_attempt_bootstrap(
+            attempt_root=paths["root"],
+            action="mark-interrupted",
+        )
+        contracts.require(
+            recovered["status"] == "interrupted",
+            "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+            str(paths["root"]),
+            "bootstrap crash did not become an interrupted attempt",
+        )
+        paths["attempt_bootstrap"].write_bytes(b"post-seal mutation")
+        validate_formal_attempt_receipt(paths["root"])
+
+
+def hostile_formal_subcommand_without_attempt_mutation() -> None:
+    validate_formal_subcommand_context(
+        command="outcome",
+        attempt_root=None,
+        build_root=Path("/tmp/0823T002-outside-attempt"),
+    )
+
+
 def hostile_review_same_actor_mutation() -> None:
     validate_reviewer_actor_binding(
         controller_actor_id=CONTROLLER_ACTOR_ID,
@@ -4789,6 +5118,34 @@ def hostile_review_candidate_mutation() -> None:
     validate_candidate_revision_binding(
         candidate_commit="0" * 40,
         expected_candidate_commit="1" * 40,
+    )
+
+
+def hostile_review_post_introduction_rewrite_mutation() -> None:
+    validate_introduction_blob_bytes(
+        current_bytes=b"rewritten review",
+        introduction_bytes=b"introduced review",
+        location="$.review.introduction_blob",
+    )
+
+
+def hostile_review_receipt_chronology_mutation() -> None:
+    head = git_output_bytes("rev-parse", "HEAD").decode("ascii").strip()
+    validate_review_commit_chronology(
+        candidate_commit=head,
+        candidate_receipt_commit=EXECUTION_AUTHORITY_COMMIT,
+        review_commit=head,
+    )
+
+
+def hostile_review_commit_scope_mutation() -> None:
+    validate_commit_path_scope(
+        observed_paths=(
+            ".workflow/reports/review.md",
+            "examples/hyperliquid/skhynix_stage_h0b.py",
+        ),
+        expected_paths=(".workflow/reports/review.md",),
+        location="$.review.commit_scope",
     )
 
 
@@ -5103,6 +5460,9 @@ def negative_case(
             "mutate_execution_authority_commit": (
                 hostile_execution_authority_commit_mutation
             ),
+            "mutate_execution_authority_package_object": (
+                hostile_execution_authority_package_object_mutation
+            ),
             "mutate_workflow_status_without_transition": (
                 hostile_workflow_missing_transition_mutation
             ),
@@ -5112,8 +5472,32 @@ def negative_case(
             "mutate_formal_attempt_missing_receipt": (
                 hostile_formal_attempt_missing_receipt_mutation
             ),
+            "mutate_formal_partial_hard_stop_recovery": (
+                hostile_formal_partial_hard_stop_recovery_mutation
+            ),
+            "mutate_formal_torn_receipt": (
+                hostile_formal_torn_receipt_mutation
+            ),
+            "mutate_formal_attempts_root_escape": (
+                hostile_formal_attempts_root_escape_mutation
+            ),
+            "mutate_formal_bootstrap_recovery": (
+                hostile_formal_bootstrap_recovery_mutation
+            ),
+            "mutate_formal_subcommand_without_attempt": (
+                hostile_formal_subcommand_without_attempt_mutation
+            ),
             "mutate_review_candidate_commit": (
                 hostile_review_candidate_mutation
+            ),
+            "mutate_review_post_introduction_rewrite": (
+                hostile_review_post_introduction_rewrite_mutation
+            ),
+            "mutate_review_receipt_chronology": (
+                hostile_review_receipt_chronology_mutation
+            ),
+            "mutate_review_commit_scope": (
+                hostile_review_commit_scope_mutation
             ),
         }
     )
@@ -5161,6 +5545,9 @@ def frozen_hostile_authority_paths() -> tuple[Path, ...]:
         PUBLICATION_REMEDIATION_PLAN_PATH,
         PUBLICATION_REMEDIATION_REVIEW_PATH,
         CONTROL_REMEDIATION_PLAN_PATH,
+        CONTROL_ROUND1_CANDIDATE_RECEIPT_PATH,
+        CONTROL_ROUND1_REVIEW_PATH,
+        CONTROL_ROUND1_REVIEW_SUBMISSION_PATH,
         CONTROL_CANDIDATE_RECEIPT_PATH,
         CONTROL_REMEDIATION_REVIEW_PATH,
         CONTROL_REVIEW_SUBMISSION_PATH,
@@ -11594,6 +11981,7 @@ def _execute_formal_attempt(
     build_a: Path,
     build_b: Path,
     receipt: Path,
+    formal_attempt_root: Path,
     phase_callback: Any | None = None,
 ) -> dict[str, Any]:
     hostile_path = (
@@ -11668,6 +12056,8 @@ def _execute_formal_attempt(
                 str(root),
                 "--build-label",
                 label,
+                "--formal-attempt-root",
+                str(formal_attempt_root),
             ]
         )
         run_subprocess(
@@ -11677,6 +12067,8 @@ def _execute_formal_attempt(
                 "outcome",
                 "--build-root",
                 str(root),
+                "--formal-attempt-root",
+                str(formal_attempt_root),
             ]
         )
         if phase_callback is not None:
@@ -11696,6 +12088,8 @@ def _execute_formal_attempt(
             "diagnostic-permit",
             "--build-root",
             str(build_a),
+            "--formal-attempt-root",
+            str(formal_attempt_root),
         ]
     )
     diagnostic_permit_b = run_subprocess(
@@ -11705,6 +12099,8 @@ def _execute_formal_attempt(
             "diagnostic-permit",
             "--build-root",
             str(build_b),
+            "--formal-attempt-root",
+            str(formal_attempt_root),
         ]
     )
     validate_diagnostic_permit_pair(
@@ -11727,6 +12123,8 @@ def _execute_formal_attempt(
             "diagnostic",
             "--build-root",
             str(build_a),
+            "--formal-attempt-root",
+            str(formal_attempt_root),
         ]
     )
     diagnostic_b = run_subprocess(
@@ -11736,6 +12134,8 @@ def _execute_formal_attempt(
             "diagnostic",
             "--build-root",
             str(build_b),
+            "--formal-attempt-root",
+            str(formal_attempt_root),
         ]
     )
     compare_build_files(
@@ -11823,10 +12223,30 @@ def formal_attempt_paths(
     return {
         "root": root,
         "attempt_receipt": root / "attempt_receipt.json",
+        "attempt_bootstrap": root / "attempt_bootstrap.json",
+        "bootstrap_staging": (
+            Path(attempts_root) / f".{attempt_id}.bootstrap.json"
+        ),
         "build_a": root / "build-a",
         "build_b": root / "build-b",
         "package": root / "package",
         "build_receipt": root / "build-receipt.json",
+    }
+
+
+def formal_attempt_public_paths(
+    paths: Mapping[str, Path],
+) -> dict[str, str]:
+    return {
+        key: str(paths[key].resolve())
+        for key in (
+            "root",
+            "attempt_bootstrap",
+            "build_a",
+            "build_b",
+            "package",
+            "build_receipt",
+        )
     }
 
 
@@ -11851,22 +12271,88 @@ def formal_attempt_identity(path: Path) -> dict[str, Any]:
     }
 
 
+def formal_attempt_evidence_inventory(
+    root: Path,
+) -> list[dict[str, Any]]:
+    attempt_root = Path(root)
+    rows = []
+    for path in sorted(
+        attempt_root.rglob("*"),
+        key=lambda item: item.relative_to(attempt_root).as_posix().encode(
+            "utf-8"
+        ),
+    ):
+        relative = path.relative_to(attempt_root).as_posix()
+        if relative == "attempt_receipt.json":
+            continue
+        contracts.require(
+            not path.is_symlink() and (path.is_file() or path.is_dir()),
+            "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+            str(path),
+            "formal attempt inventory rejects symlinks and special entries",
+        )
+        if path.is_dir():
+            rows.append(
+                {
+                    "path": relative,
+                    "entry_type": "directory",
+                    "bytes": 0,
+                    "sha256": None,
+                }
+            )
+        else:
+            rows.append(
+                {
+                    "path": relative,
+                    "entry_type": "regular_file",
+                    "bytes": path.stat().st_size,
+                    "sha256": contracts.sha256_file(path),
+                }
+            )
+    return rows
+
+
 def formal_attempt_completed_identities(
     paths: Mapping[str, Path],
 ) -> dict[str, Any]:
-    return {
-        key: formal_attempt_identity(paths[key])
-        for key in ("build_a", "build_b", "package", "build_receipt")
-        if paths[key].exists()
+    inventory = formal_attempt_evidence_inventory(paths["root"])
+    identities = {
+        "attempt_evidence_inventory": {
+            "entry_type": "exact_tree_inventory",
+            "entry_count": len(inventory),
+            "sha256": contracts.canonical_json_sha256(inventory),
+        }
     }
+    identities.update(
+        {
+            key: formal_attempt_identity(paths[key])
+            for key in ("build_a", "build_b", "package", "build_receipt")
+            if paths[key].exists()
+        }
+    )
+    return identities
 
 
 def write_formal_attempt_receipt(
     path: Path,
     payload: Mapping[str, Any],
 ) -> None:
-    write_json(path, dict(payload), fsync=True)
-    contracts.fsync_directory(Path(path).parent)
+    receipt = Path(path)
+    parent = receipt.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    encoded = contracts.canonical_json_bytes(dict(payload))
+    with tempfile.NamedTemporaryFile(
+        mode="wb",
+        prefix=f".{receipt.name}.tmp-",
+        dir=parent,
+        delete=False,
+    ) as handle:
+        handle.write(encoded)
+        handle.flush()
+        os.fsync(handle.fileno())
+        temporary = Path(handle.name)
+    os.replace(temporary, receipt)
+    contracts.fsync_directory(parent)
 
 
 def require_formal_attempt_root_absent(root: Path) -> None:
@@ -11890,21 +12376,42 @@ def begin_formal_attempt(
     )
     Path(attempts_root).mkdir(parents=True, exist_ok=True)
     require_formal_attempt_root_absent(paths["root"])
+    contracts.require(
+        not paths["bootstrap_staging"].exists(),
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(paths["bootstrap_staging"]),
+        "formal attempt bootstrap staging path is occupied",
+    )
+    bootstrap = {
+        "schema_version": FORMAL_ATTEMPT_BOOTSTRAP_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "attempt_id": attempt_id,
+        "controller_pid": os.getpid(),
+        "dispatch": dict(dispatch),
+        "paths": formal_attempt_public_paths(paths),
+        "outcome_rerun": True,
+    }
+    write_formal_attempt_receipt(paths["bootstrap_staging"], bootstrap)
     paths["root"].mkdir(parents=False, exist_ok=False)
+    contracts.fsync_directory(Path(attempts_root))
+    os.replace(
+        paths["bootstrap_staging"],
+        paths["attempt_bootstrap"],
+    )
+    contracts.fsync_directory(paths["root"])
+    contracts.fsync_directory(Path(attempts_root))
     payload = {
         "schema_version": FORMAL_ATTEMPT_RECEIPT_SCHEMA,
         "task_id": contracts.TASK_ID,
         "attempt_id": attempt_id,
         "status": "running",
         "phase": "initialized",
-        "controller_pid": os.getpid(),
+        "controller_pid": bootstrap["controller_pid"],
         "dispatch": dict(dispatch),
-        "paths": {
-            key: str(value.resolve())
-            for key, value in paths.items()
-            if key != "attempt_receipt"
-        },
-        "completed_entry_identities": {},
+        "paths": formal_attempt_public_paths(paths),
+        "completed_entry_identities": (
+            formal_attempt_completed_identities(paths)
+        ),
         "error": None,
         "outcome_rerun": True,
     }
@@ -11958,7 +12465,14 @@ def validate_formal_attempt_receipt(
         str(paths["attempt_receipt"]),
         "durable formal attempt receipt is missing",
     )
-    payload = read_json(paths["attempt_receipt"])
+    try:
+        payload = read_json(paths["attempt_receipt"])
+    except (OSError, ValueError) as exc:
+        raise contracts.H0BError(
+            "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+            str(paths["attempt_receipt"]),
+            f"formal attempt receipt is unreadable: {exc}",
+        ) from exc
     contracts.require(
         set(payload)
         == {
@@ -11992,12 +12506,7 @@ def validate_formal_attempt_receipt(
         }
         and type(payload["controller_pid"]) is int
         and payload["controller_pid"] > 0
-        and payload["paths"]
-        == {
-            key: str(value.resolve())
-            for key, value in paths.items()
-            if key != "attempt_receipt"
-        }
+        and payload["paths"] == formal_attempt_public_paths(paths)
         and payload["outcome_rerun"] is True,
         "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
         str(paths["attempt_receipt"]),
@@ -12005,7 +12514,8 @@ def validate_formal_attempt_receipt(
     )
     observed_identities = formal_attempt_completed_identities(paths)
     contracts.require(
-        payload["completed_entry_identities"] == observed_identities,
+        payload["status"] == "running"
+        or payload["completed_entry_identities"] == observed_identities,
         "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
         "$.formal_attempt.completed_entry_identities",
         "formal attempt evidence identity drift",
@@ -12023,14 +12533,157 @@ def process_is_alive(pid: int) -> bool:
     return True
 
 
+def load_formal_attempt_bootstrap(
+    attempt_root: Path,
+) -> tuple[dict[str, Path], dict[str, Any]]:
+    root = Path(attempt_root)
+    paths = formal_attempt_paths(
+        root.name,
+        attempts_root=root.parent,
+    )
+    candidates = (
+        paths["attempt_bootstrap"],
+        paths["bootstrap_staging"],
+    )
+    existing = [
+        path
+        for path in candidates
+        if path.is_file() and not path.is_symlink()
+    ]
+    contracts.require(
+        len(existing) == 1,
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(root),
+        "missing or ambiguous formal attempt bootstrap",
+    )
+    try:
+        payload = read_json(existing[0])
+    except (OSError, ValueError) as exc:
+        raise contracts.H0BError(
+            "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+            str(existing[0]),
+            f"formal attempt bootstrap is unreadable: {exc}",
+        ) from exc
+    contracts.require(
+        set(payload)
+        == {
+            "schema_version",
+            "task_id",
+            "attempt_id",
+            "controller_pid",
+            "dispatch",
+            "paths",
+            "outcome_rerun",
+        }
+        and payload["schema_version"] == FORMAL_ATTEMPT_BOOTSTRAP_SCHEMA
+        and payload["task_id"] == contracts.TASK_ID
+        and payload["attempt_id"] == root.name
+        and type(payload["controller_pid"]) is int
+        and payload["controller_pid"] > 0
+        and payload["paths"] == formal_attempt_public_paths(paths)
+        and payload["outcome_rerun"] is True,
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(existing[0]),
+        "formal attempt bootstrap schema or scalar mismatch",
+    )
+    return paths, payload
+
+
+def recover_formal_attempt_bootstrap(
+    *,
+    attempt_root: Path,
+    action: str,
+) -> dict[str, Any]:
+    paths, bootstrap = load_formal_attempt_bootstrap(attempt_root)
+    observed = (
+        formal_attempt_completed_identities(paths)
+        if paths["root"].is_dir()
+        else {}
+    )
+    if action == "inspect":
+        return {
+            **bootstrap,
+            "status": "initializing",
+            "phase": "initialized",
+            "observed_entry_identities": observed,
+        }
+    contracts.require(
+        action == "mark-interrupted"
+        and not process_is_alive(bootstrap["controller_pid"]),
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(attempt_root),
+        "only a dead-PID bootstrap may be marked interrupted",
+    )
+    if not paths["root"].exists():
+        paths["root"].mkdir(parents=False, exist_ok=False)
+        contracts.fsync_directory(paths["root"].parent)
+    if paths["bootstrap_staging"].exists():
+        os.replace(
+            paths["bootstrap_staging"],
+            paths["attempt_bootstrap"],
+        )
+        contracts.fsync_directory(paths["root"])
+        contracts.fsync_directory(paths["root"].parent)
+    interrupted = {
+        "schema_version": FORMAL_ATTEMPT_RECEIPT_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "attempt_id": bootstrap["attempt_id"],
+        "status": "interrupted",
+        "phase": "initialized",
+        "controller_pid": bootstrap["controller_pid"],
+        "dispatch": bootstrap["dispatch"],
+        "paths": bootstrap["paths"],
+        "completed_entry_identities": (
+            formal_attempt_completed_identities(paths)
+        ),
+        "error": {
+            "code": "H0B_FORMAL_ATTEMPT_INTERRUPTED",
+            "location": "$.formal_attempt.controller_pid",
+            "detail": f"dead_pid={bootstrap['controller_pid']}",
+        },
+        "outcome_rerun": True,
+    }
+    write_formal_attempt_receipt(
+        paths["attempt_receipt"],
+        interrupted,
+    )
+    validate_formal_attempt_receipt(paths["root"])
+    return interrupted
+
+
 def recover_formal_attempt(
     *,
     attempt_root: Path,
     action: str,
 ) -> dict[str, Any]:
+    require_canonical_formal_attempt_root(Path(attempt_root))
+    return recover_formal_attempt_state(
+        attempt_root=attempt_root,
+        action=action,
+    )
+
+
+def recover_formal_attempt_state(
+    *,
+    attempt_root: Path,
+    action: str,
+) -> dict[str, Any]:
+    if not (Path(attempt_root) / "attempt_receipt.json").exists():
+        return recover_formal_attempt_bootstrap(
+            attempt_root=attempt_root,
+            action=action,
+        )
     paths, payload = validate_formal_attempt_receipt(attempt_root)
+    observed_identities = formal_attempt_completed_identities(paths)
     if action == "inspect":
-        return payload
+        return {
+            **payload,
+            "observed_entry_identities": observed_identities,
+            "identity_drift": (
+                payload["completed_entry_identities"]
+                != observed_identities
+            ),
+        }
     contracts.require(
         action == "mark-interrupted"
         and payload["status"] == "running"
@@ -12051,18 +12704,75 @@ def recover_formal_attempt(
     )
 
 
+def require_canonical_formal_attempts_root(attempts_root: Path) -> None:
+    contracts.require(
+        Path(attempts_root).resolve() == FORMAL_ATTEMPTS_ROOT.resolve(),
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(attempts_root),
+        "formal execution must use the canonical versioned attempts root",
+    )
+
+
+def require_canonical_formal_attempt_root(attempt_root: Path) -> None:
+    root = Path(attempt_root)
+    contracts.require(
+        root.resolve().parent == FORMAL_ATTEMPTS_ROOT.resolve()
+        and root.name != "",
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(attempt_root),
+        "formal attempt must be inside the canonical attempts root",
+    )
+
+
+def validate_formal_subcommand_context(
+    *,
+    command: str,
+    attempt_root: Path | None,
+    build_root: Path,
+) -> dict[str, Any]:
+    contracts.require(
+        attempt_root is not None,
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        f"$.formal_subcommand.{command}",
+        "formal subcommand requires an attempt context",
+    )
+    root = Path(attempt_root)
+    require_canonical_formal_attempt_root(root)
+    paths, payload = validate_formal_attempt_receipt(root)
+    expected_phases = {
+        "h0b0": {"gate0_validated", "build_a_completed"},
+        "outcome": {"gate0_validated", "build_a_completed"},
+        "diagnostic-permit": {"primary_sealed"},
+        "diagnostic": {"primary_sealed"},
+    }
+    contracts.require(
+        command in expected_phases
+        and payload["status"] == "running"
+        and payload["phase"] in expected_phases[command]
+        and Path(build_root).resolve()
+        in {
+            paths["build_a"].resolve(),
+            paths["build_b"].resolve(),
+        },
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        f"$.formal_subcommand.{command}",
+        "subcommand is outside the active versioned formal attempt",
+    )
+    return payload
+
+
 def build_formal(
     *,
     task_path: Path,
     matrix_path: Path,
     attempt_id: str,
-    attempts_root: Path = FORMAL_ATTEMPTS_ROOT,
 ) -> dict[str, Any]:
     dispatch = validate_dispatch(task_path, matrix_path)
+    require_canonical_formal_attempts_root(FORMAL_ATTEMPTS_ROOT)
     paths, attempt = begin_formal_attempt(
         attempt_id=attempt_id,
         dispatch=dispatch,
-        attempts_root=attempts_root,
+        attempts_root=FORMAL_ATTEMPTS_ROOT,
     )
 
     def phase_callback(phase: str) -> None:
@@ -12081,6 +12791,7 @@ def build_formal(
             build_a=paths["build_a"],
             build_b=paths["build_b"],
             receipt=paths["build_receipt"],
+            formal_attempt_root=paths["root"],
             phase_callback=phase_callback,
         )
     except BaseException as exc:
@@ -12141,9 +12852,19 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     h0b0.add_argument("--matrix", type=Path, required=True)
     h0b0.add_argument("--build-root", type=Path, required=True)
     h0b0.add_argument("--build-label", required=True)
+    h0b0.add_argument(
+        "--formal-attempt-root",
+        type=Path,
+        required=True,
+    )
 
     outcome = subparsers.add_parser("outcome")
     outcome.add_argument("--build-root", type=Path, required=True)
+    outcome.add_argument(
+        "--formal-attempt-root",
+        type=Path,
+        required=True,
+    )
 
     diagnostic_permit = subparsers.add_parser("diagnostic-permit")
     diagnostic_permit.add_argument(
@@ -12151,19 +12872,24 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=Path,
         required=True,
     )
+    diagnostic_permit.add_argument(
+        "--formal-attempt-root",
+        type=Path,
+        required=True,
+    )
 
     diagnostic = subparsers.add_parser("diagnostic")
     diagnostic.add_argument("--build-root", type=Path, required=True)
+    diagnostic.add_argument(
+        "--formal-attempt-root",
+        type=Path,
+        required=True,
+    )
 
     formal = subparsers.add_parser("build-formal")
     formal.add_argument("--task", type=Path, required=True)
     formal.add_argument("--matrix", type=Path, required=True)
     formal.add_argument("--attempt-id", required=True)
-    formal.add_argument(
-        "--attempts-root",
-        type=Path,
-        default=FORMAL_ATTEMPTS_ROOT,
-    )
 
     recover_attempt = subparsers.add_parser("recover-formal-attempt")
     recover_attempt.add_argument("--attempt-root", type=Path, required=True)
@@ -12231,6 +12957,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "mutation failed open",
             )
         elif args.command == "h0b0":
+            validate_formal_subcommand_context(
+                command="h0b0",
+                attempt_root=args.formal_attempt_root,
+                build_root=args.build_root,
+            )
             result = run_h0b0(
                 task_path=args.task,
                 matrix_path=args.matrix,
@@ -12238,17 +12969,31 @@ def main(argv: Sequence[str] | None = None) -> int:
                 build_label=args.build_label,
             )
         elif args.command == "outcome":
+            validate_formal_subcommand_context(
+                command="outcome",
+                attempt_root=args.formal_attempt_root,
+                build_root=args.build_root,
+            )
             result = run_h0b1(build_root=args.build_root)
         elif args.command == "diagnostic-permit":
+            validate_formal_subcommand_context(
+                command="diagnostic-permit",
+                attempt_root=args.formal_attempt_root,
+                build_root=args.build_root,
+            )
             result = write_stage4_diagnostic_permit(args.build_root)
         elif args.command == "diagnostic":
+            validate_formal_subcommand_context(
+                command="diagnostic",
+                attempt_root=args.formal_attempt_root,
+                build_root=args.build_root,
+            )
             result = run_stage4_diagnostic(build_root=args.build_root)
         elif args.command == "build-formal":
             result = build_formal(
                 task_path=args.task,
                 matrix_path=args.matrix,
                 attempt_id=args.attempt_id,
-                attempts_root=args.attempts_root,
             )
         elif args.command == "recover-formal-attempt":
             result = recover_formal_attempt(

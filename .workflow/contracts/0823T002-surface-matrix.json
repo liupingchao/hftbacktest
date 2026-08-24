@@ -13,7 +13,7 @@
     {
       "applicability": "required",
       "criterion_id": "EC3",
-      "planned_evidence": "All 74 current and frozen negative mutations reject with exact stable codes."
+      "planned_evidence": "All 83 current and frozen negative mutations reject with exact stable codes."
     },
     {
       "applicability": "required",
@@ -100,7 +100,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "accepted Trust Kernel v1 exact and immutable; H0-B negative evidence is admitted only by the composed gate0 binding exact reviewed dispatch, matrix SHA, current/frozen runtime trees, ordered 65-mutation contracts and fail_open_count=0 before invoking the generic validator"
+        "value_contract": "accepted Trust Kernel v1 exact and immutable; H0-B negative evidence is admitted only by the composed gate0 binding exact reviewed dispatch, matrix SHA, current/frozen runtime trees, ordered 83-mutation contracts and fail_open_count=0 before invoking the generic validator"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -4869,7 +4869,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "package admission compares packaged task, matrix, V3 plan/review and four runtime/test files to exact Git objects at 71adbfa6; current mutable task bytes are not the package authority"
+        "value_contract": "package admission compares all 42 packaged files to exact Git blobs at 71adbfa6; the accepted latency manifest uses its frozen 944-byte/8ac3b362 identity and never the mutable worktree; current task bytes are not the package authority"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -4886,6 +4886,13 @@
           "mutation_id": "mutate_execution_authority_commit",
           "operation": "other_explicit",
           "target": "execution_authority_commit"
+        },
+        {
+          "description": "alter one of the 42 packaged files while preserving package self-identities",
+          "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+          "mutation_id": "mutate_execution_authority_package_object",
+          "operation": "other_explicit",
+          "target": "formal_package_git_object_binding"
         }
       ],
       "rebuild_oracle": {
@@ -4910,7 +4917,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "1a51dcf142734a05e29154c710715cd345c66679ccdab93e7eea44c5de086543"
+            "value": "40a6df1ee20a790e64a5bcb200afaaeba6f520d40f3c32a8e274b7e5f0a6afcb"
           },
           "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
           "source_id": "reviewed_v4_attempt_protocol",
@@ -4949,7 +4956,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "attempt receipt is fsynced before build paths; attempts use unique versioned roots; failure/interruption preserves all evidence; package staging collision fails without deletion"
+        "value_contract": "a durable sibling bootstrap precedes attempt-root creation; receipt updates use fsync plus atomic replace; every evidence entry including hidden staging is inventoried; recovery seals dead-PID partial evidence; formal roots and all research subcommands are confined to the canonical versioned attempt"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -4973,6 +4980,41 @@
           "mutation_id": "mutate_formal_attempt_missing_receipt",
           "operation": "other_explicit",
           "target": "attempt_receipt"
+        },
+        {
+          "description": "mutate partial evidence after dead-PID recovery seals the attempt",
+          "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+          "mutation_id": "mutate_formal_partial_hard_stop_recovery",
+          "operation": "other_explicit",
+          "target": "attempt_evidence_inventory"
+        },
+        {
+          "description": "replace the durable attempt receipt with torn JSON",
+          "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+          "mutation_id": "mutate_formal_torn_receipt",
+          "operation": "other_explicit",
+          "target": "attempt_receipt_atomicity"
+        },
+        {
+          "description": "select a formal attempt root outside the canonical namespace",
+          "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+          "mutation_id": "mutate_formal_attempts_root_escape",
+          "operation": "other_explicit",
+          "target": "formal_attempt_root"
+        },
+        {
+          "description": "mutate bootstrap evidence after root-before-receipt crash recovery",
+          "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+          "mutation_id": "mutate_formal_bootstrap_recovery",
+          "operation": "other_explicit",
+          "target": "attempt_bootstrap"
+        },
+        {
+          "description": "invoke an outcome-bearing subcommand without an active attempt context",
+          "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+          "mutation_id": "mutate_formal_subcommand_without_attempt",
+          "operation": "other_explicit",
+          "target": "formal_subcommand_entrypoint"
         }
       ],
       "rebuild_oracle": {
@@ -4990,6 +5032,21 @@
         {
           "entry_type": "regular_file",
           "path": ".workflow/reports/0823T002-v4-candidate-receipt.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-plan-v4-review-round1.md",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-plan-v4-review-round1-submission.md",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-v4-candidate-receipt-round2.json",
           "required": true
         },
         {
@@ -5012,7 +5069,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "1a51dcf142734a05e29154c710715cd345c66679ccdab93e7eea44c5de086543"
+            "value": "40a6df1ee20a790e64a5bcb200afaaeba6f520d40f3c32a8e274b7e5f0a6afcb"
           },
           "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
           "source_id": "reviewed_v4_provenance_contract",
@@ -5052,7 +5109,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "candidate commit predates candidate receipt and review; candidate Git objects are recomputed; reviewer actor differs from controller and review introduction commit has the frozen independent-review author identity"
+        "value_contract": "candidate -> exact candidate-receipt introduction commit -> exact review/submission introduction commit -> HEAD ancestry is mandatory; receipt commit changes only the receipt, review commit changes only review/submission, current runtime equals the candidate runtime, and current attestation bytes equal their introduction Git blobs"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -5069,6 +5126,27 @@
           "mutation_id": "mutate_review_candidate_commit",
           "operation": "other_explicit",
           "target": "candidate_commit"
+        },
+        {
+          "description": "rewrite review bytes after their introduction commit",
+          "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+          "mutation_id": "mutate_review_post_introduction_rewrite",
+          "operation": "other_explicit",
+          "target": "review_introduction_blob"
+        },
+        {
+          "description": "place the review commit outside the candidate-receipt ancestry chain",
+          "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+          "mutation_id": "mutate_review_receipt_chronology",
+          "operation": "other_explicit",
+          "target": "candidate_receipt_commit"
+        },
+        {
+          "description": "include implementation changes in the receipt or review commit",
+          "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+          "mutation_id": "mutate_review_commit_scope",
+          "operation": "other_explicit",
+          "target": "review_commit_changed_paths"
         }
       ],
       "rebuild_oracle": {
@@ -5098,7 +5176,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "1a51dcf142734a05e29154c710715cd345c66679ccdab93e7eea44c5de086543"
+            "value": "40a6df1ee20a790e64a5bcb200afaaeba6f520d40f3c32a8e274b7e5f0a6afcb"
           },
           "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
           "source_id": "reviewed_v4_transition_contract",

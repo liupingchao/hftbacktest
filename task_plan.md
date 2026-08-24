@@ -1,5 +1,25 @@
 # Task Plan
 
+## 2026-08-24 Stage H0-B V4 Round 2 Candidate Ready
+
+- Preserve the rejected Round 1 candidate, controller receipt and independent
+  review as immutable history; its primary review is
+  `P0/P1/P2/P3=0/3/2/1`.
+- Bind the existing package to all 42 Git blobs at formal commit
+  `71adbfa678ff3646982160d220f5c223e0f7e59f`; the mutable task is workflow
+  state only.
+- Freeze atomic attempt bootstrap/receipt updates, complete hidden-evidence
+  inventory, dead-PID interruption recovery, canonical roots and attempt-bound
+  formal subcommands.
+- Freeze candidate -> receipt -> review chronology, exact introduction blobs,
+  commit path scopes, distinct reviewer actor format and exact reviewed
+  runtime equality.
+- Require `65 surfaces / 83 mutations / 90 artifacts`, independent Round 2
+  review and zero current/frozen fail-open before issuing a workflow
+  transition receipt.
+- Do not run `h0b0`, `outcome`, `diagnostic` or `build-formal` during this
+  control remediation.
+
 ## 2026-08-24 Stage H0-B QA Round 2 Handoff Withdrawn
 
 - Post-handoff review is frozen at `P0/P1/P2/P3=0/2/1/0`; QA Round 2 did not

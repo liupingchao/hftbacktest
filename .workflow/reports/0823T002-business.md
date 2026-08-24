@@ -13,10 +13,9 @@
 - 否
 
 QA说明：
-- QA Round 2 尚未开始。2026-08-24 post-handoff review 为
-  `P0/P1/P2/P3=0/2/1/0`；必须先完成 immutable execution authority、
-  durable formal attempt/recovery 和 reviewer provenance 修复及独立
-  review，再重新交接。
+- QA Round 2 尚未开始。V4 Round 1 candidate 已由独立 review 以
+  `P0/P1/P2/P3=0/3/2/1` 拒绝并保留；Round 2 control candidate 已完成
+  实现与本地验证，仍需 exact candidate receipt 和独立 review。
 
 files：
 - `.workflow/contracts/0823T002-surface-matrix.json`
@@ -26,6 +25,10 @@ files：
 - `.workflow/reports/0823T002-build-receipt.json`
 - `.workflow/reports/0823T002-package-admission.json`
 - `.workflow/reports/0823T002-plan-v3-review.md`
+- `.workflow/reports/0823T002-v4-candidate-receipt.json`
+- `.workflow/reports/0823T002-plan-v4-review-round1.md`
+- `.workflow/reports/0823T002-plan-v4-review-round1-submission.md`
+- `docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md`
 - `.workflow/reports/0823T002-qa-round1-rejected-formal/`
 - `.workflow/reports/0823T002-v3-receipt-schema-failed-formal/`
 - `.workflow/reports/0823T002-v3-postfix-review-superseded-formal/`
@@ -39,6 +42,14 @@ files：
 - `findings.md`
 
 action：
+- 将 immutable execution authority 与 mutable workflow transition
+  分离；现有 package 逐一绑定 formal commit `71adbfa6` 的 42 个 Git
+  blobs。
+- 增加 pre-root bootstrap、atomic receipt、完整 attempt evidence
+  inventory、dead-PID recovery、canonical root 和 formal subcommand
+  attempt-context gate。
+- 增加 candidate-receipt/review introduction commit、exact blob、commit
+  path scope、reviewer actor 格式和 reviewed runtime equality 校验。
 - 完成 publication remediation V3 round 10 独立 review，最终
   `P0/P1/P2/P3=0/0/0/0`，冻结 plan、Surface Matrix、review 和 runtime
   source tree identities。
@@ -61,6 +72,14 @@ action：
 - 发布 42-file exact package tree，并执行独立 zero-write verify。
 
 verify：
+- V4 Round 2 candidate 本地验证为 `173 passed`；Ruff、compileall、
+  `git diff --check` 通过。
+- research-package validator 为
+  `65 surfaces / 83 mutations / 90 artifacts / 7 exit criteria`。
+- `83/83` direct hostile mutations 均返回声明错误码，fail-open 为零。
+- 旧 formal package 仍为
+  `42 files / 5 directories / verified=true / zero_write=true`；R/C/E/
+  composite 未改变。
 - research-package task validator 通过
   `61 surfaces / 65 mutations / 79 artifacts / 7 exit criteria`。
 - focused pytest `137 passed`；Ruff、compileall 和 `git diff --check`
@@ -102,12 +121,9 @@ done：
   并核对上述 identities。
 
 blockers：
-- 当前 package 仍绑定 formal commit `71adbfa6` 的 execution task
-  `84333cf0...`，而 mutable task 已发生正常状态迁移；现有 current-state
-  verifier/Gate 0 因此失效。
-- formal runner 尚无通用 durable attempt/failure/recovery protocol。
-- independent review 尚缺 candidate revision 与 reviewer actor-bound
-  attestation chain。
+- Round 2 candidate 尚未冻结并签发 candidate receipt。
+- Round 2 independent review 尚未接受 exact candidate；workflow
+  transition receipt 不得提前签发，QA Round 2 不得提前开始。
 
 commit：
 - `71adbfa678ff3646982160d220f5c223e0f7e59f`
