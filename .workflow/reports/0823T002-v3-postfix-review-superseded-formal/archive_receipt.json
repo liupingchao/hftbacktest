@@ -1,0 +1,90 @@
+{
+  "archive_method": "resumable_os_replace_no_delete",
+  "archive_root": ".workflow/reports/0823T002-v3-postfix-review-superseded-formal",
+  "canonical_paths_released": true,
+  "entries": [
+    {
+      "archive_relative_path": "build-a",
+      "entry_id": "build_a",
+      "entry_type": "directory",
+      "sha256": "82d64e8d60af21ff1080926e66e65b3aa13557d16b3c0ab54eec32e5995f6fc1",
+      "source_path": ".workflow/reports/0823T002-build-a"
+    },
+    {
+      "archive_relative_path": "build-b",
+      "entry_id": "build_b",
+      "entry_type": "directory",
+      "sha256": "35483171f7e314cfece897ba7799d2f00ffb754b5bf5e41cfea0ad7548105160",
+      "source_path": ".workflow/reports/0823T002-build-b"
+    },
+    {
+      "archive_relative_path": "build-receipt.json",
+      "entry_id": "build_receipt",
+      "entry_type": "regular_file",
+      "sha256": "bb30ff06183c25b218bffb313cff5c09427e96c44adf8a63dd69d440fbe06770",
+      "source_path": ".workflow/reports/0823T002-build-receipt.json"
+    },
+    {
+      "archive_relative_path": "package",
+      "entry_id": "package",
+      "entry_type": "directory",
+      "sha256": "11cf76849e8b6221aa55490efe3548ccb79b13b6f9603e733951849363333ae2",
+      "source_path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002"
+    }
+  ],
+  "formal_build_receipt_written": true,
+  "package_admission_verified": true,
+  "retirement_dispatch": {
+    "artifact_count": 79,
+    "classification": "research_package",
+    "exit_criterion_count": 7,
+    "matrix_sha256": "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df",
+    "negative_mutation_count": 65,
+    "publication_remediation_plan_path": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+    "publication_remediation_plan_sha256": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20",
+    "publication_remediation_review_path": ".workflow/reports/0823T002-plan-v3-review.md",
+    "publication_remediation_review_sha256": "47c043ee763987fd0abe467b7fda0da98956d4117354d48bfcbbbed4a5ee7df5",
+    "runtime_source_tree_sha256": "8c9931f3b1d73610e20dc6e10537c98cdb80b407ea787fd72ad51f236f700ee9",
+    "schema_version": "skhynix_stage_h0b_dispatch_v3",
+    "surface_count": 61,
+    "task_id": "0823T002",
+    "task_sha256": "cf83da33aa032d00a52092a8a8f9efb873de06119a814c90f4c31ffb3889e0c3",
+    "verified": true
+  },
+  "review_severity": "P0/P1/P2/P3=0/1/1/0",
+  "schema_version": "skhynix_stage_h0b_review_superseded_archive_v1",
+  "status": "post_fix_independent_review_not_accepted",
+  "superseded_dispatch": {
+    "artifact_count": 79,
+    "classification": "research_package",
+    "exit_criterion_count": 7,
+    "matrix_sha256": "fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011",
+    "negative_mutation_count": 65,
+    "publication_remediation_plan_path": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+    "publication_remediation_plan_sha256": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320",
+    "publication_remediation_review_path": ".workflow/reports/0823T002-plan-v3-review.md",
+    "publication_remediation_review_sha256": "40bb320126a2b0f119d697b5ee58b178e67c70632f463d25d4c4528f96395349",
+    "runtime_source_tree_sha256": "b4a8bdc9b8dcb3281c952cb4f9c22f181c23c138a67164d71528391572bbfaec",
+    "schema_version": "skhynix_stage_h0b_dispatch_v3",
+    "surface_count": 61,
+    "task_id": "0823T002",
+    "task_sha256": "be84662a91d5769ca0f74016acbb84647194b722a1f81c7fb3e166ef97078bab",
+    "verified": true
+  },
+  "superseded_identities": {
+    "build_a_tree_sha256": "82d64e8d60af21ff1080926e66e65b3aa13557d16b3c0ab54eec32e5995f6fc1",
+    "build_b_tree_sha256": "35483171f7e314cfece897ba7799d2f00ffb754b5bf5e41cfea0ad7548105160",
+    "build_receipt_sha256": "bb30ff06183c25b218bffb313cff5c09427e96c44adf8a63dd69d440fbe06770",
+    "composite_package_identity": "0730b62b3582e7523295bc7e16e6283dc56a8fa3d307ebfca56e53e3707a7325",
+    "package_manifest_sha256": "fe16e41238a38a8a358cfdfe7a95113ccacb61d427c984f0d12046cc4a3f0d42",
+    "package_tree_sha256": "11cf76849e8b6221aa55490efe3548ccb79b13b6f9603e733951849363333ae2",
+    "primary_classification_sha256": "96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878",
+    "primary_results_sha256": "c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e",
+    "primary_seal_sha256": "94fcd06b1027c98b0e78c629d7fee5ac41586de7b9bf75ace1cbf5dbb83b4c97",
+    "publication_envelope_identity": "b83192550e3469e47e3b660ce98294775c3f9d6719fdf137b62348f5ef8385a1",
+    "research_data_identity": "cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4",
+    "runtime_contract_identity": "b85241ef0df69ece80b81111afd68726e3f4f8a4d342b767b388f8254d42a3d7",
+    "stage4_crosscheck_sha256": "5e277c73f2a67678962a793d466baead3f5d4e54ca0d838c5967b442aef500e2"
+  },
+  "task_id": "0823T002"
+}

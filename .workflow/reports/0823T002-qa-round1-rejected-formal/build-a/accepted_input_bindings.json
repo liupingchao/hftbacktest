@@ -1,0 +1,95 @@
+{
+  "bindings": [
+    {
+      "authority_path": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+      "binding_id": "primary_plan_v1",
+      "bytes": 100265,
+      "sha256": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10",
+      "status": "accepted"
+    },
+    {
+      "authority_path": ".workflow/reports/0823T002-plan-review.md",
+      "binding_id": "primary_plan_review",
+      "bytes": 2235,
+      "sha256": "c81112cc215d9b847e1691b9fce6be391cd2604736337ffa7fe35ab89cb22158",
+      "status": "accepted"
+    },
+    {
+      "authority_path": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+      "binding_id": "diagnostic_plan_v2",
+      "bytes": 110471,
+      "sha256": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63",
+      "status": "accepted"
+    },
+    {
+      "authority_path": ".workflow/reports/0823T002-plan-v2-review.md",
+      "binding_id": "diagnostic_plan_review",
+      "bytes": 1644,
+      "sha256": "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d",
+      "status": "accepted"
+    },
+    {
+      "authority_path": "docs/skhynix_continuous_hazard_maker_research_framework_v2.md",
+      "binding_id": "master_framework",
+      "bytes": 32125,
+      "sha256": "20c711fc056004d36ddf671766d04a1bbc2df58116234b4be285a859b55ceeec",
+      "status": "accepted"
+    },
+    {
+      "authority_path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+      "binding_id": "accepted_h0a_tuple",
+      "bytes": 5409,
+      "sha256": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca",
+      "status": "accepted"
+    },
+    {
+      "authority_path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/h0a_manifest.json",
+      "binding_id": "accepted_h0a_manifest",
+      "bytes": 8873,
+      "sha256": "fba6a52ea8edf2eebc525120186870078ce8776ffc8f38211b797930d48bc5b8",
+      "status": "accepted"
+    },
+    {
+      "authority_path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/measurement_manifest.json",
+      "binding_id": "accepted_latency_manifest",
+      "bytes": 944,
+      "sha256": "8ac3b362e8d64cbd81232eaf7ed5856bada63ece20408e0d0b3fb5f84c562afd",
+      "status": "accepted"
+    },
+    {
+      "authority_path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/superseding_primary_tuple.json",
+      "binding_id": "accepted_tuple",
+      "bytes": 11395,
+      "sha256": "e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c",
+      "status": "accepted"
+    },
+    {
+      "authority_path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "binding_id": "accepted_tuple_manifest",
+      "bytes": 3904,
+      "sha256": "68f0953ac07b1c99778bbfb05068a6b2e166eacd34d20a9af528bf7d964b27fa",
+      "status": "accepted"
+    },
+    {
+      "authority_path": ".workflow/contracts/0823T002-semantic-source-inventory.csv",
+      "binding_id": "semantic_source_inventory",
+      "bytes": 26404,
+      "sha256": "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9",
+      "status": "accepted"
+    },
+    {
+      "authority_path": ".workflow/contracts/0823T002-source-inventory-contract.json",
+      "binding_id": "source_inventory_contract",
+      "bytes": 7444,
+      "sha256": "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686",
+      "status": "accepted"
+    }
+  ],
+  "diagnostic_plan_sha256": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63",
+  "diagnostic_review_sha256": "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d",
+  "expected_semantic_source_inventory_sha256": "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9",
+  "primary_plan_sha256": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10",
+  "schema_version": "skhynix_stage_h0b_accepted_input_bindings_v2",
+  "surface_matrix_sha256": "478cb177fe5834bfd359d4d4e56004c3fa95c69cf2b4da0a67446ceeec22745b",
+  "task_id": "0823T002"
+}

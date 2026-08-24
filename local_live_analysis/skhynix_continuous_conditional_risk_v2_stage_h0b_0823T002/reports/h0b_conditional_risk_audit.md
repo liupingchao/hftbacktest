@@ -6,6 +6,8 @@
 - primary_plan_sha256: `c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10`
 - diagnostic_plan_sha256: `12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63`
 - diagnostic_review_sha256: `dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d`
+- publication_remediation_plan_sha256: `e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20`
+- publication_remediation_review_sha256: `115f592c5cc0406cea8f1b83ce7753c3dad00151acd9b7dcfcbd9f41abe47459`
 - formal_sessions: `jul30,aug04`
 - primary_tuple: `public_bbo_moves_through_quote/delta=0/horizon=50ms/latency=6600ms/equal_weight_bid_ask_session_scores`
 - rq1_jul30_pass: `true`
@@ -19,7 +21,7 @@
 - primary_classification_sha256: `96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878`
 - stage4_crosscheck_sha256: `5e277c73f2a67678962a793d466baead3f5d4e54ca0d838c5967b442aef500e2`
 - research_data_identity: `cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4`
-- code_contract_identity: `1096b93da21151e5ef8c9d9d2e060f0626bc8ee3d7fe3f3a3bf8ff437b59a469`
+- code_contract_identity: `f9868b4a658e3cfac64af9849d9459b104e762ce0a78e3767b05a199608ce46e`
 - evidence_identity/composite_identity: bound by `h0b_manifest.json` to avoid report self-reference
 - outcome_access: `public_only_after_build_specific_admitted_permits`
 - stage4_access: `post_primary_seal_build_specific_diagnostic_permits_exact_projection_only`

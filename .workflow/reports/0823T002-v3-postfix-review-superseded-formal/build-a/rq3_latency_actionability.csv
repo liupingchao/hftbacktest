@@ -1,0 +1,15 @@
+session,latency_ms,latency_role,primary,ask_identified_fraction,bid_identified_fraction,equal_weight_identified_fraction,ask_residual_p50_ms,bid_residual_p50_ms,equal_weight_residual_p50_ms,ask_lower95_ms,bid_lower95_ms,bonferroni90_equal_weight_lower_ms,session_pass,can_rescue_primary
+jul30,25,legacy_sensitivity,false,1,0.99887281608115719,0.99943640804057865,95,155,125,85,145,115,true,false
+jul30,50,legacy_sensitivity,false,1,0.99887281608115719,0.99943640804057865,70,130,100,60,120,90,true,false
+jul30,100,historical_optimistic_sensitivity,false,1,0.99887281608115719,0.99943640804057865,20,80,50,10,70,40,true,false
+jul30,250,legacy_sensitivity,false,1,0.99887281608115719,0.99943640804057865,-130,-70,-100,-140,-80,-110,false,false
+jul30,500,legacy_sensitivity,false,1,0.99887281608115719,0.99943640804057865,-380,-320,-350,-390,-330,-360,false,false
+jul30,850,terminal_observability_normal_path_diagnostic_only,false,1,0.99887281608115719,0.99943640804057865,-730,-670,-700,-740,-680,-710,false,false
+jul30,6600,measurement_selected_primary,true,1,0.99887281608115719,0.99943640804057865,-6480,-6420,-6450,-6490,-6430,-6460,false,false
+aug04,25,legacy_sensitivity,false,1,0.9992520568436799,0.9996260284218399,95,795,445,85,675,380,true,false
+aug04,50,legacy_sensitivity,false,1,0.9992520568436799,0.9996260284218399,70,770,420,60,650,355,true,false
+aug04,100,historical_optimistic_sensitivity,false,1,0.9992520568436799,0.9996260284218399,20,720,370,10,600,305,true,false
+aug04,250,legacy_sensitivity,false,1,0.9992520568436799,0.9996260284218399,-130,570,220,-140,450,155,true,false
+aug04,500,legacy_sensitivity,false,1,0.9992520568436799,0.9996260284218399,-380,320,-30,-390,200,-95,false,false
+aug04,850,terminal_observability_normal_path_diagnostic_only,false,1,0.9992520568436799,0.9996260284218399,-730,-30,-380,-740,-150,-445,false,false
+aug04,6600,measurement_selected_primary,true,1,0.9992520568436799,0.9996260284218399,-6480,-5780,-6130,-6490,-5900,-6195,false,false

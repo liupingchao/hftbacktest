@@ -1,0 +1,28 @@
+# Stage H0-B Conditional-Risk Audit
+
+- task: `0823T002`
+- status: `待验收`
+- classification: `h0b_coarse_cross_spread_predictability_not_indicated`
+- primary_plan_sha256: `c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10`
+- diagnostic_plan_sha256: `12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63`
+- diagnostic_review_sha256: `dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d`
+- formal_sessions: `jul30,aug04`
+- primary_tuple: `public_bbo_moves_through_quote/delta=0/horizon=50ms/latency=6600ms/equal_weight_bid_ask_session_scores`
+- rq1_jul30_pass: `true`
+- rq1_aug04_pass: `true`
+- rq2_jul30_ratio_time_upper_flow_upper_pass: `0.9911725724680247/0.99759824464716018/0.99551671115798213/false`
+- rq2_aug04_ratio_time_upper_flow_upper_pass: `1.008976229695306/1.0345211015448565/1.0281647332302197/false`
+- rq3_6600_jul30_lower_ms_pass: `-6460/false`
+- rq3_6600_aug04_lower_ms_pass: `-6195/false`
+- rq3_850_role: `terminal_observability_normal_path_diagnostic_only/non_rescue`
+- primary_results_sha256: `c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e`
+- primary_classification_sha256: `96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878`
+- stage4_crosscheck_sha256: `5e277c73f2a67678962a793d466baead3f5d4e54ca0d838c5967b442aef500e2`
+- research_data_identity: `cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4`
+- code_contract_identity: `1096b93da21151e5ef8c9d9d2e060f0626bc8ee3d7fe3f3a3bf8ff437b59a469`
+- evidence_identity/composite_identity: bound by `h0b_manifest.json` to avoid report self-reference
+- outcome_access: `public_only_after_build_specific_admitted_permits`
+- stage4_access: `post_primary_seal_build_specific_diagnostic_permits_exact_projection_only`
+- aug07_access: `false`
+- network/private/order/cancel/live_access: `false`
+- claim_limit: `screening_audit_not_final_signal_or_strategy`

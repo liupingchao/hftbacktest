@@ -1,0 +1,83 @@
+{
+  "archive_method": "resumable_os_replace_no_delete",
+  "archive_root": ".workflow/reports/0823T002-v3-receipt-schema-failed-formal",
+  "canonical_paths_released": true,
+  "entries": [
+    {
+      "archive_relative_path": "build-a",
+      "entry_id": "build_a",
+      "entry_type": "directory",
+      "sha256": "e6613fb1e309f86ec531883b283e95c97de2c4ac95a8e44b8468d197b66d78c3",
+      "source_path": ".workflow/reports/0823T002-build-a"
+    },
+    {
+      "archive_relative_path": "build-b",
+      "entry_id": "build_b",
+      "entry_type": "directory",
+      "sha256": "8469b25c26644eeabd98b6816e9ad0ae151e053d6f2abb9129f47b8f094732c6",
+      "source_path": ".workflow/reports/0823T002-build-b"
+    },
+    {
+      "archive_relative_path": "package",
+      "entry_id": "package",
+      "entry_type": "directory",
+      "sha256": "37b3684ef5654235c4f2547c55795d588df7db6618dbac33735f019c6fc6f211",
+      "source_path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002"
+    }
+  ],
+  "failed_dispatch": {
+    "artifact_count": 78,
+    "classification": "research_package",
+    "exit_criterion_count": 7,
+    "matrix_sha256": "541c386abb136ba0dba0bc9aff0152f1f5133d8a1b34321595bdc9bdad54995d",
+    "negative_mutation_count": 65,
+    "publication_remediation_plan_path": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+    "publication_remediation_plan_sha256": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48",
+    "publication_remediation_review_path": ".workflow/reports/0823T002-plan-v3-review.md",
+    "publication_remediation_review_sha256": "5b82e11cd53df1713215539f4ba6783fd3f9c9e2415922390bf26914d0b61fdd",
+    "runtime_source_tree_sha256": "20e59b23fbc7c4cf5513c66e7120fd0ed67b2013eb3772cbe759d004392f07c9",
+    "schema_version": "skhynix_stage_h0b_dispatch_v3",
+    "surface_count": 61,
+    "task_id": "0823T002",
+    "task_sha256": "44632149779360b6347064a306d1d82f907641d6a37d72b465c5e4d70ee1a843",
+    "verified": true
+  },
+  "failed_identities": {
+    "build_a_tree_sha256": "e6613fb1e309f86ec531883b283e95c97de2c4ac95a8e44b8468d197b66d78c3",
+    "build_b_tree_sha256": "8469b25c26644eeabd98b6816e9ad0ae151e053d6f2abb9129f47b8f094732c6",
+    "composite_package_identity": "45f6edfe2465ea038e3954632ece3936d70438deccabda19fdd315f8945350db",
+    "package_manifest_sha256": "b5f5d03f71b35e170454d9bfa4561a6f76ab1b8807ed87b9a4a55de30b98b51f",
+    "package_tree_sha256": "37b3684ef5654235c4f2547c55795d588df7db6618dbac33735f019c6fc6f211",
+    "primary_classification_sha256": "96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878",
+    "primary_results_sha256": "c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e",
+    "primary_seal_sha256": "be8b2d4556c232b96b2a28f327210c0ed0930b7bdc776b09e7e791ad0cdcc801",
+    "publication_envelope_identity": "f116ff0141685637f7ba0f2046c1fa566be9ea9e0aa61391b7106b2245272813",
+    "research_data_identity": "cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4",
+    "runtime_contract_identity": "833b1a883a92930ba7f267b55807add1238ebabd57b8dd2144065bb1cf2b070e",
+    "stage4_crosscheck_sha256": "5e277c73f2a67678962a793d466baead3f5d4e54ca0d838c5967b442aef500e2"
+  },
+  "failure_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+  "failure_location": "$.build_receipt.stage4_permit_build_a",
+  "formal_build_receipt_written": false,
+  "package_admission_verified": true,
+  "retirement_dispatch": {
+    "artifact_count": 79,
+    "classification": "research_package",
+    "exit_criterion_count": 7,
+    "matrix_sha256": "fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011",
+    "negative_mutation_count": 65,
+    "publication_remediation_plan_path": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+    "publication_remediation_plan_sha256": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320",
+    "publication_remediation_review_path": ".workflow/reports/0823T002-plan-v3-review.md",
+    "publication_remediation_review_sha256": "40bb320126a2b0f119d697b5ee58b178e67c70632f463d25d4c4528f96395349",
+    "runtime_source_tree_sha256": "b4a8bdc9b8dcb3281c952cb4f9c22f181c23c138a67164d71528391572bbfaec",
+    "schema_version": "skhynix_stage_h0b_dispatch_v3",
+    "surface_count": 61,
+    "task_id": "0823T002",
+    "task_sha256": "be84662a91d5769ca0f74016acbb84647194b722a1f81c7fb3e166ef97078bab",
+    "verified": true
+  },
+  "schema_version": "skhynix_stage_h0b_failed_formal_archive_v1",
+  "status": "failed_closed_external_receipt_exactness",
+  "task_id": "0823T002"
+}

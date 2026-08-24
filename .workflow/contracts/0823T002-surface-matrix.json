@@ -157,7 +157,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -764,7 +764,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -997,7 +997,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -1239,7 +1239,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -3846,7 +3846,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -3943,7 +3943,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4180,7 +4180,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4219,7 +4219,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "Build A/B research bytes exact; two different root/PID Build A/B fixture pairs each use production assemble_package plus full verify_package and reproduce 42/42 bytes plus identical R/C/E/composite"
+        "value_contract": "Build A/B research bytes exact; two different root/PID Build A/B fixture pairs each use production assemble_package plus full verify_package and reproduce 42/42 bytes plus identical R/C/E/composite; the negative mutation starts from two such admitted packages before one real packaged permit is changed"
       },
       "identity_layer": "R",
       "negative_mutations": [
@@ -4231,7 +4231,7 @@
           "target": "deterministic_build"
         },
         {
-          "description": "drift one file in a complete 42-file fresh-root package comparison",
+          "description": "assemble and fully admit two complete fresh-root packages, prove 42/42 and R/C/E/composite equality, then drift one real packaged permit",
           "expected_error_code": "H0B_BUILD_MISMATCH",
           "mutation_id": "mutate_complete_package_portability",
           "operation": "other_explicit",
@@ -4283,7 +4283,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4401,7 +4401,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4492,7 +4492,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4583,7 +4583,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4684,7 +4684,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+            "value": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4723,7 +4723,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "identity-bound resumable no-delete retirement of both the rejected Round 1 canonical paths and the 2026-08-24 fail-closed V3 receipt-schema attempt, followed by no-overwrite validation of raw runtime evidence and deterministic publication projections, fsync tree, then rename"
+        "value_contract": "identity-bound resumable no-delete retirement of the rejected Round 1 paths, the fail-closed V3 receipt-schema attempt and the post-fix review-superseded admitted candidate, followed by no-overwrite validation of raw runtime evidence and deterministic publication projections, fsync tree, then rename"
       },
       "identity_layer": "E",
       "negative_mutations": [

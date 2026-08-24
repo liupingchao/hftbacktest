@@ -1,11 +1,15 @@
 {
   "current_and_frozen_rejected": true,
-  "current_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
-  "expected_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
-  "frozen_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
-  "mutation_id": "mutate_accepted_tuple_binding",
+  "mutations": [
+    {
+      "current_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "frozen_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_tuple_binding"
+    }
+  ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v1",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
   "stage4_bytes_opened": false,
   "surface_id": "accepted_tuple_binding",
   "task_id": "0823T002"

@@ -9,9 +9,9 @@ Machine-readable acceptance contract:
 - schema_version=skhynix_stage_h0b_v3_independent_review_v1
 - task_id=0823T002
 - reviewer_role=independent_read_only
-- reviewed_plan_sha256=ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320
-- reviewed_surface_matrix_sha256=fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011
-- reviewed_runtime_source_tree_sha256=b4a8bdc9b8dcb3281c952cb4f9c22f181c23c138a67164d71528391572bbfaec
+- reviewed_plan_sha256=e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20
+- reviewed_surface_matrix_sha256=a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df
+- reviewed_runtime_source_tree_sha256=ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66
 - final_severity=P0/P1/P2/P3=0/0/0/0
 - disposition=ACCEPTED
 
@@ -21,6 +21,18 @@ Review rounds:
 - round 3, post-formal receipt correction:
   `P0/P1/P2/P3=0/0/1/0`; not accepted
 - round 4, exact retirement-dispatch correction:
+  `P0/P1/P2/P3=0/0/0/0`; accepted
+- round 5, post-fix review:
+  `P0/P1/P2/P3=0/1/1/0`; not accepted
+- round 6, admission-valid hostile-package and task-authority correction:
+  `P0/P1/P2/P3=0/0/0/0`; accepted
+- round 7, frozen-runtime fixture authority completion:
+  `P0/P1/P2/P3=0/1/0/0`; not accepted
+- round 8, complete frozen authority inventory:
+  `P0/P1/P2/P3=0/0/0/0`; accepted
+- round 9, frozen archive-retirement dispatch boundary:
+  `P0/P1/P2/P3=0/0/1/0`; not accepted
+- round 10, historical/current dispatch test separation:
   `P0/P1/P2/P3=0/0/0/0`; accepted
 
 Verified closures:
@@ -46,11 +58,16 @@ Verified closures:
 9. The 2026-08-24 fail-closed V3 attempt has an exact, resumable, no-delete
    archive lifecycle binding both the failed dispatch and the complete current
    retirement dispatch.
+10. The complete-package hostile mutation starts from two production-assembled
+    and fully admitted 42-file packages before changing one real package file.
+11. The post-fix review-superseded admitted candidate has a third exact,
+    resumable, no-delete archive lifecycle before canonical path reuse.
 
 Execution boundary:
 - acceptance is limited to the exact plan, matrix and runtime identities
   recorded above;
-- a new hostile receipt and composed H0-B Gate 0 are required after this
-  review is pinned;
+- dispatch remains forbidden until the resulting exact review SHA is pinned
+  in the task;
+- a new hostile receipt and composed H0-B Gate 0 are required after acceptance;
 - formal execution must end at `待验收` pending independent QA Round 2 and
   controller closure.

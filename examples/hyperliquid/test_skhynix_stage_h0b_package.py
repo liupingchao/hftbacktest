@@ -248,6 +248,28 @@ def test_task_surface_matrix_table_is_canonical(tmp_path: Path) -> None:
         h0b.validate_task_surface_matrix_table(task, matrix)
 
 
+def test_frozen_hostile_authority_inventory_is_complete() -> None:
+    assert set(h0b.frozen_hostile_authority_paths()) == {
+        h0b.H0A_ROOT / "h0a_manifest.json",
+        h0b.H0A_ROOT / "primary_tuple_freeze.json",
+        h0b.H0A_ROOT / "support_projection_commitments.csv",
+        h0b.LATENCY_ROOT / "measurement_manifest.json",
+        h0b.TUPLE_ROOT / "supersession_manifest.json",
+        h0b.TUPLE_ROOT / "superseding_primary_tuple.json",
+        h0b.TASK_PATH,
+        h0b.PRIMARY_PLAN_PATH,
+        h0b.DIAGNOSTIC_PLAN_PATH,
+        h0b.FRAMEWORK_PATH,
+        h0b.PRIMARY_PLAN_REVIEW_PATH,
+        h0b.DIAGNOSTIC_PLAN_REVIEW_PATH,
+        h0b.PUBLICATION_REMEDIATION_PLAN_PATH,
+        h0b.PUBLICATION_REMEDIATION_REVIEW_PATH,
+        h0b.SEMANTIC_INVENTORY_PATH,
+        h0b.SOURCE_INVENTORY_CONTRACT_PATH,
+    }
+    assert all(path.is_file() for path in h0b.frozen_hostile_authority_paths())
+
+
 def test_h0b0_does_not_create_root_before_dispatch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1002,28 +1024,18 @@ def test_production_assemble_and_verify_are_42_file_portable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     freeze_candidate_task_pins(monkeypatch)
-    first_a, first_b = write_admission_build_pair(
-        tmp_path / "first-roots",
-        first_pid=101,
+    first_result, first_admission, first_package = (
+        h0b.assemble_portability_fixture_package(
+            tmp_path / "first-roots",
+            first_pid=101,
+        )
     )
-    second_a, second_b = write_admission_build_pair(
-        tmp_path / "second-roots",
-        first_pid=201,
+    second_result, second_admission, second_package = (
+        h0b.assemble_portability_fixture_package(
+            tmp_path / "second-roots",
+            first_pid=201,
+        )
     )
-    first_package = tmp_path / "first-package"
-    second_package = tmp_path / "second-package"
-    first_result = h0b.assemble_package(
-        build_a=first_a,
-        build_b=first_b,
-        final_root=first_package,
-    )
-    second_result = h0b.assemble_package(
-        build_a=second_a,
-        build_b=second_b,
-        final_root=second_package,
-    )
-    first_admission = h0b.verify_package(package=first_package)
-    second_admission = h0b.verify_package(package=second_package)
     assert first_result["research_data_identity"] == second_result[
         "research_data_identity"
     ]
@@ -1039,12 +1051,201 @@ def test_production_assemble_and_verify_are_42_file_portable(
     assert first_admission["composite_package_identity"] == second_admission[
         "composite_package_identity"
     ]
+    assert first_admission["verified"] is True
+    assert second_admission["verified"] is True
     assert len(contracts.EXACT_PACKAGE_FILES) == 42
     assert all(
         (first_package / relative).read_bytes()
         == (second_package / relative).read_bytes()
         for relative in contracts.EXACT_PACKAGE_FILES
     )
+
+
+def test_complete_package_hostile_mutation_starts_from_admitted_packages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    freeze_candidate_task_pins(monkeypatch)
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.hostile_complete_package_portability_mutation()
+    assert captured.value.code == "H0B_BUILD_MISMATCH"
+    assert captured.value.location == "outcome_access_permit_build_a.json"
+
+
+def test_review_superseded_formal_archive_is_identity_bound_and_resumable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    build_a = tmp_path / "build-a"
+    build_b = tmp_path / "build-b"
+    package = tmp_path / "package"
+    build_receipt = tmp_path / "build-receipt.json"
+    for root, value in (
+        (build_a, b"A"),
+        (build_b, b"B"),
+        (package, b"P"),
+    ):
+        root.mkdir()
+        (root / "evidence.bin").write_bytes(value)
+    h0b.write_json(build_receipt, {"receipt": "review-superseded"})
+    entries = (
+        {
+            "entry_id": "build_a",
+            "source_path": build_a,
+            "archive_relative_path": "build-a",
+            "entry_type": "directory",
+            "sha256": h0b.regular_tree_inventory_sha256(build_a),
+        },
+        {
+            "entry_id": "build_b",
+            "source_path": build_b,
+            "archive_relative_path": "build-b",
+            "entry_type": "directory",
+            "sha256": h0b.regular_tree_inventory_sha256(build_b),
+        },
+        {
+            "entry_id": "build_receipt",
+            "source_path": build_receipt,
+            "archive_relative_path": "build-receipt.json",
+            "entry_type": "regular_file",
+            "sha256": contracts.sha256_file(build_receipt),
+        },
+        {
+            "entry_id": "package",
+            "source_path": package,
+            "archive_relative_path": "package",
+            "entry_type": "directory",
+            "sha256": h0b.regular_tree_inventory_sha256(package),
+        },
+    )
+    archive = tmp_path / "review-superseded-archive"
+    retirement_dispatch = copy.deepcopy(h0b.REVIEW_SUPERSEDED_DISPATCH)
+    retirement_dispatch["task_sha256"] = "9" * 64
+    future_dispatch = copy.deepcopy(retirement_dispatch)
+    future_dispatch["task_sha256"] = "8" * 64
+    dispatch_state = {"current": future_dispatch}
+    monkeypatch.setattr(h0b, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(h0b, "FORMAL_BUILD_A", build_a)
+    monkeypatch.setattr(h0b, "FORMAL_BUILD_B", build_b)
+    monkeypatch.setattr(h0b, "FORMAL_BUILD_RECEIPT", build_receipt)
+    monkeypatch.setattr(h0b, "DEFAULT_PACKAGE", package)
+    monkeypatch.setattr(
+        h0b,
+        "REVIEW_SUPERSEDED_FORMAL_ARCHIVE",
+        archive,
+    )
+    monkeypatch.setattr(
+        h0b,
+        "REVIEW_SUPERSEDED_FORMAL_ARCHIVE_STAGING",
+        tmp_path / ".review-superseded-archive.staging",
+    )
+    monkeypatch.setattr(
+        h0b,
+        "REVIEW_SUPERSEDED_FORMAL_IDENTITIES",
+        {
+            "build_a_tree_sha256": entries[0]["sha256"],
+            "build_b_tree_sha256": entries[1]["sha256"],
+            "build_receipt_sha256": entries[2]["sha256"],
+            "package_tree_sha256": entries[3]["sha256"],
+        },
+    )
+    monkeypatch.setattr(
+        h0b,
+        "review_superseded_formal_archive_entries",
+        lambda: entries,
+    )
+    monkeypatch.setattr(
+        h0b,
+        "validate_review_superseded_formal_identity",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr(
+        h0b,
+        "validate_superseded_formal_archive",
+        lambda expected_dispatch: {},
+    )
+    monkeypatch.setattr(
+        h0b,
+        "validate_failed_v3_formal_archive",
+        lambda expected_retirement_dispatch: {},
+    )
+    monkeypatch.setattr(
+        h0b,
+        "validate_dispatch",
+        lambda task_path, matrix_path: dispatch_state["current"],
+    )
+    monkeypatch.setattr(
+        h0b,
+        "REVIEW_SUPERSEDED_RETIREMENT_DISPATCH",
+        retirement_dispatch,
+    )
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.retire_review_superseded_formal(
+            task_path=tmp_path / "task.md",
+            matrix_path=tmp_path / "matrix.json",
+        )
+    assert captured.value.code == "H0B_BUILD_MISMATCH"
+    assert captured.value.location == (
+        "$.review_superseded_formal.retirement_dispatch"
+    )
+    assert build_a.is_dir()
+    assert build_b.is_dir()
+    assert build_receipt.is_file()
+    assert package.is_dir()
+    assert not archive.exists()
+    dispatch_state["current"] = retirement_dispatch
+    first = h0b.retire_review_superseded_formal(
+        task_path=tmp_path / "task.md",
+        matrix_path=tmp_path / "matrix.json",
+    )
+    dispatch_state["current"] = future_dispatch
+    second = h0b.retire_review_superseded_formal(
+        task_path=tmp_path / "task.md",
+        matrix_path=tmp_path / "matrix.json",
+    )
+    assert first == second
+    assert first["review_severity"] == "P0/P1/P2/P3=0/1/1/0"
+    assert first["formal_build_receipt_written"] is True
+    assert not build_a.exists()
+    assert not build_b.exists()
+    assert not build_receipt.exists()
+    assert not package.exists()
+    assert (archive / "build-a").is_dir()
+    assert (archive / "build-b").is_dir()
+    assert (archive / "build-receipt.json").is_file()
+    assert (archive / "package").is_dir()
+    receipt_path = archive / "archive_receipt.json"
+    assert h0b.read_json(receipt_path)["retirement_dispatch"] == (
+        retirement_dispatch
+    )
+    mutated = h0b.read_json(receipt_path)
+    del mutated["retirement_dispatch"]["task_sha256"]
+    h0b.write_json(receipt_path, mutated)
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_review_superseded_formal_archive(
+            expected_retirement_dispatch=retirement_dispatch
+        )
+    assert captured.value.code == "H0B_BUILD_MISMATCH"
+
+
+def test_legacy_fixture_helper_still_builds_admission_pair(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    freeze_candidate_task_pins(monkeypatch)
+    first_a, first_b = write_admission_build_pair(
+        tmp_path / "first-roots",
+        first_pid=101,
+    )
+    first_package = tmp_path / "first-package"
+    result = h0b.assemble_package(
+        build_a=first_a,
+        build_b=first_b,
+        final_root=first_package,
+    )
+    admission = h0b.verify_package(package=first_package)
+    assert result["composite_package_identity"] == admission[
+        "composite_package_identity"
+    ]
 
 
 def test_superseded_formal_archive_is_identity_bound_and_resumable(
@@ -1204,6 +1405,7 @@ def test_failed_v3_formal_archive_is_identity_bound_and_resumable(
         "validate_dispatch",
         lambda task_path, matrix_path: dispatch,
     )
+    monkeypatch.setattr(h0b, "REVIEW_SUPERSEDED_DISPATCH", dispatch)
     first = h0b.retire_failed_v3_formal(
         task_path=tmp_path / "task.md",
         matrix_path=tmp_path / "matrix.json",

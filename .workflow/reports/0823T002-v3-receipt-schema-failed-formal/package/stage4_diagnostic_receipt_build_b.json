@@ -1,0 +1,19 @@
+{
+  "build_label": "B",
+  "censored_count": 164395,
+  "diagnostic_permit_sha256": "88a434932f116321155ac3d8a6a8fa1f57f5115378f1f395179ce85c8cd7549a",
+  "diagnostic_plan_sha256": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63",
+  "diagnostic_review_sha256": "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d",
+  "eligible_count": 104127,
+  "joined_count": 268522,
+  "primary_classification_sha256": "96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878",
+  "primary_plan_sha256": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10",
+  "primary_results_sha256": "c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e",
+  "primary_seal_sha256": "be8b2d4556c232b96b2a28f327210c0ed0930b7bdc776b09e7e791ad0cdcc801",
+  "primary_seal_unchanged": true,
+  "schema_version": "skhynix_stage_h0b_stage4_diagnostic_v2",
+  "stage4_crosscheck_sha256": "5e277c73f2a67678962a793d466baead3f5d4e54ca0d838c5967b442aef500e2",
+  "stage4_path_count": 8,
+  "stage4_projected_field_count": 11,
+  "task_id": "0823T002"
+}

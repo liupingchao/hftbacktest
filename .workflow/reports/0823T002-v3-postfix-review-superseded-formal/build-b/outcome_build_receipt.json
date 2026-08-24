@@ -1,0 +1,35 @@
+{
+  "aug07_event_rows_opened": false,
+  "build_label": "B",
+  "classification": "h0b_coarse_cross_spread_predictability_not_indicated",
+  "diagnostics": {
+    "aug04": {
+      "rq1_primary_null_replicates": 2000,
+      "rq2": {
+        "flow_distinct_units": 1770,
+        "flow_finite_replicates": 2000,
+        "flow_largest_unit_row_share": 0.0005652112477038293,
+        "time_distinct_blocks": 59,
+        "time_finite_replicates": 2000
+      },
+      "rq3_regime_count": 1795
+    },
+    "jul30": {
+      "rq1_primary_null_replicates": 2000,
+      "rq2": {
+        "flow_distinct_units": 5160,
+        "flow_finite_replicates": 2000,
+        "flow_largest_unit_row_share": 0.0001938829916145606,
+        "time_distinct_blocks": 172,
+        "time_finite_replicates": 2000
+      },
+      "rq3_regime_count": 5975
+    }
+  },
+  "network_private_order_cancel_live_access": false,
+  "primary_classification_sha256": "96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878",
+  "primary_results_sha256": "c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e",
+  "schema_version": "skhynix_stage_h0b_outcome_build_v1",
+  "stage4_crosscheck_opened": false,
+  "task_id": "0823T002"
+}

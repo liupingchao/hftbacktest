@@ -122,6 +122,15 @@ FAILED_V3_FORMAL_ARCHIVE_STAGING = (
     REPO_ROOT
     / ".workflow/reports/.0823T002-v3-receipt-schema-failed-formal.staging"
 )
+REVIEW_SUPERSEDED_FORMAL_ARCHIVE = (
+    REPO_ROOT
+    / ".workflow/reports/0823T002-v3-postfix-review-superseded-formal"
+)
+REVIEW_SUPERSEDED_FORMAL_ARCHIVE_STAGING = (
+    REPO_ROOT
+    / ".workflow/reports/"
+    ".0823T002-v3-postfix-review-superseded-formal.staging"
+)
 SUPERSEDED_FORMAL_IDENTITIES = {
     "build_a_tree_sha256": (
         "980ce48e11fd278a8c73394816bb7c12a9387a049dbc2c788b3987da662456a2"
@@ -225,6 +234,113 @@ FAILED_V3_FORMAL_IDENTITIES = {
         "45f6edfe2465ea038e3954632ece3936d70438deccabda19fdd315f8945350db"
     ),
 }
+REVIEW_SUPERSEDED_DISPATCH = {
+    "schema_version": "skhynix_stage_h0b_dispatch_v3",
+    "artifact_count": 79,
+    "classification": "research_package",
+    "exit_criterion_count": 7,
+    "matrix_sha256": (
+        "fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011"
+    ),
+    "negative_mutation_count": 65,
+    "publication_remediation_plan_path": (
+        "docs/"
+        "skhynix_stage_h0b_publication_portability_remediation_plan_v3_"
+        "20260824.md"
+    ),
+    "publication_remediation_plan_sha256": (
+        "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+    ),
+    "publication_remediation_review_path": (
+        ".workflow/reports/0823T002-plan-v3-review.md"
+    ),
+    "publication_remediation_review_sha256": (
+        "40bb320126a2b0f119d697b5ee58b178e67c70632f463d25d4c4528f96395349"
+    ),
+    "runtime_source_tree_sha256": (
+        "b4a8bdc9b8dcb3281c952cb4f9c22f181c23c138a67164d71528391572bbfaec"
+    ),
+    "surface_count": 61,
+    "task_id": "0823T002",
+    "task_sha256": (
+        "be84662a91d5769ca0f74016acbb84647194b722a1f81c7fb3e166ef97078bab"
+    ),
+    "verified": True,
+}
+REVIEW_SUPERSEDED_FORMAL_IDENTITIES = {
+    "build_a_tree_sha256": (
+        "82d64e8d60af21ff1080926e66e65b3aa13557d16b3c0ab54eec32e5995f6fc1"
+    ),
+    "build_b_tree_sha256": (
+        "35483171f7e314cfece897ba7799d2f00ffb754b5bf5e41cfea0ad7548105160"
+    ),
+    "build_receipt_sha256": (
+        "bb30ff06183c25b218bffb313cff5c09427e96c44adf8a63dd69d440fbe06770"
+    ),
+    "package_tree_sha256": (
+        "11cf76849e8b6221aa55490efe3548ccb79b13b6f9603e733951849363333ae2"
+    ),
+    "package_manifest_sha256": (
+        "fe16e41238a38a8a358cfdfe7a95113ccacb61d427c984f0d12046cc4a3f0d42"
+    ),
+    "primary_seal_sha256": (
+        "94fcd06b1027c98b0e78c629d7fee5ac41586de7b9bf75ace1cbf5dbb83b4c97"
+    ),
+    "primary_results_sha256": (
+        "c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e"
+    ),
+    "primary_classification_sha256": (
+        "96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878"
+    ),
+    "stage4_crosscheck_sha256": (
+        "5e277c73f2a67678962a793d466baead3f5d4e54ca0d838c5967b442aef500e2"
+    ),
+    "research_data_identity": (
+        "cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4"
+    ),
+    "runtime_contract_identity": (
+        "b85241ef0df69ece80b81111afd68726e3f4f8a4d342b767b388f8254d42a3d7"
+    ),
+    "publication_envelope_identity": (
+        "b83192550e3469e47e3b660ce98294775c3f9d6719fdf137b62348f5ef8385a1"
+    ),
+    "composite_package_identity": (
+        "0730b62b3582e7523295bc7e16e6283dc56a8fa3d307ebfca56e53e3707a7325"
+    ),
+}
+REVIEW_SUPERSEDED_RETIREMENT_DISPATCH = {
+    "schema_version": "skhynix_stage_h0b_dispatch_v3",
+    "artifact_count": 79,
+    "classification": "research_package",
+    "exit_criterion_count": 7,
+    "matrix_sha256": (
+        "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df"
+    ),
+    "negative_mutation_count": 65,
+    "publication_remediation_plan_path": (
+        "docs/"
+        "skhynix_stage_h0b_publication_portability_remediation_plan_v3_"
+        "20260824.md"
+    ),
+    "publication_remediation_plan_sha256": (
+        "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
+    ),
+    "publication_remediation_review_path": (
+        ".workflow/reports/0823T002-plan-v3-review.md"
+    ),
+    "publication_remediation_review_sha256": (
+        "47c043ee763987fd0abe467b7fda0da98956d4117354d48bfcbbbed4a5ee7df5"
+    ),
+    "runtime_source_tree_sha256": (
+        "8c9931f3b1d73610e20dc6e10537c98cdb80b407ea787fd72ad51f236f700ee9"
+    ),
+    "surface_count": 61,
+    "task_id": "0823T002",
+    "task_sha256": (
+        "cf83da33aa032d00a52092a8a8f9efb873de06119a814c90f4c31ffb3889e0c3"
+    ),
+    "verified": True,
+}
 PRIMARY_PLAN_SHA256 = (
     "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
 )
@@ -238,7 +354,7 @@ DIAGNOSTIC_REVIEW_SHA256 = (
     "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d"
 )
 PUBLICATION_REMEDIATION_PLAN_SHA256 = (
-    "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
+    "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20"
 )
 PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
     "skhynix_stage_h0b_v3_independent_review_v1"
@@ -296,7 +412,7 @@ SOURCE_INVENTORY_CONTRACT_SHA256 = (
     "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011"
+    "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -3114,19 +3230,296 @@ def hostile_external_receipt_binding_mutation() -> None:
         )
 
 
+def portability_research_fixture_root() -> Path:
+    validate_superseded_formal_archive(
+        expected_dispatch=FAILED_V3_DISPATCH
+    )
+    root = SUPERSEDED_FORMAL_ARCHIVE / "package"
+    contracts.require(
+        root.is_dir() and not root.is_symlink(),
+        "H0B_BUILD_MISMATCH",
+        str(root),
+        "portable fixture requires the identity-bound Round 1 archive",
+    )
+    return root
+
+
+def portability_runtime_ledger(
+    *,
+    build_label: str,
+    permit_sha256: str,
+    inventory_rows: Sequence[Mapping[str, str]],
+    inventory_bytes: int,
+) -> dict[str, Any]:
+    return {
+        "schema_version": RUNTIME_LEDGER_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "build_label": build_label,
+        "events": [
+            {
+                "sequence": 1,
+                "process_role": "H0B0",
+                "phase": "preoutcome",
+                "relative_path": "preoutcome_source_inventory.csv",
+                "access_kind": "identity_and_header_validation",
+                "bytes_read": inventory_bytes,
+                "permit_sha256": "",
+                "admitted": True,
+            },
+            {
+                "sequence": 2,
+                "process_role": "H0B0",
+                "phase": "permit",
+                "relative_path": "outcome_access_permit.json",
+                "access_kind": "fsync_write",
+                "bytes_read": 0,
+                "permit_sha256": permit_sha256,
+                "admitted": True,
+            },
+            *expected_primary_outcome_events(
+                inventory_rows,
+                permit_sha256=permit_sha256,
+            ),
+        ],
+    }
+
+
+def write_portability_build_fixture(
+    root: Path,
+    *,
+    build_label: str,
+    runtime_pid: int,
+) -> None:
+    target = Path(root)
+    target.mkdir(parents=True, exist_ok=False)
+    source = portability_research_fixture_root()
+    for relative in contracts.R_FILES:
+        destination = target / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source / relative, destination)
+    write_json(
+        target / "accepted_input_bindings.json",
+        accepted_input_bindings_payload(),
+    )
+    write_json(
+        target / "preoutcome_contract.json",
+        preoutcome_contract_payload(),
+    )
+    inventory_path = target / "preoutcome_source_inventory.csv"
+    inventory_path.write_bytes(SEMANTIC_INVENTORY_PATH.read_bytes())
+    accepted_support = H0A_ROOT / "support_projection_commitments.csv"
+    observed_support = (
+        target / "support_replay/support_projection_commitments.csv"
+    )
+    observed_support.parent.mkdir()
+    observed_support.write_bytes(accepted_support.read_bytes())
+    with accepted_support.open(newline="", encoding="utf-8") as handle:
+        support_rows = sum(1 for _ in csv.DictReader(handle))
+    write_json(
+        target / "support_replay_receipt.json",
+        {
+            "schema_version": (
+                "skhynix_stage_h0b_support_replay_receipt_v1"
+            ),
+            "task_id": contracts.TASK_ID,
+            "build_label": build_label,
+            "accepted_h0a_commitments_sha256": contracts.sha256_file(
+                accepted_support
+            ),
+            "observed_h0a_commitments_sha256": contracts.sha256_file(
+                observed_support
+            ),
+            "exact_commitment_match": True,
+            "forbidden_outcome_access_count": 0,
+            "replay_row_count": support_rows,
+        },
+    )
+    runtime_sha256 = runtime_source_tree_sha256()
+    preoutcome_sha256 = contracts.sha256_file(
+        target / "preoutcome_contract.json"
+    )
+    envelope = {
+        "build_label": build_label,
+        "resolved_build_root": str(target.resolve()),
+        "runtime_pid": runtime_pid,
+        "runtime_source_tree_sha256": runtime_sha256,
+        "semantic_source_inventory_sha256": (
+            EXPECTED_SEMANTIC_INVENTORY_SHA256
+        ),
+        "preoutcome_contract_sha256": preoutcome_sha256,
+    }
+    permit = {
+        "schema_version": RUNTIME_PERMIT_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "build_label": build_label,
+        "status": "admitted",
+        "fsynced": True,
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
+        "surface_matrix_sha256": MATRIX_SHA256,
+        "runtime_source_tree_sha256": runtime_sha256,
+        "preoutcome_contract_sha256": preoutcome_sha256,
+        "source_inventory_contract_sha256": (
+            SOURCE_INVENTORY_CONTRACT_SHA256
+        ),
+        "semantic_source_inventory_sha256": (
+            EXPECTED_SEMANTIC_INVENTORY_SHA256
+        ),
+        "build_envelope": envelope,
+        "build_envelope_sha256": contracts.canonical_json_sha256(envelope),
+        "support_replay_receipt_sha256": contracts.sha256_file(
+            target / "support_replay_receipt.json"
+        ),
+        "accepted_input_bindings_sha256": contracts.sha256_file(
+            target / "accepted_input_bindings.json"
+        ),
+    }
+    permit_path = target / "outcome_access_permit.json"
+    write_json(permit_path, permit)
+    inventory_rows = read_csv_rows(inventory_path)
+    write_json(
+        target / "outcome_access_ledger.json",
+        portability_runtime_ledger(
+            build_label=build_label,
+            permit_sha256=contracts.sha256_file(permit_path),
+            inventory_rows=inventory_rows,
+            inventory_bytes=inventory_path.stat().st_size,
+        ),
+    )
+
+
+def finalize_portability_stage4_fixture(root: Path) -> None:
+    target = Path(root)
+    write_stage4_diagnostic_permit(target)
+    permit_path = target / "stage4_diagnostic_permit.json"
+    permit = read_json(permit_path)
+    permit_sha256 = contracts.sha256_file(permit_path)
+    ledger_path = target / "outcome_access_ledger.json"
+    ledger = read_json(ledger_path)
+    sequence = len(ledger["events"]) + 1
+    for relative in sorted(STAGE4_OUTCOMES):
+        source = STAGE4_ROOT / relative
+        ledger["events"].append(
+            {
+                "sequence": sequence,
+                "process_role": "H0B1_DIAGNOSTIC",
+                "phase": "post_primary_seal_stage4",
+                "relative_path": (
+                    STAGE4_ROOT.relative_to(REPO_ROOT) / relative
+                ).as_posix(),
+                "access_kind": "exact_11_field_projection",
+                "bytes_read": source.stat().st_size,
+                "permit_sha256": permit_sha256,
+                "admitted": True,
+            }
+        )
+        sequence += 1
+    write_json(ledger_path, ledger)
+    seal_path = target / "primary_result_seal.json"
+    seal = read_json(seal_path)
+    write_json(
+        target / "stage4_diagnostic_receipt.json",
+        {
+            "schema_version": "skhynix_stage_h0b_stage4_diagnostic_v2",
+            "task_id": contracts.TASK_ID,
+            "build_label": permit["build_label"],
+            "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+            "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+            "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
+            "diagnostic_permit_sha256": permit_sha256,
+            "stage4_crosscheck_sha256": contracts.sha256_file(
+                target / "diagnostics/stage4_landmark_crosscheck.csv"
+            ),
+            "primary_results_sha256": seal["primary_results_sha256"],
+            "primary_classification_sha256": seal[
+                "primary_classification_sha256"
+            ],
+            "primary_seal_sha256": contracts.sha256_file(seal_path),
+            "stage4_path_count": len(STAGE4_OUTCOMES),
+            "stage4_projected_field_count": len(STAGE4_PROJECTED_FIELDS),
+            "joined_count": 0,
+            "eligible_count": 0,
+            "censored_count": 0,
+            "primary_seal_unchanged": True,
+        },
+    )
+
+
+def assemble_portability_fixture_package(
+    root: Path,
+    *,
+    first_pid: int,
+) -> tuple[dict[str, Any], dict[str, Any], Path]:
+    fixture_root = Path(root)
+    build_a = fixture_root / "build-a"
+    build_b = fixture_root / "build-b"
+    package = fixture_root / "package"
+    write_portability_build_fixture(
+        build_a,
+        build_label="A",
+        runtime_pid=first_pid,
+    )
+    write_portability_build_fixture(
+        build_b,
+        build_label="B",
+        runtime_pid=first_pid + 1,
+    )
+    write_primary_seal(build_a=build_a, build_b=build_b)
+    finalize_portability_stage4_fixture(build_a)
+    finalize_portability_stage4_fixture(build_b)
+    result = assemble_package(
+        build_a=build_a,
+        build_b=build_b,
+        final_root=package,
+    )
+    admission = verify_package(package=package)
+    return result, admission, package
+
+
 def hostile_complete_package_portability_mutation() -> None:
     with tempfile.TemporaryDirectory(
         prefix="0823T002-complete-package-parity-"
     ) as raw:
-        left = Path(raw) / "left"
-        right = Path(raw) / "right"
-        left.mkdir()
-        right.mkdir()
-        for relative in contracts.EXACT_PACKAGE_FILES:
-            for root in (left, right):
-                path = root / relative
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes((relative + "\n").encode("ascii"))
+        root = Path(raw)
+        left_result, left_admission, left = (
+            assemble_portability_fixture_package(
+                root / "left-roots",
+                first_pid=101,
+            )
+        )
+        right_result, right_admission, right = (
+            assemble_portability_fixture_package(
+                root / "right-roots",
+                first_pid=201,
+            )
+        )
+        identity_fields = (
+            "research_data_identity",
+            "runtime_contract_identity",
+            "publication_envelope_identity",
+            "composite_package_identity",
+        )
+        contracts.require(
+            all(
+                left_result[field] == right_result[field]
+                for field in identity_fields
+            )
+            and left_admission["verified"] is True
+            and right_admission["verified"] is True
+            and all(
+                left_admission[field] == right_admission[field]
+                for field in identity_fields
+            ),
+            "H0B_BUILD_MISMATCH",
+            "$.complete_package_portability",
+            "admission-valid fixture packages differ before mutation",
+        )
+        compare_build_files(
+            left,
+            right,
+            contracts.EXACT_PACKAGE_FILES,
+        )
         (right / "outcome_access_permit_build_a.json").write_bytes(
             b"fresh-root drift\n"
         )
@@ -3635,6 +4028,27 @@ def negative_case(
     )
 
 
+def frozen_hostile_authority_paths() -> tuple[Path, ...]:
+    return (
+        H0A_ROOT / "h0a_manifest.json",
+        H0A_ROOT / "primary_tuple_freeze.json",
+        H0A_ROOT / "support_projection_commitments.csv",
+        LATENCY_ROOT / "measurement_manifest.json",
+        TUPLE_ROOT / "supersession_manifest.json",
+        TUPLE_ROOT / "superseding_primary_tuple.json",
+        TASK_PATH,
+        PRIMARY_PLAN_PATH,
+        DIAGNOSTIC_PLAN_PATH,
+        FRAMEWORK_PATH,
+        PRIMARY_PLAN_REVIEW_PATH,
+        DIAGNOSTIC_PLAN_REVIEW_PATH,
+        PUBLICATION_REMEDIATION_PLAN_PATH,
+        PUBLICATION_REMEDIATION_REVIEW_PATH,
+        SEMANTIC_INVENTORY_PATH,
+        SOURCE_INVENTORY_CONTRACT_PATH,
+    )
+
+
 def hostile_preflight(
     *,
     task_path: Path,
@@ -3665,14 +4079,23 @@ def hostile_preflight(
         ):
             shutil.copy2(source, frozen / source.name)
         for source in (
-            H0A_ROOT / "h0a_manifest.json",
-            LATENCY_ROOT / "measurement_manifest.json",
-            TUPLE_ROOT / "supersession_manifest.json",
-            TUPLE_ROOT / "superseding_primary_tuple.json",
+            *frozen_hostile_authority_paths(),
         ):
             destination = frozen_repo / source.relative_to(REPO_ROOT)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
+        shutil.copytree(
+            SUPERSEDED_FORMAL_ARCHIVE,
+            frozen_repo / SUPERSEDED_FORMAL_ARCHIVE.relative_to(REPO_ROOT),
+        )
+        for relative in STAGE4_OUTCOMES:
+            placeholder = (
+                frozen_repo
+                / STAGE4_ROOT.relative_to(REPO_ROOT)
+                / relative
+            )
+            placeholder.parent.mkdir(parents=True, exist_ok=True)
+            placeholder.write_bytes(b"fixture\n")
         for surface in matrix["surfaces"]:
             surface_id = surface["surface_id"]
             for mutation in surface["negative_mutations"]:
@@ -8558,6 +8981,278 @@ def validate_failed_v3_formal_archive(
     return receipt
 
 
+def review_superseded_formal_archive_entries() -> tuple[dict[str, Any], ...]:
+    return (
+        {
+            "entry_id": "build_a",
+            "source_path": FORMAL_BUILD_A,
+            "archive_relative_path": "build-a",
+            "entry_type": "directory",
+            "sha256": REVIEW_SUPERSEDED_FORMAL_IDENTITIES[
+                "build_a_tree_sha256"
+            ],
+        },
+        {
+            "entry_id": "build_b",
+            "source_path": FORMAL_BUILD_B,
+            "archive_relative_path": "build-b",
+            "entry_type": "directory",
+            "sha256": REVIEW_SUPERSEDED_FORMAL_IDENTITIES[
+                "build_b_tree_sha256"
+            ],
+        },
+        {
+            "entry_id": "build_receipt",
+            "source_path": FORMAL_BUILD_RECEIPT,
+            "archive_relative_path": "build-receipt.json",
+            "entry_type": "regular_file",
+            "sha256": REVIEW_SUPERSEDED_FORMAL_IDENTITIES[
+                "build_receipt_sha256"
+            ],
+        },
+        {
+            "entry_id": "package",
+            "source_path": DEFAULT_PACKAGE,
+            "archive_relative_path": "package",
+            "entry_type": "directory",
+            "sha256": REVIEW_SUPERSEDED_FORMAL_IDENTITIES[
+                "package_tree_sha256"
+            ],
+        },
+    )
+
+
+def validate_review_superseded_formal_identity(
+    *,
+    build_a: Path,
+    build_b: Path,
+    build_receipt: Path,
+    package: Path,
+) -> None:
+    contracts.validate_exact_package_tree(package)
+    observed = {
+        "build_a_tree_sha256": regular_tree_inventory_sha256(build_a),
+        "build_b_tree_sha256": regular_tree_inventory_sha256(build_b),
+        "build_receipt_sha256": contracts.sha256_file(build_receipt),
+        "package_tree_sha256": regular_tree_inventory_sha256(package),
+        "package_manifest_sha256": contracts.sha256_file(
+            Path(package) / contracts.MANIFEST_FILE
+        ),
+        "primary_seal_sha256": contracts.sha256_file(
+            Path(build_a) / "primary_result_seal.json"
+        ),
+        "primary_results_sha256": primary_results_identity(build_a),
+        "primary_classification_sha256": contracts.sha256_file(
+            Path(build_a) / "primary_classification.json"
+        ),
+        "stage4_crosscheck_sha256": contracts.sha256_file(
+            Path(build_a) / "diagnostics/stage4_landmark_crosscheck.csv"
+        ),
+    }
+    manifest = read_json(Path(package) / contracts.MANIFEST_FILE)
+    for key in (
+        "research_data_identity",
+        "runtime_contract_identity",
+        "publication_envelope_identity",
+        "composite_package_identity",
+    ):
+        observed[key] = manifest[key]
+    for key, value in observed.items():
+        contracts.require(
+            value == REVIEW_SUPERSEDED_FORMAL_IDENTITIES[key],
+            "H0B_BUILD_MISMATCH",
+            f"$.review_superseded_formal.{key}",
+            (
+                f"expected={REVIEW_SUPERSEDED_FORMAL_IDENTITIES[key]} "
+                f"observed={value}"
+            ),
+        )
+    contracts.require(
+        contracts.sha256_file(
+            Path(build_b) / "primary_result_seal.json"
+        )
+        == REVIEW_SUPERSEDED_FORMAL_IDENTITIES["primary_seal_sha256"]
+        and primary_results_identity(build_b)
+        == REVIEW_SUPERSEDED_FORMAL_IDENTITIES["primary_results_sha256"]
+        and contracts.sha256_file(
+            Path(build_b) / "primary_classification.json"
+        )
+        == REVIEW_SUPERSEDED_FORMAL_IDENTITIES[
+            "primary_classification_sha256"
+        ]
+        and contracts.sha256_file(
+            Path(build_b) / "diagnostics/stage4_landmark_crosscheck.csv"
+        )
+        == REVIEW_SUPERSEDED_FORMAL_IDENTITIES[
+            "stage4_crosscheck_sha256"
+        ],
+        "H0B_BUILD_MISMATCH",
+        "$.review_superseded_formal.build_b",
+        "review-superseded Build B scientific identities differ",
+    )
+    bindings = read_json(Path(build_a) / "accepted_input_bindings.json")
+    contracts.require(
+        bindings.get("task_sha256")
+        == REVIEW_SUPERSEDED_DISPATCH["task_sha256"]
+        and bindings.get("publication_remediation_plan_sha256")
+        == REVIEW_SUPERSEDED_DISPATCH[
+            "publication_remediation_plan_sha256"
+        ]
+        and bindings.get("publication_remediation_review_sha256")
+        == REVIEW_SUPERSEDED_DISPATCH[
+            "publication_remediation_review_sha256"
+        ]
+        and bindings.get("surface_matrix_sha256")
+        == REVIEW_SUPERSEDED_DISPATCH["matrix_sha256"],
+        "H0B_BUILD_MISMATCH",
+        "$.review_superseded_formal.accepted_input_bindings",
+        "review-superseded dispatch identity mismatch",
+    )
+
+
+def review_superseded_formal_archive_receipt(
+    retirement_dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": (
+            "skhynix_stage_h0b_review_superseded_archive_v1"
+        ),
+        "task_id": contracts.TASK_ID,
+        "status": "post_fix_independent_review_not_accepted",
+        "review_severity": "P0/P1/P2/P3=0/1/1/0",
+        "archive_method": "resumable_os_replace_no_delete",
+        "archive_root": REVIEW_SUPERSEDED_FORMAL_ARCHIVE.relative_to(
+            REPO_ROOT
+        ).as_posix(),
+        "superseded_dispatch": dict(REVIEW_SUPERSEDED_DISPATCH),
+        "retirement_dispatch": dict(retirement_dispatch),
+        "entries": [
+            {
+                "entry_id": entry["entry_id"],
+                "source_path": Path(entry["source_path"]).relative_to(
+                    REPO_ROOT
+                ).as_posix(),
+                "archive_relative_path": entry[
+                    "archive_relative_path"
+                ],
+                "entry_type": entry["entry_type"],
+                "sha256": entry["sha256"],
+            }
+            for entry in review_superseded_formal_archive_entries()
+        ],
+        "superseded_identities": dict(
+            REVIEW_SUPERSEDED_FORMAL_IDENTITIES
+        ),
+        "formal_build_receipt_written": True,
+        "package_admission_verified": True,
+        "canonical_paths_released": True,
+    }
+
+
+def validate_review_superseded_formal_archive(
+    *,
+    expected_retirement_dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    root = REVIEW_SUPERSEDED_FORMAL_ARCHIVE
+    receipt_path = root / "archive_receipt.json"
+    receipt = read_json(receipt_path)
+    contracts.require(
+        receipt
+        == review_superseded_formal_archive_receipt(
+            expected_retirement_dispatch
+        ),
+        "H0B_BUILD_MISMATCH",
+        str(receipt_path),
+        "review-superseded archive or retirement dispatch mismatch",
+    )
+    validate_review_superseded_formal_identity(
+        build_a=root / "build-a",
+        build_b=root / "build-b",
+        build_receipt=root / "build-receipt.json",
+        package=root / "package",
+    )
+    return receipt
+
+
+def retire_review_superseded_formal(
+    *,
+    task_path: Path,
+    matrix_path: Path,
+) -> dict[str, Any]:
+    dispatch = validate_dispatch(task_path, matrix_path)
+    validate_superseded_formal_archive(
+        expected_dispatch=FAILED_V3_DISPATCH
+    )
+    validate_failed_v3_formal_archive(
+        expected_retirement_dispatch=REVIEW_SUPERSEDED_DISPATCH
+    )
+    if REVIEW_SUPERSEDED_FORMAL_ARCHIVE.exists():
+        return validate_review_superseded_formal_archive(
+            expected_retirement_dispatch=(
+                REVIEW_SUPERSEDED_RETIREMENT_DISPATCH
+            )
+        )
+    contracts.require(
+        dispatch == REVIEW_SUPERSEDED_RETIREMENT_DISPATCH,
+        "H0B_BUILD_MISMATCH",
+        "$.review_superseded_formal.retirement_dispatch",
+        "archive creation requires the exact frozen retirement dispatch",
+    )
+    staging = REVIEW_SUPERSEDED_FORMAL_ARCHIVE_STAGING
+    contracts.require(
+        not staging.is_symlink()
+        and (not staging.exists() or staging.is_dir()),
+        "H0B_BUILD_MISMATCH",
+        str(staging),
+        "review-superseded staging path must be absent or a real directory",
+    )
+    staging.mkdir(parents=True, exist_ok=True)
+    for entry in review_superseded_formal_archive_entries():
+        source = Path(entry["source_path"])
+        destination = staging / entry["archive_relative_path"]
+        contracts.require(
+            not (source.exists() and destination.exists())
+            and (source.exists() or destination.exists()),
+            "H0B_BUILD_MISMATCH",
+            str(source),
+            "review-superseded entry must exist at one lifecycle location",
+        )
+        current = source if source.exists() else destination
+        contracts.require(
+            archived_entry_sha256(current, entry["entry_type"])
+            == entry["sha256"],
+            "H0B_BUILD_MISMATCH",
+            str(current),
+            "review-superseded archive entry identity mismatch",
+        )
+        if source.exists():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(source, destination)
+            contracts.fsync_directory(destination.parent)
+    validate_review_superseded_formal_identity(
+        build_a=staging / "build-a",
+        build_b=staging / "build-b",
+        build_receipt=staging / "build-receipt.json",
+        package=staging / "package",
+    )
+    receipt = review_superseded_formal_archive_receipt(dispatch)
+    write_json(staging / "archive_receipt.json", receipt, fsync=True)
+    for path in sorted(staging.rglob("*"), reverse=True):
+        if path.is_file():
+            contracts.fsync_file(path)
+    for path in sorted(
+        [item for item in staging.rglob("*") if item.is_dir()],
+        reverse=True,
+    ):
+        contracts.fsync_directory(path)
+    contracts.fsync_directory(staging)
+    os.replace(staging, REVIEW_SUPERSEDED_FORMAL_ARCHIVE)
+    contracts.fsync_directory(REVIEW_SUPERSEDED_FORMAL_ARCHIVE.parent)
+    return validate_review_superseded_formal_archive(
+        expected_retirement_dispatch=dispatch
+    )
+
+
 def retire_failed_v3_formal(
     *,
     task_path: Path,
@@ -8569,7 +9264,7 @@ def retire_failed_v3_formal(
     )
     if FAILED_V3_FORMAL_ARCHIVE.exists():
         return validate_failed_v3_formal_archive(
-            expected_retirement_dispatch=dispatch
+            expected_retirement_dispatch=REVIEW_SUPERSEDED_DISPATCH
         )
     contracts.require(
         not FORMAL_BUILD_RECEIPT.exists(),
@@ -9751,7 +10446,7 @@ def build_formal(
         str(hostile_path),
         "hostile preflight receipt is required",
     )
-    gate0 = validate_h0b_gate0(
+    validate_h0b_gate0(
         task_path=task_path,
         matrix_path=matrix_path,
         negative_evidence_path=hostile_path,
@@ -9769,7 +10464,10 @@ def build_formal(
         expected_dispatch=FAILED_V3_DISPATCH
     )
     validate_failed_v3_formal_archive(
-        expected_retirement_dispatch=gate0["dispatch"]
+        expected_retirement_dispatch=REVIEW_SUPERSEDED_DISPATCH
+    )
+    validate_review_superseded_formal_archive(
+        expected_retirement_dispatch=REVIEW_SUPERSEDED_RETIREMENT_DISPATCH
     )
     contracts.require(
         not Path(output).exists()
@@ -9967,6 +10665,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     retire_failed.add_argument("--task", type=Path, required=True)
     retire_failed.add_argument("--matrix", type=Path, required=True)
 
+    retire_review = subparsers.add_parser("retire-review-superseded")
+    retire_review.add_argument("--task", type=Path, required=True)
+    retire_review.add_argument("--matrix", type=Path, required=True)
+
     negative = subparsers.add_parser("negative-case")
     negative.add_argument("--surface", required=True)
     negative.add_argument("--mutation-id", required=True)
@@ -10027,6 +10729,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         elif args.command == "retire-failed-v3":
             result = retire_failed_v3_formal(
+                task_path=args.task,
+                matrix_path=args.matrix,
+            )
+        elif args.command == "retire-review-superseded":
+            result = retire_review_superseded_formal(
                 task_path=args.task,
                 matrix_path=args.matrix,
             )

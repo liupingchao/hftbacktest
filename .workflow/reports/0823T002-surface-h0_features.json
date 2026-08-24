@@ -1,11 +1,15 @@
 {
   "current_and_frozen_rejected": true,
-  "current_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
-  "expected_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
-  "frozen_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
-  "mutation_id": "mutate_h0_features",
+  "mutations": [
+    {
+      "current_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+      "expected_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+      "frozen_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+      "mutation_id": "mutate_h0_features"
+    }
+  ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v1",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
   "stage4_bytes_opened": false,
   "surface_id": "h0_features",
   "task_id": "0823T002"

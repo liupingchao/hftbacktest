@@ -1,0 +1,26 @@
+{
+  "accepted_input_bindings_sha256": "8157d4326a3361b05f6daedd0a9108a9f00574f92744ca1a8e5f0854b21581a8",
+  "build_envelope": {
+    "build_label": "A",
+    "preoutcome_contract_sha256": "8f1346ce9eab15e9bf78abd9531c3a6048ea3ae2d094f11ec7255cea28f786ee",
+    "resolved_build_root": "/Users/liu/Documents/hftbacktest-0814t001-skhynix-episode-research/.workflow/reports/0823T002-build-a",
+    "runtime_pid": 16227,
+    "runtime_source_tree_sha256": "b4a8bdc9b8dcb3281c952cb4f9c22f181c23c138a67164d71528391572bbfaec",
+    "semantic_source_inventory_sha256": "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9"
+  },
+  "build_envelope_sha256": "af52af4d80b9113fb4ec9e33604cf3a6a2a4847bbabdb8f95c744fa3c5b352d7",
+  "build_label": "A",
+  "diagnostic_plan_sha256": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63",
+  "diagnostic_review_sha256": "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d",
+  "fsynced": true,
+  "preoutcome_contract_sha256": "8f1346ce9eab15e9bf78abd9531c3a6048ea3ae2d094f11ec7255cea28f786ee",
+  "primary_plan_sha256": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10",
+  "runtime_source_tree_sha256": "b4a8bdc9b8dcb3281c952cb4f9c22f181c23c138a67164d71528391572bbfaec",
+  "schema_version": "skhynix_stage_h0b_outcome_access_permit_v2",
+  "semantic_source_inventory_sha256": "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9",
+  "source_inventory_contract_sha256": "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686",
+  "status": "admitted",
+  "support_replay_receipt_sha256": "d1a27608f3117219645ddfd4b9ce66b77e8cc20d155461d625a38c40eb0418c8",
+  "surface_matrix_sha256": "fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011",
+  "task_id": "0823T002"
+}

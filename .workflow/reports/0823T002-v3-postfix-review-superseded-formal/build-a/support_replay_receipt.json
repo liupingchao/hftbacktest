@@ -1,0 +1,10 @@
+{
+  "accepted_h0a_commitments_sha256": "a266184403a830fc422764e90c6dd48a5c1900af13333246ca7e220d664728df",
+  "build_label": "A",
+  "exact_commitment_match": true,
+  "forbidden_outcome_access_count": 0,
+  "observed_h0a_commitments_sha256": "a266184403a830fc422764e90c6dd48a5c1900af13333246ca7e220d664728df",
+  "replay_row_count": 114,
+  "schema_version": "skhynix_stage_h0b_support_replay_receipt_v1",
+  "task_id": "0823T002"
+}

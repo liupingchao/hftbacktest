@@ -1,26 +1,27 @@
 {
-  "accepted_input_bindings_sha256": "80a7775baa13a6f854f6cf1ee889689ca758c2fbd92a7688e635c1a7a5611aea",
-  "build_envelope": {
-    "build_label": "B",
-    "preoutcome_contract_sha256": "bef9f000a70c155e28ee12bebed1d64f26cfc56903004c40ccc58773963abc36",
-    "resolved_build_root": "/Users/liu/Documents/hftbacktest-0814t001-skhynix-episode-research/.workflow/reports/0823T002-build-b",
-    "runtime_pid": 22912,
-    "runtime_source_tree_sha256": "0208b29eedbd40d10f3c8580a24f85731e0ed5075164470cdb11ed2a69184249",
-    "semantic_source_inventory_sha256": "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9"
-  },
-  "build_envelope_sha256": "a3907dc00c823d3b21408a38271987d3bd0d5b6574735b1e1eb5c95449a661a4",
+  "accepted_input_bindings_sha256": "638cfac4ccdb9a5fba77a5e8539fbba940fd994e937c23f20f2e934813237ef1",
   "build_label": "B",
   "diagnostic_plan_sha256": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63",
   "diagnostic_review_sha256": "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d",
   "fsynced": true,
-  "preoutcome_contract_sha256": "bef9f000a70c155e28ee12bebed1d64f26cfc56903004c40ccc58773963abc36",
+  "preoutcome_contract_sha256": "e11fe397f258ba6ab4752fef414ebb0f71ee041d0aa4bf0fe20bc23ddd363a4a",
   "primary_plan_sha256": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10",
-  "runtime_source_tree_sha256": "0208b29eedbd40d10f3c8580a24f85731e0ed5075164470cdb11ed2a69184249",
-  "schema_version": "skhynix_stage_h0b_outcome_access_permit_v2",
+  "projection_contract_sha256": "ac066e807db1b5af9075c227d73cbfb585c4953d0d0c096724f22ee2ba0c9650",
+  "publication_build_envelope": {
+    "build_label": "B",
+    "build_root_role": "build_b",
+    "preoutcome_contract_sha256": "e11fe397f258ba6ab4752fef414ebb0f71ee041d0aa4bf0fe20bc23ddd363a4a",
+    "process_role": "H0B0",
+    "runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
+    "semantic_source_inventory_sha256": "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9"
+  },
+  "publication_build_envelope_sha256": "464aa9cfd0957f92e36cce4cbce9d620661e32b279ab0b724b22d09a7421922b",
+  "runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
+  "schema_version": "skhynix_stage_h0b_outcome_access_permit_publication_v1",
   "semantic_source_inventory_sha256": "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9",
   "source_inventory_contract_sha256": "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686",
-  "status": "admitted",
+  "status": "verified_runtime_projection",
   "support_replay_receipt_sha256": "6771948de4566f900ca11296977f0b8f6b632414a0c60675cd3525a7de5611f3",
-  "surface_matrix_sha256": "478cb177fe5834bfd359d4d4e56004c3fa95c69cf2b4da0a67446ceeec22745b",
+  "surface_matrix_sha256": "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df",
   "task_id": "0823T002"
 }

@@ -1,0 +1,320 @@
+# 任务派发
+
+执行线程：
+- 业务线程-python/research
+
+任务ID：
+- 0823T002
+
+标题：
+- SKHYNIX-STAGE-H0B-CONDITIONAL-RISK-AUDIT
+
+简短描述：
+- 严格按 independently reviewed H0-B plan 执行 conditional-risk audit。
+- `6600ms` 是唯一 primary；`850ms` 仅 diagnostic、不得 rescue；
+  `100ms` 仅 historical optimistic sensitivity。
+
+状态：
+- 执行中
+
+执行顺序：
+- 当前唯一任务
+
+前置任务：
+- `0821T001`、`0822T002`、`0823T001` 已通过并由 controller 接受。
+- H0-B V1/V2 independent review 最终 `P0/P1/P2/P3=0/0/0/0`。
+- publication remediation V3 仍为 `PENDING_INDEPENDENT_REVIEW`，在独立
+  review 通过并冻结 review SHA 前不得执行。
+
+规则更新提醒：
+- 请先阅读最新 `AGENTS.md`、workflow-kit、reviewed execution plan、
+  accepted H0-A/latency/tuple closures 和 canonical Surface Matrix。
+
+按线程规则执行：
+- `AGENTS.md`
+- `.workflow/workflow-kit/workflow-manual.md`
+- `.workflow/workflow-kit/thread-report-template.md`
+- `.workflow/workflow-kit/qa-acceptance-template.md`
+- `.workflow/workflow-kit/research-package-task-template.md`
+- `docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md`
+- `docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md`
+- `docs/skhynix_continuous_hazard_maker_research_framework_v2.md`
+- `.workflow/contracts/0823T002-source-inventory-contract.json`
+- `.workflow/contracts/0823T002-semantic-source-inventory.csv`
+- `.workflow/contracts/0823T002-surface-matrix.json`
+
+task_type：
+- research_package
+
+produces_research_package：
+- true
+
+kernel pin：
+- mode=accepted
+- kernel_name=research_package_trust_kernel
+- kernel_version=v1
+- registry_path=baselines/research_package_trust_kernel/accepted_versions.json
+- registry_entry_sha256=cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9
+- kernel_source_tree_sha256=cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203
+- kernel_api_contract_sha256=2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f
+- kernel_negative_matrix_sha256=f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97
+- kernel_qa_report_sha256=8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8
+- kernel_acceptance_task_id=0820T001
+
+review pins：
+- primary_plan_path=docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md
+- primary_plan_sha256=c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10
+- primary_review_path=.workflow/reports/0823T002-plan-review.md
+- primary_review_sha256=c81112cc215d9b847e1691b9fce6be391cd2604736337ffa7fe35ab89cb22158
+- diagnostic_plan_path=docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md
+- diagnostic_plan_sha256=12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63
+- diagnostic_review_path=.workflow/reports/0823T002-plan-v2-review.md
+- diagnostic_review_sha256=dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d
+- publication_remediation_plan_path=docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md
+- publication_remediation_plan_sha256=ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320
+- publication_remediation_review_path=.workflow/reports/0823T002-plan-v3-review.md
+- publication_remediation_review_sha256=40bb320126a2b0f119d697b5ee58b178e67c70632f463d25d4c4528f96395349
+- final_severity=P0/P1/P2/P3=0/0/0/0
+- master_framework_path=docs/skhynix_continuous_hazard_maker_research_framework_v2.md
+- master_framework_sha256=20c711fc056004d36ddf671766d04a1bbc2df58116234b4be285a859b55ceeec
+- surface_matrix_sha256=fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011
+
+dispatch source pins：
+- expected_semantic_source_inventory_sha256=0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9
+- expected_runtime_source_tree_sha256=b4a8bdc9b8dcb3281c952cb4f9c22f181c23c138a67164d71528391572bbfaec
+- source_inventory_contract_sha256=c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686
+- semantic source inventory contains no absolute roots, build labels, inode or
+  filesystem timestamps.
+- Stage 4 diagnostic bytes are not opened or rehashed by controller/H0B0;
+  accepted path/bytes/SHA pins come only from accepted H0-A bindings.
+
+accepted H0-A pins：
+- task_id=0821T001
+- primary_tuple_sha256=e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca
+- R=7176c78c2b6bfadf11432e9f5a1c1eaf9627c8028a4a22257d67d5a5404dc8fd
+- C=4e8ccc7466f84d9eb2f71f681557424b59ca58249d67426325ecdbd661189636
+- E=8745458fcf4e0ab31f8ad3b2bc2d1d93704f18b13a776c515f14195b51213969
+- composite=2682c32eefac427eed1899a3d492b3fc7545520f72021723e8fef7a0d4d8d9d0
+- qa_report_sha256=337cb9990adc84376e2083fa4076ba40f9f56c8709d687fd1487502f6992dcac
+- controller_closure_sha256=9cc1b1d24d29cd2b55a8c1774a9d9e6e59338242c95c3af861460a0b8b07aded
+
+accepted latency pins：
+- task_id=0822T002
+- source_commit=0c0c5b1c232fce18b3ea5e9efa53a78da3ee503f
+- nearest_rank_p95_cancel_effective_latency_us=6561052
+- recommended_gate_latency_ms=6600
+- R=e8b118bfcf9cbad4c0d95d070084aa9a268f62c13140728c80e373966388eb55
+- C=20a5837162d63763ee42e3fc8ed7bef824316e102eb9325a15f83fe901b37ea9
+- E=103dbe0d2e02392b5e45d61bb106bbdf7d4235b982cea44f895c72aea98ff958
+- composite=7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df
+- qa_report_sha256=f8f8f534013ebeb0fcb7d5b6c87efa6e655e23065d0ae516ae3399436471fe86
+- controller_closure_sha256=96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7
+
+accepted tuple pins：
+- task_id=0823T001
+- tuple_sha256=e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c
+- R=08ada07165297f72dc05eec402bcfb70d748c6386986ec555b8c1b609e406079
+- C=a5f40d41226066291afcfc31d473cbadf8ed1edb322be6843b0f7aca45ea66b5
+- E=32ed6e541183683e2279860d9deef30ab7b0d230acff3ef84dd8e8f865632dc6
+- composite=5ec515e00ab2765a281084a64fbe0e1962727059e42734be33b7362258a22f76
+- qa_report_sha256=764ca3f3f7c7fe7e9a6884a25d9c9cbb1ebf31387892ca8c2c6fd954f0e0b9ae
+- controller_closure_sha256=00fd9916e15d8e4079925e37990b7e30f9a51373a6f0829908eca3b99b49ac30
+
+latency roles：
+- `6600ms=measurement_selected_primary`
+- `850ms=terminal_observability_normal_path_diagnostic_only`
+- `100ms=historical_optimistic_sensitivity`
+- `25/50/250/500ms=legacy_sensitivity`
+- no diagnostic or sensitivity result may rescue or replace `6600ms`.
+
+session roles：
+- `jul30=formal`
+- `aug04=formal`
+- `aug03=diagnostic_only;formal_eligible=false;evidence_label=historical_transfer`
+
+是否需要提交代码：
+- 需要
+
+提交要求：
+- Gate 0、focused tests、H0B0、hostile preflight、Build A/B、primary seal、
+  post-seal diagnostic、package admission 和 business handoff 完成后提交。
+- 回报必须带 commit id、提交信息、primary classification、
+  R/C/E/composite 和 QA entrypoint。
+
+是否进行QA验收：
+- 是
+
+QA参与：
+- 是
+
+QA验收方式：
+- 正常验收
+
+QA验收线程动作：
+- fresh work root 独立重建 support、permits、Build A/B、primary seal、
+  Stage 4 chronology、R/C/E/composite 和 exact package tree。
+
+files：
+- `.workflow/tasks/0823T002.md`
+- `.workflow/contracts/0823T002-*.json`
+- `.workflow/contracts/0823T002-semantic-source-inventory.csv`
+- `.workflow/reports/0823T002-*`
+- `docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md`
+- `docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md`
+- `docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md`
+- `examples/hyperliquid/skhynix_stage_h0b.py`
+- `examples/hyperliquid/skhynix_stage_h0b_contracts.py`
+- `examples/hyperliquid/test_skhynix_stage_h0b.py`
+- `examples/hyperliquid/test_skhynix_stage_h0b_package.py`
+- `local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/`
+- `task_plan.md`
+- `progress.md`
+- `findings.md`
+
+formal package root：
+- `local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002`
+
+hard boundary：
+- H0B0 may hash and inspect admitted headers/support fields but may not compare
+  target prices across time or evaluate any adverse-event predicate.
+- H0B1 must be a fresh process and may start only from its own exact fsynced
+  admitted permit.
+- Stage 4 may open only after `primary_result_seal.json` is fsynced.
+- Aug07 event rows, R1 decision labels, network/private/order/cancel/live
+  sources and staleness-audit outputs are forbidden.
+- The accepted generic Trust Kernel negative-evidence validator is necessary
+  but not sufficient for H0-B. Only the H0-B `gate0` composition may admit a
+  hostile receipt; it must bind the exact reviewed dispatch, matrix SHA,
+  current/frozen runtime tree, complete ordered 65-mutation contracts and
+  `fail_open_count=0`.
+
+QA Round 1 remediation：
+- The rejected Round 1 Build A/B roots, build receipt and canonical package
+  are moved without deletion into the exact identity-bound
+  `.workflow/reports/0823T002-qa-round1-rejected-formal/` archive before the
+  canonical paths are reused. Ad hoc `rm`/`rm -rf` and unreviewed V3 output
+  paths are forbidden.
+- Runtime Build A/B roots retain the exact admitted permits and ledgers with
+  their real absolute build roots and runtime PIDs.
+- The package files named `outcome_access_permit_build_{a,b}.json` and
+  `outcome_access_ledger_build_{a,b}.json` are deterministic publication
+  projections with distinct non-executable publication schemas. Absolute
+  roots and runtime PIDs are excluded; the exact projection contract,
+  build-role envelope and inventory-derived primary event oracle are bound.
+- Package admission reconstructs and binds the actual packaged runtime-source
+  tree. The external build receipt binds each original runtime permit/ledger
+  to its publication permit/ledger and projection contract.
+- Fresh-root QA must reproduce all `42/42` package bytes and exact
+  R/C/E/composite. Primary result files, classification and the Stage 4
+  aggregate crosscheck must remain byte-identical to QA Round 1. The primary
+  seal and Stage 4 permit/receipt wrappers must rebind the reviewed
+  matrix/runtime identities and are therefore expected to change.
+- The first V3 formal attempt on 2026-08-24 failed closed at
+  `$.build_receipt.stage4_permit_build_a`: package admission passed, but no
+  formal receipt was written because a CLI summary was not the complete
+  durable Stage 4 permit. Its exact Build A/B/package trees must be moved
+  without deletion into
+  `.workflow/reports/0823T002-v3-receipt-schema-failed-formal/` before retry.
+
+action：
+1. Validate exact task/matrix/kernel/review/upstream/source and runtime pins.
+2. Validate the identity-bound no-delete Round 1 archive and run the separate
+   identity-bound no-delete retirement of the failed V3 Build A/B/package.
+3. Validate the H0-B composed Gate 0 task/matrix/kernel/review/upstream,
+   source-inventory, hostile-receipt and runtime-source pins.
+4. Implement exact guarded openers, formulas, feature matrices, folds,
+   estimator, RQ1/RQ2/RQ3 tests, output schemas and classification precedence.
+5. Run H0B0 independently for Build A/B; replay accepted H0-A commitments and
+   fsync distinct current-build permits with identical semantic inventory.
+6. Execute all 65 current/frozen hostile mutations; require fail-open count 0.
+7. Spawn fresh H0B1 processes for Build A/B and require byte-identical primary
+   outputs and streaming commitments.
+8. Fsync primary seal before opening the eight accepted Jul30 Stage 4 files;
+   run aggregate diagnostic twice and prove primary bytes unchanged.
+9. Publish exact package atomically, run Trust Kernel admission and archive
+   parity, then write external business report ending at `待验收`.
+
+verify：
+- `python3 .workflow/workflow-kit/validate_research_package_task.py --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json`
+- `python3 -m pytest examples/hyperliquid/test_skhynix_stage_h0b.py examples/hyperliquid/test_skhynix_stage_h0b_package.py`
+- `python3 examples/hyperliquid/skhynix_stage_h0b.py retire-superseded --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json`
+- `python3 examples/hyperliquid/skhynix_stage_h0b.py retire-failed-v3 --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json`
+- `python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json --output .workflow/reports/0823T002-hostile-preflight.json`
+- `python3 examples/hyperliquid/skhynix_stage_h0b.py gate0 --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json --negative-evidence .workflow/reports/0823T002-hostile-preflight.json`
+- `python3 examples/hyperliquid/skhynix_stage_h0b.py build-formal --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json --output local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002 --build-a .workflow/reports/0823T002-build-a --build-b .workflow/reports/0823T002-build-b --receipt .workflow/reports/0823T002-build-receipt.json`
+- `python3 examples/hyperliquid/skhynix_stage_h0b.py verify --package local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002 --report .workflow/reports/0823T002-package-admission.json`
+- `ruff check examples/hyperliquid/skhynix_stage_h0b.py examples/hyperliquid/skhynix_stage_h0b_contracts.py examples/hyperliquid/test_skhynix_stage_h0b.py examples/hyperliquid/test_skhynix_stage_h0b_package.py`
+- `PYTHONPYCACHEPREFIX=/tmp/0823T002-pycache python3 -m compileall -q examples/hyperliquid/skhynix_stage_h0b.py examples/hyperliquid/skhynix_stage_h0b_contracts.py`
+- `git diff --check`
+
+done：
+- business report status is `待验收`; no controller acceptance or final signal
+  claim is made before independent QA.
+- Record exact Build A/B, primary seal, Stage 4 chronology, package identities
+  and zero Aug07/external-action facts.
+
+Surface Matrix：
+
+| Surface | Canonical negative mutations | Artifact count | Identity layer |
+| --- | --- | ---: | --- |
+| `kernel_pin` | `mutate_kernel_pin` -> `H0B_KERNEL_PIN_MISMATCH` | 1 | `C` |
+| `master_framework_pin` | `mutate_master_framework_pin` -> `H0B_MASTER_FRAMEWORK_MISMATCH` | 2 | `C` |
+| `accepted_h0a_binding` | `mutate_accepted_h0a_binding` -> `H0B_H0A_IDENTITY_MISMATCH` | 1 | `E` |
+| `accepted_latency_binding` | `mutate_accepted_latency_binding` -> `H0B_LATENCY_IDENTITY_MISMATCH` | 1 | `E` |
+| `accepted_tuple_binding` | `mutate_accepted_tuple_binding` -> `H0B_TUPLE_IDENTITY_MISMATCH` | 1 | `E` |
+| `accepted_stage1_4_binding` | `mutate_accepted_stage1_4_binding` -> `H0B_DEPENDENCY_IDENTITY_MISMATCH` | 2 | `C` |
+| `session_roles` | `mutate_session_roles` -> `H0B_SESSION_ROLE_MISMATCH` | 1 | `E` |
+| `underlying_state_boundary` | `mutate_underlying_state_boundary` -> `H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN` | 1 | `E` |
+| `semantic_source_inventory` | `mutate_semantic_source_inventory` -> `H0B_SEMANTIC_INVENTORY_MISMATCH` | 1 | `E` |
+| `build_envelope` | `mutate_build_envelope` -> `H0B_BUILD_ENVELOPE_MISMATCH` | 1 | `E` |
+| `source_schema` | `mutate_source_schema` -> `H0B_SOURCE_SCHEMA_MISMATCH` | 1 | `E` |
+| `source_ordering` | `mutate_source_ordering` -> `H0B_SOURCE_ORDERING_MISMATCH` | 1 | `E` |
+| `guarded_opener` | `mutate_guarded_opener` -> `H0B_OUTCOME_PERMIT_MISMATCH` | 2 | `E` |
+| `feature_source_boundary` | `mutate_feature_source_boundary` -> `H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH` | 1 | `E` |
+| `two_envelope_boundary` | `mutate_two_envelope_boundary` -> `H0B_OUTCOME_ACCESS_BEFORE_PERMIT` | 1 | `C` |
+| `outcome_access_permit` | `mutate_outcome_access_permit` -> `H0B_OUTCOME_PERMIT_MISMATCH`<br>`mutate_packaged_runtime_source` -> `H0B_OUTCOME_PERMIT_MISMATCH`<br>`mutate_runtime_source_external_oracle` -> `H0B_OUTCOME_PERMIT_MISMATCH` | 2 | `E` |
+| `support_replay` | `mutate_support_replay` -> `H0B_SUPPORT_COMMITMENT_MISMATCH` | 2 | `E` |
+| `calendar_grid` | `mutate_calendar_grid` -> `H0B_CALENDAR_GRID_MISMATCH` | 1 | `E` |
+| `side_expansion` | `mutate_side_expansion` -> `H0B_SIDE_PAIR_MISMATCH` | 1 | `E` |
+| `event_definition` | `mutate_event_definition` -> `H0B_EVENT_DEFINITION_MISMATCH` | 1 | `C` |
+| `support_class_mapping` | `mutate_support_class_mapping` -> `H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH` | 2 | `R` |
+| `observation_bounds` | `mutate_observation_bounds` -> `H0B_OBSERVATION_BOUND_MISMATCH` | 1 | `E` |
+| `interval_likelihood` | `mutate_interval_likelihood` -> `H0B_INTERVAL_LIKELIHOOD_MISMATCH` | 1 | `C` |
+| `right_censor_likelihood` | `mutate_right_censor_likelihood` -> `H0B_RIGHT_CENSOR_MISMATCH` | 1 | `E` |
+| `horizon_straddle` | `mutate_horizon_straddle` -> `H0B_HORIZON_STRADDLE_MISMATCH` | 1 | `E` |
+| `risk_score` | `mutate_risk_score` -> `H0B_RISK_SCORE_MISMATCH` | 2 | `R` |
+| `binary_subset` | `mutate_binary_subset` -> `H0B_BINARY_SUBSET_MISMATCH` | 1 | `E` |
+| `h0_features` | `mutate_h0_features` -> `H0B_H0_FEATURE_ALLOWLIST_MISMATCH` | 1 | `E` |
+| `h1_features` | `mutate_h1_features` -> `H0B_H1_FEATURE_ALLOWLIST_MISMATCH` | 1 | `E` |
+| `design_matrix` | `mutate_design_matrix` -> `H0B_DESIGN_MATRIX_MISMATCH` | 1 | `E` |
+| `basis_residual` | `mutate_basis_residual` -> `H0B_BASIS_RESIDUAL_MISMATCH` | 1 | `E` |
+| `missing_value_policy` | `mutate_missing_value_policy` -> `H0B_MISSING_VALUE_POLICY_MISMATCH` | 1 | `R` |
+| `dose_definition` | `mutate_dose_definition` -> `H0B_DOSE_RECONSTRUCTION_MISMATCH` | 1 | `E` |
+| `walk_forward` | `mutate_walk_forward` -> `H0B_WALK_FORWARD_MISMATCH` | 1 | `R` |
+| `estimator` | `mutate_estimator` -> `H0B_ESTIMATOR_CONTRACT_MISMATCH` | 1 | `C` |
+| `numeric_seed_conventions` | `mutate_numeric_seed_conventions` -> `H0B_NUMERIC_CONVENTION_MISMATCH` | 1 | `E` |
+| `rq1_statistic` | `mutate_rq1_statistic` -> `H0B_RQ1_STATISTIC_MISMATCH` | 1 | `R` |
+| `rq1_stationary_null` | `mutate_rq1_stationary_null` -> `H0B_RQ1_NULL_MISMATCH` | 1 | `R` |
+| `rq2_score` | `mutate_rq2_score` -> `H0B_RQ2_SCORE_MISMATCH` | 1 | `R` |
+| `rq2_concentration` | `mutate_rq2_concentration` -> `H0B_RQ2_CONCENTRATION_MISMATCH` | 1 | `R` |
+| `time_bootstrap` | `mutate_time_bootstrap` -> `H0B_TIME_BOOTSTRAP_MISMATCH` | 1 | `E` |
+| `flow_component_assignment` | `mutate_flow_component_assignment` -> `H0B_FLOW_COMPONENT_MISMATCH` | 1 | `E` |
+| `flow_bootstrap` | `mutate_flow_bootstrap` -> `H0B_FLOW_BOOTSTRAP_MISMATCH` | 1 | `E` |
+| `rq3_threshold_source` | `mutate_rq3_threshold_source` -> `H0B_RQ3_THRESHOLD_MISMATCH` | 1 | `E` |
+| `rq3_regime` | `mutate_rq3_regime` -> `H0B_RQ3_REGIME_MISMATCH` | 2 | `R` |
+| `rq3_km_ties` | `mutate_rq3_km_ties` -> `H0B_RQ3_KM_MISMATCH` | 1 | `E` |
+| `rq3_cluster_bootstrap` | `mutate_rq3_cluster_bootstrap` -> `H0B_RQ3_BOOTSTRAP_MISMATCH` | 1 | `E` |
+| `rq3_side_aggregation` | `mutate_rq3_side_aggregation` -> `H0B_RQ3_SIDE_AGGREGATION_MISMATCH` | 1 | `R` |
+| `latency_roles` | `mutate_latency_roles` -> `H0B_PRIMARY_LATENCY_MISMATCH` | 1 | `R` |
+| `classification_precedence` | `mutate_classification_precedence` -> `H0B_CLASSIFICATION_MISMATCH` | 1 | `R` |
+| `primary_result_seal` | `mutate_primary_result_seal` -> `H0B_PRIMARY_SEAL_MISMATCH` | 1 | `E` |
+| `stage4_projection` | `mutate_stage4_projection` -> `H0B_STAGE4_PROJECTION_MISMATCH` | 4 | `E` |
+| `stage4_crosscheck` | `mutate_stage4_crosscheck` -> `H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL` | 1 | `R` |
+| `aug07_nonaccess` | `mutate_aug07_nonaccess` -> `H0B_AUG07_ACCESS_FORBIDDEN` | 1 | `E` |
+| `deterministic_build` | `mutate_deterministic_build` -> `H0B_BUILD_MISMATCH`<br>`mutate_complete_package_portability` -> `H0B_BUILD_MISMATCH` | 1 | `R` |
+| `output_schema` | `mutate_output_schema` -> `H0B_OUTPUT_SCHEMA_MISMATCH`<br>`mutate_external_receipt_binding` -> `H0B_OUTPUT_SCHEMA_MISMATCH` | 2 | `C` |
+| `package_tree` | `mutate_package_tree` -> `H0B_PACKAGE_TREE_MISMATCH` | 5 | `E` |
+| `layered_identity` | `mutate_layered_identity` -> `H0B_IDENTITY_BINDING_MISMATCH` | 1 | `E` |
+| `manifest_self_exclusion` | `mutate_manifest_self_exclusion` -> `H0B_MANIFEST_SELF_REFERENCE_MISMATCH` | 1 | `E` |
+| `atomic_publication` | `mutate_atomic_publication` -> `PUBLICATION_FINAL_EXISTS` | 3 | `E` |
+| `zero_external_action` | `mutate_zero_external_action` -> `H0B_EXTERNAL_ACTION_FORBIDDEN` | 1 | `E` |

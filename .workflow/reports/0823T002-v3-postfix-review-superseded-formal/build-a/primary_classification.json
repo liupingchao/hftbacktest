@@ -1,0 +1,38 @@
+{
+  "claim_limit": "screening_audit_not_final_signal_or_strategy",
+  "classification": "h0b_coarse_cross_spread_predictability_not_indicated",
+  "formal_session_facts": {
+    "aug04": {
+      "data_quality": true,
+      "rq1": true,
+      "rq2": false,
+      "rq3": false
+    },
+    "jul30": {
+      "data_quality": true,
+      "rq1": true,
+      "rq2": false,
+      "rq3": false
+    }
+  },
+  "gate_reasons": [
+    "both_formal_sessions_fail_rq2"
+  ],
+  "latency_roles": {
+    "6600": {
+      "primary": true,
+      "role": "measurement_selected_primary"
+    },
+    "850": {
+      "can_rescue_primary": false,
+      "role": "terminal_observability_normal_path_diagnostic_only"
+    }
+  },
+  "precedence_path": [
+    "data_quality",
+    "rq1",
+    "rq2"
+  ],
+  "schema_version": "skhynix_stage_h0b_primary_classification_v1",
+  "task_id": "0823T002"
+}

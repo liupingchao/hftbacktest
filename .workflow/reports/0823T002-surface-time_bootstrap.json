@@ -1,11 +1,15 @@
 {
   "current_and_frozen_rejected": true,
-  "current_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
-  "expected_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
-  "frozen_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
-  "mutation_id": "mutate_time_bootstrap",
+  "mutations": [
+    {
+      "current_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+      "expected_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+      "frozen_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+      "mutation_id": "mutate_time_bootstrap"
+    }
+  ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v1",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
   "stage4_bytes_opened": false,
   "surface_id": "time_bootstrap",
   "task_id": "0823T002"

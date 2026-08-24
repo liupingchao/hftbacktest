@@ -1,0 +1,4646 @@
+{
+  "exit_criteria": [
+    {
+      "applicability": "required",
+      "criterion_id": "EC1",
+      "planned_evidence": "Reviewed plan, task, matrix and accepted pins validate before outcome access."
+    },
+    {
+      "applicability": "required",
+      "criterion_id": "EC2",
+      "planned_evidence": "H0B0 support replay and distinct fsynced Build A/B permits match exact commitments."
+    },
+    {
+      "applicability": "required",
+      "criterion_id": "EC3",
+      "planned_evidence": "All 61 current and frozen negative mutations reject with exact stable codes."
+    },
+    {
+      "applicability": "required",
+      "criterion_id": "EC4",
+      "planned_evidence": "Permitted H0B1 Build A/B primary research bytes and commitments are identical."
+    },
+    {
+      "applicability": "required",
+      "criterion_id": "EC5",
+      "planned_evidence": "Primary result is sealed before Stage 4 diagnostic access and remains unchanged."
+    },
+    {
+      "applicability": "required",
+      "criterion_id": "EC6",
+      "planned_evidence": "Exact package tree and Trust Kernel R/C/E/composite admission pass with zero external action."
+    },
+    {
+      "applicability": "required",
+      "criterion_id": "EC7",
+      "planned_evidence": "Business report ends at \u5f85\u9a8c\u6536 and independent QA/controller closure record exact identities."
+    }
+  ],
+  "kernel_pin": {
+    "kernel_acceptance_task_id": "0820T001",
+    "kernel_api_contract_sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f",
+    "kernel_name": "research_package_trust_kernel",
+    "kernel_negative_matrix_sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97",
+    "kernel_qa_report_sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+    "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+    "kernel_version": "v1",
+    "mode": "accepted",
+    "registry_entry_sha256": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9",
+    "registry_path": "baselines/research_package_trust_kernel/accepted_versions.json"
+  },
+  "produces_research_package": true,
+  "schema_version": "research_package_surface_matrix_v1",
+  "surfaces": [
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/contracts/accepted_kernel_pin.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "registry_entry_sha256",
+            "value": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9"
+          },
+          "locator": "baselines/research_package_trust_kernel/accepted_versions.json",
+          "source_id": "accepted_kernel_v1",
+          "source_type": "kernel_contract"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [],
+      "description": "Formal H0-B contract for kernel_pin.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=kernel_pin",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "accepted Trust Kernel v1 exact"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "alter registry/kernel pin",
+          "expected_error_code": "H0B_KERNEL_PIN_MISMATCH",
+          "mutation_id": "mutate_kernel_pin",
+          "operation": "other_explicit",
+          "target": "kernel_pin"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "kernel_pin_contract_match",
+          "kernel_pin_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "kernel_pin"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/contracts/execution_plan.md",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/contracts/v2_framework.md",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "kernel_pin"
+      ],
+      "description": "Formal H0-B contract for master_framework_pin.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=master_framework_pin",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact accepted v2 framework"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "alter framework SHA",
+          "expected_error_code": "H0B_MASTER_FRAMEWORK_MISMATCH",
+          "mutation_id": "mutate_master_framework_pin",
+          "operation": "other_explicit",
+          "target": "master_framework_pin"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "master_framework_pin_contract_match",
+          "master_framework_pin_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "master_framework_pin"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/accepted_input_bindings.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "package_identity",
+            "value": "2682c32eefac427eed1899a3d492b3fc7545520f72021723e8fef7a0d4d8d9d0"
+          },
+          "locator": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/h0a_manifest.json",
+          "source_id": "accepted_h0a",
+          "source_type": "accepted_package"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "master_framework_pin"
+      ],
+      "description": "Formal H0-B contract for accepted_h0a_binding.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=accepted_h0a_binding",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact H0-A tuple/package/QA/closure"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "alter one identity",
+          "expected_error_code": "H0B_H0A_IDENTITY_MISMATCH",
+          "mutation_id": "mutate_accepted_h0a_binding",
+          "operation": "other_explicit",
+          "target": "accepted_h0a_binding"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "accepted_h0a_binding_contract_match",
+          "accepted_h0a_binding_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "accepted_h0a_binding"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-accepted_latency_binding.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "package_identity",
+            "value": "7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df"
+          },
+          "locator": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/measurement_manifest.json",
+          "source_id": "accepted_latency",
+          "source_type": "accepted_package"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "accepted_h0a_binding"
+      ],
+      "description": "Formal H0-B contract for accepted_latency_binding.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=accepted_latency_binding",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact 0822T002 package/QA/closure"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "alter one identity",
+          "expected_error_code": "H0B_LATENCY_IDENTITY_MISMATCH",
+          "mutation_id": "mutate_accepted_latency_binding",
+          "operation": "other_explicit",
+          "target": "accepted_latency_binding"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "accepted_latency_binding_contract_match",
+          "accepted_latency_binding_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "accepted_latency_binding"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-accepted_tuple_binding.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "package_identity",
+            "value": "5ec515e00ab2765a281084a64fbe0e1962727059e42734be33b7362258a22f76"
+          },
+          "locator": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+          "source_id": "accepted_tuple",
+          "source_type": "accepted_package"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "accepted_latency_binding"
+      ],
+      "description": "Formal H0-B contract for accepted_tuple_binding.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=accepted_tuple_binding",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact 0823T001 tuple/package/QA/closure"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "alter one identity",
+          "expected_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+          "mutation_id": "mutate_accepted_tuple_binding",
+          "operation": "other_explicit",
+          "target": "accepted_tuple_binding"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "accepted_tuple_binding_contract_match",
+          "accepted_tuple_binding_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "accepted_tuple_binding"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/contracts/task.md",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/contracts/surface_matrix.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "accepted_tuple_binding"
+      ],
+      "description": "Formal H0-B contract for accepted_stage1_4_binding.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=accepted_stage1_4_binding",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact inherited dependency set"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "substitute package",
+          "expected_error_code": "H0B_DEPENDENCY_IDENTITY_MISMATCH",
+          "mutation_id": "mutate_accepted_stage1_4_binding",
+          "operation": "other_explicit",
+          "target": "accepted_stage1_4_binding"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "accepted_stage1_4_binding_contract_match",
+          "accepted_stage1_4_binding_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "accepted_stage1_4_binding"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-session_roles.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "accepted_stage1_4_binding"
+      ],
+      "description": "Formal H0-B contract for session_roles.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=session_roles",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "Jul30/Aug04 formal; Aug03 diagnostic"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "promote Aug03",
+          "expected_error_code": "H0B_SESSION_ROLE_MISMATCH",
+          "mutation_id": "mutate_session_roles",
+          "operation": "other_explicit",
+          "target": "session_roles"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "session_roles_contract_match",
+          "session_roles_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "session_roles"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-underlying_state_boundary.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "session_roles"
+      ],
+      "description": "Formal H0-B contract for underlying_state_boundary.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=underlying_state_boundary",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "unknown; no calendar inference"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "inject KRX state",
+          "expected_error_code": "H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN",
+          "mutation_id": "mutate_underlying_state_boundary",
+          "operation": "other_explicit",
+          "target": "underlying_state_boundary"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "underlying_state_boundary_contract_match",
+          "underlying_state_boundary_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "underlying_state_boundary"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/preoutcome_source_inventory.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "underlying_state_boundary"
+      ],
+      "description": "Formal H0-B contract for semantic_source_inventory.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=semantic_source_inventory",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "dispatch-pinned cross-build semantic inventory; expected_sha256=0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9; contract_sha256=c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "add/remove source",
+          "expected_error_code": "H0B_SEMANTIC_INVENTORY_MISMATCH",
+          "mutation_id": "mutate_semantic_source_inventory",
+          "operation": "other_explicit",
+          "target": "semantic_source_inventory"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "semantic_source_inventory_contract_match",
+          "semantic_source_inventory_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "semantic_source_inventory"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-build_envelope.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "semantic_source_inventory"
+      ],
+      "description": "Formal H0-B contract for build_envelope.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=build_envelope",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact root/process/runtime envelope"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "copy A envelope to B",
+          "expected_error_code": "H0B_BUILD_ENVELOPE_MISMATCH",
+          "mutation_id": "mutate_build_envelope",
+          "operation": "other_explicit",
+          "target": "build_envelope"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "build_envelope_contract_match",
+          "build_envelope_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "build_envelope"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-source_schema.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "build_envelope"
+      ],
+      "description": "Formal H0-B contract for source_schema.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=source_schema",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact R0 and Stage 4 header identities"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "alter one header",
+          "expected_error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+          "mutation_id": "mutate_source_schema",
+          "operation": "other_explicit",
+          "target": "source_schema"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "source_schema_contract_match",
+          "source_schema_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "source_schema"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-source_ordering.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "source_schema"
+      ],
+      "description": "Formal H0-B contract for source_ordering.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=source_ordering",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "(local_ts_ns,event_seq) exact"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "swap same-ts sequence",
+          "expected_error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+          "mutation_id": "mutate_source_ordering",
+          "operation": "other_explicit",
+          "target": "source_ordering"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "source_ordering_contract_match",
+          "source_ordering_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "source_ordering"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/outcome_access_ledger_build_a.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/outcome_access_ledger_build_b.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "source_ordering"
+      ],
+      "description": "Formal H0-B contract for guarded_opener.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=guarded_opener",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "reject before forbidden read"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "open forbidden path",
+          "expected_error_code": "H0B_FORBIDDEN_PATH_ACCESS",
+          "mutation_id": "mutate_guarded_opener",
+          "operation": "other_explicit",
+          "target": "guarded_opener"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "guarded_opener_contract_match",
+          "guarded_opener_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "guarded_opener"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-feature_source_boundary.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "guarded_opener"
+      ],
+      "description": "Formal H0-B contract for feature_source_boundary.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=feature_source_boundary",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "R0 BBO/bookTicker only"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "open R1 future labels",
+          "expected_error_code": "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+          "mutation_id": "mutate_feature_source_boundary",
+          "operation": "other_explicit",
+          "target": "feature_source_boundary"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "feature_source_boundary_contract_match",
+          "feature_source_boundary_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "feature_source_boundary"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/preoutcome_contract.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "feature_source_boundary"
+      ],
+      "description": "Formal H0-B contract for two_envelope_boundary.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=two_envelope_boundary",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "H0B0 then fresh H0B1"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "reuse process",
+          "expected_error_code": "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+          "mutation_id": "mutate_two_envelope_boundary",
+          "operation": "other_explicit",
+          "target": "two_envelope_boundary"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "two_envelope_boundary_contract_match",
+          "two_envelope_boundary_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "two_envelope_boundary"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/outcome_access_permit_build_a.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/outcome_access_permit_build_b.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "two_envelope_boundary"
+      ],
+      "description": "Formal H0-B contract for outcome_access_permit.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=outcome_access_permit",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact fsynced semantic+build binding"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "stale/copy permit",
+          "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+          "mutation_id": "mutate_outcome_access_permit",
+          "operation": "other_explicit",
+          "target": "outcome_access_permit"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "outcome_access_permit_contract_match",
+          "outcome_access_permit_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "outcome_access_permit"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/support_replay_receipt_build_a.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/support_replay_receipt_build_b.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "outcome_access_permit"
+      ],
+      "description": "Formal H0-B contract for support_replay.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=support_replay",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact H0-A commitments"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "alter one commitment",
+          "expected_error_code": "H0B_SUPPORT_COMMITMENT_MISMATCH",
+          "mutation_id": "mutate_support_replay",
+          "operation": "other_explicit",
+          "target": "support_replay"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "support_replay_contract_match",
+          "support_replay_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "support_replay"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-calendar_grid.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "support_replay"
+      ],
+      "description": "Formal H0-B contract for calendar_grid.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=calendar_grid",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact 10ms absolute grid"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "drift origin by 1ns",
+          "expected_error_code": "H0B_CALENDAR_GRID_MISMATCH",
+          "mutation_id": "mutate_calendar_grid",
+          "operation": "other_explicit",
+          "target": "calendar_grid"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "calendar_grid_contract_match",
+          "calendar_grid_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "calendar_grid"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-side_expansion.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "calendar_grid"
+      ],
+      "description": "Formal H0-B contract for side_expansion.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=side_expansion",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exactly paired bid/ask rows"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "drop one side",
+          "expected_error_code": "H0B_SIDE_PAIR_MISMATCH",
+          "mutation_id": "mutate_side_expansion",
+          "operation": "other_explicit",
+          "target": "side_expansion"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "side_expansion_contract_match",
+          "side_expansion_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "side_expansion"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/runtime_source/skhynix_stage_h0b.py",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "side_expansion"
+      ],
+      "description": "Formal H0-B contract for event_definition.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=event_definition",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "opposing BBO crosses vulnerable quote"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "use midpoint/retreat",
+          "expected_error_code": "H0B_EVENT_DEFINITION_MISMATCH",
+          "mutation_id": "mutate_event_definition",
+          "operation": "other_explicit",
+          "target": "event_definition"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "event_definition_contract_match",
+          "event_definition_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "event_definition"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/censoring_disposition.csv",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/exclusion_counts.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "event_definition"
+      ],
+      "description": "Formal H0-B contract for support_class_mapping.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=support_class_mapping",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact nine-class disposition"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "coerce interval-only",
+          "expected_error_code": "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+          "mutation_id": "mutate_support_class_mapping",
+          "operation": "other_explicit",
+          "target": "support_class_mapping"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "support_class_mapping_contract_match",
+          "support_class_mapping_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "support_class_mapping"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-observation_bounds.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "support_class_mapping"
+      ],
+      "description": "Formal H0-B contract for observation_bounds.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=observation_bounds",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "endpoint/search-limit and source-order-aware (L,U]"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "truncate interval-only search",
+          "expected_error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+          "mutation_id": "mutate_observation_bounds",
+          "operation": "other_explicit",
+          "target": "observation_bounds"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "observation_bounds_contract_match",
+          "observation_bounds_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "observation_bounds"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/runtime_source/skhynix_stage_h0b_contracts.py",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "observation_bounds"
+      ],
+      "description": "Formal H0-B contract for interval_likelihood.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=interval_likelihood",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact piecewise-constant S(L)-S(U)"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "round bounds to bins",
+          "expected_error_code": "H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+          "mutation_id": "mutate_interval_likelihood",
+          "operation": "other_explicit",
+          "target": "interval_likelihood"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "interval_likelihood_contract_match",
+          "interval_likelihood_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "interval_likelihood"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-right_censor_likelihood.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "interval_likelihood"
+      ],
+      "description": "Formal H0-B contract for right_censor_likelihood.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=right_censor_likelihood",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact S_5"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "encode no-event as zero-time",
+          "expected_error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+          "mutation_id": "mutate_right_censor_likelihood",
+          "operation": "other_explicit",
+          "target": "right_censor_likelihood"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "right_censor_likelihood_contract_match",
+          "right_censor_likelihood_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "right_censor_likelihood"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-horizon_straddle.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "right_censor_likelihood"
+      ],
+      "description": "Formal H0-B contract for horizon_straddle.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=horizon_straddle",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact S_exact(L)"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "drop straddle row",
+          "expected_error_code": "H0B_HORIZON_STRADDLE_MISMATCH",
+          "mutation_id": "mutate_horizon_straddle",
+          "operation": "other_explicit",
+          "target": "horizon_straddle"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "horizon_straddle_contract_match",
+          "horizon_straddle_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "horizon_straddle"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq2_reliability.csv",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq2_risk_deciles.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "horizon_straddle"
+      ],
+      "description": "Formal H0-B contract for risk_score.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=risk_score",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact F_5=1-S_5"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "use one-bin hazard",
+          "expected_error_code": "H0B_RISK_SCORE_MISMATCH",
+          "mutation_id": "mutate_risk_score",
+          "operation": "other_explicit",
+          "target": "risk_score"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "risk_score_contract_match",
+          "risk_score_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "risk_score"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-binary_subset.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "risk_score"
+      ],
+      "description": "Formal H0-B contract for binary_subset.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=binary_subset",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "binary class only"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "include interval-only",
+          "expected_error_code": "H0B_BINARY_SUBSET_MISMATCH",
+          "mutation_id": "mutate_binary_subset",
+          "operation": "other_explicit",
+          "target": "binary_subset"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "binary_subset_contract_match",
+          "binary_subset_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "binary_subset"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-h0_features.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "binary_subset"
+      ],
+      "description": "Formal H0-B contract for h0_features.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=h0_features",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact context allowlist"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "add future/calendar feature",
+          "expected_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+          "mutation_id": "mutate_h0_features",
+          "operation": "other_explicit",
+          "target": "h0_features"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "h0_features_contract_match",
+          "h0_features_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "h0_features"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-h1_features.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "h0_features"
+      ],
+      "description": "Formal H0-B contract for h1_features.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=h1_features",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact cross-spread allowlist"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "add outcome/post-t feature",
+          "expected_error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+          "mutation_id": "mutate_h1_features",
+          "operation": "other_explicit",
+          "target": "h1_features"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "h1_features_contract_match",
+          "h1_features_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "h1_features"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-design_matrix.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "h1_features"
+      ],
+      "description": "Formal H0-B contract for design_matrix.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=design_matrix",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact columns/order/coding/penalty mask"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "reorder/drop indicator",
+          "expected_error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+          "mutation_id": "mutate_design_matrix",
+          "operation": "other_explicit",
+          "target": "design_matrix"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "design_matrix_contract_match",
+          "design_matrix_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "design_matrix"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-basis_residual.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "design_matrix"
+      ],
+      "description": "Formal H0-B contract for basis_residual.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=basis_residual",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "prior-only 60s EWMA"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "full-session demean",
+          "expected_error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+          "mutation_id": "mutate_basis_residual",
+          "operation": "other_explicit",
+          "target": "basis_residual"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "basis_residual_contract_match",
+          "basis_residual_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "basis_residual"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq2_feature_availability.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "basis_residual"
+      ],
+      "description": "Formal H0-B contract for missing_value_policy.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=missing_value_policy",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "train-only median/IQR + indicator"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "use test median",
+          "expected_error_code": "H0B_MISSING_VALUE_POLICY_MISMATCH",
+          "mutation_id": "mutate_missing_value_policy",
+          "operation": "other_explicit",
+          "target": "missing_value_policy"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "missing_value_policy_contract_match",
+          "missing_value_policy_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "missing_value_policy"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-dose_definition.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "missing_value_policy"
+      ],
+      "description": "Formal H0-B contract for dose_definition.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=dose_definition",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact accepted Stage 3 trailing dose"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "use shock before confirm",
+          "expected_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+          "mutation_id": "mutate_dose_definition",
+          "operation": "other_explicit",
+          "target": "dose_definition"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "dose_definition_contract_match",
+          "dose_definition_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "dose_definition"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq2_oof_fold_scores.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "dose_definition"
+      ],
+      "description": "Formal H0-B contract for walk_forward.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=walk_forward",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact 60/20 blocks, purge/embargo"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "random split",
+          "expected_error_code": "H0B_WALK_FORWARD_MISMATCH",
+          "mutation_id": "mutate_walk_forward",
+          "operation": "other_explicit",
+          "target": "walk_forward"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "walk_forward_contract_match",
+          "walk_forward_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "walk_forward"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/runtime_tests/test_skhynix_stage_h0b.py",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "walk_forward"
+      ],
+      "description": "Formal H0-B contract for estimator.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=estimator",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact five-bin ridge logistic"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "tune lambda after outcome",
+          "expected_error_code": "H0B_ESTIMATOR_CONTRACT_MISMATCH",
+          "mutation_id": "mutate_estimator",
+          "operation": "other_explicit",
+          "target": "estimator"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "estimator_contract_match",
+          "estimator_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "estimator"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-numeric_seed_conventions.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "estimator"
+      ],
+      "description": "Formal H0-B contract for numeric_seed_conventions.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=numeric_seed_conventions",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "float64/nearest-rank/PCG64/derived seeds"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "change quantile/RNG",
+          "expected_error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+          "mutation_id": "mutate_numeric_seed_conventions",
+          "operation": "other_explicit",
+          "target": "numeric_seed_conventions"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "numeric_seed_conventions_contract_match",
+          "numeric_seed_conventions_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "numeric_seed_conventions"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq1_block_rates.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "numeric_seed_conventions"
+      ],
+      "description": "Formal H0-B contract for rq1_statistic.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq1_statistic",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact side/session variance"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "pool side rows",
+          "expected_error_code": "H0B_RQ1_STATISTIC_MISMATCH",
+          "mutation_id": "mutate_rq1_statistic",
+          "operation": "other_explicit",
+          "target": "rq1_statistic"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq1_statistic_contract_match",
+          "rq1_statistic_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq1_statistic"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq1_dispersion_tests.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq1_statistic"
+      ],
+      "description": "Formal H0-B contract for rq1_stationary_null.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq1_stationary_null",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "row-matched cadence strata and geometric runs"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "resample support/source-only stratum",
+          "expected_error_code": "H0B_RQ1_NULL_MISMATCH",
+          "mutation_id": "mutate_rq1_stationary_null",
+          "operation": "other_explicit",
+          "target": "rq1_stationary_null"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq1_stationary_null_contract_match",
+          "rq1_stationary_null_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq1_stationary_null"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq2_session_scores.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq1_stationary_null"
+      ],
+      "description": "Formal H0-B contract for rq2_score.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq2_score",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact equal-side H1/H0 interval loss"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "choose favorable metric",
+          "expected_error_code": "H0B_RQ2_SCORE_MISMATCH",
+          "mutation_id": "mutate_rq2_score",
+          "operation": "other_explicit",
+          "target": "rq2_score"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq2_score_contract_match",
+          "rq2_score_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq2_score"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq2_coarse_conditional_risk.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq2_score"
+      ],
+      "description": "Formal H0-B contract for rq2_concentration.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq2_concentration",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "positive-cell contribution and 50% cap"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "use net/absolute cell sum",
+          "expected_error_code": "H0B_RQ2_CONCENTRATION_MISMATCH",
+          "mutation_id": "mutate_rq2_concentration",
+          "operation": "other_explicit",
+          "target": "rq2_concentration"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq2_concentration_contract_match",
+          "rq2_concentration_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq2_concentration"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-time_bootstrap.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq2_concentration"
+      ],
+      "description": "Formal H0-B contract for time_bootstrap.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=time_bootstrap",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "60s Exp(1) cluster multipliers"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "row bootstrap",
+          "expected_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+          "mutation_id": "mutate_time_bootstrap",
+          "operation": "other_explicit",
+          "target": "time_bootstrap"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "time_bootstrap_contract_match",
+          "time_bootstrap_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "time_bootstrap"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-flow_component_assignment.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "time_bootstrap"
+      ],
+      "description": "Formal H0-B contract for flow_component_assignment.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=flow_component_assignment",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "Family A closed components/background"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "double-assign endpoint",
+          "expected_error_code": "H0B_FLOW_COMPONENT_MISMATCH",
+          "mutation_id": "mutate_flow_component_assignment",
+          "operation": "other_explicit",
+          "target": "flow_component_assignment"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "flow_component_assignment_contract_match",
+          "flow_component_assignment_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "flow_component_assignment"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-flow_bootstrap.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "flow_component_assignment"
+      ],
+      "description": "Formal H0-B contract for flow_bootstrap.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=flow_bootstrap",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact unit multipliers/validity rules"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "equal-unit estimand",
+          "expected_error_code": "H0B_FLOW_BOOTSTRAP_MISMATCH",
+          "mutation_id": "mutate_flow_bootstrap",
+          "operation": "other_explicit",
+          "target": "flow_bootstrap"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "flow_bootstrap_contract_match",
+          "flow_bootstrap_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "flow_bootstrap"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-rq3_threshold_source.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "flow_bootstrap"
+      ],
+      "description": "Formal H0-B contract for rq3_threshold_source.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq3_threshold_source",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "same-fold H1 training predictions per side"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "use OOF/pooled threshold",
+          "expected_error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+          "mutation_id": "mutate_rq3_threshold_source",
+          "operation": "other_explicit",
+          "target": "rq3_threshold_source"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq3_threshold_source_contract_match",
+          "rq3_threshold_source_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq3_threshold_source"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq3_regime_summary.csv",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/diagnostics/regime_intervals.csv.gz",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq3_threshold_source"
+      ],
+      "description": "Formal H0-B contract for rq3_regime.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq3_regime",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "q90/q70 and 3/5 debounce"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "post-hoc threshold/debounce",
+          "expected_error_code": "H0B_RQ3_REGIME_MISMATCH",
+          "mutation_id": "mutate_rq3_regime",
+          "operation": "other_explicit",
+          "target": "rq3_regime"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq3_regime_contract_match",
+          "rq3_regime_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq3_regime"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-rq3_km_ties.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq3_regime"
+      ],
+      "description": "Formal H0-B contract for rq3_km_ties.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq3_km_ties",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "events-before-censors and exact inversion"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "censor first/interpolate",
+          "expected_error_code": "H0B_RQ3_KM_MISMATCH",
+          "mutation_id": "mutate_rq3_km_ties",
+          "operation": "other_explicit",
+          "target": "rq3_km_ties"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq3_km_ties_contract_match",
+          "rq3_km_ties_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq3_km_ties"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-rq3_cluster_bootstrap.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq3_km_ties"
+      ],
+      "description": "Formal H0-B contract for rq3_cluster_bootstrap.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq3_cluster_bootstrap",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "detection-block Exp(1) KM bootstrap"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "Greenwood gate CI",
+          "expected_error_code": "H0B_RQ3_BOOTSTRAP_MISMATCH",
+          "mutation_id": "mutate_rq3_cluster_bootstrap",
+          "operation": "other_explicit",
+          "target": "rq3_cluster_bootstrap"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq3_cluster_bootstrap_contract_match",
+          "rq3_cluster_bootstrap_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq3_cluster_bootstrap"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/rq3_latency_actionability.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq3_cluster_bootstrap"
+      ],
+      "description": "Formal H0-B contract for rq3_side_aggregation.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=rq3_side_aggregation",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "equal-side p50/LB plus Bonferroni"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "pool regimes",
+          "expected_error_code": "H0B_RQ3_SIDE_AGGREGATION_MISMATCH",
+          "mutation_id": "mutate_rq3_side_aggregation",
+          "operation": "other_explicit",
+          "target": "rq3_side_aggregation"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "rq3_side_aggregation_contract_match",
+          "rq3_side_aggregation_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "rq3_side_aggregation"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/diagnostics/latency_scenario_roles.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "rq3_side_aggregation"
+      ],
+      "description": "Formal H0-B contract for latency_roles.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=latency_roles",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "6600 primary; 850 diagnostic only"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "promote/rescue with 850",
+          "expected_error_code": "H0B_PRIMARY_LATENCY_MISMATCH",
+          "mutation_id": "mutate_latency_roles",
+          "operation": "other_explicit",
+          "target": "latency_roles"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "latency_roles_contract_match",
+          "latency_roles_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "latency_roles"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/primary_classification.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "latency_roles"
+      ],
+      "description": "Formal H0-B contract for classification_precedence.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=classification_precedence",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact allowed exits and gate mapping"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "issue final signal claim",
+          "expected_error_code": "H0B_CLASSIFICATION_MISMATCH",
+          "mutation_id": "mutate_classification_precedence",
+          "operation": "other_explicit",
+          "target": "classification_precedence"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "classification_precedence_contract_match",
+          "classification_precedence_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "classification_precedence"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/primary_result_seal.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "classification_precedence"
+      ],
+      "description": "Formal H0-B contract for primary_result_seal.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=primary_result_seal",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact pre-diagnostic allowlist/hash/schema plus distinct V1/V2 identities"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "omit/mutate sealed path or collapse identities",
+          "expected_error_code": "H0B_PRIMARY_SEAL_MISMATCH",
+          "mutation_id": "mutate_primary_result_seal",
+          "operation": "other_explicit",
+          "target": "primary_result_seal"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "primary_result_seal_contract_match",
+          "primary_result_seal_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "primary_result_seal"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/stage4_diagnostic_permit_build_a.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/stage4_diagnostic_permit_build_b.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/stage4_diagnostic_receipt_build_a.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/stage4_diagnostic_receipt_build_b.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "primary_result_seal"
+      ],
+      "description": "Formal H0-B contract for stage4_projection.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=stage4_projection",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "eight exact paths/header/projected fields plus full censor mapping"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "read extra field or alter boundary disposition",
+          "expected_error_code": "H0B_STAGE4_PROJECTION_MISMATCH",
+          "mutation_id": "mutate_stage4_projection",
+          "operation": "other_explicit",
+          "target": "stage4_projection"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "stage4_projection_contract_match",
+          "stage4_projection_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "stage4_projection"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/diagnostics/stage4_landmark_crosscheck.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "stage4_projection"
+      ],
+      "description": "Formal H0-B contract for stage4_crosscheck.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=stage4_crosscheck",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "post-seal permits, aggregate conservation and unchanged primary"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "open before permit/seal or copy permit",
+          "expected_error_code": "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+          "mutation_id": "mutate_stage4_crosscheck",
+          "operation": "other_explicit",
+          "target": "stage4_crosscheck"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "stage4_crosscheck_contract_match",
+          "stage4_crosscheck_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "stage4_crosscheck"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-aug07_nonaccess.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "stage4_crosscheck"
+      ],
+      "description": "Formal H0-B contract for aug07_nonaccess.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=aug07_nonaccess",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "zero event-row access"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "open one Aug07 row",
+          "expected_error_code": "H0B_AUG07_ACCESS_FORBIDDEN",
+          "mutation_id": "mutate_aug07_nonaccess",
+          "operation": "other_explicit",
+          "target": "aug07_nonaccess"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "aug07_nonaccess_contract_match",
+          "aug07_nonaccess_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "aug07_nonaccess"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/support_outcome_projection_commitments.csv",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "aug07_nonaccess"
+      ],
+      "description": "Formal H0-B contract for deterministic_build.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=deterministic_build",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "Build A/B research bytes exact"
+      },
+      "identity_layer": "R",
+      "negative_mutations": [
+        {
+          "description": "mutate Build B",
+          "expected_error_code": "H0B_BUILD_MISMATCH",
+          "mutation_id": "mutate_deterministic_build",
+          "operation": "other_explicit",
+          "target": "deterministic_build"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "deterministic_build_contract_match",
+          "deterministic_build_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "deterministic_build"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/runtime_tests/test_skhynix_stage_h0b_package.py",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "deterministic_build"
+      ],
+      "description": "Formal H0-B contract for output_schema.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=output_schema",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact Section 26 byte contracts"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "add/reorder field or report line",
+          "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+          "mutation_id": "mutate_output_schema",
+          "operation": "other_explicit",
+          "target": "output_schema"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "output_schema_contract_match",
+          "output_schema_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "output_schema"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "directory",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/contracts",
+          "required": true
+        },
+        {
+          "entry_type": "directory",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/diagnostics",
+          "required": true
+        },
+        {
+          "entry_type": "directory",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/reports",
+          "required": true
+        },
+        {
+          "entry_type": "directory",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/runtime_source",
+          "required": true
+        },
+        {
+          "entry_type": "directory",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/runtime_tests",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "output_schema"
+      ],
+      "description": "Formal H0-B contract for package_tree.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=package_tree",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact path/type universe"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "add extra/symlink",
+          "expected_error_code": "H0B_PACKAGE_TREE_MISMATCH",
+          "mutation_id": "mutate_package_tree",
+          "operation": "other_explicit",
+          "target": "package_tree"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "package_tree_contract_match",
+          "package_tree_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "package_tree"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-layered_identity.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "package_tree"
+      ],
+      "description": "Formal H0-B contract for layered_identity.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=layered_identity",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "exact R/C/E bridges and reverse binding"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "mutate bridge/reuse old C/E",
+          "expected_error_code": "H0B_IDENTITY_BINDING_MISMATCH",
+          "mutation_id": "mutate_layered_identity",
+          "operation": "other_explicit",
+          "target": "layered_identity"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "layered_identity_contract_match",
+          "layered_identity_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "layered_identity"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/h0b_manifest.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "layered_identity"
+      ],
+      "description": "Formal H0-B contract for manifest_self_exclusion.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=manifest_self_exclusion",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "only manifest excluded from E inventory/count/bytes"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "include/exclude another file",
+          "expected_error_code": "H0B_MANIFEST_SELF_REFERENCE_MISMATCH",
+          "mutation_id": "mutate_manifest_self_exclusion",
+          "operation": "other_explicit",
+          "target": "manifest_self_exclusion"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "manifest_self_exclusion_contract_match",
+          "manifest_self_exclusion_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "manifest_self_exclusion"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-atomic_publication.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "manifest_self_exclusion"
+      ],
+      "description": "Formal H0-B contract for atomic_publication.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=atomic_publication",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "no overwrite; fsync then rename"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "precreate final",
+          "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+          "mutation_id": "mutate_atomic_publication",
+          "operation": "other_explicit",
+          "target": "atomic_publication"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "atomic_publication_contract_match",
+          "atomic_publication_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "atomic_publication"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/reports/h0b_conditional_risk_audit.md",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "atomic_publication"
+      ],
+      "description": "Formal H0-B contract for zero_external_action.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=zero_external_action",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "no network/private/order/cancel/live"
+      },
+      "identity_layer": "E",
+      "negative_mutations": [
+        {
+          "description": "attempt endpoint",
+          "expected_error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
+          "mutation_id": "mutate_zero_external_action",
+          "operation": "other_explicit",
+          "target": "zero_external_action"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "zero_external_action_contract_match",
+          "zero_external_action_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "zero_external_action"
+    }
+  ],
+  "task_id": "0823T002",
+  "task_type": "research_package"
+}

@@ -1,18 +1,25 @@
 {
-  "current_negative_mutation_count": 61,
+  "current_negative_mutation_count": 65,
   "dispatch": {
-    "artifact_count": 76,
+    "artifact_count": 79,
     "classification": "research_package",
     "exit_criterion_count": 7,
-    "matrix_sha256": "478cb177fe5834bfd359d4d4e56004c3fa95c69cf2b4da0a67446ceeec22745b",
-    "negative_mutation_count": 61,
+    "matrix_sha256": "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df",
+    "negative_mutation_count": 65,
+    "publication_remediation_plan_path": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+    "publication_remediation_plan_sha256": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20",
+    "publication_remediation_review_path": ".workflow/reports/0823T002-plan-v3-review.md",
+    "publication_remediation_review_sha256": "115f592c5cc0406cea8f1b83ce7753c3dad00151acd9b7dcfcbd9f41abe47459",
+    "runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
+    "schema_version": "skhynix_stage_h0b_dispatch_v3",
     "surface_count": 61,
     "task_id": "0823T002",
+    "task_sha256": "84333cf0b4915ef413b709f0a43db88fb9796d87b97ecfd24decea6ea32f1661",
     "verified": true
   },
   "fail_open_count": 0,
-  "frozen_negative_mutation_count": 61,
-  "frozen_runtime_source_tree_sha256": "0208b29eedbd40d10f3c8580a24f85731e0ed5075164470cdb11ed2a69184249",
+  "frozen_negative_mutation_count": 65,
+  "frozen_runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
   "frozen_surface_contract": [
     {
       "error_code": "H0B_KERNEL_PIN_MISMATCH",
@@ -75,8 +82,8 @@
       "mutation_id": "mutate_source_ordering"
     },
     {
-      "error_code": "H0B_FORBIDDEN_PATH_ACCESS",
-      "expected_error_code": "H0B_FORBIDDEN_PATH_ACCESS",
+      "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
       "mutation_id": "mutate_guarded_opener"
     },
     {
@@ -93,6 +100,16 @@
       "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
       "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
       "mutation_id": "mutate_outcome_access_permit"
+    },
+    {
+      "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "mutation_id": "mutate_packaged_runtime_source"
+    },
+    {
+      "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "mutation_id": "mutate_runtime_source_external_oracle"
     },
     {
       "error_code": "H0B_SUPPORT_COMMITMENT_MISMATCH",
@@ -290,9 +307,19 @@
       "mutation_id": "mutate_deterministic_build"
     },
     {
+      "error_code": "H0B_BUILD_MISMATCH",
+      "expected_error_code": "H0B_BUILD_MISMATCH",
+      "mutation_id": "mutate_complete_package_portability"
+    },
+    {
       "error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
       "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
       "mutation_id": "mutate_output_schema"
+    },
+    {
+      "error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "mutation_id": "mutate_external_receipt_binding"
     },
     {
       "error_code": "H0B_PACKAGE_TREE_MISMATCH",
@@ -322,7 +349,7 @@
   ],
   "network_private_order_cancel_live_access": false,
   "outcome_predicate_evaluated": false,
-  "runtime_source_tree_sha256": "0208b29eedbd40d10f3c8580a24f85731e0ed5075164470cdb11ed2a69184249",
+  "runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
   "schema_version": "skhynix_stage_h0b_hostile_preflight_v2",
   "stage4_bytes_opened": false,
   "surface_contract": [
@@ -387,8 +414,8 @@
       "mutation_id": "mutate_source_ordering"
     },
     {
-      "error_code": "H0B_FORBIDDEN_PATH_ACCESS",
-      "expected_error_code": "H0B_FORBIDDEN_PATH_ACCESS",
+      "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
       "mutation_id": "mutate_guarded_opener"
     },
     {
@@ -405,6 +432,16 @@
       "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
       "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
       "mutation_id": "mutate_outcome_access_permit"
+    },
+    {
+      "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "mutation_id": "mutate_packaged_runtime_source"
+    },
+    {
+      "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "mutation_id": "mutate_runtime_source_external_oracle"
     },
     {
       "error_code": "H0B_SUPPORT_COMMITMENT_MISMATCH",
@@ -602,9 +639,19 @@
       "mutation_id": "mutate_deterministic_build"
     },
     {
+      "error_code": "H0B_BUILD_MISMATCH",
+      "expected_error_code": "H0B_BUILD_MISMATCH",
+      "mutation_id": "mutate_complete_package_portability"
+    },
+    {
       "error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
       "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
       "mutation_id": "mutate_output_schema"
+    },
+    {
+      "error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "mutation_id": "mutate_external_receipt_binding"
     },
     {
       "error_code": "H0B_PACKAGE_TREE_MISMATCH",

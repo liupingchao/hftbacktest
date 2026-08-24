@@ -1,11 +1,15 @@
 {
   "current_and_frozen_rejected": true,
-  "current_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
-  "expected_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
-  "frozen_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
-  "mutation_id": "mutate_dose_definition",
+  "mutations": [
+    {
+      "current_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+      "expected_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+      "frozen_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+      "mutation_id": "mutate_dose_definition"
+    }
+  ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v1",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
   "stage4_bytes_opened": false,
   "surface_id": "dose_definition",
   "task_id": "0823T002"

@@ -1,0 +1,22 @@
+{
+  "allowed_files": [
+    "calendar_grid_support_by_segment.csv",
+    "calendar_grid_support_by_session.csv",
+    "censoring_identification_by_horizon.csv",
+    "dependence_support_by_horizon.csv",
+    "landmark_crosscheck.csv",
+    "source_cadence_by_session.csv",
+    "support_projection_commitments.csv"
+  ],
+  "cross_time_price_comparison_count": 0,
+  "forbidden_field_access_count": 0,
+  "horizon_count": 6,
+  "outcome_values_opened": false,
+  "price_values_emitted": false,
+  "schema_version": "h0a_sealed_support_projection_v1",
+  "segment_count": 19,
+  "session_count": 3,
+  "stage_id": "stage_h0a",
+  "support_projection_identity": "2bdc9b127e065f19d3166e3821df846383a2bc8eaa770f1cd6d267195f8ea7a4",
+  "task_id": "0821T001"
+}

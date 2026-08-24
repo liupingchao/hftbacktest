@@ -378,8 +378,10 @@ Before formal rebuild:
 5. forged primary path, access kind, byte count, event omission/addition and
    event reorder are rejected;
 6. external receipt binds raw and publication permit/ledger SHAs;
-7. two lightweight complete 42-file package builds from different root/PID
-   inputs have byte parity and identical R/C/E/composite.
+7. two lightweight admission-valid Build A/B pairs from different root/PID
+   inputs each pass the production `assemble_package()` and full
+   `verify_package()` paths, then have 42-file byte parity and identical
+   R/C/E/composite.
 8. a package whose runtime files and all internal runtime SHA fields are
    replaced self-consistently still fails the dispatch-pinned runtime oracle.
 9. hostile receipts from an older task SHA or V3 review SHA are rejected;
@@ -397,6 +399,10 @@ Before formal rebuild:
 16. substituting the four-field diagnostic-permit CLI summary for either
     complete durable Stage 4 permit is rejected by external receipt
     validation.
+17. the complete-package hostile mutation first produces and fully admits two
+    production packages from distinct Build A/B root/PID pairs, proves
+    pre-mutation `42/42` and R/C/E/composite equality, then changes one real
+    packaged permit and is rejected by the byte comparator.
 
 V3 items 4 through 8 each have a distinct Surface Matrix mutation ID and
 current/frozen execution row:
@@ -536,10 +542,53 @@ the archive atomically. It requires the formal build receipt to be absent and
 never deletes or overwrites an artifact. A corrected `build-formal` requires
 both historical archives and all canonical paths absent.
 
+The corrected V3 attempt then completed Build A/B, primary seal, Stage 4,
+production assembly, full package admission and external receipt validation.
+A post-fix independent review nevertheless returned
+`P0/P1/P2/P3=0/1/1/0`: the complete-package hostile mutation still used a
+handmade non-admitted text tree, and the task authority paragraph still said
+the V3 review was pending. That candidate is not the final frozen package.
+Before the next rebuild, the controller must run:
+
+```text
+skhynix_stage_h0b.py retire-review-superseded
+```
+
+This third no-delete lifecycle admits only:
+
+```text
+superseded dispatch task SHA256 =
+  be84662a91d5769ca0f74016acbb84647194b722a1f81c7fb3e166ef97078bab
+Build A tree SHA256 =
+  82d64e8d60af21ff1080926e66e65b3aa13557d16b3c0ab54eec32e5995f6fc1
+Build B tree SHA256 =
+  35483171f7e314cfece897ba7799d2f00ffb754b5bf5e41cfea0ad7548105160
+build receipt SHA256 =
+  bb30ff06183c25b218bffb313cff5c09427e96c44adf8a63dd69d440fbe06770
+package tree SHA256 =
+  11cf76849e8b6221aa55490efe3548ccb79b13b6f9603e733951849363333ae2
+package manifest SHA256 =
+  fe16e41238a38a8a358cfdfe7a95113ccacb61d427c984f0d12046cc4a3f0d42
+superseded composite =
+  0730b62b3582e7523295bc7e16e6283dc56a8fa3d307ebfca56e53e3707a7325
+```
+
+It moves Build A, Build B, the formal receipt and the admitted package into:
+
+```text
+.workflow/reports/0823T002-v3-postfix-review-superseded-formal/
+```
+
+through a resumable hidden staging directory. The archive receipt binds the
+exact superseded dispatch, `0/1/1/0` review disposition, every prior identity
+and the complete newly accepted retirement dispatch. It fsyncs and atomically
+publishes the archive, never deletes or overwrites an artifact, and releases
+only the original canonical paths.
+
 ## 10. Formal And QA Gates
 
-The existing formal package and identities are superseded after this V3 is
-independently reviewed and pinned.
+All three prior formal candidates and identities are superseded after this V3
+is independently reviewed and pinned.
 
 The formal rerun must prove:
 
