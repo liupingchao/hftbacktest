@@ -1,5 +1,18 @@
 # Findings
 
+## 2026-08-24 H0-B V4 Round 3 Review Findings
+
+- Comparing `resolve()` on both the supplied and canonical attempts roots
+  admits a canonical namespace that is itself a symlink to an external
+  directory.
+- Namespace validation must use lexical canonical identity and reject every
+  existing symlink component before evidence creation.
+- The accepted-review regression still pinned 79 artifacts while the Round 3
+  matrix contained 93. Pending review hid the deterministic accepted-path
+  failure.
+- These are control-plane findings only. The 42-file package and research
+  identities did not change.
+
 ## 2026-08-24 H0-B V4 Round 2 Review Findings
 
 - A copied runtime directory is not a complete frozen execution environment

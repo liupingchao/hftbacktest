@@ -304,6 +304,9 @@ def test_frozen_hostile_authority_inventory_is_complete() -> None:
         h0b.CONTROL_ROUND2_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_ROUND2_REVIEW_PATH,
         h0b.CONTROL_ROUND2_REVIEW_SUBMISSION_PATH,
+        h0b.CONTROL_ROUND3_CANDIDATE_RECEIPT_PATH,
+        h0b.CONTROL_ROUND3_REVIEW_PATH,
+        h0b.CONTROL_ROUND3_REVIEW_SUBMISSION_PATH,
         h0b.CONTROL_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_REMEDIATION_REVIEW_PATH,
         h0b.CONTROL_REVIEW_SUBMISSION_PATH,
@@ -357,6 +360,17 @@ def test_h0b0_does_not_create_root_before_dispatch(
 
 
 def test_dispatch_and_surface_assignment_oracles() -> None:
+    projection = h0b.surface_assignment_projection()
+    artifact_count = sum(
+        len(surface["artifacts"])
+        for surface in h0b.read_json(h0b.MATRIX_PATH)["surfaces"]
+    )
+    assert artifact_count == 96
+    assert len(projection) == artifact_count
+    assert (
+        len({(row["path"], row["surface_id"]) for row in projection})
+        == artifact_count
+    )
     if (
         h0b.task_field_pin(h0b.TASK_PATH, "control_final_severity")
         == "PENDING_INDEPENDENT_REVIEW"
@@ -367,17 +381,6 @@ def test_dispatch_and_surface_assignment_oracles() -> None:
         return
     result = h0b.validate_dispatch(h0b.TASK_PATH, h0b.MATRIX_PATH)
     assert result["verified"] is True
-    projection = h0b.surface_assignment_projection()
-    artifact_count = sum(
-        len(surface["artifacts"])
-        for surface in h0b.read_json(h0b.MATRIX_PATH)["surfaces"]
-    )
-    assert artifact_count == 79
-    assert len(projection) == artifact_count
-    assert (
-        len({(row["path"], row["surface_id"]) for row in projection})
-        == artifact_count
-    )
 
 
 def test_semantic_inventory_is_outcome_blind_and_portable() -> None:
@@ -1085,6 +1088,33 @@ def test_formal_entrypoint_rejects_attempts_root_escape(
     assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
 
 
+def test_formal_attempts_root_symlink_is_rejected(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    external = tmp_path / "external"
+    external.mkdir()
+    attempts_root = tmp_path / "attempts"
+    attempts_root.symlink_to(external, target_is_directory=True)
+    monkeypatch.setattr(h0b, "FORMAL_ATTEMPTS_ROOT", attempts_root)
+
+    for operation in (
+        lambda: h0b.require_canonical_formal_attempts_root(attempts_root),
+        lambda: h0b.require_canonical_formal_attempt_root(
+            attempts_root / "symlink-escape"
+        ),
+        lambda: h0b.begin_formal_attempt(
+            attempt_id="symlink-escape",
+            dispatch={"verified": True},
+            attempts_root=attempts_root,
+        ),
+    ):
+        with pytest.raises(contracts.H0BError) as captured:
+            operation()
+        assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
+    assert not tuple(external.iterdir())
+
+
 def test_formal_bootstrap_recovers_root_before_receipt_crash(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1229,8 +1259,8 @@ def test_full_hostile_preflight_executes_current_and_frozen_runtime(
         output=tmp_path / "hostile.json",
         write_surface_evidence=False,
     )
-    assert receipt["current_negative_mutation_count"] == 87
-    assert receipt["frozen_negative_mutation_count"] == 87
+    assert receipt["current_negative_mutation_count"] == 88
+    assert receipt["frozen_negative_mutation_count"] == 88
     assert receipt["fail_open_count"] == 0
     with pytest.raises(contracts.H0BError) as captured:
         h0b.validate_commit_path_scope(

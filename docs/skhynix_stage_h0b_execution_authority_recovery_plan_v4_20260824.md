@@ -37,6 +37,11 @@ The exact Round 2 candidate `32c5ef62` was subsequently rejected at
 hostile execution, durable publication of the attempts namespace and an
 atomic no-replace bootstrap ownership claim with receipt cross-binding.
 
+The exact Round 3 candidate `43c97bc7` was subsequently rejected at
+`P0/P1/P2/P3=0/0/2/0`. Round 4 rejects symlinks in the attempts namespace
+and its existing parent chain, adds the corresponding production hostile
+mutation and locks the accepted-path artifact count to the canonical matrix.
+
 ## 2. Immutable Execution Authority
 
 The package execution authority is the exact Git object:
@@ -177,6 +182,9 @@ build-receipt.json
 ```
 
 The attempt ID is restricted to lowercase ASCII letters, digits and hyphens.
+The canonical attempts namespace, every existing parent component and every
+attempt root must be a lexical path with no symlink component. Resolving both
+sides of a path comparison is not an admissible namespace check.
 Every newly created directory entry in the attempts namespace has its parent
 directory fsynced. The attempt root and bootstrap claim path must not exist
 before start. Each caller writes a private fsynced temporary bootstrap and
@@ -288,13 +296,13 @@ review attestation.
 The controller then issues:
 
 ```text
-.workflow/reports/0823T002-v4-candidate-receipt-round3.json
+.workflow/reports/0823T002-v4-candidate-receipt-round4.json
 ```
 
 with schema:
 
 ```text
-skhynix_stage_h0b_v4_candidate_receipt_v3
+skhynix_stage_h0b_v4_candidate_receipt_v4
 ```
 
 and exact keys:
@@ -427,9 +435,12 @@ Before handoff:
 20. concurrent duplicate bootstrap claims fail without replacement;
 21. receipt/bootstrap caller cross-binding fails;
 22. frozen hostile execution without a Git object store fails;
-23. an occupied package staging path fails without deletion;
-24. receipt/review commits containing implementation changes fail;
-25. the current and frozen hostile suites reject every declared mutation with
+23. a symlink at the canonical attempts namespace or its parent chain fails
+    before any bootstrap, receipt or attempt entry is created;
+24. the accepted-review regression binds the canonical artifact count;
+25. an occupied package staging path fails without deletion;
+26. receipt/review commits containing implementation changes fail;
+27. the current and frozen hostile suites reject every declared mutation with
     `fail_open_count=0`.
 
 ## 12. Handoff

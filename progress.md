@@ -1,5 +1,19 @@
 # Progress
 
+## 2026-08-24 H0-B V4 Round 4 Candidate Prepared
+
+- Exact Round 3 candidate `43c97bc7` was independently rejected at
+  `P0/P1/P2/P3=0/0/2/0`; review commit `6d4b6eaa` preserves the finding.
+- Canonical attempts-root validation now uses lexical identity and rejects
+  every existing symlink component. Directory creation repeats the symlink
+  check before fsync.
+- Production hostile coverage now includes the canonical namespace symlink
+  escape, for `88 current + 88 frozen` mutations.
+- The accepted-review regression pins the canonical 96-artifact matrix rather
+  than the stale 79-artifact contract.
+- No research outcome or formal build was run. The existing 42-file package
+  and all research identities remain unchanged.
+
 ## 2026-08-24 H0-B V4 Round 3 Candidate Prepared
 
 - Exact Round 2 candidate `32c5ef62` was independently rejected at

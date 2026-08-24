@@ -13,8 +13,8 @@
 - 否
 
 QA说明：
-- QA Round 2 尚未开始。V4 Round 2 candidate `32c5ef62` 已由独立
-  review 以 `P0/P1/P2/P3=0/2/1/0` 拒绝并保留；Round 3 control
+- QA Round 2 尚未开始。V4 Round 3 candidate `43c97bc7` 已由独立
+  review 以 `P0/P1/P2/P3=0/0/2/0` 拒绝并保留；Round 4 control
   candidate 已完成实现，仍需 exact candidate receipt 和独立 review。
 
 files：
@@ -31,6 +31,9 @@ files：
 - `.workflow/reports/0823T002-v4-candidate-receipt-round2.json`
 - `.workflow/reports/0823T002-plan-v4-review-round2.md`
 - `.workflow/reports/0823T002-plan-v4-review-round2-submission.md`
+- `.workflow/reports/0823T002-v4-candidate-receipt-round3.json`
+- `.workflow/reports/0823T002-plan-v4-review-round3.md`
+- `.workflow/reports/0823T002-plan-v4-review-round3-submission.md`
 - `docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md`
 - `.workflow/reports/0823T002-qa-round1-rejected-formal/`
 - `.workflow/reports/0823T002-v3-receipt-schema-failed-formal/`
@@ -45,6 +48,10 @@ files：
 - `findings.md`
 
 action：
+- 对 attempts namespace 使用 lexical identity，并在证据创建前拒绝其
+  既有 parent chain 中的任何 symlink。
+- 新增 `mutate_formal_attempts_root_symlink`，并将 accepted-path
+  artifact assertion 锁定为 canonical 96。
 - 为 frozen hostile runtime 挂接只读 Git object store，并增加完整生产
   `current 87 + frozen 87` regression。
 - 对 attempts namespace 的新目录项逐级 parent fsync。
@@ -80,21 +87,24 @@ action：
 - 发布 42-file exact package tree，并执行独立 zero-write verify。
 
 verify：
-- Round 3 新增的完整 production hostile-preflight regression 通过：
-  `87 current + 87 frozen / fail_open_count=0`。
-- V4 Round 3 candidate 本地验证为 `181 passed`；Ruff、compileall、
+- Round 4 完整 production hostile-preflight regression 通过：
+  `88 current + 88 frozen / fail_open_count=0`。
+- V4 Round 4 candidate 本地验证为 `183 passed`；Ruff、compileall、
   `git diff --check` 通过。
 - research-package validator 为
-  `65 surfaces / 87 mutations / 93 artifacts / 7 exit criteria`。
-- `83/83` direct hostile mutations 均返回声明错误码，fail-open 为零。
+  `65 surfaces / 88 mutations / 96 artifacts / 7 exit criteria`。
+- V3 historical `83/83` direct hostile mutations 均返回声明错误码，
+  fail-open 为零。
 - 旧 formal package 仍为
   `42 files / 5 directories / verified=true / zero_write=true`；R/C/E/
   composite 未改变。
-- research-package task validator 通过
+- V3 historical research-package task validator 通过
   `61 surfaces / 65 mutations / 79 artifacts / 7 exit criteria`。
-- focused pytest `137 passed`；Ruff、compileall 和 `git diff --check`
+- V3 historical focused pytest `137 passed`；Ruff、compileall 和
+  `git diff --check`
   均通过。
-- Hostile preflight 执行 `65 current + 65 frozen` mutations，
+- V3 historical hostile preflight 执行 `65 current + 65 frozen`
+  mutations，
   `fail_open_count=0`；negative evidence SHA256 为
   `edd8710ba665abd6dd63c4da7ddda5f749b303d24c13f6e23ba79d3023bc20eb`。
 - 三份受控历史归档均通过幂等 identity validation；错误 future
@@ -131,8 +141,8 @@ done：
   并核对上述 identities。
 
 blockers：
-- Round 3 candidate 尚未冻结并签发 candidate receipt。
-- Round 3 independent review 尚未接受 exact candidate；workflow
+- Round 4 candidate 尚未冻结并签发 candidate receipt。
+- Round 4 independent review 尚未接受 exact candidate；workflow
   transition receipt 不得提前签发，QA Round 2 不得提前开始。
 
 commit：

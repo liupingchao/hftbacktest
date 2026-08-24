@@ -1,5 +1,19 @@
 # Task Plan
 
+## 2026-08-24 Stage H0-B V4 Round 4 Candidate Ready
+
+- Preserve Round 3 candidate `43c97bc7`, receipt `9a6f64ac` and rejected
+  independent review `6d4b6eaa` at `P0/P1/P2/P3=0/0/2/0`.
+- Reject symlinks in the attempts namespace and its existing parent chain
+  before any bootstrap, receipt or attempt entry is created.
+- Add `mutate_formal_attempts_root_symlink` to the production current/frozen
+  hostile contract and require `88 + 88` exact rejections.
+- Lock the accepted-review artifact assertion to the canonical 96-artifact
+  matrix.
+- Freeze a Round 4 candidate and obtain a fresh independent review before
+  issuing any workflow transition receipt.
+- Continue to prohibit outcome, diagnostic, H0B0 and formal-build commands.
+
 ## 2026-08-24 Stage H0-B V4 Round 3 Candidate Ready
 
 - Preserve Round 2 candidate `32c5ef62`, receipt `b0522750` and rejected

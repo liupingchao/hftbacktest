@@ -13,7 +13,7 @@
     {
       "applicability": "required",
       "criterion_id": "EC3",
-      "planned_evidence": "All 87 current and frozen negative mutations reject with exact stable codes."
+      "planned_evidence": "All 88 current and frozen negative mutations reject with exact stable codes."
     },
     {
       "applicability": "required",
@@ -100,7 +100,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "accepted Trust Kernel v1 exact and immutable; H0-B negative evidence is admitted only by the composed gate0 binding exact reviewed dispatch, matrix SHA, current/frozen runtime trees, ordered 87-mutation contracts and fail_open_count=0 before invoking the generic validator"
+        "value_contract": "accepted Trust Kernel v1 exact and immutable; H0-B negative evidence is admitted only by the composed gate0 binding exact reviewed dispatch, matrix SHA, current/frozen runtime trees, ordered 88-mutation contracts and fail_open_count=0 before invoking the generic validator"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -4924,7 +4924,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "84ba21a2d9104de2d39a9e3f46154edb9eeed5c658ede180cd57d062329968f9"
+            "value": "eb382f0a9c7c3f5c90bcd7b79ac0dd508df6354482139794dc76423f83a83998"
           },
           "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
           "source_id": "reviewed_v4_attempt_protocol",
@@ -4963,7 +4963,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "the attempts namespace and every new parent entry are fsynced; a no-replace bootstrap claim precedes root creation; receipt and bootstrap cross-bind PID/dispatch/paths; receipt updates are atomic; hidden evidence is inventoried; all formal subcommands require the canonical attempt"
+        "value_contract": "the attempts namespace and existing parent chain reject symlinks; every new parent entry is fsynced; a no-replace bootstrap claim precedes root creation; receipt and bootstrap cross-bind PID/dispatch/paths; receipt updates are atomic; hidden evidence is inventoried; all formal subcommands require the canonical attempt"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -5043,6 +5043,13 @@
           "mutation_id": "mutate_formal_bootstrap_receipt_cross_binding",
           "operation": "other_explicit",
           "target": "formal_attempt_bootstrap_binding"
+        },
+        {
+          "description": "redirect the canonical attempts namespace through a symlink",
+          "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+          "mutation_id": "mutate_formal_attempts_root_symlink",
+          "operation": "other_explicit",
+          "target": "formal_attempts_root_symlink"
         }
       ],
       "rebuild_oracle": {
@@ -5094,6 +5101,21 @@
         },
         {
           "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-plan-v4-review-round3.md",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-plan-v4-review-round3-submission.md",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-v4-candidate-receipt-round4.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
           "path": ".workflow/reports/0823T002-plan-v4-review.md",
           "required": true
         },
@@ -5112,7 +5134,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "84ba21a2d9104de2d39a9e3f46154edb9eeed5c658ede180cd57d062329968f9"
+            "value": "eb382f0a9c7c3f5c90bcd7b79ac0dd508df6354482139794dc76423f83a83998"
           },
           "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
           "source_id": "reviewed_v4_provenance_contract",
@@ -5219,7 +5241,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "84ba21a2d9104de2d39a9e3f46154edb9eeed5c658ede180cd57d062329968f9"
+            "value": "eb382f0a9c7c3f5c90bcd7b79ac0dd508df6354482139794dc76423f83a83998"
           },
           "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
           "source_id": "reviewed_v4_transition_contract",

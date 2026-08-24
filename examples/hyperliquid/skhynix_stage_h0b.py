@@ -70,8 +70,11 @@ CONTROL_ROUND1_CANDIDATE_RECEIPT_PATH = (
 CONTROL_ROUND2_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round2.json"
 )
-CONTROL_CANDIDATE_RECEIPT_PATH = (
+CONTROL_ROUND3_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round3.json"
+)
+CONTROL_CANDIDATE_RECEIPT_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round4.json"
 )
 CONTROL_REMEDIATION_REVIEW_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review.md"
@@ -92,6 +95,13 @@ CONTROL_ROUND2_REVIEW_PATH = (
 CONTROL_ROUND2_REVIEW_SUBMISSION_PATH = (
     REPO_ROOT
     / ".workflow/reports/0823T002-plan-v4-review-round2-submission.md"
+)
+CONTROL_ROUND3_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review-round3.md"
+)
+CONTROL_ROUND3_REVIEW_SUBMISSION_PATH = (
+    REPO_ROOT
+    / ".workflow/reports/0823T002-plan-v4-review-round3-submission.md"
 )
 WORKFLOW_TRANSITION_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-workflow-transition.json"
@@ -403,10 +413,10 @@ PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
 PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
 PUBLICATION_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
 CONTROL_REMEDIATION_PLAN_SHA256 = (
-    "84ba21a2d9104de2d39a9e3f46154edb9eeed5c658ede180cd57d062329968f9"
+    "eb382f0a9c7c3f5c90bcd7b79ac0dd508df6354482139794dc76423f83a83998"
 )
 CONTROL_CANDIDATE_RECEIPT_SCHEMA = (
-    "skhynix_stage_h0b_v4_candidate_receipt_v3"
+    "skhynix_stage_h0b_v4_candidate_receipt_v4"
 )
 CONTROL_REMEDIATION_REVIEW_SCHEMA = (
     "skhynix_stage_h0b_v4_independent_review_v1"
@@ -510,7 +520,7 @@ SOURCE_INVENTORY_CONTRACT_SHA256 = (
     "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "d414d0a99393ade350d5c5d26c2940877e2d4a386a20f4195bc7a4854abcd26e"
+    "2e5f90a71925f5d53d8c4fc3f4aa398f66fd224c4504649ab8fbe0876ac1cfab"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -2401,7 +2411,7 @@ def validate_reviewer_actor_binding(
         and reviewer_actor_id != controller_actor_id
         and re.fullmatch(
             (
-                r"codex-independent-reviewer-0823T002-v4-round3-"
+                r"codex-independent-reviewer-0823T002-v4-round4-"
                 r"[0-9a-f]{8,40}"
             ),
             reviewer_actor_id,
@@ -5115,6 +5125,22 @@ def hostile_formal_attempts_root_escape_mutation() -> None:
         )
 
 
+def hostile_formal_attempts_root_symlink_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-root-symlink-"
+    ) as raw:
+        base = Path(raw)
+        external = base / "external"
+        external.mkdir()
+        attempts_root = base / "attempts"
+        attempts_root.symlink_to(external, target_is_directory=True)
+        begin_formal_attempt(
+            attempt_id="symlink-escape",
+            dispatch={"verified": True},
+            attempts_root=attempts_root,
+        )
+
+
 def hostile_formal_bootstrap_recovery_mutation() -> None:
     with tempfile.TemporaryDirectory(
         prefix="0823T002-attempt-bootstrap-"
@@ -5581,6 +5607,9 @@ def negative_case(
             "mutate_formal_attempts_root_escape": (
                 hostile_formal_attempts_root_escape_mutation
             ),
+            "mutate_formal_attempts_root_symlink": (
+                hostile_formal_attempts_root_symlink_mutation
+            ),
             "mutate_formal_bootstrap_recovery": (
                 hostile_formal_bootstrap_recovery_mutation
             ),
@@ -5660,6 +5689,9 @@ def frozen_hostile_authority_paths() -> tuple[Path, ...]:
         CONTROL_ROUND2_CANDIDATE_RECEIPT_PATH,
         CONTROL_ROUND2_REVIEW_PATH,
         CONTROL_ROUND2_REVIEW_SUBMISSION_PATH,
+        CONTROL_ROUND3_CANDIDATE_RECEIPT_PATH,
+        CONTROL_ROUND3_REVIEW_PATH,
+        CONTROL_ROUND3_REVIEW_SUBMISSION_PATH,
         CONTROL_CANDIDATE_RECEIPT_PATH,
         CONTROL_REMEDIATION_REVIEW_PATH,
         CONTROL_REVIEW_SUBMISSION_PATH,
@@ -12515,8 +12547,29 @@ def validate_created_directory_parent_fsync(
     )
 
 
+def require_no_symlink_path_components(
+    path: Path,
+    *,
+    location: str,
+) -> Path:
+    target = Path(os.path.abspath(Path(path)))
+    cursor = Path(target.anchor)
+    for component in target.parts[1:]:
+        cursor /= component
+        contracts.require(
+            not cursor.is_symlink(),
+            "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+            location,
+            f"formal attempt path component is a symlink: {cursor}",
+        )
+    return target
+
+
 def durably_ensure_directory(path: Path) -> None:
-    target = Path(path)
+    target = require_no_symlink_path_components(
+        path,
+        location=str(path),
+    )
     missing = []
     cursor = target
     while not cursor.exists():
@@ -12530,6 +12583,10 @@ def durably_ensure_directory(path: Path) -> None:
             parent_fsynced=True,
             location=str(created),
         )
+    require_no_symlink_path_components(
+        target,
+        location=str(target),
+    )
     contracts.fsync_directory(target)
 
 
@@ -12912,8 +12969,13 @@ def recover_formal_attempt_state(
 
 
 def require_canonical_formal_attempts_root(attempts_root: Path) -> None:
+    observed = require_no_symlink_path_components(
+        attempts_root,
+        location=str(attempts_root),
+    )
+    expected = Path(os.path.abspath(FORMAL_ATTEMPTS_ROOT))
     contracts.require(
-        Path(attempts_root).resolve() == FORMAL_ATTEMPTS_ROOT.resolve(),
+        observed == expected,
         "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
         str(attempts_root),
         "formal execution must use the canonical versioned attempts root",
@@ -12921,9 +12983,13 @@ def require_canonical_formal_attempts_root(attempts_root: Path) -> None:
 
 
 def require_canonical_formal_attempt_root(attempt_root: Path) -> None:
-    root = Path(attempt_root)
+    root = require_no_symlink_path_components(
+        attempt_root,
+        location=str(attempt_root),
+    )
+    require_canonical_formal_attempts_root(root.parent)
     contracts.require(
-        root.resolve().parent == FORMAL_ATTEMPTS_ROOT.resolve()
+        root.parent == Path(os.path.abspath(FORMAL_ATTEMPTS_ROOT))
         and root.name != "",
         "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
         str(attempt_root),
