@@ -16,7 +16,8 @@ QA说明：
 - V4 Round 6 candidate `180572c6` 已由独立 review 以
   `P0/P1/P2/P3=0/0/0/0` 接受。controller 已签发 exact workflow
   transition receipt `fcb39e10...739e`，任务迁移到 `待验收`。最终状态
-  hostile/Gate 0/package zero-write 重放已通过，QA Round 2 已派发。
+  hostile/Gate 0/package zero-write 重放已通过；独立 QA Round 2 已在
+  handoff `60425952` 上以 `P0/P1/P2/P3=0/0/0/0` 验收通过。
 
 files：
 - `.workflow/contracts/0823T002-hostile-target-contract.json`
@@ -178,12 +179,13 @@ done：
   并核对上述 identities。
 
 blockers：
-- 无业务线程 blocker；等待独立 QA Round 2 验收结论。
+- 无。
 
 commit：
 - `71adbfa678ff3646982160d220f5c223e0f7e59f`
 - control handoff `2092924eb40637653be6cd6cafbbf4b73d654e9a`
 - final control evidence `efa0ace7d32a4458f6843c0d7737934559ad31fe`
+- QA Round 2 `7191442197b37545d3e9847ac0da98d51524421b`
 
 提交信息：
 - `research: freeze stage h0b v3 portable evidence`

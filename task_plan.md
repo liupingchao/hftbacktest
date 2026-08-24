@@ -1,6 +1,6 @@
 # Task Plan
 
-## 2026-08-24 Stage H0-B V4 Round 6 QA Handoff
+## 2026-08-24 Stage H0-B V4 Round 6 Accepted
 
 - Preserve Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and rejected
   independent review `848af128` at `P0/P1/P2/P3=0/1/0/0`.
@@ -17,8 +17,10 @@
   state to `待验收` while preserving formal authority `71adbfa6`.
 - Final-state production hostile/Gate 0/zero-write evidence is frozen at
   `efa0ace7` and passes against task SHA `bf834fac...a25`.
-- Independent read-only QA Round 2 is dispatched; controller acceptance
-  remains blocked until its verdict.
+- Independent read-only QA Round 2 accepted handoff `60425952` at
+  `P0/P1/P2/P3=0/0/0/0`; QA evidence commit is `71914421`.
+- Close task `0823T002` as `已通过`; retain formal authority `71adbfa6`,
+  transition receipt `fcb39e10...739e` and all V4 evidence unchanged.
 - Continue to prohibit outcome, diagnostic, H0B0 and formal-build commands.
 
 ## 2026-08-24 Stage H0-B V4 Round 5 Candidate Ready

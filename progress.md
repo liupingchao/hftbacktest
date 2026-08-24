@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-24 H0-B V4 Round 6 Awaiting QA Round 2
+## 2026-08-24 H0-B V4 Round 6 Accepted
 
 - Exact Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and independent
   rejection `848af128` are frozen. Severity is
@@ -25,8 +25,10 @@
 - Final-state hostile evidence is frozen at `efa0ace7` with SHA256
   `8743545c...abd0`: `89 current + 89 frozen`, `7 + 7` semantic probes and
   zero fail-open. Composed Gate 0 and 42-file package zero-write admission pass.
-- QA Round 2 is dispatched as an independent read-only audit of the immutable
-  formal authority and V4 control/handoff chain.
+- Independent QA Round 2 accepted exact handoff `60425952` at
+  `P0/P1/P2/P3=0/0/0/0`; QA evidence is frozen at `71914421`.
+- Task `0823T002` is now `已通过`. The formal execution entrypoint is closed;
+  future work may consume only the accepted H0-B identities and claim limit.
 - No outcome, diagnostic, H0B0 or formal-build command was run. The existing
   42-file package and all research identities remain unchanged.
 

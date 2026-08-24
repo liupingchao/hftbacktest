@@ -1,5 +1,17 @@
 # Findings
 
+## 2026-08-24 H0-B QA Round 2 Acceptance
+
+- Independent QA accepted exact handoff `60425952` at
+  `P0/P1/P2/P3=0/0/0/0`; no executable defect, identity drift, fail-open,
+  commit-scope pollution or package coupling remained.
+- The accepted package remains bound to immutable formal commit `71adbfa6`
+  with `42 files / 5 directories / zero_write=true` and unchanged
+  R/C/E/composite.
+- No outcome, diagnostic, H0B0 or formal-build command was rerun. The task is
+  closed as `已通过`, and later research may consume only the accepted H0-B
+  identities and screening-limited claim.
+
 ## 2026-08-24 H0-B V4 Round 5 Review Findings
 
 - Matching an error code and normalized rejection location is not sufficient
