@@ -1,5 +1,15 @@
 # Task Plan
 
+## 2026-08-24 Stage H0-B QA Round 1 Failed
+
+- Independent fresh-root QA ended at `P0/P1/P2/P3=0/1/0/0`.
+- Primary results, classification, seal, Stage 4, R and C reproduced, but the
+  package matched only `37/42` files byte-for-byte.
+- Runtime permits carry absolute build roots and PIDs; copying those raw bytes
+  into E makes publication E/composite root-dependent.
+- The task is `未通过` until runtime-specific evidence is separated from a
+  deterministic package publication projection and fresh-root QA passes.
+
 ## 2026-08-23 Stage H0-B Formal Build Awaiting QA
 
 - `0823T002` formal execution is complete and the task is now `待验收`.

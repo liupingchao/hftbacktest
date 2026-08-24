@@ -1,5 +1,16 @@
 # Progress
 
+## 2026-08-24 H0-B QA Round 1 Not Accepted
+
+- Fresh-root independent QA passed validator, `105` tests, hostile replay,
+  static checks, primary parity, Stage 4 parity and package zero-write verify.
+- Exact package paths were `42/42`, but byte parity was only `37/42`.
+- The volatile files are two outcome permits, two ledgers and the manifest;
+  the first four embed or bind absolute build-root/PID evidence.
+- R and C reproduce; E/composite do not. Task status is `未通过`.
+- Remediation must preserve real build-specific permits in the build roots
+  while making the published evidence projection deterministic.
+
 ## 2026-08-23 H0-B Formal Execution Awaiting QA
 
 - Formal evidence is frozen at commit `62a46e07`.

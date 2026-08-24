@@ -1,5 +1,18 @@
 # Findings
 
+## 2026-08-24 H0-B QA Round 1 Findings
+
+- A portable inventory row is not enough when the raw E file still embeds an
+  absolute build root or PID. The file SHA carries that volatility into E.
+- Runtime authorization evidence and publication evidence have different
+  requirements: the former must bind the real root/process; the latter must
+  preserve the verified facts without retaining root/PID-dependent bytes.
+- The package's own
+  `kernel_package_admission_portable=true` contract makes fresh-root E
+  equality load-bearing, not an optional QA preference.
+- This P1 does not change H0-B research results, the primary seal, Stage 4
+  aggregate, latency roles or claim limit.
+
 ## 2026-08-23 H0-B Formal Execution Findings
 
 - The data-quality and RQ1 gates pass in both formal sessions, but the frozen
