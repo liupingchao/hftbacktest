@@ -1,6 +1,7 @@
 {
   "composite_package_identity": "a196f3e743e8281c3cc5f82c4e30c57dc10af7b0c91e88ff16194065f10f7e05",
   "directory_count": 5,
+  "execution_authority_commit": "71adbfa678ff3646982160d220f5c223e0f7e59f",
   "file_count": 42,
   "package_root": "/Users/liu/Documents/hftbacktest-0814t001-skhynix-episode-research/local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002",
   "package_total_bytes_excluding_manifest": 1300682,
