@@ -15,7 +15,12 @@
   executes `89 current + 89 frozen` code/location rows and
   `7 current + 7 frozen` semantic-probe rows with zero fail-open.
 - Generic task validation passes `65/89/99/7`; Ruff, compileall and diff
-  checks pass. Candidate freeze remains pending.
+  checks pass.
+- Round 6 candidate `180572c6`, receipt `a394c7f2` and independent accepted
+  review `2a87677f` are frozen. Final severity is
+  `P0/P1/P2/P3=0/0/0/0`.
+- Task remains `执行中`; production hostile/Gate 0/zero-write evidence and
+  workflow transition are the remaining pre-QA steps.
 - No outcome, diagnostic, H0B0 or formal-build command was run. The existing
   42-file package and all research identities remain unchanged.
 

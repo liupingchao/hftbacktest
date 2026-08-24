@@ -11,8 +11,10 @@
   tie-order semantic probes.
 - Require hostile receipt v4 to match `89 current + 89 frozen` code/location
   rows plus `7 current + 7 frozen` semantic-probe rows with zero fail-open.
-- Freeze a Round 6 candidate and obtain fresh independent acceptance before
-  any transition receipt or QA Round 2 handoff.
+- Round 6 candidate `180572c6`, receipt `a394c7f2` and independent review
+  `2a87677f` are frozen and accepted at `P0/P1/P2/P3=0/0/0/0`.
+- Run accepted-pin production hostile/Gate 0/zero-write evidence before any
+  transition receipt or QA Round 2 handoff.
 - Continue to prohibit outcome, diagnostic, H0B0 and formal-build commands.
 
 ## 2026-08-24 Stage H0-B V4 Round 5 Candidate Ready

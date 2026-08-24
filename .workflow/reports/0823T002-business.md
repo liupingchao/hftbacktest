@@ -13,9 +13,9 @@
 - 否
 
 QA说明：
-- QA Round 2 尚未开始。V4 Round 5 candidate `72257a3b` 已由独立
-  review 以 `P0/P1/P2/P3=0/1/0/0` 拒绝并保留；Round 6 control
-  remediation 正在施工，formal-build 继续 NO-GO。
+- QA Round 2 尚未开始。V4 Round 6 candidate `180572c6` 已由独立
+  review 以 `P0/P1/P2/P3=0/0/0/0` 接受。当前仍为 `执行中`，
+  workflow transition receipt 尚未签发。
 
 files：
 - `.workflow/contracts/0823T002-hostile-target-contract.json`
@@ -170,9 +170,10 @@ done：
   并核对上述 identities。
 
 blockers：
-- Round 6 candidate 尚未冻结并签发 candidate receipt。
-- Round 6 independent review 尚未接受 exact candidate；workflow
-  transition receipt 不得提前签发，QA Round 2 不得提前开始。
+- 仍需在 accepted review pins 下运行 production hostile preflight、
+  composed Gate 0 和 package zero-write verify。
+- 上述控制证据通过前，workflow transition receipt 不得签发，QA
+  Round 2 不得开始。
 
 commit：
 - `71adbfa678ff3646982160d220f5c223e0f7e59f`
