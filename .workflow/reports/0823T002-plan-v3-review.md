@@ -9,15 +9,19 @@ Machine-readable acceptance contract:
 - schema_version=skhynix_stage_h0b_v3_independent_review_v1
 - task_id=0823T002
 - reviewer_role=independent_read_only
-- reviewed_plan_sha256=66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48
-- reviewed_surface_matrix_sha256=541c386abb136ba0dba0bc9aff0152f1f5133d8a1b34321595bdc9bdad54995d
-- reviewed_runtime_source_tree_sha256=20e59b23fbc7c4cf5513c66e7120fd0ed67b2013eb3772cbe759d004392f07c9
+- reviewed_plan_sha256=ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320
+- reviewed_surface_matrix_sha256=fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011
+- reviewed_runtime_source_tree_sha256=b4a8bdc9b8dcb3281c952cb4f9c22f181c23c138a67164d71528391572bbfaec
 - final_severity=P0/P1/P2/P3=0/0/0/0
 - disposition=ACCEPTED
 
 Review rounds:
 - round 1: `P0/P1/P2/P3=0/2/0/0`; not accepted
 - round 2: `P0/P1/P2/P3=0/0/0/0`; accepted
+- round 3, post-formal receipt correction:
+  `P0/P1/P2/P3=0/0/1/0`; not accepted
+- round 4, exact retirement-dispatch correction:
+  `P0/P1/P2/P3=0/0/0/0`; accepted
 
 Verified closures:
 1. Dispatch requires the exact pinned review bytes, the machine-readable
@@ -37,6 +41,11 @@ Verified closures:
    are exact.
 7. `6600ms` remains the sole primary latency. `850ms` remains
    diagnostic-only and cannot rescue or replace the primary result.
+8. External receipt Stage 4 permit slots contain the complete durable permit
+   objects, never the four-field CLI execution summaries.
+9. The 2026-08-24 fail-closed V3 attempt has an exact, resumable, no-delete
+   archive lifecycle binding both the failed dispatch and the complete current
+   retirement dispatch.
 
 Execution boundary:
 - acceptance is limited to the exact plan, matrix and runtime identities

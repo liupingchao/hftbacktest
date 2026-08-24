@@ -123,6 +123,11 @@ aug07_event_rows_opened
 network_private_order_cancel_live_access
 ```
 
+The two `stage4_permit_build_{a,b}` values are the complete durable
+`stage4_diagnostic_permit.json` objects read back from each build root. The
+four-field `diagnostic-permit` CLI execution summary is not the permit and
+must never occupy either nested receipt slot.
+
 Each `runtime_evidence_build_{a,b}` object has exactly:
 
 ```text
@@ -389,6 +394,9 @@ Before formal rebuild:
     is rejected before dispatch;
 15. changing the current Surface Matrix bytes after H0B0 invalidates the
     direct outcome permit before any outcome read.
+16. substituting the four-field diagnostic-permit CLI summary for either
+    complete durable Stage 4 permit is rejected by external receipt
+    validation.
 
 V3 items 4 through 8 each have a distinct Surface Matrix mutation ID and
 current/frozen execution row:
@@ -488,6 +496,45 @@ through a hidden staging directory, fsyncs the tree, writes an exact
 never deletes an artifact. `build-formal` requires this archive receipt,
 revalidates every archived identity, requires all four canonical paths to be
 absent, and then rebuilds only at the original canonical paths.
+
+The first V3 formal attempt on 2026-08-24 failed closed after Build A/B,
+primary seal, Stage 4 and package admission because the external receipt
+placed the four-field CLI summary in `stage4_permit_build_a` instead of the
+complete durable permit. No formal build receipt was written. Before a
+corrected rerun, the controller must run:
+
+```text
+skhynix_stage_h0b.py retire-failed-v3
+```
+
+This second no-delete lifecycle admits only:
+
+```text
+failed dispatch task SHA256 =
+  44632149779360b6347064a306d1d82f907641d6a37d72b465c5e4d70ee1a843
+Build A tree SHA256 =
+  e6613fb1e309f86ec531883b283e95c97de2c4ac95a8e44b8468d197b66d78c3
+Build B tree SHA256 =
+  8469b25c26644eeabd98b6816e9ad0ae151e053d6f2abb9129f47b8f094732c6
+package tree SHA256 =
+  37b3684ef5654235c4f2547c55795d588df7db6618dbac33735f019c6fc6f211
+package manifest SHA256 =
+  b5f5d03f71b35e170454d9bfa4561a6f76ab1b8807ed87b9a4a55de30b98b51f
+failed composite =
+  45f6edfe2465ea038e3954632ece3936d70438deccabda19fdd315f8945350db
+```
+
+It moves Build A, Build B and the admitted package into:
+
+```text
+.workflow/reports/0823T002-v3-receipt-schema-failed-formal/
+```
+
+through a resumable hidden staging directory, records the exact fail-closed
+location and both failed/retirement dispatches, fsyncs the tree and publishes
+the archive atomically. It requires the formal build receipt to be absent and
+never deletes or overwrites an artifact. A corrected `build-formal` requires
+both historical archives and all canonical paths absent.
 
 ## 10. Formal And QA Gates
 

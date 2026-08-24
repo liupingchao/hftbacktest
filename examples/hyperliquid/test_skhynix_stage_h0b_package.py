@@ -280,7 +280,7 @@ def test_dispatch_and_surface_assignment_oracles() -> None:
         len(surface["artifacts"])
         for surface in h0b.read_json(h0b.MATRIX_PATH)["surfaces"]
     )
-    assert artifact_count == 78
+    assert artifact_count == 79
     assert len(projection) == artifact_count
     assert (
         len({(row["path"], row["surface_id"]) for row in projection})
@@ -953,10 +953,27 @@ def test_validate_permit_rejects_current_surface_matrix_drift(
 
 
 def test_formal_receipt_rejects_unknown_or_forged_nested_payload() -> None:
+    durable_permit_a = {
+        "schema_version": "skhynix_stage_h0b_stage4_diagnostic_permit_v1",
+        "task_id": contracts.TASK_ID,
+        "build_label": "A",
+        "status": "admitted",
+        "fsynced": True,
+        "primary_plan_sha256": h0b.PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": h0b.DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": h0b.DIAGNOSTIC_REVIEW_SHA256,
+        "surface_matrix_sha256": h0b.MATRIX_SHA256,
+        "runtime_source_tree_sha256": h0b.runtime_source_tree_sha256(),
+        "primary_seal_sha256": "1" * 64,
+        "primary_results_sha256": "2" * 64,
+        "primary_classification_sha256": "3" * 64,
+        "stage4_projection_contract_sha256": "4" * 64,
+    }
+    durable_permit_b = {**durable_permit_a, "build_label": "B"}
     expected = {
         "primary_result_seal": {"sealed": True},
-        "stage4_permit_build_a": {"build": "A"},
-        "stage4_permit_build_b": {"build": "B"},
+        "stage4_permit_build_a": durable_permit_a,
+        "stage4_permit_build_b": durable_permit_b,
         "stage4_build_a": {"receipt": "A"},
         "stage4_build_b": {"receipt": "B"},
         "package": {"file_count": 42},
@@ -965,6 +982,16 @@ def test_formal_receipt_rejects_unknown_or_forged_nested_payload() -> None:
     payload = copy.deepcopy(expected)
     h0b.validate_formal_receipt_nested_payloads(payload, expected)
     payload["package"]["unexpected"] = True
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_formal_receipt_nested_payloads(payload, expected)
+    assert captured.value.code == "H0B_OUTPUT_SCHEMA_MISMATCH"
+    payload = copy.deepcopy(expected)
+    payload["stage4_permit_build_a"] = {
+        "verified": True,
+        "task_id": contracts.TASK_ID,
+        "build_label": "A",
+        "diagnostic_permit_sha256": "5" * 64,
+    }
     with pytest.raises(contracts.H0BError) as captured:
         h0b.validate_formal_receipt_nested_payloads(payload, expected)
     assert captured.value.code == "H0B_OUTPUT_SCHEMA_MISMATCH"
@@ -1072,6 +1099,7 @@ def test_superseded_formal_archive_is_identity_bound_and_resumable(
         "validate_dispatch",
         lambda task_path, matrix_path: dispatch,
     )
+    monkeypatch.setattr(h0b, "FAILED_V3_DISPATCH", dispatch)
     first = h0b.retire_superseded_formal(
         task_path=tmp_path / "task.md",
         matrix_path=tmp_path / "matrix.json",
@@ -1090,6 +1118,120 @@ def test_superseded_formal_archive_is_identity_bound_and_resumable(
     assert (archive / "build-b").is_dir()
     assert (archive / "build-receipt.json").is_file()
     assert (archive / "package").is_dir()
+
+
+def test_failed_v3_formal_archive_is_identity_bound_and_resumable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    build_a = tmp_path / "build-a"
+    build_b = tmp_path / "build-b"
+    package = tmp_path / "package"
+    for root, value in (
+        (build_a, b"A"),
+        (build_b, b"B"),
+        (package, b"P"),
+    ):
+        root.mkdir()
+        (root / "evidence.bin").write_bytes(value)
+    entries = (
+        {
+            "entry_id": "build_a",
+            "source_path": build_a,
+            "archive_relative_path": "build-a",
+            "entry_type": "directory",
+            "sha256": h0b.regular_tree_inventory_sha256(build_a),
+        },
+        {
+            "entry_id": "build_b",
+            "source_path": build_b,
+            "archive_relative_path": "build-b",
+            "entry_type": "directory",
+            "sha256": h0b.regular_tree_inventory_sha256(build_b),
+        },
+        {
+            "entry_id": "package",
+            "source_path": package,
+            "archive_relative_path": "package",
+            "entry_type": "directory",
+            "sha256": h0b.regular_tree_inventory_sha256(package),
+        },
+    )
+    archive = tmp_path / "failed-archive"
+    dispatch = copy.deepcopy(h0b.FAILED_V3_DISPATCH)
+    dispatch["task_sha256"] = "9" * 64
+    monkeypatch.setattr(h0b, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(h0b, "FORMAL_BUILD_A", build_a)
+    monkeypatch.setattr(h0b, "FORMAL_BUILD_B", build_b)
+    monkeypatch.setattr(h0b, "DEFAULT_PACKAGE", package)
+    monkeypatch.setattr(
+        h0b,
+        "FORMAL_BUILD_RECEIPT",
+        tmp_path / "absent-receipt.json",
+    )
+    monkeypatch.setattr(h0b, "FAILED_V3_FORMAL_ARCHIVE", archive)
+    monkeypatch.setattr(
+        h0b,
+        "FAILED_V3_FORMAL_ARCHIVE_STAGING",
+        tmp_path / ".failed-archive.staging",
+    )
+    monkeypatch.setattr(
+        h0b,
+        "FAILED_V3_FORMAL_IDENTITIES",
+        {
+            "build_a_tree_sha256": entries[0]["sha256"],
+            "build_b_tree_sha256": entries[1]["sha256"],
+            "package_tree_sha256": entries[2]["sha256"],
+        },
+    )
+    monkeypatch.setattr(
+        h0b,
+        "failed_v3_formal_archive_entries",
+        lambda: entries,
+    )
+    monkeypatch.setattr(
+        h0b,
+        "validate_failed_v3_formal_identity",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr(
+        h0b,
+        "validate_superseded_formal_archive",
+        lambda expected_dispatch: {},
+    )
+    monkeypatch.setattr(
+        h0b,
+        "validate_dispatch",
+        lambda task_path, matrix_path: dispatch,
+    )
+    first = h0b.retire_failed_v3_formal(
+        task_path=tmp_path / "task.md",
+        matrix_path=tmp_path / "matrix.json",
+    )
+    second = h0b.retire_failed_v3_formal(
+        task_path=tmp_path / "task.md",
+        matrix_path=tmp_path / "matrix.json",
+    )
+    assert first == second
+    assert first["failure_location"] == (
+        "$.build_receipt.stage4_permit_build_a"
+    )
+    assert first["formal_build_receipt_written"] is False
+    assert not build_a.exists()
+    assert not build_b.exists()
+    assert not package.exists()
+    assert (archive / "build-a").is_dir()
+    assert (archive / "build-b").is_dir()
+    assert (archive / "package").is_dir()
+    receipt_path = archive / "archive_receipt.json"
+    mutated = h0b.read_json(receipt_path)
+    del mutated["retirement_dispatch"]["task_sha256"]
+    h0b.write_json(receipt_path, mutated)
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_failed_v3_formal_archive(
+            expected_retirement_dispatch=dispatch
+        )
+    assert captured.value.code == "H0B_BUILD_MISMATCH"
 
 
 def test_exact_tree_rejects_extra_path(tmp_path: Path) -> None:

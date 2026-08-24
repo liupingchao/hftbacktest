@@ -114,6 +114,14 @@ SUPERSEDED_FORMAL_ARCHIVE_STAGING = (
     REPO_ROOT
     / ".workflow/reports/.0823T002-qa-round1-rejected-formal.staging"
 )
+FAILED_V3_FORMAL_ARCHIVE = (
+    REPO_ROOT
+    / ".workflow/reports/0823T002-v3-receipt-schema-failed-formal"
+)
+FAILED_V3_FORMAL_ARCHIVE_STAGING = (
+    REPO_ROOT
+    / ".workflow/reports/.0823T002-v3-receipt-schema-failed-formal.staging"
+)
 SUPERSEDED_FORMAL_IDENTITIES = {
     "build_a_tree_sha256": (
         "980ce48e11fd278a8c73394816bb7c12a9387a049dbc2c788b3987da662456a2"
@@ -146,6 +154,77 @@ SUPERSEDED_FORMAL_IDENTITIES = {
         "a40c436510af3dce943cc20e44cb6fc017f80f1e0adaac94e1942c2f26656c37"
     ),
 }
+FAILED_V3_DISPATCH = {
+    "schema_version": "skhynix_stage_h0b_dispatch_v3",
+    "artifact_count": 78,
+    "classification": "research_package",
+    "exit_criterion_count": 7,
+    "matrix_sha256": (
+        "541c386abb136ba0dba0bc9aff0152f1f5133d8a1b34321595bdc9bdad54995d"
+    ),
+    "negative_mutation_count": 65,
+    "publication_remediation_plan_path": (
+        "docs/"
+        "skhynix_stage_h0b_publication_portability_remediation_plan_v3_"
+        "20260824.md"
+    ),
+    "publication_remediation_plan_sha256": (
+        "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+    ),
+    "publication_remediation_review_path": (
+        ".workflow/reports/0823T002-plan-v3-review.md"
+    ),
+    "publication_remediation_review_sha256": (
+        "5b82e11cd53df1713215539f4ba6783fd3f9c9e2415922390bf26914d0b61fdd"
+    ),
+    "runtime_source_tree_sha256": (
+        "20e59b23fbc7c4cf5513c66e7120fd0ed67b2013eb3772cbe759d004392f07c9"
+    ),
+    "surface_count": 61,
+    "task_id": "0823T002",
+    "task_sha256": (
+        "44632149779360b6347064a306d1d82f907641d6a37d72b465c5e4d70ee1a843"
+    ),
+    "verified": True,
+}
+FAILED_V3_FORMAL_IDENTITIES = {
+    "build_a_tree_sha256": (
+        "e6613fb1e309f86ec531883b283e95c97de2c4ac95a8e44b8468d197b66d78c3"
+    ),
+    "build_b_tree_sha256": (
+        "8469b25c26644eeabd98b6816e9ad0ae151e053d6f2abb9129f47b8f094732c6"
+    ),
+    "package_tree_sha256": (
+        "37b3684ef5654235c4f2547c55795d588df7db6618dbac33735f019c6fc6f211"
+    ),
+    "package_manifest_sha256": (
+        "b5f5d03f71b35e170454d9bfa4561a6f76ab1b8807ed87b9a4a55de30b98b51f"
+    ),
+    "primary_seal_sha256": (
+        "be8b2d4556c232b96b2a28f327210c0ed0930b7bdc776b09e7e791ad0cdcc801"
+    ),
+    "primary_results_sha256": (
+        "c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e"
+    ),
+    "primary_classification_sha256": (
+        "96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878"
+    ),
+    "stage4_crosscheck_sha256": (
+        "5e277c73f2a67678962a793d466baead3f5d4e54ca0d838c5967b442aef500e2"
+    ),
+    "research_data_identity": (
+        "cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4"
+    ),
+    "runtime_contract_identity": (
+        "833b1a883a92930ba7f267b55807add1238ebabd57b8dd2144065bb1cf2b070e"
+    ),
+    "publication_envelope_identity": (
+        "f116ff0141685637f7ba0f2046c1fa566be9ea9e0aa61391b7106b2245272813"
+    ),
+    "composite_package_identity": (
+        "45f6edfe2465ea038e3954632ece3936d70438deccabda19fdd315f8945350db"
+    ),
+}
 PRIMARY_PLAN_SHA256 = (
     "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
 )
@@ -159,7 +238,7 @@ DIAGNOSTIC_REVIEW_SHA256 = (
     "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d"
 )
 PUBLICATION_REMEDIATION_PLAN_SHA256 = (
-    "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+    "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
 )
 PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
     "skhynix_stage_h0b_v3_independent_review_v1"
@@ -217,7 +296,7 @@ SOURCE_INVENTORY_CONTRACT_SHA256 = (
     "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "541c386abb136ba0dba0bc9aff0152f1f5133d8a1b34321595bdc9bdad54995d"
+    "fb7206e3b0c15c23ed3a2575d65f2ba36c4f491c7e1c36b9f83c13ab0a45a011"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -8311,6 +8390,247 @@ def validate_superseded_formal_archive(
     return receipt
 
 
+def failed_v3_formal_archive_entries() -> tuple[dict[str, Any], ...]:
+    return (
+        {
+            "entry_id": "build_a",
+            "source_path": FORMAL_BUILD_A,
+            "archive_relative_path": "build-a",
+            "entry_type": "directory",
+            "sha256": FAILED_V3_FORMAL_IDENTITIES[
+                "build_a_tree_sha256"
+            ],
+        },
+        {
+            "entry_id": "build_b",
+            "source_path": FORMAL_BUILD_B,
+            "archive_relative_path": "build-b",
+            "entry_type": "directory",
+            "sha256": FAILED_V3_FORMAL_IDENTITIES[
+                "build_b_tree_sha256"
+            ],
+        },
+        {
+            "entry_id": "package",
+            "source_path": DEFAULT_PACKAGE,
+            "archive_relative_path": "package",
+            "entry_type": "directory",
+            "sha256": FAILED_V3_FORMAL_IDENTITIES[
+                "package_tree_sha256"
+            ],
+        },
+    )
+
+
+def validate_failed_v3_formal_identity(
+    *,
+    build_a: Path,
+    build_b: Path,
+    package: Path,
+) -> None:
+    contracts.validate_exact_package_tree(package)
+    observed = {
+        "build_a_tree_sha256": regular_tree_inventory_sha256(build_a),
+        "build_b_tree_sha256": regular_tree_inventory_sha256(build_b),
+        "package_tree_sha256": regular_tree_inventory_sha256(package),
+        "package_manifest_sha256": contracts.sha256_file(
+            Path(package) / contracts.MANIFEST_FILE
+        ),
+        "primary_seal_sha256": contracts.sha256_file(
+            Path(build_a) / "primary_result_seal.json"
+        ),
+        "primary_results_sha256": primary_results_identity(build_a),
+        "primary_classification_sha256": contracts.sha256_file(
+            Path(build_a) / "primary_classification.json"
+        ),
+        "stage4_crosscheck_sha256": contracts.sha256_file(
+            Path(build_a) / "diagnostics/stage4_landmark_crosscheck.csv"
+        ),
+    }
+    manifest = read_json(Path(package) / contracts.MANIFEST_FILE)
+    for key in (
+        "research_data_identity",
+        "runtime_contract_identity",
+        "publication_envelope_identity",
+        "composite_package_identity",
+    ):
+        observed[key] = manifest[key]
+    for key, value in observed.items():
+        contracts.require(
+            value == FAILED_V3_FORMAL_IDENTITIES[key],
+            "H0B_BUILD_MISMATCH",
+            f"$.failed_v3_formal.{key}",
+            f"expected={FAILED_V3_FORMAL_IDENTITIES[key]} observed={value}",
+        )
+    contracts.require(
+        contracts.sha256_file(
+            Path(build_b) / "primary_result_seal.json"
+        )
+        == FAILED_V3_FORMAL_IDENTITIES["primary_seal_sha256"]
+        and primary_results_identity(build_b)
+        == FAILED_V3_FORMAL_IDENTITIES["primary_results_sha256"]
+        and contracts.sha256_file(
+            Path(build_b) / "primary_classification.json"
+        )
+        == FAILED_V3_FORMAL_IDENTITIES[
+            "primary_classification_sha256"
+        ]
+        and contracts.sha256_file(
+            Path(build_b) / "diagnostics/stage4_landmark_crosscheck.csv"
+        )
+        == FAILED_V3_FORMAL_IDENTITIES["stage4_crosscheck_sha256"],
+        "H0B_BUILD_MISMATCH",
+        "$.failed_v3_formal.build_b",
+        "failed V3 Build B scientific identities differ",
+    )
+    bindings = read_json(Path(build_a) / "accepted_input_bindings.json")
+    contracts.require(
+        bindings.get("task_sha256") == FAILED_V3_DISPATCH["task_sha256"]
+        and bindings.get("publication_remediation_plan_sha256")
+        == FAILED_V3_DISPATCH["publication_remediation_plan_sha256"]
+        and bindings.get("publication_remediation_review_sha256")
+        == FAILED_V3_DISPATCH["publication_remediation_review_sha256"]
+        and bindings.get("surface_matrix_sha256")
+        == FAILED_V3_DISPATCH["matrix_sha256"],
+        "H0B_BUILD_MISMATCH",
+        "$.failed_v3_formal.accepted_input_bindings",
+        "failed V3 dispatch identity mismatch",
+    )
+
+
+def failed_v3_formal_archive_receipt(
+    retirement_dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": "skhynix_stage_h0b_failed_formal_archive_v1",
+        "task_id": contracts.TASK_ID,
+        "status": "failed_closed_external_receipt_exactness",
+        "failure_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+        "failure_location": "$.build_receipt.stage4_permit_build_a",
+        "archive_method": "resumable_os_replace_no_delete",
+        "archive_root": FAILED_V3_FORMAL_ARCHIVE.relative_to(
+            REPO_ROOT
+        ).as_posix(),
+        "failed_dispatch": dict(FAILED_V3_DISPATCH),
+        "retirement_dispatch": dict(retirement_dispatch),
+        "entries": [
+            {
+                "entry_id": entry["entry_id"],
+                "source_path": Path(entry["source_path"]).relative_to(
+                    REPO_ROOT
+                ).as_posix(),
+                "archive_relative_path": entry[
+                    "archive_relative_path"
+                ],
+                "entry_type": entry["entry_type"],
+                "sha256": entry["sha256"],
+            }
+            for entry in failed_v3_formal_archive_entries()
+        ],
+        "failed_identities": dict(FAILED_V3_FORMAL_IDENTITIES),
+        "formal_build_receipt_written": False,
+        "package_admission_verified": True,
+        "canonical_paths_released": True,
+    }
+
+
+def validate_failed_v3_formal_archive(
+    *,
+    expected_retirement_dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    root = FAILED_V3_FORMAL_ARCHIVE
+    receipt_path = root / "archive_receipt.json"
+    receipt = read_json(receipt_path)
+    contracts.require(
+        receipt
+        == failed_v3_formal_archive_receipt(
+            expected_retirement_dispatch
+        ),
+        "H0B_BUILD_MISMATCH",
+        str(receipt_path),
+        "failed V3 formal archive receipt or retirement dispatch mismatch",
+    )
+    validate_failed_v3_formal_identity(
+        build_a=root / "build-a",
+        build_b=root / "build-b",
+        package=root / "package",
+    )
+    return receipt
+
+
+def retire_failed_v3_formal(
+    *,
+    task_path: Path,
+    matrix_path: Path,
+) -> dict[str, Any]:
+    dispatch = validate_dispatch(task_path, matrix_path)
+    validate_superseded_formal_archive(
+        expected_dispatch=FAILED_V3_DISPATCH
+    )
+    if FAILED_V3_FORMAL_ARCHIVE.exists():
+        return validate_failed_v3_formal_archive(
+            expected_retirement_dispatch=dispatch
+        )
+    contracts.require(
+        not FORMAL_BUILD_RECEIPT.exists(),
+        "H0B_BUILD_MISMATCH",
+        str(FORMAL_BUILD_RECEIPT),
+        "failed V3 attempt must not have a formal build receipt",
+    )
+    staging = FAILED_V3_FORMAL_ARCHIVE_STAGING
+    contracts.require(
+        not staging.is_symlink()
+        and (not staging.exists() or staging.is_dir()),
+        "H0B_BUILD_MISMATCH",
+        str(staging),
+        "failed archive staging path must be absent or a real directory",
+    )
+    staging.mkdir(parents=True, exist_ok=True)
+    for entry in failed_v3_formal_archive_entries():
+        source = Path(entry["source_path"])
+        destination = staging / entry["archive_relative_path"]
+        contracts.require(
+            not (source.exists() and destination.exists())
+            and (source.exists() or destination.exists()),
+            "H0B_BUILD_MISMATCH",
+            str(source),
+            "failed archive entry must exist at one lifecycle location",
+        )
+        current = source if source.exists() else destination
+        contracts.require(
+            archived_entry_sha256(current, entry["entry_type"])
+            == entry["sha256"],
+            "H0B_BUILD_MISMATCH",
+            str(current),
+            "failed V3 archive entry identity mismatch",
+        )
+        if source.exists():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(source, destination)
+            contracts.fsync_directory(destination.parent)
+    validate_failed_v3_formal_identity(
+        build_a=staging / "build-a",
+        build_b=staging / "build-b",
+        package=staging / "package",
+    )
+    receipt = failed_v3_formal_archive_receipt(dispatch)
+    write_json(staging / "archive_receipt.json", receipt, fsync=True)
+    for path in sorted(staging.rglob("*"), reverse=True):
+        if path.is_file():
+            contracts.fsync_file(path)
+    for path in sorted(
+        [item for item in staging.rglob("*") if item.is_dir()],
+        reverse=True,
+    ):
+        contracts.fsync_directory(path)
+    contracts.fsync_directory(staging)
+    os.replace(staging, FAILED_V3_FORMAL_ARCHIVE)
+    contracts.fsync_directory(FAILED_V3_FORMAL_ARCHIVE.parent)
+    return validate_failed_v3_formal_archive(
+        expected_retirement_dispatch=dispatch
+    )
+
+
 def retire_superseded_formal(
     *,
     task_path: Path,
@@ -8319,7 +8639,7 @@ def retire_superseded_formal(
     dispatch = validate_dispatch(task_path, matrix_path)
     if SUPERSEDED_FORMAL_ARCHIVE.exists():
         return validate_superseded_formal_archive(
-            expected_dispatch=dispatch
+            expected_dispatch=FAILED_V3_DISPATCH
         )
     staging = SUPERSEDED_FORMAL_ARCHIVE_STAGING
     contracts.require(
@@ -9446,7 +9766,10 @@ def build_formal(
         "formal rebuild must use the exact canonical task paths",
     )
     validate_superseded_formal_archive(
-        expected_dispatch=gate0["dispatch"]
+        expected_dispatch=FAILED_V3_DISPATCH
+    )
+    validate_failed_v3_formal_archive(
+        expected_retirement_dispatch=gate0["dispatch"]
     )
     contracts.require(
         not Path(output).exists()
@@ -9534,6 +9857,12 @@ def build_formal(
             build_a / "primary_result_seal.json"
         ),
     )
+    durable_diagnostic_permit_a = read_json(
+        Path(build_a) / "stage4_diagnostic_permit.json"
+    )
+    durable_diagnostic_permit_b = read_json(
+        Path(build_b) / "stage4_diagnostic_permit.json"
+    )
     diagnostic_a = run_subprocess(
         [
             sys.executable,
@@ -9588,8 +9917,8 @@ def build_formal(
         ),
         "build_envelopes_distinct": True,
         "primary_result_seal": seal,
-        "stage4_permit_build_a": diagnostic_permit_a,
-        "stage4_permit_build_b": diagnostic_permit_b,
+        "stage4_permit_build_a": durable_diagnostic_permit_a,
+        "stage4_permit_build_b": durable_diagnostic_permit_b,
         "stage4_build_a": diagnostic_a,
         "stage4_build_b": diagnostic_b,
         "runtime_evidence_build_a": runtime_evidence_summary(
@@ -9633,6 +9962,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     retire = subparsers.add_parser("retire-superseded")
     retire.add_argument("--task", type=Path, required=True)
     retire.add_argument("--matrix", type=Path, required=True)
+
+    retire_failed = subparsers.add_parser("retire-failed-v3")
+    retire_failed.add_argument("--task", type=Path, required=True)
+    retire_failed.add_argument("--matrix", type=Path, required=True)
 
     negative = subparsers.add_parser("negative-case")
     negative.add_argument("--surface", required=True)
@@ -9689,6 +10022,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         elif args.command == "retire-superseded":
             result = retire_superseded_formal(
+                task_path=args.task,
+                matrix_path=args.matrix,
+            )
+        elif args.command == "retire-failed-v3":
+            result = retire_failed_v3_formal(
                 task_path=args.task,
                 matrix_path=args.matrix,
             )

@@ -13,7 +13,7 @@
     {
       "applicability": "required",
       "criterion_id": "EC3",
-      "planned_evidence": "All 61 current and frozen negative mutations reject with exact stable codes."
+      "planned_evidence": "All 65 current and frozen negative mutations reject with exact stable codes."
     },
     {
       "applicability": "required",
@@ -157,7 +157,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -764,7 +764,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -997,7 +997,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -1239,7 +1239,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -3846,7 +3846,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -3943,7 +3943,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4180,7 +4180,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4283,7 +4283,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4322,7 +4322,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact V1/V2 research schemas, V3 publication permit/ledger schemas, and canonical external build-receipt v2 dual-binding schema; every nested seal, Stage 4, package and admission object equals durable or independently recomputed evidence"
+        "value_contract": "exact V1/V2 research schemas, V3 publication permit/ledger schemas, and canonical external build-receipt v2 dual-binding schema; every nested seal, complete durable Stage 4 permit/receipt, package and admission object equals durable or independently recomputed evidence; a four-field diagnostic-permit CLI summary is not a durable permit"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -4334,7 +4334,7 @@
           "target": "output_schema"
         },
         {
-          "description": "break raw-runtime to publication permit/ledger dual binding in the external receipt",
+          "description": "break raw-runtime/publication dual binding or substitute a diagnostic-permit CLI summary for a complete durable permit in the external receipt",
           "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
           "mutation_id": "mutate_external_receipt_binding",
           "operation": "other_explicit",
@@ -4401,7 +4401,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4492,7 +4492,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4583,7 +4583,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4655,6 +4655,11 @@
           "entry_type": "regular_file",
           "path": ".workflow/reports/0823T002-qa-round1-rejected-formal/archive_receipt.json",
           "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-v3-receipt-schema-failed-formal/archive_receipt.json",
+          "required": true
         }
       ],
       "authoritative_sources": [
@@ -4679,7 +4684,7 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+            "value": "ed28a2b04011bc159f918b9016d9dbf68514648d0895ef80dead3c872901f320"
           },
           "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
           "source_id": "reviewed_h0b_publication_remediation_plan_v3",
@@ -4718,7 +4723,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "identity-bound resumable no-delete retirement of the rejected Round 1 canonical paths, followed by no-overwrite validation of raw runtime evidence and deterministic publication projections, fsync tree, then rename"
+        "value_contract": "identity-bound resumable no-delete retirement of both the rejected Round 1 canonical paths and the 2026-08-24 fail-closed V3 receipt-schema attempt, followed by no-overwrite validation of raw runtime evidence and deterministic publication projections, fsync tree, then rename"
       },
       "identity_layer": "E",
       "negative_mutations": [
