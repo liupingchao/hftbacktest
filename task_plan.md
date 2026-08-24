@@ -1,6 +1,6 @@
 # Task Plan
 
-## 2026-08-24 Stage H0-B V4 Round 6 Semantic Oracle Repair
+## 2026-08-24 Stage H0-B V4 Round 6 QA Handoff
 
 - Preserve Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and rejected
   independent review `848af128` at `P0/P1/P2/P3=0/1/0/0`.
@@ -13,8 +13,10 @@
   rows plus `7 current + 7 frozen` semantic-probe rows with zero fail-open.
 - Round 6 candidate `180572c6`, receipt `a394c7f2` and independent review
   `2a87677f` are frozen and accepted at `P0/P1/P2/P3=0/0/0/0`.
-- Run accepted-pin production hostile/Gate 0/zero-write evidence before any
-  transition receipt or QA Round 2 handoff.
+- Exact workflow transition receipt `fcb39e10...739e` moves the mutable task
+  state to `待验收` while preserving formal authority `71adbfa6`.
+- Replay production hostile/Gate 0/zero-write evidence against the final task
+  bytes, then dispatch independent QA Round 2.
 - Continue to prohibit outcome, diagnostic, H0B0 and formal-build commands.
 
 ## 2026-08-24 Stage H0-B V4 Round 5 Candidate Ready

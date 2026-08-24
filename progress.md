@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-24 H0-B V4 Round 6 Semantic Repair In Progress
+## 2026-08-24 H0-B V4 Round 6 Accepted, Transition In Progress
 
 - Exact Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and independent
   rejection `848af128` are frozen. Severity is
@@ -19,8 +19,11 @@
 - Round 6 candidate `180572c6`, receipt `a394c7f2` and independent accepted
   review `2a87677f` are frozen. Final severity is
   `P0/P1/P2/P3=0/0/0/0`.
-- Task remains `执行中`; production hostile/Gate 0/zero-write evidence and
-  workflow transition are the remaining pre-QA steps.
+- Exact workflow transition receipt `fcb39e10...739e` binds immutable formal
+  authority `71adbfa6`, the accepted Round 6 candidate/review and unchanged
+  package identities. Task status is now `待验收`.
+- Production hostile/Gate 0/zero-write evidence must be replayed once more
+  against the final task bytes before QA Round 2 is dispatched.
 - No outcome, diagnostic, H0B0 or formal-build command was run. The existing
   42-file package and all research identities remain unchanged.
 

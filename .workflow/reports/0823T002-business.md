@@ -7,15 +7,16 @@
 - 0823T002
 
 状态：
-- 执行中
+- 待验收
 
 是否进行QA验收：
-- 否
+- 是
 
 QA说明：
-- QA Round 2 尚未开始。V4 Round 6 candidate `180572c6` 已由独立
-  review 以 `P0/P1/P2/P3=0/0/0/0` 接受。当前仍为 `执行中`，
-  workflow transition receipt 尚未签发。
+- V4 Round 6 candidate `180572c6` 已由独立 review 以
+  `P0/P1/P2/P3=0/0/0/0` 接受。controller 已签发 exact workflow
+  transition receipt `fcb39e10...739e`，任务迁移到 `待验收`；最终状态
+  hostile/Gate 0 重放完成后派发 QA Round 2。
 
 files：
 - `.workflow/contracts/0823T002-hostile-target-contract.json`
@@ -170,10 +171,10 @@ done：
   并核对上述 identities。
 
 blockers：
-- 仍需在 accepted review pins 下运行 production hostile preflight、
-  composed Gate 0 和 package zero-write verify。
-- 上述控制证据通过前，workflow transition receipt 不得签发，QA
-  Round 2 不得开始。
+- 仍需在 `待验收` task bytes 和 exact transition receipt 下重放
+  production hostile preflight、composed Gate 0 和 package zero-write
+  verify。
+- 上述最终状态控制证据通过前，不得把 QA Round 2 表述为已开始。
 
 commit：
 - `71adbfa678ff3646982160d220f5c223e0f7e59f`

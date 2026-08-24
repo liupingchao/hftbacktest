@@ -1,0 +1,19 @@
+{
+  "schema_version": "skhynix_stage_h0b_workflow_transition_receipt_v1",
+  "task_id": "0823T002",
+  "from_status": "执行中",
+  "to_status": "待验收",
+  "execution_authority_commit": "71adbfa678ff3646982160d220f5c223e0f7e59f",
+  "execution_authority_tree_oid": "4c15ab4f613178e1e9468db600885f091244aadc",
+  "execution_authority_task_sha256": "84333cf0b4915ef413b709f0a43db88fb9796d87b97ecfd24decea6ea32f1661",
+  "formal_evidence_commit": "71adbfa678ff3646982160d220f5c223e0f7e59f",
+  "package_manifest_sha256": "a27d4ea36b1424e01b427c634133638b89c25f1ea1c293f31fd0a888eeef8824",
+  "research_data_identity": "cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4",
+  "runtime_contract_identity": "f9868b4a658e3cfac64af9849d9459b104e762ce0a78e3767b05a199608ce46e",
+  "publication_envelope_identity": "ddfcec05e49598e175687f14729bf61549e699d939db07a3c3617eb92aa23ea5",
+  "composite_package_identity": "a196f3e743e8281c3cc5f82c4e30c57dc10af7b0c91e88ff16194065f10f7e05",
+  "control_candidate_receipt_sha256": "246d4dfd3caca72b1db9cdff2070bd3fafcd41a8531cc1da4c8ce30c6a0df659",
+  "control_review_attestation_sha256": "d98d11b7aa5ea4bb29c0f01a738601d8f1b27f842516eb024bede8a8080e0771",
+  "controller_actor_id": "codex-main-controller",
+  "outcome_rerun": false
+}
