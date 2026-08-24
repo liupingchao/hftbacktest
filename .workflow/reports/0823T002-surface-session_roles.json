@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_SESSION_ROLE_MISMATCH",
+      "current_error_location": "$.session_roles",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_SESSION_ROLE_MISMATCH",
+      "expected_error_location": "$.session_roles",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_SESSION_ROLE_MISMATCH",
+      "frozen_error_location": "$.session_roles",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_session_roles"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "session_roles",
   "task_id": "0823T002"

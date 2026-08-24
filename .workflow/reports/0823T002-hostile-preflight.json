@@ -1,25 +1,92 @@
 {
-  "current_negative_mutation_count": 65,
+  "current_negative_mutation_count": 89,
   "dispatch": {
-    "artifact_count": 79,
+    "artifact_count": 99,
     "classification": "research_package",
+    "control_candidate_commit": "180572c669b4d1259eb26b9d268fa6335c0780a1",
+    "control_candidate_receipt_sha256": "246d4dfd3caca72b1db9cdff2070bd3fafcd41a8531cc1da4c8ce30c6a0df659",
+    "control_remediation_plan_path": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
+    "control_remediation_plan_sha256": "c1d78dbdd00adf34a06973dd8e7d4b5e759c5ad1b07bd2f4a2618d0e909658a7",
+    "control_remediation_review_path": ".workflow/reports/0823T002-plan-v4-review.md",
+    "control_remediation_review_sha256": "d98d11b7aa5ea4bb29c0f01a738601d8f1b27f842516eb024bede8a8080e0771",
+    "control_review_commit": "2a87677f3079f0565a573245606dde825ea732cd",
+    "execution_authority": {
+      "artifact_count": 79,
+      "commit": "71adbfa678ff3646982160d220f5c223e0f7e59f",
+      "exit_criterion_count": 7,
+      "matrix_path": ".workflow/contracts/0823T002-surface-matrix.json",
+      "matrix_sha256": "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df",
+      "negative_mutation_count": 65,
+      "publication_remediation_plan_path": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+      "publication_remediation_plan_sha256": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20",
+      "publication_remediation_review_path": ".workflow/reports/0823T002-plan-v3-review.md",
+      "publication_remediation_review_sha256": "115f592c5cc0406cea8f1b83ce7753c3dad00151acd9b7dcfcbd9f41abe47459",
+      "runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
+      "schema_version": "skhynix_stage_h0b_execution_authority_v1",
+      "surface_count": 61,
+      "task_id": "0823T002",
+      "task_path": ".workflow/tasks/0823T002.md",
+      "task_sha256": "84333cf0b4915ef413b709f0a43db88fb9796d87b97ecfd24decea6ea32f1661",
+      "tree_oid": "4c15ab4f613178e1e9468db600885f091244aadc"
+    },
     "exit_criterion_count": 7,
-    "matrix_sha256": "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df",
-    "negative_mutation_count": 65,
+    "hostile_target_contract_sha256": "67e1977b6d29a07f86e6542eb5c2a8a8fc70fc4e42fc1f296213c123f2e6ba72",
+    "matrix_sha256": "8255d49917eaf0abedc62f74ef9609dfc1ccac9fea4e98abbcc764445ccee25d",
+    "negative_mutation_count": 89,
     "publication_remediation_plan_path": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
     "publication_remediation_plan_sha256": "e2535ea0d66fbcfcd45d0c0132f5774f372e6a865aa125bcd8d0062f19eead20",
     "publication_remediation_review_path": ".workflow/reports/0823T002-plan-v3-review.md",
     "publication_remediation_review_sha256": "115f592c5cc0406cea8f1b83ce7753c3dad00151acd9b7dcfcbd9f41abe47459",
-    "runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
-    "schema_version": "skhynix_stage_h0b_dispatch_v3",
-    "surface_count": 61,
+    "reviewer_actor_id": "codex-independent-reviewer-0823T002-v4-round6-180572c6",
+    "runtime_source_tree_sha256": "800fb6380a5117139ccde27f1b1212f0e624ff2ea7fe2565861be6cd5bc54a1d",
+    "schema_version": "skhynix_stage_h0b_dispatch_v4",
+    "surface_count": 65,
     "task_id": "0823T002",
-    "task_sha256": "84333cf0b4915ef413b709f0a43db88fb9796d87b97ecfd24decea6ea32f1661",
-    "verified": true
+    "task_sha256": "d5eb16ac2c3b934e8b170869b1893a6f095aeb97f3b891e286196b50aa6644ae",
+    "verified": true,
+    "workflow_status": "\u6267\u884c\u4e2d",
+    "workflow_transition_receipt_sha256": null
   },
   "fail_open_count": 0,
-  "frozen_negative_mutation_count": 65,
-  "frozen_runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
+  "frozen_negative_mutation_count": 89,
+  "frozen_runtime_source_tree_sha256": "800fb6380a5117139ccde27f1b1212f0e624ff2ea7fe2565861be6cd5bc54a1d",
+  "frozen_semantic_probe_contract": [
+    {
+      "expected_semantic_probe": "interval_bounds_rounded_to_grid",
+      "mutation_id": "mutate_interval_likelihood",
+      "semantic_probe": "interval_bounds_rounded_to_grid"
+    },
+    {
+      "expected_semantic_probe": "horizon_straddle_row_dropped",
+      "mutation_id": "mutate_horizon_straddle",
+      "semantic_probe": "horizon_straddle_row_dropped"
+    },
+    {
+      "expected_semantic_probe": "design_indicator_reordered_or_dropped",
+      "mutation_id": "mutate_design_matrix",
+      "semantic_probe": "design_indicator_reordered_or_dropped"
+    },
+    {
+      "expected_semantic_probe": "missing_value_test_fold_median",
+      "mutation_id": "mutate_missing_value_policy",
+      "semantic_probe": "missing_value_test_fold_median"
+    },
+    {
+      "expected_semantic_probe": "walk_forward_random_split",
+      "mutation_id": "mutate_walk_forward",
+      "semantic_probe": "walk_forward_random_split"
+    },
+    {
+      "expected_semantic_probe": "quantile_rng_convention_changed",
+      "mutation_id": "mutate_numeric_seed_conventions",
+      "semantic_probe": "quantile_rng_convention_changed"
+    },
+    {
+      "expected_semantic_probe": "km_censor_first_or_interpolated",
+      "mutation_id": "mutate_rq3_km_ties",
+      "semantic_probe": "km_censor_first_or_interpolated"
+    }
+  ],
   "frozen_surface_contract": [
     {
       "error_code": "H0B_KERNEL_PIN_MISMATCH",
@@ -345,12 +412,616 @@
       "error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
       "expected_error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
       "mutation_id": "mutate_zero_external_action"
+    },
+    {
+      "error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "mutation_id": "mutate_execution_authority_task"
+    },
+    {
+      "error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "mutation_id": "mutate_execution_authority_commit"
+    },
+    {
+      "error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "mutation_id": "mutate_execution_authority_package_object"
+    },
+    {
+      "error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "mutation_id": "mutate_frozen_git_object_store"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempt_reuse"
+    },
+    {
+      "error_code": "PUBLICATION_STAGING_EXISTS",
+      "expected_error_code": "PUBLICATION_STAGING_EXISTS",
+      "mutation_id": "mutate_formal_staging_reuse"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempt_missing_receipt"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_partial_hard_stop_recovery"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_torn_receipt"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempts_root_escape"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_bootstrap_recovery"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_subcommand_without_attempt"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempts_parent_fsync"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_concurrent_claim"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_bootstrap_receipt_cross_binding"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempts_root_symlink"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempts_parent_symlink"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_same_actor"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_candidate_commit"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_post_introduction_rewrite"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_receipt_chronology"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_commit_scope"
+    },
+    {
+      "error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "expected_error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "mutation_id": "mutate_workflow_transition_identity"
+    },
+    {
+      "error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "expected_error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "mutation_id": "mutate_workflow_status_without_transition"
+    }
+  ],
+  "frozen_target_contract": [
+    {
+      "error_location": "$.production_contract.kernel_pin",
+      "expected_error_location": "$.production_contract.kernel_pin",
+      "mutation_id": "mutate_kernel_pin"
+    },
+    {
+      "error_location": "$.production_contract.master_framework_pin",
+      "expected_error_location": "$.production_contract.master_framework_pin",
+      "mutation_id": "mutate_master_framework_pin"
+    },
+    {
+      "error_location": "$REPO_ROOT/local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/h0a_manifest.json",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/h0a_manifest.json",
+      "mutation_id": "mutate_accepted_h0a_binding"
+    },
+    {
+      "error_location": "$REPO_ROOT/local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/measurement_manifest.json",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/measurement_manifest.json",
+      "mutation_id": "mutate_accepted_latency_binding"
+    },
+    {
+      "error_location": "$REPO_ROOT/local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "mutation_id": "mutate_accepted_tuple_binding"
+    },
+    {
+      "error_location": "$.production_contract.accepted_stage1_4_binding",
+      "expected_error_location": "$.production_contract.accepted_stage1_4_binding",
+      "mutation_id": "mutate_accepted_stage1_4_binding"
+    },
+    {
+      "error_location": "$.session_roles",
+      "expected_error_location": "$.session_roles",
+      "mutation_id": "mutate_session_roles"
+    },
+    {
+      "error_location": "$.underlying_state_boundary",
+      "expected_error_location": "$.underlying_state_boundary",
+      "mutation_id": "mutate_underlying_state_boundary"
+    },
+    {
+      "error_location": "$.production_contract.semantic_source_inventory",
+      "expected_error_location": "$.production_contract.semantic_source_inventory",
+      "mutation_id": "mutate_semantic_source_inventory"
+    },
+    {
+      "error_location": "$.production_contract.build_envelope",
+      "expected_error_location": "$.production_contract.build_envelope",
+      "mutation_id": "mutate_build_envelope"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "expected_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "mutation_id": "mutate_source_schema"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "expected_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "mutation_id": "mutate_source_ordering"
+    },
+    {
+      "error_location": "$.publication_projection.ledger.A",
+      "expected_error_location": "$.publication_projection.ledger.A",
+      "mutation_id": "mutate_guarded_opener"
+    },
+    {
+      "error_location": "local_live_analysis/alignment/decision_labels.csv",
+      "expected_error_location": "local_live_analysis/alignment/decision_labels.csv",
+      "mutation_id": "mutate_feature_source_boundary"
+    },
+    {
+      "error_location": "$.production_contract.two_envelope_boundary",
+      "expected_error_location": "$.production_contract.two_envelope_boundary",
+      "mutation_id": "mutate_two_envelope_boundary"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/outcome_access_permit.json",
+      "expected_error_location": "$HOSTILE_TEMP/outcome_access_permit.json",
+      "mutation_id": "mutate_outcome_access_permit"
+    },
+    {
+      "error_location": "$.publication_projection.permit.A",
+      "expected_error_location": "$.publication_projection.permit.A",
+      "mutation_id": "mutate_packaged_runtime_source"
+    },
+    {
+      "error_location": "$.expected_runtime_source_tree_sha256",
+      "expected_error_location": "$.expected_runtime_source_tree_sha256",
+      "mutation_id": "mutate_runtime_source_external_oracle"
+    },
+    {
+      "error_location": "$.production_contract.support_replay",
+      "expected_error_location": "$.production_contract.support_replay",
+      "mutation_id": "mutate_support_replay"
+    },
+    {
+      "error_location": "$.production_contract.calendar_grid",
+      "expected_error_location": "$.production_contract.calendar_grid",
+      "mutation_id": "mutate_calendar_grid"
+    },
+    {
+      "error_location": "$.production_contract.side_expansion",
+      "expected_error_location": "$.production_contract.side_expansion",
+      "mutation_id": "mutate_side_expansion"
+    },
+    {
+      "error_location": "$.production_contract.event_definition",
+      "expected_error_location": "$.production_contract.event_definition",
+      "mutation_id": "mutate_event_definition"
+    },
+    {
+      "error_location": "$.production_contract.support_class_mapping",
+      "expected_error_location": "$.production_contract.support_class_mapping",
+      "mutation_id": "mutate_support_class_mapping"
+    },
+    {
+      "error_location": "$.production_contract.observation_bounds",
+      "expected_error_location": "$.production_contract.observation_bounds",
+      "mutation_id": "mutate_observation_bounds"
+    },
+    {
+      "error_location": "$.semantic_probe.interval_likelihood.rounded_bounds",
+      "expected_error_location": "$.semantic_probe.interval_likelihood.rounded_bounds",
+      "mutation_id": "mutate_interval_likelihood"
+    },
+    {
+      "error_location": "$.production_contract.right_censor_likelihood",
+      "expected_error_location": "$.production_contract.right_censor_likelihood",
+      "mutation_id": "mutate_right_censor_likelihood"
+    },
+    {
+      "error_location": "$.semantic_probe.horizon_straddle.dropped_row",
+      "expected_error_location": "$.semantic_probe.horizon_straddle.dropped_row",
+      "mutation_id": "mutate_horizon_straddle"
+    },
+    {
+      "error_location": "$.production_contract.risk_score",
+      "expected_error_location": "$.production_contract.risk_score",
+      "mutation_id": "mutate_risk_score"
+    },
+    {
+      "error_location": "$.production_contract.binary_subset",
+      "expected_error_location": "$.production_contract.binary_subset",
+      "mutation_id": "mutate_binary_subset"
+    },
+    {
+      "error_location": "$.h0_features",
+      "expected_error_location": "$.h0_features",
+      "mutation_id": "mutate_h0_features"
+    },
+    {
+      "error_location": "$.h1_features",
+      "expected_error_location": "$.h1_features",
+      "mutation_id": "mutate_h1_features"
+    },
+    {
+      "error_location": "$.semantic_probe.design_matrix.dropped_indicator",
+      "expected_error_location": "$.semantic_probe.design_matrix.dropped_indicator",
+      "mutation_id": "mutate_design_matrix"
+    },
+    {
+      "error_location": "$.production_contract.basis_residual",
+      "expected_error_location": "$.production_contract.basis_residual",
+      "mutation_id": "mutate_basis_residual"
+    },
+    {
+      "error_location": "$.semantic_probe.missing_value_policy.test_fold_median",
+      "expected_error_location": "$.semantic_probe.missing_value_policy.test_fold_median",
+      "mutation_id": "mutate_missing_value_policy"
+    },
+    {
+      "error_location": "$.production_contract.dose_definition",
+      "expected_error_location": "$.production_contract.dose_definition",
+      "mutation_id": "mutate_dose_definition"
+    },
+    {
+      "error_location": "$.semantic_probe.walk_forward.random_split",
+      "expected_error_location": "$.semantic_probe.walk_forward.random_split",
+      "mutation_id": "mutate_walk_forward"
+    },
+    {
+      "error_location": "$.production_contract.estimator",
+      "expected_error_location": "$.production_contract.estimator",
+      "mutation_id": "mutate_estimator"
+    },
+    {
+      "error_location": "$.semantic_probe.numeric_seed_conventions.changed_quantile_rng",
+      "expected_error_location": "$.semantic_probe.numeric_seed_conventions.changed_quantile_rng",
+      "mutation_id": "mutate_numeric_seed_conventions"
+    },
+    {
+      "error_location": "$.production_contract.rq1_statistic",
+      "expected_error_location": "$.production_contract.rq1_statistic",
+      "mutation_id": "mutate_rq1_statistic"
+    },
+    {
+      "error_location": "$.production_contract.rq1_stationary_null",
+      "expected_error_location": "$.production_contract.rq1_stationary_null",
+      "mutation_id": "mutate_rq1_stationary_null"
+    },
+    {
+      "error_location": "$.production_contract.rq2_score",
+      "expected_error_location": "$.production_contract.rq2_score",
+      "mutation_id": "mutate_rq2_score"
+    },
+    {
+      "error_location": "$.production_contract.rq2_concentration",
+      "expected_error_location": "$.production_contract.rq2_concentration",
+      "mutation_id": "mutate_rq2_concentration"
+    },
+    {
+      "error_location": "$.production_contract.time_bootstrap",
+      "expected_error_location": "$.production_contract.time_bootstrap",
+      "mutation_id": "mutate_time_bootstrap"
+    },
+    {
+      "error_location": "jul30/segment_0001/b",
+      "expected_error_location": "jul30/segment_0001/b",
+      "mutation_id": "mutate_flow_component_assignment"
+    },
+    {
+      "error_location": "$.production_contract.flow_bootstrap",
+      "expected_error_location": "$.production_contract.flow_bootstrap",
+      "mutation_id": "mutate_flow_bootstrap"
+    },
+    {
+      "error_location": "$.production_contract.rq3_threshold_source",
+      "expected_error_location": "$.production_contract.rq3_threshold_source",
+      "mutation_id": "mutate_rq3_threshold_source"
+    },
+    {
+      "error_location": "$.production_contract.rq3_regime",
+      "expected_error_location": "$.production_contract.rq3_regime",
+      "mutation_id": "mutate_rq3_regime"
+    },
+    {
+      "error_location": "$.semantic_probe.rq3_km_ties.censor_first_interpolate",
+      "expected_error_location": "$.semantic_probe.rq3_km_ties.censor_first_interpolate",
+      "mutation_id": "mutate_rq3_km_ties"
+    },
+    {
+      "error_location": "$.production_contract.rq3_cluster_bootstrap",
+      "expected_error_location": "$.production_contract.rq3_cluster_bootstrap",
+      "mutation_id": "mutate_rq3_cluster_bootstrap"
+    },
+    {
+      "error_location": "$.production_contract.rq3_side_aggregation",
+      "expected_error_location": "$.production_contract.rq3_side_aggregation",
+      "mutation_id": "mutate_rq3_side_aggregation"
+    },
+    {
+      "error_location": "$.latency_roles",
+      "expected_error_location": "$.latency_roles",
+      "mutation_id": "mutate_latency_roles"
+    },
+    {
+      "error_location": "$.formal_session_facts",
+      "expected_error_location": "$.formal_session_facts",
+      "mutation_id": "mutate_classification_precedence"
+    },
+    {
+      "error_location": "$.production_contract.primary_result_seal",
+      "expected_error_location": "$.production_contract.primary_result_seal",
+      "mutation_id": "mutate_primary_result_seal"
+    },
+    {
+      "error_location": "$.landmark_support_class",
+      "expected_error_location": "$.landmark_support_class",
+      "mutation_id": "mutate_stage4_projection"
+    },
+    {
+      "error_location": "$.ledger.A",
+      "expected_error_location": "$.ledger.A",
+      "mutation_id": "mutate_stage4_crosscheck"
+    },
+    {
+      "error_location": "local_live_analysis/aug07/events.csv.gz",
+      "expected_error_location": "local_live_analysis/aug07/events.csv.gz",
+      "mutation_id": "mutate_aug07_nonaccess"
+    },
+    {
+      "error_location": "result.csv",
+      "expected_error_location": "result.csv",
+      "mutation_id": "mutate_deterministic_build"
+    },
+    {
+      "error_location": "outcome_access_permit_build_a.json",
+      "expected_error_location": "outcome_access_permit_build_a.json",
+      "mutation_id": "mutate_complete_package_portability"
+    },
+    {
+      "error_location": "$.csv.row",
+      "expected_error_location": "$.csv.row",
+      "mutation_id": "mutate_output_schema"
+    },
+    {
+      "error_location": "$.build_receipt.runtime_evidence",
+      "expected_error_location": "$.build_receipt.runtime_evidence",
+      "mutation_id": "mutate_external_receipt_binding"
+    },
+    {
+      "error_location": "$.files",
+      "expected_error_location": "$.files",
+      "mutation_id": "mutate_package_tree"
+    },
+    {
+      "error_location": "$.production_contract.layered_identity",
+      "expected_error_location": "$.production_contract.layered_identity",
+      "mutation_id": "mutate_layered_identity"
+    },
+    {
+      "error_location": "$.production_contract.manifest_self_exclusion",
+      "expected_error_location": "$.production_contract.manifest_self_exclusion",
+      "mutation_id": "mutate_manifest_self_exclusion"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/final",
+      "expected_error_location": "$HOSTILE_TEMP/final",
+      "mutation_id": "mutate_atomic_publication"
+    },
+    {
+      "error_location": "$.external_actions",
+      "expected_error_location": "$.external_actions",
+      "mutation_id": "mutate_zero_external_action"
+    },
+    {
+      "error_location": "$.execution_authority.pins",
+      "expected_error_location": "$.execution_authority.pins",
+      "mutation_id": "mutate_execution_authority_task"
+    },
+    {
+      "error_location": "$.execution_authority.pins",
+      "expected_error_location": "$.execution_authority.pins",
+      "mutation_id": "mutate_execution_authority_commit"
+    },
+    {
+      "error_location": "rq1_block_rates.csv",
+      "expected_error_location": "rq1_block_rates.csv",
+      "mutation_id": "mutate_execution_authority_package_object"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/.git",
+      "expected_error_location": "$HOSTILE_TEMP/.git",
+      "mutation_id": "mutate_frozen_git_object_store"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "mutation_id": "mutate_formal_attempt_reuse"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "mutation_id": "mutate_formal_staging_reuse"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/missing-attempt/attempt_receipt.json",
+      "expected_error_location": "$HOSTILE_TEMP/missing-attempt/attempt_receipt.json",
+      "mutation_id": "mutate_formal_attempt_missing_receipt"
+    },
+    {
+      "error_location": "$.formal_attempt.completed_entry_identities",
+      "expected_error_location": "$.formal_attempt.completed_entry_identities",
+      "mutation_id": "mutate_formal_partial_hard_stop_recovery"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/torn-receipt/attempt_receipt.json",
+      "expected_error_location": "$HOSTILE_TEMP/torn-receipt/attempt_receipt.json",
+      "mutation_id": "mutate_formal_torn_receipt"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "mutation_id": "mutate_formal_attempts_root_escape"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/bootstrap-crash/attempt_bootstrap.json",
+      "expected_error_location": "$HOSTILE_TEMP/bootstrap-crash/attempt_bootstrap.json",
+      "mutation_id": "mutate_formal_bootstrap_recovery"
+    },
+    {
+      "error_location": "$.formal_subcommand.outcome",
+      "expected_error_location": "$.formal_subcommand.outcome",
+      "mutation_id": "mutate_formal_subcommand_without_attempt"
+    },
+    {
+      "error_location": "$.formal_attempts_root",
+      "expected_error_location": "$.formal_attempts_root",
+      "mutation_id": "mutate_formal_attempts_parent_fsync"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/.duplicate.bootstrap.json",
+      "expected_error_location": "$HOSTILE_TEMP/.duplicate.bootstrap.json",
+      "mutation_id": "mutate_formal_concurrent_claim"
+    },
+    {
+      "error_location": "$.formal_attempt.bootstrap_binding",
+      "expected_error_location": "$.formal_attempt.bootstrap_binding",
+      "mutation_id": "mutate_formal_bootstrap_receipt_cross_binding"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/attempts",
+      "expected_error_location": "$HOSTILE_TEMP/attempts",
+      "mutation_id": "mutate_formal_attempts_root_symlink"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/linked-parent",
+      "expected_error_location": "$HOSTILE_TEMP/linked-parent",
+      "mutation_id": "mutate_formal_attempts_parent_symlink"
+    },
+    {
+      "error_location": "$.review.actors",
+      "expected_error_location": "$.review.actors",
+      "mutation_id": "mutate_review_same_actor"
+    },
+    {
+      "error_location": "$.review.candidate_commit",
+      "expected_error_location": "$.review.candidate_commit",
+      "mutation_id": "mutate_review_candidate_commit"
+    },
+    {
+      "error_location": "$.review.introduction_blob",
+      "expected_error_location": "$.review.introduction_blob",
+      "mutation_id": "mutate_review_post_introduction_rewrite"
+    },
+    {
+      "error_location": "$.review.commit_chain",
+      "expected_error_location": "$.review.commit_chain",
+      "mutation_id": "mutate_review_receipt_chronology"
+    },
+    {
+      "error_location": "$.review.commit_scope",
+      "expected_error_location": "$.review.commit_scope",
+      "mutation_id": "mutate_review_commit_scope"
+    },
+    {
+      "error_location": "$.workflow_transition",
+      "expected_error_location": "$.workflow_transition",
+      "mutation_id": "mutate_workflow_transition_identity"
+    },
+    {
+      "error_location": "$.workflow_transition.state",
+      "expected_error_location": "$.workflow_transition.state",
+      "mutation_id": "mutate_workflow_status_without_transition"
     }
   ],
   "network_private_order_cancel_live_access": false,
   "outcome_predicate_evaluated": false,
-  "runtime_source_tree_sha256": "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66",
-  "schema_version": "skhynix_stage_h0b_hostile_preflight_v2",
+  "runtime_source_tree_sha256": "800fb6380a5117139ccde27f1b1212f0e624ff2ea7fe2565861be6cd5bc54a1d",
+  "schema_version": "skhynix_stage_h0b_hostile_preflight_v4",
+  "semantic_probe_contract": [
+    {
+      "expected_semantic_probe": "interval_bounds_rounded_to_grid",
+      "mutation_id": "mutate_interval_likelihood",
+      "semantic_probe": "interval_bounds_rounded_to_grid"
+    },
+    {
+      "expected_semantic_probe": "horizon_straddle_row_dropped",
+      "mutation_id": "mutate_horizon_straddle",
+      "semantic_probe": "horizon_straddle_row_dropped"
+    },
+    {
+      "expected_semantic_probe": "design_indicator_reordered_or_dropped",
+      "mutation_id": "mutate_design_matrix",
+      "semantic_probe": "design_indicator_reordered_or_dropped"
+    },
+    {
+      "expected_semantic_probe": "missing_value_test_fold_median",
+      "mutation_id": "mutate_missing_value_policy",
+      "semantic_probe": "missing_value_test_fold_median"
+    },
+    {
+      "expected_semantic_probe": "walk_forward_random_split",
+      "mutation_id": "mutate_walk_forward",
+      "semantic_probe": "walk_forward_random_split"
+    },
+    {
+      "expected_semantic_probe": "quantile_rng_convention_changed",
+      "mutation_id": "mutate_numeric_seed_conventions",
+      "semantic_probe": "quantile_rng_convention_changed"
+    },
+    {
+      "expected_semantic_probe": "km_censor_first_or_interpolated",
+      "mutation_id": "mutate_rq3_km_ties",
+      "semantic_probe": "km_censor_first_or_interpolated"
+    }
+  ],
   "stage4_bytes_opened": false,
   "surface_contract": [
     {
@@ -677,6 +1348,573 @@
       "error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
       "expected_error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
       "mutation_id": "mutate_zero_external_action"
+    },
+    {
+      "error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "mutation_id": "mutate_execution_authority_task"
+    },
+    {
+      "error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "mutation_id": "mutate_execution_authority_commit"
+    },
+    {
+      "error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "mutation_id": "mutate_execution_authority_package_object"
+    },
+    {
+      "error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "mutation_id": "mutate_frozen_git_object_store"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempt_reuse"
+    },
+    {
+      "error_code": "PUBLICATION_STAGING_EXISTS",
+      "expected_error_code": "PUBLICATION_STAGING_EXISTS",
+      "mutation_id": "mutate_formal_staging_reuse"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempt_missing_receipt"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_partial_hard_stop_recovery"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_torn_receipt"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempts_root_escape"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_bootstrap_recovery"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_subcommand_without_attempt"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempts_parent_fsync"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_concurrent_claim"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_bootstrap_receipt_cross_binding"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempts_root_symlink"
+    },
+    {
+      "error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+      "mutation_id": "mutate_formal_attempts_parent_symlink"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_same_actor"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_candidate_commit"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_post_introduction_rewrite"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_receipt_chronology"
+    },
+    {
+      "error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "mutation_id": "mutate_review_commit_scope"
+    },
+    {
+      "error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "expected_error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "mutation_id": "mutate_workflow_transition_identity"
+    },
+    {
+      "error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "expected_error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+      "mutation_id": "mutate_workflow_status_without_transition"
+    }
+  ],
+  "target_contract": [
+    {
+      "error_location": "$.production_contract.kernel_pin",
+      "expected_error_location": "$.production_contract.kernel_pin",
+      "mutation_id": "mutate_kernel_pin"
+    },
+    {
+      "error_location": "$.production_contract.master_framework_pin",
+      "expected_error_location": "$.production_contract.master_framework_pin",
+      "mutation_id": "mutate_master_framework_pin"
+    },
+    {
+      "error_location": "$REPO_ROOT/local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/h0a_manifest.json",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/h0a_manifest.json",
+      "mutation_id": "mutate_accepted_h0a_binding"
+    },
+    {
+      "error_location": "$REPO_ROOT/local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/measurement_manifest.json",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/measurement_manifest.json",
+      "mutation_id": "mutate_accepted_latency_binding"
+    },
+    {
+      "error_location": "$REPO_ROOT/local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "mutation_id": "mutate_accepted_tuple_binding"
+    },
+    {
+      "error_location": "$.production_contract.accepted_stage1_4_binding",
+      "expected_error_location": "$.production_contract.accepted_stage1_4_binding",
+      "mutation_id": "mutate_accepted_stage1_4_binding"
+    },
+    {
+      "error_location": "$.session_roles",
+      "expected_error_location": "$.session_roles",
+      "mutation_id": "mutate_session_roles"
+    },
+    {
+      "error_location": "$.underlying_state_boundary",
+      "expected_error_location": "$.underlying_state_boundary",
+      "mutation_id": "mutate_underlying_state_boundary"
+    },
+    {
+      "error_location": "$.production_contract.semantic_source_inventory",
+      "expected_error_location": "$.production_contract.semantic_source_inventory",
+      "mutation_id": "mutate_semantic_source_inventory"
+    },
+    {
+      "error_location": "$.production_contract.build_envelope",
+      "expected_error_location": "$.production_contract.build_envelope",
+      "mutation_id": "mutate_build_envelope"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "expected_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "mutation_id": "mutate_source_schema"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "expected_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "mutation_id": "mutate_source_ordering"
+    },
+    {
+      "error_location": "$.publication_projection.ledger.A",
+      "expected_error_location": "$.publication_projection.ledger.A",
+      "mutation_id": "mutate_guarded_opener"
+    },
+    {
+      "error_location": "local_live_analysis/alignment/decision_labels.csv",
+      "expected_error_location": "local_live_analysis/alignment/decision_labels.csv",
+      "mutation_id": "mutate_feature_source_boundary"
+    },
+    {
+      "error_location": "$.production_contract.two_envelope_boundary",
+      "expected_error_location": "$.production_contract.two_envelope_boundary",
+      "mutation_id": "mutate_two_envelope_boundary"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/outcome_access_permit.json",
+      "expected_error_location": "$HOSTILE_TEMP/outcome_access_permit.json",
+      "mutation_id": "mutate_outcome_access_permit"
+    },
+    {
+      "error_location": "$.publication_projection.permit.A",
+      "expected_error_location": "$.publication_projection.permit.A",
+      "mutation_id": "mutate_packaged_runtime_source"
+    },
+    {
+      "error_location": "$.expected_runtime_source_tree_sha256",
+      "expected_error_location": "$.expected_runtime_source_tree_sha256",
+      "mutation_id": "mutate_runtime_source_external_oracle"
+    },
+    {
+      "error_location": "$.production_contract.support_replay",
+      "expected_error_location": "$.production_contract.support_replay",
+      "mutation_id": "mutate_support_replay"
+    },
+    {
+      "error_location": "$.production_contract.calendar_grid",
+      "expected_error_location": "$.production_contract.calendar_grid",
+      "mutation_id": "mutate_calendar_grid"
+    },
+    {
+      "error_location": "$.production_contract.side_expansion",
+      "expected_error_location": "$.production_contract.side_expansion",
+      "mutation_id": "mutate_side_expansion"
+    },
+    {
+      "error_location": "$.production_contract.event_definition",
+      "expected_error_location": "$.production_contract.event_definition",
+      "mutation_id": "mutate_event_definition"
+    },
+    {
+      "error_location": "$.production_contract.support_class_mapping",
+      "expected_error_location": "$.production_contract.support_class_mapping",
+      "mutation_id": "mutate_support_class_mapping"
+    },
+    {
+      "error_location": "$.production_contract.observation_bounds",
+      "expected_error_location": "$.production_contract.observation_bounds",
+      "mutation_id": "mutate_observation_bounds"
+    },
+    {
+      "error_location": "$.semantic_probe.interval_likelihood.rounded_bounds",
+      "expected_error_location": "$.semantic_probe.interval_likelihood.rounded_bounds",
+      "mutation_id": "mutate_interval_likelihood"
+    },
+    {
+      "error_location": "$.production_contract.right_censor_likelihood",
+      "expected_error_location": "$.production_contract.right_censor_likelihood",
+      "mutation_id": "mutate_right_censor_likelihood"
+    },
+    {
+      "error_location": "$.semantic_probe.horizon_straddle.dropped_row",
+      "expected_error_location": "$.semantic_probe.horizon_straddle.dropped_row",
+      "mutation_id": "mutate_horizon_straddle"
+    },
+    {
+      "error_location": "$.production_contract.risk_score",
+      "expected_error_location": "$.production_contract.risk_score",
+      "mutation_id": "mutate_risk_score"
+    },
+    {
+      "error_location": "$.production_contract.binary_subset",
+      "expected_error_location": "$.production_contract.binary_subset",
+      "mutation_id": "mutate_binary_subset"
+    },
+    {
+      "error_location": "$.h0_features",
+      "expected_error_location": "$.h0_features",
+      "mutation_id": "mutate_h0_features"
+    },
+    {
+      "error_location": "$.h1_features",
+      "expected_error_location": "$.h1_features",
+      "mutation_id": "mutate_h1_features"
+    },
+    {
+      "error_location": "$.semantic_probe.design_matrix.dropped_indicator",
+      "expected_error_location": "$.semantic_probe.design_matrix.dropped_indicator",
+      "mutation_id": "mutate_design_matrix"
+    },
+    {
+      "error_location": "$.production_contract.basis_residual",
+      "expected_error_location": "$.production_contract.basis_residual",
+      "mutation_id": "mutate_basis_residual"
+    },
+    {
+      "error_location": "$.semantic_probe.missing_value_policy.test_fold_median",
+      "expected_error_location": "$.semantic_probe.missing_value_policy.test_fold_median",
+      "mutation_id": "mutate_missing_value_policy"
+    },
+    {
+      "error_location": "$.production_contract.dose_definition",
+      "expected_error_location": "$.production_contract.dose_definition",
+      "mutation_id": "mutate_dose_definition"
+    },
+    {
+      "error_location": "$.semantic_probe.walk_forward.random_split",
+      "expected_error_location": "$.semantic_probe.walk_forward.random_split",
+      "mutation_id": "mutate_walk_forward"
+    },
+    {
+      "error_location": "$.production_contract.estimator",
+      "expected_error_location": "$.production_contract.estimator",
+      "mutation_id": "mutate_estimator"
+    },
+    {
+      "error_location": "$.semantic_probe.numeric_seed_conventions.changed_quantile_rng",
+      "expected_error_location": "$.semantic_probe.numeric_seed_conventions.changed_quantile_rng",
+      "mutation_id": "mutate_numeric_seed_conventions"
+    },
+    {
+      "error_location": "$.production_contract.rq1_statistic",
+      "expected_error_location": "$.production_contract.rq1_statistic",
+      "mutation_id": "mutate_rq1_statistic"
+    },
+    {
+      "error_location": "$.production_contract.rq1_stationary_null",
+      "expected_error_location": "$.production_contract.rq1_stationary_null",
+      "mutation_id": "mutate_rq1_stationary_null"
+    },
+    {
+      "error_location": "$.production_contract.rq2_score",
+      "expected_error_location": "$.production_contract.rq2_score",
+      "mutation_id": "mutate_rq2_score"
+    },
+    {
+      "error_location": "$.production_contract.rq2_concentration",
+      "expected_error_location": "$.production_contract.rq2_concentration",
+      "mutation_id": "mutate_rq2_concentration"
+    },
+    {
+      "error_location": "$.production_contract.time_bootstrap",
+      "expected_error_location": "$.production_contract.time_bootstrap",
+      "mutation_id": "mutate_time_bootstrap"
+    },
+    {
+      "error_location": "jul30/segment_0001/b",
+      "expected_error_location": "jul30/segment_0001/b",
+      "mutation_id": "mutate_flow_component_assignment"
+    },
+    {
+      "error_location": "$.production_contract.flow_bootstrap",
+      "expected_error_location": "$.production_contract.flow_bootstrap",
+      "mutation_id": "mutate_flow_bootstrap"
+    },
+    {
+      "error_location": "$.production_contract.rq3_threshold_source",
+      "expected_error_location": "$.production_contract.rq3_threshold_source",
+      "mutation_id": "mutate_rq3_threshold_source"
+    },
+    {
+      "error_location": "$.production_contract.rq3_regime",
+      "expected_error_location": "$.production_contract.rq3_regime",
+      "mutation_id": "mutate_rq3_regime"
+    },
+    {
+      "error_location": "$.semantic_probe.rq3_km_ties.censor_first_interpolate",
+      "expected_error_location": "$.semantic_probe.rq3_km_ties.censor_first_interpolate",
+      "mutation_id": "mutate_rq3_km_ties"
+    },
+    {
+      "error_location": "$.production_contract.rq3_cluster_bootstrap",
+      "expected_error_location": "$.production_contract.rq3_cluster_bootstrap",
+      "mutation_id": "mutate_rq3_cluster_bootstrap"
+    },
+    {
+      "error_location": "$.production_contract.rq3_side_aggregation",
+      "expected_error_location": "$.production_contract.rq3_side_aggregation",
+      "mutation_id": "mutate_rq3_side_aggregation"
+    },
+    {
+      "error_location": "$.latency_roles",
+      "expected_error_location": "$.latency_roles",
+      "mutation_id": "mutate_latency_roles"
+    },
+    {
+      "error_location": "$.formal_session_facts",
+      "expected_error_location": "$.formal_session_facts",
+      "mutation_id": "mutate_classification_precedence"
+    },
+    {
+      "error_location": "$.production_contract.primary_result_seal",
+      "expected_error_location": "$.production_contract.primary_result_seal",
+      "mutation_id": "mutate_primary_result_seal"
+    },
+    {
+      "error_location": "$.landmark_support_class",
+      "expected_error_location": "$.landmark_support_class",
+      "mutation_id": "mutate_stage4_projection"
+    },
+    {
+      "error_location": "$.ledger.A",
+      "expected_error_location": "$.ledger.A",
+      "mutation_id": "mutate_stage4_crosscheck"
+    },
+    {
+      "error_location": "local_live_analysis/aug07/events.csv.gz",
+      "expected_error_location": "local_live_analysis/aug07/events.csv.gz",
+      "mutation_id": "mutate_aug07_nonaccess"
+    },
+    {
+      "error_location": "result.csv",
+      "expected_error_location": "result.csv",
+      "mutation_id": "mutate_deterministic_build"
+    },
+    {
+      "error_location": "outcome_access_permit_build_a.json",
+      "expected_error_location": "outcome_access_permit_build_a.json",
+      "mutation_id": "mutate_complete_package_portability"
+    },
+    {
+      "error_location": "$.csv.row",
+      "expected_error_location": "$.csv.row",
+      "mutation_id": "mutate_output_schema"
+    },
+    {
+      "error_location": "$.build_receipt.runtime_evidence",
+      "expected_error_location": "$.build_receipt.runtime_evidence",
+      "mutation_id": "mutate_external_receipt_binding"
+    },
+    {
+      "error_location": "$.files",
+      "expected_error_location": "$.files",
+      "mutation_id": "mutate_package_tree"
+    },
+    {
+      "error_location": "$.production_contract.layered_identity",
+      "expected_error_location": "$.production_contract.layered_identity",
+      "mutation_id": "mutate_layered_identity"
+    },
+    {
+      "error_location": "$.production_contract.manifest_self_exclusion",
+      "expected_error_location": "$.production_contract.manifest_self_exclusion",
+      "mutation_id": "mutate_manifest_self_exclusion"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/final",
+      "expected_error_location": "$HOSTILE_TEMP/final",
+      "mutation_id": "mutate_atomic_publication"
+    },
+    {
+      "error_location": "$.external_actions",
+      "expected_error_location": "$.external_actions",
+      "mutation_id": "mutate_zero_external_action"
+    },
+    {
+      "error_location": "$.execution_authority.pins",
+      "expected_error_location": "$.execution_authority.pins",
+      "mutation_id": "mutate_execution_authority_task"
+    },
+    {
+      "error_location": "$.execution_authority.pins",
+      "expected_error_location": "$.execution_authority.pins",
+      "mutation_id": "mutate_execution_authority_commit"
+    },
+    {
+      "error_location": "rq1_block_rates.csv",
+      "expected_error_location": "rq1_block_rates.csv",
+      "mutation_id": "mutate_execution_authority_package_object"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/.git",
+      "expected_error_location": "$HOSTILE_TEMP/.git",
+      "mutation_id": "mutate_frozen_git_object_store"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "mutation_id": "mutate_formal_attempt_reuse"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "mutation_id": "mutate_formal_staging_reuse"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/missing-attempt/attempt_receipt.json",
+      "expected_error_location": "$HOSTILE_TEMP/missing-attempt/attempt_receipt.json",
+      "mutation_id": "mutate_formal_attempt_missing_receipt"
+    },
+    {
+      "error_location": "$.formal_attempt.completed_entry_identities",
+      "expected_error_location": "$.formal_attempt.completed_entry_identities",
+      "mutation_id": "mutate_formal_partial_hard_stop_recovery"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/torn-receipt/attempt_receipt.json",
+      "expected_error_location": "$HOSTILE_TEMP/torn-receipt/attempt_receipt.json",
+      "mutation_id": "mutate_formal_torn_receipt"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP",
+      "expected_error_location": "$HOSTILE_TEMP",
+      "mutation_id": "mutate_formal_attempts_root_escape"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/bootstrap-crash/attempt_bootstrap.json",
+      "expected_error_location": "$HOSTILE_TEMP/bootstrap-crash/attempt_bootstrap.json",
+      "mutation_id": "mutate_formal_bootstrap_recovery"
+    },
+    {
+      "error_location": "$.formal_subcommand.outcome",
+      "expected_error_location": "$.formal_subcommand.outcome",
+      "mutation_id": "mutate_formal_subcommand_without_attempt"
+    },
+    {
+      "error_location": "$.formal_attempts_root",
+      "expected_error_location": "$.formal_attempts_root",
+      "mutation_id": "mutate_formal_attempts_parent_fsync"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/.duplicate.bootstrap.json",
+      "expected_error_location": "$HOSTILE_TEMP/.duplicate.bootstrap.json",
+      "mutation_id": "mutate_formal_concurrent_claim"
+    },
+    {
+      "error_location": "$.formal_attempt.bootstrap_binding",
+      "expected_error_location": "$.formal_attempt.bootstrap_binding",
+      "mutation_id": "mutate_formal_bootstrap_receipt_cross_binding"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/attempts",
+      "expected_error_location": "$HOSTILE_TEMP/attempts",
+      "mutation_id": "mutate_formal_attempts_root_symlink"
+    },
+    {
+      "error_location": "$HOSTILE_TEMP/linked-parent",
+      "expected_error_location": "$HOSTILE_TEMP/linked-parent",
+      "mutation_id": "mutate_formal_attempts_parent_symlink"
+    },
+    {
+      "error_location": "$.review.actors",
+      "expected_error_location": "$.review.actors",
+      "mutation_id": "mutate_review_same_actor"
+    },
+    {
+      "error_location": "$.review.candidate_commit",
+      "expected_error_location": "$.review.candidate_commit",
+      "mutation_id": "mutate_review_candidate_commit"
+    },
+    {
+      "error_location": "$.review.introduction_blob",
+      "expected_error_location": "$.review.introduction_blob",
+      "mutation_id": "mutate_review_post_introduction_rewrite"
+    },
+    {
+      "error_location": "$.review.commit_chain",
+      "expected_error_location": "$.review.commit_chain",
+      "mutation_id": "mutate_review_receipt_chronology"
+    },
+    {
+      "error_location": "$.review.commit_scope",
+      "expected_error_location": "$.review.commit_scope",
+      "mutation_id": "mutate_review_commit_scope"
+    },
+    {
+      "error_location": "$.workflow_transition",
+      "expected_error_location": "$.workflow_transition",
+      "mutation_id": "mutate_workflow_transition_identity"
+    },
+    {
+      "error_location": "$.workflow_transition.state",
+      "expected_error_location": "$.workflow_transition.state",
+      "mutation_id": "mutate_workflow_status_without_transition"
     }
   ],
   "task_id": "0823T002"

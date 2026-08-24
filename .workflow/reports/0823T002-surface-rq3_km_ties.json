@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_RQ3_KM_MISMATCH",
+      "current_error_location": "$.semantic_probe.rq3_km_ties.censor_first_interpolate",
+      "current_semantic_probe": "km_censor_first_or_interpolated",
       "expected_error_code": "H0B_RQ3_KM_MISMATCH",
+      "expected_error_location": "$.semantic_probe.rq3_km_ties.censor_first_interpolate",
+      "expected_semantic_probe": "km_censor_first_or_interpolated",
       "frozen_error_code": "H0B_RQ3_KM_MISMATCH",
+      "frozen_error_location": "$.semantic_probe.rq3_km_ties.censor_first_interpolate",
+      "frozen_semantic_probe": "km_censor_first_or_interpolated",
       "mutation_id": "mutate_rq3_km_ties"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "rq3_km_ties",
   "task_id": "0823T002"

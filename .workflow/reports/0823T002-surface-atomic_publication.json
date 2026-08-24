@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "PUBLICATION_FINAL_EXISTS",
+      "current_error_location": "$HOSTILE_TEMP/final",
+      "current_semantic_probe": null,
       "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "expected_error_location": "$HOSTILE_TEMP/final",
+      "expected_semantic_probe": null,
       "frozen_error_code": "PUBLICATION_FINAL_EXISTS",
+      "frozen_error_location": "$HOSTILE_TEMP/final",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_atomic_publication"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "atomic_publication",
   "task_id": "0823T002"

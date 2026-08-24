@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+      "current_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+      "frozen_error_location": "$HOSTILE_TEMP/mutated.csv.gz",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_source_ordering"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "source_ordering",
   "task_id": "0823T002"

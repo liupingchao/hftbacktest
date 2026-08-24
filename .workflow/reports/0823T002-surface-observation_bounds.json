@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+      "current_error_location": "$.production_contract.observation_bounds",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+      "expected_error_location": "$.production_contract.observation_bounds",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+      "frozen_error_location": "$.production_contract.observation_bounds",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_observation_bounds"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "observation_bounds",
   "task_id": "0823T002"

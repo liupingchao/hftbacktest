@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "current_error_location": "$REPO_ROOT/local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "expected_error_location": "$REPO_ROOT/local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "frozen_error_location": "$REPO_ROOT/local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_accepted_tuple_binding"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "accepted_tuple_binding",
   "task_id": "0823T002"

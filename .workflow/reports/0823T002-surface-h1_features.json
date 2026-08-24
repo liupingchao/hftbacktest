@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+      "current_error_location": "$.h1_features",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+      "expected_error_location": "$.h1_features",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+      "frozen_error_location": "$.h1_features",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_h1_features"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "h1_features",
   "task_id": "0823T002"

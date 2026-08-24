@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+      "current_error_location": "$.production_contract.rq3_threshold_source",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+      "expected_error_location": "$.production_contract.rq3_threshold_source",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+      "frozen_error_location": "$.production_contract.rq3_threshold_source",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_rq3_threshold_source"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "rq3_threshold_source",
   "task_id": "0823T002"

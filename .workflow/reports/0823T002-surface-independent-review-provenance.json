@@ -1,0 +1,70 @@
+{
+  "current_and_frozen_rejected": true,
+  "mutations": [
+    {
+      "current_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "current_error_location": "$.review.actors",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.actors",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "frozen_error_location": "$.review.actors",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_review_same_actor"
+    },
+    {
+      "current_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "current_error_location": "$.review.candidate_commit",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.candidate_commit",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "frozen_error_location": "$.review.candidate_commit",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_review_candidate_commit"
+    },
+    {
+      "current_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "current_error_location": "$.review.introduction_blob",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.introduction_blob",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "frozen_error_location": "$.review.introduction_blob",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_review_post_introduction_rewrite"
+    },
+    {
+      "current_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "current_error_location": "$.review.commit_chain",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.commit_chain",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "frozen_error_location": "$.review.commit_chain",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_review_receipt_chronology"
+    },
+    {
+      "current_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "current_error_location": "$.review.commit_scope",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "expected_error_location": "$.review.commit_scope",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+      "frozen_error_location": "$.review.commit_scope",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_review_commit_scope"
+    }
+  ],
+  "outcome_predicate_evaluated": false,
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
+  "stage4_bytes_opened": false,
+  "surface_id": "independent_review_provenance",
+  "task_id": "0823T002"
+}

@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_BINARY_SUBSET_MISMATCH",
+      "current_error_location": "$.production_contract.binary_subset",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_BINARY_SUBSET_MISMATCH",
+      "expected_error_location": "$.production_contract.binary_subset",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_BINARY_SUBSET_MISMATCH",
+      "frozen_error_location": "$.production_contract.binary_subset",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_binary_subset"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "binary_subset",
   "task_id": "0823T002"

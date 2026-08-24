@@ -1,0 +1,58 @@
+{
+  "current_and_frozen_rejected": true,
+  "mutations": [
+    {
+      "current_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "current_error_location": "$.execution_authority.pins",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_location": "$.execution_authority.pins",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "frozen_error_location": "$.execution_authority.pins",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_execution_authority_task"
+    },
+    {
+      "current_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "current_error_location": "$.execution_authority.pins",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_location": "$.execution_authority.pins",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "frozen_error_location": "$.execution_authority.pins",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_execution_authority_commit"
+    },
+    {
+      "current_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "current_error_location": "rq1_block_rates.csv",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_location": "rq1_block_rates.csv",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "frozen_error_location": "rq1_block_rates.csv",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_execution_authority_package_object"
+    },
+    {
+      "current_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "current_error_location": "$HOSTILE_TEMP/.git",
+      "current_semantic_probe": null,
+      "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "expected_error_location": "$HOSTILE_TEMP/.git",
+      "expected_semantic_probe": null,
+      "frozen_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+      "frozen_error_location": "$HOSTILE_TEMP/.git",
+      "frozen_semantic_probe": null,
+      "mutation_id": "mutate_frozen_git_object_store"
+    }
+  ],
+  "outcome_predicate_evaluated": false,
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
+  "stage4_bytes_opened": false,
+  "surface_id": "execution_authority",
+  "task_id": "0823T002"
+}

@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_SIDE_PAIR_MISMATCH",
+      "current_error_location": "$.production_contract.side_expansion",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_SIDE_PAIR_MISMATCH",
+      "expected_error_location": "$.production_contract.side_expansion",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_SIDE_PAIR_MISMATCH",
+      "frozen_error_location": "$.production_contract.side_expansion",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_side_expansion"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "side_expansion",
   "task_id": "0823T002"

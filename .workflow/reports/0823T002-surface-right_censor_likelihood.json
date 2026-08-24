@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+      "current_error_location": "$.production_contract.right_censor_likelihood",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+      "expected_error_location": "$.production_contract.right_censor_likelihood",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+      "frozen_error_location": "$.production_contract.right_censor_likelihood",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_right_censor_likelihood"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "right_censor_likelihood",
   "task_id": "0823T002"

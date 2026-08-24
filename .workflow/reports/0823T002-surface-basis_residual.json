@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+      "current_error_location": "$.production_contract.basis_residual",
+      "current_semantic_probe": null,
       "expected_error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+      "expected_error_location": "$.production_contract.basis_residual",
+      "expected_semantic_probe": null,
       "frozen_error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+      "frozen_error_location": "$.production_contract.basis_residual",
+      "frozen_semantic_probe": null,
       "mutation_id": "mutate_basis_residual"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "basis_residual",
   "task_id": "0823T002"

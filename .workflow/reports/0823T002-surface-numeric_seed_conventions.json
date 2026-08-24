@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+      "current_error_location": "$.semantic_probe.numeric_seed_conventions.changed_quantile_rng",
+      "current_semantic_probe": "quantile_rng_convention_changed",
       "expected_error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+      "expected_error_location": "$.semantic_probe.numeric_seed_conventions.changed_quantile_rng",
+      "expected_semantic_probe": "quantile_rng_convention_changed",
       "frozen_error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+      "frozen_error_location": "$.semantic_probe.numeric_seed_conventions.changed_quantile_rng",
+      "frozen_semantic_probe": "quantile_rng_convention_changed",
       "mutation_id": "mutate_numeric_seed_conventions"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "numeric_seed_conventions",
   "task_id": "0823T002"

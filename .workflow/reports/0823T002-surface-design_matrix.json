@@ -3,13 +3,19 @@
   "mutations": [
     {
       "current_error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+      "current_error_location": "$.semantic_probe.design_matrix.dropped_indicator",
+      "current_semantic_probe": "design_indicator_reordered_or_dropped",
       "expected_error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+      "expected_error_location": "$.semantic_probe.design_matrix.dropped_indicator",
+      "expected_semantic_probe": "design_indicator_reordered_or_dropped",
       "frozen_error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+      "frozen_error_location": "$.semantic_probe.design_matrix.dropped_indicator",
+      "frozen_semantic_probe": "design_indicator_reordered_or_dropped",
       "mutation_id": "mutate_design_matrix"
     }
   ],
   "outcome_predicate_evaluated": false,
-  "schema_version": "skhynix_stage_h0b_surface_evidence_v2",
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v4",
   "stage4_bytes_opened": false,
   "surface_id": "design_matrix",
   "task_id": "0823T002"
