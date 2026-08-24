@@ -1,0 +1,18 @@
+# 0823T002 V4 Round 4 Independent Review
+
+- schema_version=skhynix_stage_h0b_v4_independent_review_v1
+- task_id=0823T002
+- reviewer_role=independent_read_only
+- reviewer_actor_id=codex-independent-reviewer-0823T002-v4-round4-4df43f92
+- controller_actor_id=codex-main-controller
+- candidate_commit=4df43f92e5a814f48cc0ab805f5205e9d23062e9
+- candidate_tree_oid=ef959a59b5abf28a2a003072415cdb56bd81a20a
+- candidate_receipt_commit=c522cb35d13b7a9581f5c733f27233c2c7d7cfc3
+- candidate_receipt_sha256=facf84e08f39361dea8ed7e9b3a175366c8f9e7d3c1aca2e72781b3e89581869
+- reviewed_plan_sha256=eb382f0a9c7c3f5c90bcd7b79ac0dd508df6354482139794dc76423f83a83998
+- reviewed_surface_matrix_sha256=2e5f90a71925f5d53d8c4fc3f4aa398f66fd224c4504649ab8fbe0876ac1cfab
+- reviewed_runtime_source_tree_sha256=228e0f7552ca2b494503f2f92164d0b40ebc178a8b18990c9986b6610c426600
+- review_submission_sha256=85acafe7d89ee0a5c338c6bdb154c756bc7773d51ffec8dad1923d607676ca6e
+- final_severity=P0/P1/P2/P3=0/1/0/0
+- disposition=REJECTED
+- formal_build=NO-GO
