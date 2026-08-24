@@ -7,13 +7,16 @@
 - 0823T002
 
 状态：
-- 待验收
+- 执行中
 
 是否进行QA验收：
-- 是
+- 否
 
 QA说明：
-- 无
+- QA Round 2 尚未开始。2026-08-24 post-handoff review 为
+  `P0/P1/P2/P3=0/2/1/0`；必须先完成 immutable execution authority、
+  durable formal attempt/recovery 和 reviewer provenance 修复及独立
+  review，再重新交接。
 
 files：
 - `.workflow/contracts/0823T002-surface-matrix.json`
@@ -99,7 +102,12 @@ done：
   并核对上述 identities。
 
 blockers：
-- 无
+- 当前 package 仍绑定 formal commit `71adbfa6` 的 execution task
+  `84333cf0...`，而 mutable task 已发生正常状态迁移；现有 current-state
+  verifier/Gate 0 因此失效。
+- formal runner 尚无通用 durable attempt/failure/recovery protocol。
+- independent review 尚缺 candidate revision 与 reviewer actor-bound
+  attestation chain。
 
 commit：
 - `71adbfa678ff3646982160d220f5c223e0f7e59f`

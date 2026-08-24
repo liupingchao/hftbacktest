@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-08-24 H0-B QA Round 2 Handoff Withdrawn
+
+- Post-handoff review found `P0/P1/P2/P3=0/2/1/0`; QA Round 2 did not reach
+  an acceptance decision.
+- Normal `执行中 -> 待验收` task mutation invalidates the package and current
+  Gate 0 because both compare immutable execution evidence with mutable task
+  bytes.
+- The runner also lacks a generic durable attempt/failure/recovery protocol,
+  and the review artifact has no candidate-revision or actor-bound issuance
+  proof.
+- Task `0823T002` is restored to `执行中`. Existing formal Build A/B, package
+  and research identities are frozen; no outcome rebuild is authorized.
+
 ## 2026-08-24 H0-B V3 Portable Formal Execution Awaiting QA
 
 - Independent V3 review round 10 closed at
@@ -23,8 +36,8 @@
   data quality and RQ1 but fail RQ2. `6600ms` is the sole primary and `850ms`
   remains diagnostic-only/non-rescue.
 - Formal evidence is frozen at
-  `71adbfa678ff3646982160d220f5c223e0f7e59f`; task status is `待验收`
-  pending fresh-root independent QA.
+  `71adbfa678ff3646982160d220f5c223e0f7e59f`; its initial QA handoff was
+  withdrawn pending the post-handoff governance remediation.
 
 ## 2026-08-24 H0-B QA Round 1 Not Accepted
 

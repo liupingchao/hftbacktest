@@ -1,5 +1,19 @@
 # Task Plan
 
+## 2026-08-24 Stage H0-B QA Round 2 Handoff Withdrawn
+
+- Post-handoff review is frozen at `P0/P1/P2/P3=0/2/1/0`; QA Round 2 did not
+  complete and must not be represented as started or accepted.
+- Keep the existing package bound to formal commit
+  `71adbfa678ff3646982160d220f5c223e0f7e59f` and do not rerun the research
+  outcome.
+- Split immutable execution authority from mutable workflow status using a
+  separately admitted transition receipt.
+- Add a generic durable formal attempt/failure/recovery protocol with
+  no-delete staging and promotion semantics.
+- Bind independent review to a candidate revision receipt and a distinct
+  reviewer actor attestation before a new QA handoff.
+
 ## 2026-08-24 Stage H0-B V3 Portable Formal Build Awaiting QA
 
 - Publication remediation V3 round 10 is independently accepted at
@@ -12,10 +26,8 @@
 - The formal package is admitted as `42 files / 5 directories`,
   `verified=true / zero_write=true`, with R/C/E/composite
   `cfefe6b1... / f9868b4a... / ddfcec05... / a196f3e7...`.
-- `0823T002` is now `待验收`. Independent QA must use a fresh detached work
-  root from the formal evidence commit, rebuild with distinct roots/PIDs and
-  compare the complete production-assembled package tree and layered
-  identities.
+- This handoff was withdrawn after post-handoff review. `0823T002` is back to
+  `执行中`; the formal evidence remains preserved and unchanged.
 
 ## 2026-08-24 Stage H0-B QA Round 1 Failed
 

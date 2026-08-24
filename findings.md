@@ -1,5 +1,19 @@
 # Findings
 
+## 2026-08-24 H0-B Post-Handoff Review Findings
+
+- Severity is `P0/P1/P2/P3=0/2/1/0`; these are governance defects and do not
+  change R, C, E, the classification, the primary seal or Stage 4 aggregates.
+- A mutable workflow task cannot also be the immutable package execution
+  authority. Package admission must bind the formal candidate revision while
+  status changes are represented by a separate transition receipt.
+- Formal execution needs a durable attempt record before any build path is
+  created, a durable failure/interruption state and resumable identity-checked
+  promotion. Recovery cannot depend on another hard-coded retirement command.
+- Reviewer independence needs repository-verifiable candidate/issuance
+  separation and a distinct actor-bound attestation. A role string inside the
+  reviewed file is not sufficient provenance.
+
 ## 2026-08-24 H0-B V3 Portability Remediation Findings
 
 - Historical archive receipts and current execution authority are different
