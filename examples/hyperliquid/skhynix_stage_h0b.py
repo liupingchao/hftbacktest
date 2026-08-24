@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -57,6 +58,23 @@ PUBLICATION_REMEDIATION_PLAN_PATH = (
 )
 PUBLICATION_REMEDIATION_REVIEW_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-plan-v3-review.md"
+)
+CONTROL_REMEDIATION_PLAN_PATH = (
+    REPO_ROOT
+    / "docs/"
+    "skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md"
+)
+CONTROL_CANDIDATE_RECEIPT_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt.json"
+)
+CONTROL_REMEDIATION_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review.md"
+)
+CONTROL_REVIEW_SUBMISSION_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review-submission.md"
+)
+WORKFLOW_TRANSITION_RECEIPT_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-workflow-transition.json"
 )
 SEMANTIC_INVENTORY_PATH = (
     REPO_ROOT
@@ -105,6 +123,9 @@ FORMAL_BUILD_A = REPO_ROOT / ".workflow/reports/0823T002-build-a"
 FORMAL_BUILD_B = REPO_ROOT / ".workflow/reports/0823T002-build-b"
 FORMAL_BUILD_RECEIPT = (
     REPO_ROOT / ".workflow/reports/0823T002-build-receipt.json"
+)
+FORMAL_ATTEMPTS_ROOT = (
+    REPO_ROOT / ".workflow/reports/0823T002-formal-attempts"
 )
 SUPERSEDED_FORMAL_ARCHIVE = (
     REPO_ROOT
@@ -361,6 +382,56 @@ PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
 )
 PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
 PUBLICATION_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
+CONTROL_REMEDIATION_PLAN_SHA256 = (
+    "1a51dcf142734a05e29154c710715cd345c66679ccdab93e7eea44c5de086543"
+)
+CONTROL_CANDIDATE_RECEIPT_SCHEMA = (
+    "skhynix_stage_h0b_v4_candidate_receipt_v1"
+)
+CONTROL_REMEDIATION_REVIEW_SCHEMA = (
+    "skhynix_stage_h0b_v4_independent_review_v1"
+)
+WORKFLOW_TRANSITION_RECEIPT_SCHEMA = (
+    "skhynix_stage_h0b_workflow_transition_receipt_v1"
+)
+FORMAL_ATTEMPT_RECEIPT_SCHEMA = (
+    "skhynix_stage_h0b_formal_attempt_receipt_v1"
+)
+CONTROL_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
+CONTROL_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
+CONTROLLER_ACTOR_ID = "codex-main-controller"
+EXECUTION_AUTHORITY_COMMIT = (
+    "71adbfa678ff3646982160d220f5c223e0f7e59f"
+)
+EXECUTION_AUTHORITY_TREE_SHA256 = (
+    "4c15ab4f613178e1e9468db600885f091244aadc"
+)
+EXECUTION_AUTHORITY_TASK_SHA256 = (
+    "84333cf0b4915ef413b709f0a43db88fb9796d87b97ecfd24decea6ea32f1661"
+)
+EXECUTION_AUTHORITY_MATRIX_SHA256 = (
+    "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df"
+)
+EXECUTION_AUTHORITY_RUNTIME_SHA256 = (
+    "ce52d3050ece7947db1185df672e089f819ff06df946b2b44e9e86c6afd5dd66"
+)
+FORMAL_PACKAGE_MANIFEST_SHA256 = (
+    "a27d4ea36b1424e01b427c634133638b89c25f1ea1c293f31fd0a888eeef8824"
+)
+FORMAL_PACKAGE_IDENTITIES = {
+    "research_data_identity": (
+        "cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4"
+    ),
+    "runtime_contract_identity": (
+        "f9868b4a658e3cfac64af9849d9459b104e762ce0a78e3767b05a199608ce46e"
+    ),
+    "publication_envelope_identity": (
+        "ddfcec05e49598e175687f14729bf61549e699d939db07a3c3617eb92aa23ea5"
+    ),
+    "composite_package_identity": (
+        "a196f3e743e8281c3cc5f82c4e30c57dc10af7b0c91e88ff16194065f10f7e05"
+    ),
+}
 FRAMEWORK_SHA256 = (
     "20c711fc056004d36ddf671766d04a1bbc2df58116234b4be285a859b55ceeec"
 )
@@ -412,7 +483,7 @@ SOURCE_INVENTORY_CONTRACT_SHA256 = (
     "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "a523b91162c1783cff3e8ddbb70a4b91ad903b4757efa2ba7df8169cd8fb18df"
+    "e5d8c337defd7ebd09491fb7a04b28d2c550931c2c4bf6a8f5263ce0e25a2660"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -544,8 +615,35 @@ def production_contract_state() -> dict[str, Any]:
             DIAGNOSTIC_PLAN_SHA256,
             DIAGNOSTIC_REVIEW_SHA256,
             PUBLICATION_REMEDIATION_PLAN_SHA256,
+            CONTROL_REMEDIATION_PLAN_SHA256,
             FRAMEWORK_SHA256,
             MATRIX_SHA256,
+        ),
+        "execution_authority": (
+            EXECUTION_AUTHORITY_COMMIT,
+            EXECUTION_AUTHORITY_TREE_SHA256,
+            EXECUTION_AUTHORITY_TASK_SHA256,
+            EXECUTION_AUTHORITY_MATRIX_SHA256,
+            EXECUTION_AUTHORITY_RUNTIME_SHA256,
+        ),
+        "workflow_transition": (
+            WORKFLOW_TRANSITION_RECEIPT_SCHEMA,
+            "执行中",
+            "待验收",
+            "PENDING_HANDOFF",
+            False,
+        ),
+        "formal_attempt_protocol": (
+            FORMAL_ATTEMPT_RECEIPT_SCHEMA,
+            ("running", "failed", "interrupted", "completed"),
+            "versioned_attempt_root",
+            "no_delete",
+        ),
+        "independent_review_provenance": (
+            CONTROL_CANDIDATE_RECEIPT_SCHEMA,
+            CONTROL_REMEDIATION_REVIEW_SCHEMA,
+            "candidate_before_receipt_before_review",
+            "distinct_actor_ids",
         ),
         "accepted_h0a_binding": (H0A_TUPLE_SHA256, H0A_COMPOSITE),
         "accepted_latency_binding": (
@@ -791,10 +889,53 @@ def validate_production_contract_state(state: Mapping[str, Any]) -> None:
             DIAGNOSTIC_PLAN_SHA256,
             DIAGNOSTIC_REVIEW_SHA256,
             PUBLICATION_REMEDIATION_PLAN_SHA256,
+            CONTROL_REMEDIATION_PLAN_SHA256,
             FRAMEWORK_SHA256,
             MATRIX_SHA256,
         ),
         "H0B_MASTER_FRAMEWORK_MISMATCH",
+    )
+    exact(
+        "execution_authority",
+        (
+            EXECUTION_AUTHORITY_COMMIT,
+            EXECUTION_AUTHORITY_TREE_SHA256,
+            EXECUTION_AUTHORITY_TASK_SHA256,
+            EXECUTION_AUTHORITY_MATRIX_SHA256,
+            EXECUTION_AUTHORITY_RUNTIME_SHA256,
+        ),
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+    )
+    exact(
+        "workflow_transition",
+        (
+            WORKFLOW_TRANSITION_RECEIPT_SCHEMA,
+            "执行中",
+            "待验收",
+            "PENDING_HANDOFF",
+            False,
+        ),
+        "H0B_WORKFLOW_TRANSITION_MISMATCH",
+    )
+    exact(
+        "formal_attempt_protocol",
+        (
+            FORMAL_ATTEMPT_RECEIPT_SCHEMA,
+            ("running", "failed", "interrupted", "completed"),
+            "versioned_attempt_root",
+            "no_delete",
+        ),
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+    )
+    exact(
+        "independent_review_provenance",
+        (
+            CONTROL_CANDIDATE_RECEIPT_SCHEMA,
+            CONTROL_REMEDIATION_REVIEW_SCHEMA,
+            "candidate_before_receipt_before_review",
+            "distinct_actor_ids",
+        ),
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
     )
     exact(
         "accepted_h0a_binding",
@@ -1506,6 +1647,656 @@ def review_field(review_path: Path, key: str) -> str:
     return value
 
 
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def require_git_hex(value: str, *, location: str) -> str:
+    contracts.require(
+        re.fullmatch(r"[0-9a-f]{40}", value) is not None,
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        location,
+        f"invalid Git object identity: {value!r}",
+    )
+    return value
+
+
+def git_output_bytes(*args: str) -> bytes:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    contracts.require(
+        result.returncode == 0,
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        "$.git",
+        result.stderr.decode("utf-8", errors="replace"),
+    )
+    return result.stdout
+
+
+def git_object_bytes(commit: str, relative_path: str) -> bytes:
+    require_git_hex(commit, location="$.git.commit")
+    contracts.require(
+        not Path(relative_path).is_absolute()
+        and ".." not in Path(relative_path).parts,
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        "$.git.path",
+        relative_path,
+    )
+    return git_output_bytes("show", f"{commit}:{relative_path}")
+
+
+def git_object_exists(commit: str, relative_path: str) -> bool:
+    require_git_hex(commit, location="$.git.commit")
+    result = subprocess.run(
+        ["git", "cat-file", "-e", f"{commit}:{relative_path}"],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return result.returncode == 0
+
+
+def git_revision(commit: str, suffix: str = "") -> str:
+    require_git_hex(commit, location="$.git.commit")
+    return git_output_bytes(
+        "rev-parse",
+        f"{commit}{suffix}",
+    ).decode("ascii").strip()
+
+
+def git_is_ancestor(ancestor: str, descendant: str = "HEAD") -> bool:
+    require_git_hex(ancestor, location="$.git.ancestor")
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return result.returncode == 0
+
+
+def task_field_from_text(task_text: str, key: str) -> str:
+    prefix = f"- {key}="
+    values = [
+        line.removeprefix(prefix)
+        for line in task_text.splitlines()
+        if line.startswith(prefix)
+    ]
+    contracts.require(
+        len(values) == 1 and values[0] != "",
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        f"$.execution_authority.task.{key}",
+        "missing or duplicate immutable task pin",
+    )
+    return values[0]
+
+
+def task_status(task_path: Path) -> str:
+    lines = Path(task_path).read_text(encoding="utf-8").splitlines()
+    matches = [
+        lines[index + 1].removeprefix("- ").strip()
+        for index, line in enumerate(lines[:-1])
+        if line == "状态：" and lines[index + 1].startswith("- ")
+    ]
+    contracts.require(
+        len(matches) == 1 and matches[0] in {"执行中", "待验收"},
+        "H0B_WORKFLOW_TRANSITION_MISMATCH",
+        str(task_path),
+        f"unsupported or ambiguous workflow status: {matches!r}",
+    )
+    return matches[0]
+
+
+def runtime_source_inventory_from_git(commit: str) -> list[dict[str, Any]]:
+    rows = []
+    for relative in sorted(
+        PACKAGED_RUNTIME_SOURCE_PATHS,
+        key=lambda value: value.encode("utf-8"),
+    ):
+        payload = git_object_bytes(commit, relative)
+        rows.append(
+            {
+                "path": relative,
+                "bytes": len(payload),
+                "sha256": sha256_bytes(payload),
+            }
+        )
+    return rows
+
+
+def runtime_source_tree_sha256_from_git(commit: str) -> str:
+    return contracts.canonical_json_sha256(
+        runtime_source_inventory_from_git(commit)
+    )
+
+
+def validate_execution_authority_pins(
+    *,
+    commit: str,
+    tree_sha256: str,
+    task_sha256: str,
+) -> None:
+    contracts.require(
+        commit == EXECUTION_AUTHORITY_COMMIT
+        and tree_sha256 == EXECUTION_AUTHORITY_TREE_SHA256
+        and task_sha256 == EXECUTION_AUTHORITY_TASK_SHA256,
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        "$.execution_authority.pins",
+        "execution authority commit, tree or task identity mismatch",
+    )
+
+
+def execution_authority_payload() -> dict[str, Any]:
+    task_relative = TASK_PATH.relative_to(REPO_ROOT).as_posix()
+    matrix_relative = MATRIX_PATH.relative_to(REPO_ROOT).as_posix()
+    task_bytes = git_object_bytes(
+        EXECUTION_AUTHORITY_COMMIT,
+        task_relative,
+    )
+    matrix_bytes = git_object_bytes(
+        EXECUTION_AUTHORITY_COMMIT,
+        matrix_relative,
+    )
+    task_text = task_bytes.decode("utf-8")
+    matrix = json.loads(matrix_bytes)
+    runtime_sha256 = runtime_source_tree_sha256_from_git(
+        EXECUTION_AUTHORITY_COMMIT
+    )
+    tree_sha256 = git_revision(EXECUTION_AUTHORITY_COMMIT, "^{tree}")
+    validate_execution_authority_pins(
+        commit=EXECUTION_AUTHORITY_COMMIT,
+        tree_sha256=tree_sha256,
+        task_sha256=sha256_bytes(task_bytes),
+    )
+    contracts.require(
+        sha256_bytes(matrix_bytes) == EXECUTION_AUTHORITY_MATRIX_SHA256
+        and runtime_sha256 == EXECUTION_AUTHORITY_RUNTIME_SHA256
+        and git_is_ancestor(EXECUTION_AUTHORITY_COMMIT),
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        "$.execution_authority",
+        "formal commit, tree, task, matrix, runtime or ancestry mismatch",
+    )
+    plan_path = task_field_from_text(
+        task_text,
+        "publication_remediation_plan_path",
+    )
+    review_path = task_field_from_text(
+        task_text,
+        "publication_remediation_review_path",
+    )
+    plan_sha256 = task_field_from_text(
+        task_text,
+        "publication_remediation_plan_sha256",
+    )
+    review_sha256 = task_field_from_text(
+        task_text,
+        "publication_remediation_review_sha256",
+    )
+    contracts.require(
+        sha256_bytes(
+            git_object_bytes(EXECUTION_AUTHORITY_COMMIT, plan_path)
+        )
+        == plan_sha256
+        and sha256_bytes(
+            git_object_bytes(EXECUTION_AUTHORITY_COMMIT, review_path)
+        )
+        == review_sha256
+        and task_field_from_text(
+            task_text,
+            "surface_matrix_sha256",
+        )
+        == EXECUTION_AUTHORITY_MATRIX_SHA256
+        and task_field_from_text(
+            task_text,
+            "expected_runtime_source_tree_sha256",
+        )
+        == EXECUTION_AUTHORITY_RUNTIME_SHA256,
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        "$.execution_authority.task_pins",
+        "formal task pins do not bind the formal Git objects",
+    )
+    return {
+        "schema_version": "skhynix_stage_h0b_execution_authority_v1",
+        "task_id": contracts.TASK_ID,
+        "commit": EXECUTION_AUTHORITY_COMMIT,
+        "tree_sha256": tree_sha256,
+        "task_path": task_relative,
+        "task_sha256": EXECUTION_AUTHORITY_TASK_SHA256,
+        "matrix_path": matrix_relative,
+        "matrix_sha256": EXECUTION_AUTHORITY_MATRIX_SHA256,
+        "runtime_source_tree_sha256": runtime_sha256,
+        "publication_remediation_plan_path": plan_path,
+        "publication_remediation_plan_sha256": plan_sha256,
+        "publication_remediation_review_path": review_path,
+        "publication_remediation_review_sha256": review_sha256,
+        "surface_count": len(matrix["surfaces"]),
+        "artifact_count": sum(
+            len(surface["artifacts"]) for surface in matrix["surfaces"]
+        ),
+        "negative_mutation_count": sum(
+            len(surface["negative_mutations"])
+            for surface in matrix["surfaces"]
+        ),
+        "exit_criterion_count": len(matrix["exit_criteria"]),
+    }
+
+
+def execution_authority_dispatch() -> dict[str, Any]:
+    authority = execution_authority_payload()
+    return {
+        "schema_version": "skhynix_stage_h0b_dispatch_v3",
+        "verified": True,
+        "task_id": contracts.TASK_ID,
+        "classification": "research_package",
+        "matrix_sha256": authority["matrix_sha256"],
+        "surface_count": authority["surface_count"],
+        "artifact_count": authority["artifact_count"],
+        "negative_mutation_count": authority["negative_mutation_count"],
+        "exit_criterion_count": authority["exit_criterion_count"],
+        "task_sha256": authority["task_sha256"],
+        "publication_remediation_plan_path": authority[
+            "publication_remediation_plan_path"
+        ],
+        "publication_remediation_plan_sha256": authority[
+            "publication_remediation_plan_sha256"
+        ],
+        "publication_remediation_review_path": authority[
+            "publication_remediation_review_path"
+        ],
+        "publication_remediation_review_sha256": authority[
+            "publication_remediation_review_sha256"
+        ],
+        "runtime_source_tree_sha256": authority[
+            "runtime_source_tree_sha256"
+        ],
+    }
+
+
+def validate_control_candidate_receipt(
+    receipt_path: Path,
+    *,
+    expected_sha256: str,
+) -> dict[str, Any]:
+    receipt = read_json(receipt_path)
+    expected_keys = {
+        "schema_version",
+        "task_id",
+        "candidate_commit",
+        "candidate_tree_sha256",
+        "candidate_parent_commit",
+        "controller_actor_id",
+        "execution_authority_commit",
+        "plan_path",
+        "plan_sha256",
+        "surface_matrix_path",
+        "surface_matrix_sha256",
+        "runtime_source_tree_sha256",
+        "review_path",
+        "review_submission_path",
+        "review_absent_in_candidate",
+        "review_submission_absent_in_candidate",
+        "candidate_receipt_absent_in_candidate",
+        "outcome_accessed",
+    }
+    contracts.require(
+        Path(receipt_path).is_file()
+        and not Path(receipt_path).is_symlink()
+        and contracts.sha256_file(receipt_path) == expected_sha256
+        and set(receipt) == expected_keys
+        and receipt["schema_version"] == CONTROL_CANDIDATE_RECEIPT_SCHEMA
+        and receipt["task_id"] == contracts.TASK_ID
+        and receipt["controller_actor_id"] == CONTROLLER_ACTOR_ID
+        and receipt["execution_authority_commit"]
+        == EXECUTION_AUTHORITY_COMMIT
+        and receipt["outcome_accessed"] is False,
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        str(receipt_path),
+        "candidate receipt identity, schema or scalar mismatch",
+    )
+    candidate = require_git_hex(
+        receipt["candidate_commit"],
+        location="$.candidate_receipt.candidate_commit",
+    )
+    tree = git_revision(candidate, "^{tree}")
+    parent = git_revision(candidate, "^")
+    plan_path = CONTROL_REMEDIATION_PLAN_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
+    matrix_path = MATRIX_PATH.relative_to(REPO_ROOT).as_posix()
+    review_path = CONTROL_REMEDIATION_REVIEW_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
+    submission_path = CONTROL_REVIEW_SUBMISSION_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
+    candidate_receipt_path = CONTROL_CANDIDATE_RECEIPT_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
+    contracts.require(
+        receipt["candidate_tree_sha256"] == tree
+        and receipt["candidate_parent_commit"] == parent
+        and receipt["plan_path"] == plan_path
+        and receipt["plan_sha256"]
+        == sha256_bytes(git_object_bytes(candidate, plan_path))
+        == CONTROL_REMEDIATION_PLAN_SHA256
+        and receipt["surface_matrix_path"] == matrix_path
+        and receipt["surface_matrix_sha256"]
+        == sha256_bytes(git_object_bytes(candidate, matrix_path))
+        == MATRIX_SHA256
+        and receipt["runtime_source_tree_sha256"]
+        == runtime_source_tree_sha256_from_git(candidate)
+        and receipt["review_path"] == review_path
+        and receipt["review_submission_path"] == submission_path
+        and receipt["review_absent_in_candidate"] is True
+        and receipt["review_submission_absent_in_candidate"] is True
+        and receipt["candidate_receipt_absent_in_candidate"] is True
+        and not git_object_exists(candidate, review_path)
+        and not git_object_exists(candidate, submission_path)
+        and not git_object_exists(candidate, candidate_receipt_path)
+        and git_is_ancestor(EXECUTION_AUTHORITY_COMMIT, candidate)
+        and git_is_ancestor(candidate),
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        str(receipt_path),
+        "candidate Git objects, absence proof or ancestry mismatch",
+    )
+    return receipt
+
+
+def validate_candidate_revision_binding(
+    *,
+    candidate_commit: str,
+    expected_candidate_commit: str,
+) -> None:
+    contracts.require(
+        candidate_commit == expected_candidate_commit,
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        "$.review.candidate_commit",
+        (
+            f"expected={expected_candidate_commit} "
+            f"observed={candidate_commit}"
+        ),
+    )
+
+
+def review_introduction_commit(relative_path: str) -> str:
+    history = git_output_bytes(
+        "log",
+        "--diff-filter=A",
+        "--format=%H",
+        "--",
+        relative_path,
+    ).decode("ascii").splitlines()
+    contracts.require(
+        len(history) == 1,
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        relative_path,
+        f"expected one review introduction commit, observed={history!r}",
+    )
+    return history[0]
+
+
+def validate_control_review_authority(task_path: Path) -> dict[str, Any]:
+    exact_values = {
+        "control_remediation_plan_path": (
+            CONTROL_REMEDIATION_PLAN_PATH.relative_to(REPO_ROOT).as_posix()
+        ),
+        "control_remediation_plan_sha256": (
+            CONTROL_REMEDIATION_PLAN_SHA256
+        ),
+        "control_candidate_receipt_path": (
+            CONTROL_CANDIDATE_RECEIPT_PATH.relative_to(REPO_ROOT).as_posix()
+        ),
+        "control_remediation_review_path": (
+            CONTROL_REMEDIATION_REVIEW_PATH.relative_to(REPO_ROOT).as_posix()
+        ),
+        "control_review_submission_path": (
+            CONTROL_REVIEW_SUBMISSION_PATH.relative_to(REPO_ROOT).as_posix()
+        ),
+        "controller_actor_id": CONTROLLER_ACTOR_ID,
+        "control_final_severity": CONTROL_REMEDIATION_ACCEPTED_SEVERITY,
+        "execution_authority_commit": EXECUTION_AUTHORITY_COMMIT,
+        "execution_authority_tree_sha256": (
+            EXECUTION_AUTHORITY_TREE_SHA256
+        ),
+        "execution_authority_task_sha256": (
+            EXECUTION_AUTHORITY_TASK_SHA256
+        ),
+    }
+    for key, expected in exact_values.items():
+        contracts.require(
+            task_field_pin(task_path, key) == expected,
+            "H0B_REVIEW_PROVENANCE_MISMATCH",
+            str(task_path),
+            f"{key} must equal {expected}",
+        )
+    candidate_receipt_sha = task_sha256_pin(
+        task_path,
+        "control_candidate_receipt_sha256",
+    )
+    review_sha = task_sha256_pin(
+        task_path,
+        "control_remediation_review_sha256",
+    )
+    submission_sha = task_sha256_pin(
+        task_path,
+        "control_review_submission_sha256",
+    )
+    reviewer_actor_id = task_field_pin(task_path, "reviewer_actor_id")
+    review_commit = require_git_hex(
+        task_field_pin(task_path, "control_review_commit"),
+        location="$.task.control_review_commit",
+    )
+    candidate = validate_control_candidate_receipt(
+        CONTROL_CANDIDATE_RECEIPT_PATH,
+        expected_sha256=candidate_receipt_sha,
+    )
+    review_relative = CONTROL_REMEDIATION_REVIEW_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
+    observed_review_commit = review_introduction_commit(review_relative)
+    contracts.require(
+        review_commit == observed_review_commit
+        and git_is_ancestor(candidate["candidate_commit"], review_commit)
+        and git_is_ancestor(review_commit),
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        "$.review.commit",
+        "review commit is not the exact post-candidate introduction commit",
+    )
+    author = git_output_bytes(
+        "show",
+        "-s",
+        "--format=%an <%ae>",
+        review_commit,
+    ).decode("utf-8").strip()
+    contracts.require(
+        author
+        == "H0B V4 Independent Reviewer <h0b-v4-reviewer@local.invalid>",
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        "$.review.git_author",
+        author,
+    )
+    contracts.require(
+        CONTROL_REMEDIATION_REVIEW_PATH.is_file()
+        and not CONTROL_REMEDIATION_REVIEW_PATH.is_symlink()
+        and contracts.sha256_file(CONTROL_REMEDIATION_REVIEW_PATH)
+        == review_sha
+        and CONTROL_REVIEW_SUBMISSION_PATH.is_file()
+        and not CONTROL_REVIEW_SUBMISSION_PATH.is_symlink()
+        and contracts.sha256_file(CONTROL_REVIEW_SUBMISSION_PATH)
+        == submission_sha,
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        "$.review.files",
+        "review or independent submission identity mismatch",
+    )
+    expected_fields = {
+        "schema_version": CONTROL_REMEDIATION_REVIEW_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "reviewer_role": "independent_read_only",
+        "reviewer_actor_id": reviewer_actor_id,
+        "controller_actor_id": CONTROLLER_ACTOR_ID,
+        "candidate_commit": candidate["candidate_commit"],
+        "candidate_tree_sha256": candidate["candidate_tree_sha256"],
+        "candidate_receipt_sha256": candidate_receipt_sha,
+        "reviewed_plan_sha256": CONTROL_REMEDIATION_PLAN_SHA256,
+        "reviewed_surface_matrix_sha256": MATRIX_SHA256,
+        "reviewed_runtime_source_tree_sha256": candidate[
+            "runtime_source_tree_sha256"
+        ],
+        "review_submission_sha256": submission_sha,
+        "final_severity": CONTROL_REMEDIATION_ACCEPTED_SEVERITY,
+        "disposition": CONTROL_REMEDIATION_ACCEPTED_DISPOSITION,
+    }
+    validate_reviewer_actor_binding(
+        controller_actor_id=CONTROLLER_ACTOR_ID,
+        reviewer_actor_id=reviewer_actor_id,
+    )
+    contracts.require(
+        reviewer_actor_id != "",
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        "$.review.actors",
+        "reviewer actor ID must be non-empty",
+    )
+    for key, expected in expected_fields.items():
+        contracts.require(
+            review_field(CONTROL_REMEDIATION_REVIEW_PATH, key)
+            == expected,
+            "H0B_REVIEW_PROVENANCE_MISMATCH",
+            str(CONTROL_REMEDIATION_REVIEW_PATH),
+            f"{key} must equal {expected}",
+        )
+    return {
+        "candidate": candidate,
+        "review_commit": review_commit,
+        "review_sha256": review_sha,
+        "review_submission_sha256": submission_sha,
+        "reviewer_actor_id": reviewer_actor_id,
+    }
+
+
+def validate_reviewer_actor_binding(
+    *,
+    controller_actor_id: str,
+    reviewer_actor_id: str,
+) -> None:
+    contracts.require(
+        controller_actor_id == CONTROLLER_ACTOR_ID
+        and reviewer_actor_id != ""
+        and reviewer_actor_id != controller_actor_id,
+        "H0B_REVIEW_PROVENANCE_MISMATCH",
+        "$.review.actors",
+        "controller and reviewer actor IDs must be distinct and bound",
+    )
+
+
+def expected_workflow_transition_payload(
+    *,
+    control_review: Mapping[str, Any],
+) -> dict[str, Any]:
+    identities = package_identities(DEFAULT_PACKAGE)
+    return {
+        "schema_version": WORKFLOW_TRANSITION_RECEIPT_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "from_status": "执行中",
+        "to_status": "待验收",
+        "execution_authority_commit": EXECUTION_AUTHORITY_COMMIT,
+        "execution_authority_tree_sha256": (
+            EXECUTION_AUTHORITY_TREE_SHA256
+        ),
+        "execution_authority_task_sha256": (
+            EXECUTION_AUTHORITY_TASK_SHA256
+        ),
+        "formal_evidence_commit": EXECUTION_AUTHORITY_COMMIT,
+        "package_manifest_sha256": contracts.sha256_file(
+            DEFAULT_PACKAGE / contracts.MANIFEST_FILE
+        ),
+        **identities,
+        "control_candidate_receipt_sha256": contracts.sha256_file(
+            CONTROL_CANDIDATE_RECEIPT_PATH
+        ),
+        "control_review_attestation_sha256": control_review[
+            "review_sha256"
+        ],
+        "controller_actor_id": CONTROLLER_ACTOR_ID,
+        "outcome_rerun": False,
+    }
+
+
+def validate_workflow_transition_payload(
+    observed: Mapping[str, Any],
+    expected: Mapping[str, Any],
+) -> None:
+    contracts.require(
+        dict(observed) == dict(expected) and set(observed) == set(expected),
+        "H0B_WORKFLOW_TRANSITION_MISMATCH",
+        "$.workflow_transition",
+        "workflow transition receipt differs from immutable authority",
+    )
+
+
+def validate_workflow_transition_authority(
+    task_path: Path,
+    *,
+    control_review: Mapping[str, Any],
+) -> dict[str, Any]:
+    expected_path = WORKFLOW_TRANSITION_RECEIPT_PATH.relative_to(
+        REPO_ROOT
+    ).as_posix()
+    contracts.require(
+        task_field_pin(task_path, "workflow_transition_receipt_path")
+        == expected_path,
+        "H0B_WORKFLOW_TRANSITION_MISMATCH",
+        str(task_path),
+        "workflow transition receipt path mismatch",
+    )
+    status = task_status(task_path)
+    receipt_pin = task_field_pin(
+        task_path,
+        "workflow_transition_receipt_sha256",
+    )
+    if status == "执行中":
+        contracts.require(
+            receipt_pin == "PENDING_HANDOFF"
+            and not WORKFLOW_TRANSITION_RECEIPT_PATH.exists(),
+            "H0B_WORKFLOW_TRANSITION_MISMATCH",
+            str(WORKFLOW_TRANSITION_RECEIPT_PATH),
+            "execution status requires an absent pending handoff receipt",
+        )
+        return {
+            "status": status,
+            "transition": "pending",
+            "receipt_sha256": None,
+        }
+    contracts.require(
+        len(receipt_pin) == 64
+        and receipt_pin == receipt_pin.lower()
+        and all(character in "0123456789abcdef" for character in receipt_pin)
+        and WORKFLOW_TRANSITION_RECEIPT_PATH.is_file()
+        and not WORKFLOW_TRANSITION_RECEIPT_PATH.is_symlink()
+        and contracts.sha256_file(WORKFLOW_TRANSITION_RECEIPT_PATH)
+        == receipt_pin,
+        "H0B_WORKFLOW_TRANSITION_MISMATCH",
+        str(WORKFLOW_TRANSITION_RECEIPT_PATH),
+        "handoff status requires the exact transition receipt",
+    )
+    observed = read_json(WORKFLOW_TRANSITION_RECEIPT_PATH)
+    expected = expected_workflow_transition_payload(
+        control_review=control_review
+    )
+    validate_workflow_transition_payload(observed, expected)
+    return {
+        "status": status,
+        "transition": "admitted",
+        "receipt_sha256": receipt_pin,
+    }
+
+
 def validate_publication_remediation_task_pins(task_path: Path) -> str:
     exact_values = {
         "publication_remediation_plan_path": (
@@ -1576,13 +2367,55 @@ def validate_publication_remediation_review_payload(
 
 
 def validate_publication_remediation_authority(task_path: Path) -> str:
-    review_sha256 = validate_publication_remediation_task_pins(task_path)
-    validate_publication_remediation_review_payload(
-        PUBLICATION_REMEDIATION_REVIEW_PATH,
-        task_path=task_path,
-        expected_review_sha256=review_sha256,
-    )
-    return review_sha256
+    authority = execution_authority_payload()
+    exact_task_values = {
+        "publication_remediation_plan_path": authority[
+            "publication_remediation_plan_path"
+        ],
+        "publication_remediation_plan_sha256": authority[
+            "publication_remediation_plan_sha256"
+        ],
+        "publication_remediation_review_path": authority[
+            "publication_remediation_review_path"
+        ],
+        "publication_remediation_review_sha256": authority[
+            "publication_remediation_review_sha256"
+        ],
+        "final_severity": PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY,
+    }
+    for key, expected in exact_task_values.items():
+        contracts.require(
+            task_field_pin(task_path, key) == expected,
+            "H0B_EXECUTION_AUTHORITY_MISMATCH",
+            str(task_path),
+            f"legacy V3 authority pin mismatch: {key}",
+        )
+    for path, relative, expected_sha256 in (
+        (
+            PUBLICATION_REMEDIATION_PLAN_PATH,
+            authority["publication_remediation_plan_path"],
+            authority["publication_remediation_plan_sha256"],
+        ),
+        (
+            PUBLICATION_REMEDIATION_REVIEW_PATH,
+            authority["publication_remediation_review_path"],
+            authority["publication_remediation_review_sha256"],
+        ),
+    ):
+        expected_bytes = git_object_bytes(
+            EXECUTION_AUTHORITY_COMMIT,
+            relative,
+        )
+        contracts.require(
+            Path(path).is_file()
+            and not Path(path).is_symlink()
+            and Path(path).read_bytes() == expected_bytes
+            and contracts.sha256_file(path) == expected_sha256,
+            "H0B_EXECUTION_AUTHORITY_MISMATCH",
+            str(path),
+            "legacy V3 authority differs from the formal Git object",
+        )
+    return authority["publication_remediation_review_sha256"]
 
 
 def surface_matrix_markdown_table(
@@ -1715,8 +2548,14 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
         diagnostic_latency_ms=contracts.DIAGNOSTIC_LATENCY_MS,
     )
     validate_external_action_boundary(())
+    execution_authority = execution_authority_payload()
     publication_review_sha256 = validate_publication_remediation_authority(
         task_path
+    )
+    control_review = validate_control_review_authority(task_path)
+    workflow_state = validate_workflow_transition_authority(
+        task_path,
+        control_review=control_review,
     )
     for path, expected, code in (
         (
@@ -1748,6 +2587,11 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
             PUBLICATION_REMEDIATION_REVIEW_PATH,
             publication_review_sha256,
             "H0B_MASTER_FRAMEWORK_MISMATCH",
+        ),
+        (
+            CONTROL_REMEDIATION_PLAN_PATH,
+            CONTROL_REMEDIATION_PLAN_SHA256,
+            "H0B_REVIEW_PROVENANCE_MISMATCH",
         ),
         (FRAMEWORK_PATH, FRAMEWORK_SHA256, "H0B_MASTER_FRAMEWORK_MISMATCH"),
         (
@@ -1823,7 +2667,7 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
         "generic dispatch result schema or identity mismatch",
     )
     return {
-        "schema_version": "skhynix_stage_h0b_dispatch_v3",
+        "schema_version": "skhynix_stage_h0b_dispatch_v4",
         **generic_dispatch,
         "task_sha256": contracts.sha256_file(task_path),
         "publication_remediation_plan_path": (
@@ -1842,6 +2686,33 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
         "publication_remediation_review_sha256": (
             publication_review_sha256
         ),
+        "control_remediation_plan_path": (
+            CONTROL_REMEDIATION_PLAN_PATH.relative_to(REPO_ROOT).as_posix()
+        ),
+        "control_remediation_plan_sha256": (
+            CONTROL_REMEDIATION_PLAN_SHA256
+        ),
+        "control_candidate_commit": control_review["candidate"][
+            "candidate_commit"
+        ],
+        "control_candidate_receipt_sha256": contracts.sha256_file(
+            CONTROL_CANDIDATE_RECEIPT_PATH
+        ),
+        "control_remediation_review_path": (
+            CONTROL_REMEDIATION_REVIEW_PATH.relative_to(
+                REPO_ROOT
+            ).as_posix()
+        ),
+        "control_remediation_review_sha256": control_review[
+            "review_sha256"
+        ],
+        "control_review_commit": control_review["review_commit"],
+        "reviewer_actor_id": control_review["reviewer_actor_id"],
+        "workflow_status": workflow_state["status"],
+        "workflow_transition_receipt_sha256": workflow_state[
+            "receipt_sha256"
+        ],
+        "execution_authority": execution_authority,
         "runtime_source_tree_sha256": observed_runtime_source_sha,
     }
 
@@ -1886,6 +2757,152 @@ def packaged_runtime_source_tree_sha256(package_root: Path) -> str:
     return contracts.canonical_json_sha256(
         packaged_runtime_source_inventory(package_root)
     )
+
+
+def validate_execution_authority_package(
+    root: Path,
+    *,
+    packaged_runtime_sha256: str,
+    accepted_bindings: Mapping[str, Any],
+) -> dict[str, Any]:
+    authority = execution_authority_payload()
+    object_pairs = {
+        "contracts/task.md": authority["task_path"],
+        "contracts/surface_matrix.json": authority["matrix_path"],
+        "contracts/execution_plan.md": authority[
+            "publication_remediation_plan_path"
+        ],
+        "contracts/v2_framework.md": (
+            FRAMEWORK_PATH.relative_to(REPO_ROOT).as_posix()
+        ),
+        **{
+            package_path: source_path
+            for source_path, package_path in PACKAGED_RUNTIME_SOURCE_PATHS.items()
+        },
+    }
+    for package_path, source_path in object_pairs.items():
+        contracts.require(
+            (root / package_path).read_bytes()
+            == git_object_bytes(EXECUTION_AUTHORITY_COMMIT, source_path),
+            "H0B_EXECUTION_AUTHORITY_MISMATCH",
+            package_path,
+            "packaged authority bytes differ from the formal Git object",
+        )
+    contracts.require(
+        packaged_runtime_sha256 == EXECUTION_AUTHORITY_RUNTIME_SHA256,
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        "$.package.runtime_source_tree_sha256",
+        (
+            f"expected={EXECUTION_AUTHORITY_RUNTIME_SHA256} "
+            f"observed={packaged_runtime_sha256}"
+        ),
+    )
+    expected_binding_ids = (
+        "primary_plan_v1",
+        "primary_plan_review",
+        "diagnostic_plan_v2",
+        "diagnostic_plan_review",
+        "publication_remediation_plan_v3",
+        "publication_remediation_plan_v3_review",
+        "surface_matrix",
+        "master_framework",
+        "accepted_h0a_tuple",
+        "accepted_h0a_manifest",
+        "accepted_latency_manifest",
+        "accepted_tuple",
+        "accepted_tuple_manifest",
+        "semantic_source_inventory",
+        "source_inventory_contract",
+    )
+    rows = accepted_bindings.get("bindings")
+    contracts.require(
+        set(accepted_bindings)
+        == {
+            "schema_version",
+            "task_id",
+            "task_sha256",
+            "primary_plan_sha256",
+            "diagnostic_plan_sha256",
+            "diagnostic_review_sha256",
+            "publication_remediation_plan_sha256",
+            "publication_remediation_review_sha256",
+            "surface_matrix_sha256",
+            "expected_semantic_source_inventory_sha256",
+            "bindings",
+        }
+        and accepted_bindings.get("schema_version")
+        == "skhynix_stage_h0b_accepted_input_bindings_v2"
+        and accepted_bindings.get("task_id") == contracts.TASK_ID
+        and accepted_bindings.get("task_sha256")
+        == EXECUTION_AUTHORITY_TASK_SHA256
+        and accepted_bindings.get("primary_plan_sha256")
+        == PRIMARY_PLAN_SHA256
+        and accepted_bindings.get("diagnostic_plan_sha256")
+        == DIAGNOSTIC_PLAN_SHA256
+        and accepted_bindings.get("diagnostic_review_sha256")
+        == DIAGNOSTIC_REVIEW_SHA256
+        and accepted_bindings.get("publication_remediation_plan_sha256")
+        == authority["publication_remediation_plan_sha256"]
+        and accepted_bindings.get("publication_remediation_review_sha256")
+        == authority["publication_remediation_review_sha256"]
+        and accepted_bindings.get("surface_matrix_sha256")
+        == EXECUTION_AUTHORITY_MATRIX_SHA256
+        and accepted_bindings.get(
+            "expected_semantic_source_inventory_sha256"
+        )
+        == EXPECTED_SEMANTIC_INVENTORY_SHA256
+        and isinstance(rows, list)
+        and tuple(row.get("binding_id") for row in rows)
+        == expected_binding_ids,
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        "$.package.accepted_input_bindings",
+        "formal accepted-input binding schema or scalar mismatch",
+    )
+    for index, row in enumerate(rows):
+        contracts.require(
+            set(row)
+            == {
+                "binding_id",
+                "authority_path",
+                "bytes",
+                "sha256",
+                "status",
+            }
+            and row["status"] == "accepted",
+            "H0B_EXECUTION_AUTHORITY_MISMATCH",
+            f"$.package.accepted_input_bindings.bindings[{index}]",
+            "binding row schema or status mismatch",
+        )
+        relative = row["authority_path"]
+        if git_object_exists(EXECUTION_AUTHORITY_COMMIT, relative):
+            payload = git_object_bytes(EXECUTION_AUTHORITY_COMMIT, relative)
+            observed_bytes = len(payload)
+            observed_sha256 = sha256_bytes(payload)
+        else:
+            source = REPO_ROOT / relative
+            contracts.require(
+                relative
+                == (
+                    "local_live_analysis/"
+                    "skhynix_c6in_hyperliquid_execution_latency_0822T002/"
+                    "measurement_manifest.json"
+                )
+                and source.is_file()
+                and not source.is_symlink(),
+                "H0B_EXECUTION_AUTHORITY_MISMATCH",
+                relative,
+                "untracked formal authority path is not explicitly admitted",
+            )
+            observed_bytes = source.stat().st_size
+            observed_sha256 = contracts.sha256_file(source)
+        contracts.require(
+            row["bytes"] == observed_bytes
+            and row["sha256"] == observed_sha256,
+            "H0B_EXECUTION_AUTHORITY_MISMATCH",
+            relative,
+            "accepted binding differs from the formal authority bytes",
+        )
+    return authority
 
 
 def validate_semantic_inventory() -> tuple[list[dict[str, str]], str]:
@@ -2373,6 +3390,7 @@ def validate_publication_outcome_permit(
     *,
     build_label: str,
     packaged_runtime_source_sha256: str,
+    surface_matrix_sha256: str = MATRIX_SHA256,
 ) -> None:
     expected_keys = {
         "schema_version",
@@ -2408,7 +3426,7 @@ def validate_publication_outcome_permit(
         and permit.get("diagnostic_plan_sha256") == DIAGNOSTIC_PLAN_SHA256
         and permit.get("diagnostic_review_sha256")
         == DIAGNOSTIC_REVIEW_SHA256
-        and permit.get("surface_matrix_sha256") == MATRIX_SHA256
+        and permit.get("surface_matrix_sha256") == surface_matrix_sha256
         and permit.get("source_inventory_contract_sha256")
         == SOURCE_INVENTORY_CONTRACT_SHA256
         and permit.get("semantic_source_inventory_sha256")
@@ -3697,6 +4715,83 @@ def hostile_deterministic_build_mutation() -> None:
         compare_build_files(left, right, ("result.csv",))
 
 
+def hostile_execution_authority_mutation() -> None:
+    validate_execution_authority_pins(
+        commit=EXECUTION_AUTHORITY_COMMIT,
+        tree_sha256=EXECUTION_AUTHORITY_TREE_SHA256,
+        task_sha256="0" * 64,
+    )
+
+
+def hostile_execution_authority_commit_mutation() -> None:
+    validate_execution_authority_pins(
+        commit="0" * 40,
+        tree_sha256=EXECUTION_AUTHORITY_TREE_SHA256,
+        task_sha256=EXECUTION_AUTHORITY_TASK_SHA256,
+    )
+
+
+def hostile_workflow_transition_mutation() -> None:
+    expected = {
+        "schema_version": WORKFLOW_TRANSITION_RECEIPT_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "composite_package_identity": FORMAL_PACKAGE_IDENTITIES[
+            "composite_package_identity"
+        ],
+        "outcome_rerun": False,
+    }
+    observed = {
+        **expected,
+        "composite_package_identity": "0" * 64,
+    }
+    validate_workflow_transition_payload(observed, expected)
+
+
+def hostile_workflow_missing_transition_mutation() -> None:
+    validate_workflow_transition_payload(
+        {},
+        {
+            "schema_version": WORKFLOW_TRANSITION_RECEIPT_SCHEMA,
+            "task_id": contracts.TASK_ID,
+        },
+    )
+
+
+def hostile_formal_attempt_reuse_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-reuse-"
+    ) as raw:
+        require_formal_attempt_root_absent(Path(raw))
+
+
+def hostile_formal_staging_reuse_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-staging-reuse-"
+    ) as raw:
+        require_publication_staging_absent(Path(raw))
+
+
+def hostile_formal_attempt_missing_receipt_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-missing-receipt-"
+    ) as raw:
+        validate_formal_attempt_receipt(Path(raw) / "missing-attempt")
+
+
+def hostile_review_same_actor_mutation() -> None:
+    validate_reviewer_actor_binding(
+        controller_actor_id=CONTROLLER_ACTOR_ID,
+        reviewer_actor_id=CONTROLLER_ACTOR_ID,
+    )
+
+
+def hostile_review_candidate_mutation() -> None:
+    validate_candidate_revision_binding(
+        candidate_commit="0" * 40,
+        expected_candidate_commit="1" * 40,
+    )
+
+
 def negative_case(
     surface_id: str,
     mutation_id: str,
@@ -3754,6 +4849,12 @@ def negative_case(
                 FRAMEWORK_SHA256,
                 MATRIX_SHA256,
             ),
+        ),
+        "execution_authority": hostile_execution_authority_mutation,
+        "workflow_transition": hostile_workflow_transition_mutation,
+        "formal_attempt_protocol": hostile_formal_attempt_reuse_mutation,
+        "independent_review_provenance": (
+            hostile_review_same_actor_mutation
         ),
         "accepted_h0a_binding": lambda: hostile_upstream_identity_mutation(
             "accepted_h0a_binding"
@@ -3999,6 +5100,21 @@ def negative_case(
             "mutate_external_receipt_binding": (
                 hostile_external_receipt_binding_mutation
             ),
+            "mutate_execution_authority_commit": (
+                hostile_execution_authority_commit_mutation
+            ),
+            "mutate_workflow_status_without_transition": (
+                hostile_workflow_missing_transition_mutation
+            ),
+            "mutate_formal_staging_reuse": (
+                hostile_formal_staging_reuse_mutation
+            ),
+            "mutate_formal_attempt_missing_receipt": (
+                hostile_formal_attempt_missing_receipt_mutation
+            ),
+            "mutate_review_candidate_commit": (
+                hostile_review_candidate_mutation
+            ),
         }
     )
     declared_mutation_ids = {
@@ -4044,6 +5160,10 @@ def frozen_hostile_authority_paths() -> tuple[Path, ...]:
         DIAGNOSTIC_PLAN_REVIEW_PATH,
         PUBLICATION_REMEDIATION_PLAN_PATH,
         PUBLICATION_REMEDIATION_REVIEW_PATH,
+        CONTROL_REMEDIATION_PLAN_PATH,
+        CONTROL_CANDIDATE_RECEIPT_PATH,
+        CONTROL_REMEDIATION_REVIEW_PATH,
+        CONTROL_REVIEW_SUBMISSION_PATH,
         SEMANTIC_INVENTORY_PATH,
         SOURCE_INVENTORY_CONTRACT_PATH,
     )
@@ -8436,8 +9556,10 @@ def run_stage4_diagnostic(
     return receipt
 
 
-def surface_assignment_projection() -> list[dict[str, Any]]:
-    matrix = read_json(MATRIX_PATH)
+def surface_assignment_projection(
+    matrix_path: Path = MATRIX_PATH,
+) -> list[dict[str, Any]]:
+    matrix = read_json(matrix_path)
     rows = []
     prefix = (
         "local_live_analysis/"
@@ -8508,10 +9630,16 @@ def surface_assignment_projection() -> list[dict[str, Any]]:
 
 def runtime_contract_bridge(root: Path) -> dict[str, Any]:
     preoutcome = read_json(root / "preoutcome_contract.json")
-    publication_review_sha256 = task_sha256_pin(
-        TASK_PATH,
-        "publication_remediation_review_sha256",
+    accepted_bindings = read_json(root / "accepted_input_bindings.json")
+    packaged_matrix_path = root / "contracts/surface_matrix.json"
+    packaged_plan_path = root / "contracts/execution_plan.md"
+    publication_review_sha256 = accepted_bindings[
+        "publication_remediation_review_sha256"
+    ]
+    publication_plan_sha256 = contracts.sha256_file(
+        packaged_plan_path
     )
+    matrix_sha256 = contracts.sha256_file(packaged_matrix_path)
     return {
         "schema_version": "skhynix_stage_h0b_runtime_contract_bridge_v2",
         "task_id": contracts.TASK_ID,
@@ -8520,16 +9648,16 @@ def runtime_contract_bridge(root: Path) -> dict[str, Any]:
         "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
         "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
         "publication_remediation_plan_sha256": (
-            PUBLICATION_REMEDIATION_PLAN_SHA256
+            publication_plan_sha256
         ),
         "publication_remediation_review_sha256": (
             publication_review_sha256
         ),
-        "surface_matrix_sha256": MATRIX_SHA256,
+        "surface_matrix_sha256": matrix_sha256,
         "files": contracts.file_inventory(root, contracts.C_FILES),
         "research_surface_assignments_sha256": (
             contracts.canonical_json_sha256(
-                surface_assignment_projection()
+                surface_assignment_projection(packaged_matrix_path)
             )
         ),
         "output_schema_contract_sha256": preoutcome[
@@ -9517,6 +10645,15 @@ def require_publication_target_absent(final: Path) -> None:
     )
 
 
+def require_publication_staging_absent(staging: Path) -> None:
+    contracts.require(
+        not Path(staging).exists(),
+        "PUBLICATION_STAGING_EXISTS",
+        str(staging),
+        "package staging root already exists and is preserved",
+    )
+
+
 def assemble_package(
     *,
     build_a: Path,
@@ -9528,8 +10665,7 @@ def assemble_package(
     staging = final.with_name(
         f".{final.name}.staging-{os.getpid()}"
     )
-    if staging.exists():
-        shutil.rmtree(staging)
+    require_publication_staging_absent(staging)
     staging.mkdir(parents=True)
     for directory in contracts.PACKAGE_DIRECTORIES:
         (staging / directory).mkdir()
@@ -9982,40 +11118,57 @@ def verify_package(
     permit_a = read_json(root / "outcome_access_permit_build_a.json")
     permit_b = read_json(root / "outcome_access_permit_build_b.json")
     packaged_runtime_sha = packaged_runtime_source_tree_sha256(root)
-    validate_expected_runtime_source_tree(
-        packaged_runtime_sha,
-        task_path=TASK_PATH,
-    )
-    contracts.require(
-        (root / "contracts/task.md").read_bytes()
-        == TASK_PATH.read_bytes()
-        and (root / "contracts/surface_matrix.json").read_bytes()
-        == MATRIX_PATH.read_bytes()
-        and (root / "contracts/execution_plan.md").read_bytes()
-        == PUBLICATION_REMEDIATION_PLAN_PATH.read_bytes(),
-        "H0B_OUTCOME_PERMIT_MISMATCH",
-        "$.package.external_runtime_oracle",
-        "packaged runtime or dispatch contracts differ from frozen authority",
-    )
     accepted_bindings = read_json(root / "accepted_input_bindings.json")
-    contracts.require(
-        accepted_bindings == accepted_input_bindings_payload()
-        and accepted_bindings["task_sha256"]
-        == contracts.sha256_file(TASK_PATH)
-        == contracts.sha256_file(root / "contracts/task.md"),
-        "H0B_OUTCOME_PERMIT_MISMATCH",
-        "$.package.accepted_input_bindings",
-        "packaged accepted bindings differ from the exact current task",
+    packaged_task_sha256 = contracts.sha256_file(
+        root / "contracts/task.md"
     )
+    legacy_execution_authority = (
+        packaged_task_sha256 == EXECUTION_AUTHORITY_TASK_SHA256
+    )
+    if legacy_execution_authority:
+        validate_execution_authority_package(
+            root,
+            packaged_runtime_sha256=packaged_runtime_sha,
+            accepted_bindings=accepted_bindings,
+        )
+        permit_matrix_sha256 = EXECUTION_AUTHORITY_MATRIX_SHA256
+    else:
+        validate_expected_runtime_source_tree(
+            packaged_runtime_sha,
+            task_path=TASK_PATH,
+        )
+        contracts.require(
+            (root / "contracts/task.md").read_bytes()
+            == TASK_PATH.read_bytes()
+            and (root / "contracts/surface_matrix.json").read_bytes()
+            == MATRIX_PATH.read_bytes()
+            and (root / "contracts/execution_plan.md").read_bytes()
+            == PUBLICATION_REMEDIATION_PLAN_PATH.read_bytes(),
+            "H0B_OUTCOME_PERMIT_MISMATCH",
+            "$.package.external_runtime_oracle",
+            "packaged runtime or dispatch contracts differ from current authority",
+        )
+        contracts.require(
+            accepted_bindings == accepted_input_bindings_payload()
+            and accepted_bindings["task_sha256"]
+            == contracts.sha256_file(TASK_PATH)
+            == packaged_task_sha256,
+            "H0B_OUTCOME_PERMIT_MISMATCH",
+            "$.package.accepted_input_bindings",
+            "packaged accepted bindings differ from current execution task",
+        )
+        permit_matrix_sha256 = MATRIX_SHA256
     validate_publication_outcome_permit(
         permit_a,
         build_label="A",
         packaged_runtime_source_sha256=packaged_runtime_sha,
+        surface_matrix_sha256=permit_matrix_sha256,
     )
     validate_publication_outcome_permit(
         permit_b,
         build_label="B",
         packaged_runtime_source_sha256=packaged_runtime_sha,
+        surface_matrix_sha256=permit_matrix_sha256,
     )
     preoutcome = read_json(root / "preoutcome_contract.json")
     contracts.require(
@@ -10168,6 +11321,11 @@ def verify_package(
         "stage4_crosscheck_sha256": manifest[
             "stage4_crosscheck_sha256"
         ],
+        "execution_authority_commit": (
+            EXECUTION_AUTHORITY_COMMIT
+            if legacy_execution_authority
+            else None
+        ),
         "zero_write": True,
     }
     if report is not None:
@@ -10428,7 +11586,7 @@ def compare_build_files(
         )
 
 
-def build_formal(
+def _execute_formal_attempt(
     *,
     task_path: Path,
     matrix_path: Path,
@@ -10436,6 +11594,7 @@ def build_formal(
     build_a: Path,
     build_b: Path,
     receipt: Path,
+    phase_callback: Any | None = None,
 ) -> dict[str, Any]:
     hostile_path = (
         REPO_ROOT / ".workflow/reports/0823T002-hostile-preflight.json"
@@ -10451,15 +11610,8 @@ def build_formal(
         matrix_path=matrix_path,
         negative_evidence_path=hostile_path,
     )
-    contracts.require(
-        Path(output).resolve() == DEFAULT_PACKAGE.resolve()
-        and Path(build_a).resolve() == FORMAL_BUILD_A.resolve()
-        and Path(build_b).resolve() == FORMAL_BUILD_B.resolve()
-        and Path(receipt).resolve() == FORMAL_BUILD_RECEIPT.resolve(),
-        "H0B_BUILD_ENVELOPE_MISMATCH",
-        "$.formal_paths",
-        "formal rebuild must use the exact canonical task paths",
-    )
+    if phase_callback is not None:
+        phase_callback("gate0_validated")
     validate_superseded_formal_archive(
         expected_dispatch=FAILED_V3_DISPATCH
     )
@@ -10476,7 +11628,7 @@ def build_formal(
         and not Path(receipt).exists(),
         "PUBLICATION_FINAL_EXISTS",
         "$.formal_paths",
-        "canonical paths must be released by the controlled archive",
+        "versioned attempt evidence paths must be absent",
     )
     expected_runtime_source_sha = task_sha256_pin(
         task_path,
@@ -10499,7 +11651,10 @@ def build_formal(
             "formal hostile replay differs from submitted receipt",
         )
     runner = str(REPO_ROOT / "examples/hyperliquid/skhynix_stage_h0b.py")
-    for root, label in ((build_a, "A"), (build_b, "B")):
+    for root, label, phase in (
+        (build_a, "A", "build_a_completed"),
+        (build_b, "B", "build_b_completed"),
+    ):
         run_subprocess(
             [
                 sys.executable,
@@ -10524,12 +11679,16 @@ def build_formal(
                 str(root),
             ]
         )
+        if phase_callback is not None:
+            phase_callback(phase)
     compare_build_files(
         build_a,
         build_b,
         contracts.PRIMARY_RESULT_FILES,
     )
     seal = write_primary_seal(build_a=build_a, build_b=build_b)
+    if phase_callback is not None:
+        phase_callback("primary_sealed")
     diagnostic_permit_a = run_subprocess(
         [
             sys.executable,
@@ -10596,12 +11755,16 @@ def build_formal(
         "$.stage4_diagnostics",
         "A/B Stage 4 diagnostic mismatch",
     )
+    if phase_callback is not None:
+        phase_callback("stage4_completed")
     package = assemble_package(
         build_a=build_a,
         build_b=build_b,
         final_root=output,
     )
     admission = verify_package(package=output)
+    if phase_callback is not None:
+        phase_callback("package_admitted")
     result = {
         "schema_version": "skhynix_stage_h0b_build_receipt_v2",
         "task_id": contracts.TASK_ID,
@@ -10639,8 +11802,307 @@ def build_formal(
         package_root=output,
         expected_runtime_source_sha256=expected_runtime_source_sha,
     )
-    write_json(receipt, result)
+    write_json(receipt, result, fsync=True)
+    if phase_callback is not None:
+        phase_callback("receipt_written")
     return result
+
+
+def formal_attempt_paths(
+    attempt_id: str,
+    *,
+    attempts_root: Path = FORMAL_ATTEMPTS_ROOT,
+) -> dict[str, Path]:
+    contracts.require(
+        re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", attempt_id) is not None,
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        "$.formal_attempt.attempt_id",
+        attempt_id,
+    )
+    root = Path(attempts_root) / attempt_id
+    return {
+        "root": root,
+        "attempt_receipt": root / "attempt_receipt.json",
+        "build_a": root / "build-a",
+        "build_b": root / "build-b",
+        "package": root / "package",
+        "build_receipt": root / "build-receipt.json",
+    }
+
+
+def formal_attempt_identity(path: Path) -> dict[str, Any]:
+    target = Path(path)
+    if not target.exists():
+        return {"entry_type": "absent", "sha256": None}
+    contracts.require(
+        not target.is_symlink() and (target.is_file() or target.is_dir()),
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(target),
+        "formal attempt evidence must be a real file or directory",
+    )
+    if target.is_file():
+        return {
+            "entry_type": "regular_file",
+            "sha256": contracts.sha256_file(target),
+        }
+    return {
+        "entry_type": "directory",
+        "sha256": regular_tree_inventory_sha256(target),
+    }
+
+
+def formal_attempt_completed_identities(
+    paths: Mapping[str, Path],
+) -> dict[str, Any]:
+    return {
+        key: formal_attempt_identity(paths[key])
+        for key in ("build_a", "build_b", "package", "build_receipt")
+        if paths[key].exists()
+    }
+
+
+def write_formal_attempt_receipt(
+    path: Path,
+    payload: Mapping[str, Any],
+) -> None:
+    write_json(path, dict(payload), fsync=True)
+    contracts.fsync_directory(Path(path).parent)
+
+
+def require_formal_attempt_root_absent(root: Path) -> None:
+    contracts.require(
+        not Path(root).exists(),
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(root),
+        "formal attempt ID is already occupied and is preserved",
+    )
+
+
+def begin_formal_attempt(
+    *,
+    attempt_id: str,
+    dispatch: Mapping[str, Any],
+    attempts_root: Path = FORMAL_ATTEMPTS_ROOT,
+) -> tuple[dict[str, Path], dict[str, Any]]:
+    paths = formal_attempt_paths(
+        attempt_id,
+        attempts_root=attempts_root,
+    )
+    Path(attempts_root).mkdir(parents=True, exist_ok=True)
+    require_formal_attempt_root_absent(paths["root"])
+    paths["root"].mkdir(parents=False, exist_ok=False)
+    payload = {
+        "schema_version": FORMAL_ATTEMPT_RECEIPT_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "attempt_id": attempt_id,
+        "status": "running",
+        "phase": "initialized",
+        "controller_pid": os.getpid(),
+        "dispatch": dict(dispatch),
+        "paths": {
+            key: str(value.resolve())
+            for key, value in paths.items()
+            if key != "attempt_receipt"
+        },
+        "completed_entry_identities": {},
+        "error": None,
+        "outcome_rerun": True,
+    }
+    write_formal_attempt_receipt(paths["attempt_receipt"], payload)
+    return paths, payload
+
+
+def update_formal_attempt(
+    paths: Mapping[str, Path],
+    payload: Mapping[str, Any],
+    *,
+    status: str | None = None,
+    phase: str | None = None,
+    error: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    if status is not None:
+        updated["status"] = status
+    if phase is not None:
+        updated["phase"] = phase
+    updated["completed_entry_identities"] = (
+        formal_attempt_completed_identities(paths)
+    )
+    updated["error"] = dict(error) if error is not None else None
+    write_formal_attempt_receipt(paths["attempt_receipt"], updated)
+    return updated
+
+
+def exception_payload(exc: BaseException) -> dict[str, Any]:
+    if isinstance(exc, contracts.H0BError):
+        return exc.as_dict()
+    return {
+        "code": "H0B_RUNTIME_ERROR",
+        "location": "$.formal_attempt",
+        "detail": f"{type(exc).__name__}: {exc}",
+    }
+
+
+def validate_formal_attempt_receipt(
+    attempt_root: Path,
+) -> tuple[dict[str, Path], dict[str, Any]]:
+    root = Path(attempt_root)
+    paths = formal_attempt_paths(
+        root.name,
+        attempts_root=root.parent,
+    )
+    contracts.require(
+        paths["attempt_receipt"].is_file()
+        and not paths["attempt_receipt"].is_symlink(),
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(paths["attempt_receipt"]),
+        "durable formal attempt receipt is missing",
+    )
+    payload = read_json(paths["attempt_receipt"])
+    contracts.require(
+        set(payload)
+        == {
+            "schema_version",
+            "task_id",
+            "attempt_id",
+            "status",
+            "phase",
+            "controller_pid",
+            "dispatch",
+            "paths",
+            "completed_entry_identities",
+            "error",
+            "outcome_rerun",
+        }
+        and payload["schema_version"] == FORMAL_ATTEMPT_RECEIPT_SCHEMA
+        and payload["task_id"] == contracts.TASK_ID
+        and payload["attempt_id"] == root.name
+        and payload["status"]
+        in {"running", "failed", "interrupted", "completed"}
+        and payload["phase"]
+        in {
+            "initialized",
+            "gate0_validated",
+            "build_a_completed",
+            "build_b_completed",
+            "primary_sealed",
+            "stage4_completed",
+            "package_admitted",
+            "receipt_written",
+        }
+        and type(payload["controller_pid"]) is int
+        and payload["controller_pid"] > 0
+        and payload["paths"]
+        == {
+            key: str(value.resolve())
+            for key, value in paths.items()
+            if key != "attempt_receipt"
+        }
+        and payload["outcome_rerun"] is True,
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(paths["attempt_receipt"]),
+        "formal attempt receipt schema or scalar mismatch",
+    )
+    observed_identities = formal_attempt_completed_identities(paths)
+    contracts.require(
+        payload["completed_entry_identities"] == observed_identities,
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        "$.formal_attempt.completed_entry_identities",
+        "formal attempt evidence identity drift",
+    )
+    return paths, payload
+
+
+def process_is_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def recover_formal_attempt(
+    *,
+    attempt_root: Path,
+    action: str,
+) -> dict[str, Any]:
+    paths, payload = validate_formal_attempt_receipt(attempt_root)
+    if action == "inspect":
+        return payload
+    contracts.require(
+        action == "mark-interrupted"
+        and payload["status"] == "running"
+        and not process_is_alive(payload["controller_pid"]),
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        str(paths["attempt_receipt"]),
+        "only a dead-PID running attempt may be marked interrupted",
+    )
+    return update_formal_attempt(
+        paths,
+        payload,
+        status="interrupted",
+        error={
+            "code": "H0B_FORMAL_ATTEMPT_INTERRUPTED",
+            "location": "$.formal_attempt.controller_pid",
+            "detail": f"dead_pid={payload['controller_pid']}",
+        },
+    )
+
+
+def build_formal(
+    *,
+    task_path: Path,
+    matrix_path: Path,
+    attempt_id: str,
+    attempts_root: Path = FORMAL_ATTEMPTS_ROOT,
+) -> dict[str, Any]:
+    dispatch = validate_dispatch(task_path, matrix_path)
+    paths, attempt = begin_formal_attempt(
+        attempt_id=attempt_id,
+        dispatch=dispatch,
+        attempts_root=attempts_root,
+    )
+
+    def phase_callback(phase: str) -> None:
+        nonlocal attempt
+        attempt = update_formal_attempt(
+            paths,
+            attempt,
+            phase=phase,
+        )
+
+    try:
+        result = _execute_formal_attempt(
+            task_path=task_path,
+            matrix_path=matrix_path,
+            output=paths["package"],
+            build_a=paths["build_a"],
+            build_b=paths["build_b"],
+            receipt=paths["build_receipt"],
+            phase_callback=phase_callback,
+        )
+    except BaseException as exc:
+        update_formal_attempt(
+            paths,
+            attempt,
+            status="failed",
+            error=exception_payload(exc),
+        )
+        raise
+    attempt = update_formal_attempt(
+        paths,
+        attempt,
+        status="completed",
+        phase="receipt_written",
+    )
+    return {
+        "schema_version": "skhynix_stage_h0b_formal_attempt_result_v1",
+        "task_id": contracts.TASK_ID,
+        "attempt": attempt,
+        "formal_build": result,
+    }
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -10696,10 +12158,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     formal = subparsers.add_parser("build-formal")
     formal.add_argument("--task", type=Path, required=True)
     formal.add_argument("--matrix", type=Path, required=True)
-    formal.add_argument("--output", type=Path, required=True)
-    formal.add_argument("--build-a", type=Path, required=True)
-    formal.add_argument("--build-b", type=Path, required=True)
-    formal.add_argument("--receipt", type=Path, required=True)
+    formal.add_argument("--attempt-id", required=True)
+    formal.add_argument(
+        "--attempts-root",
+        type=Path,
+        default=FORMAL_ATTEMPTS_ROOT,
+    )
+
+    recover_attempt = subparsers.add_parser("recover-formal-attempt")
+    recover_attempt.add_argument("--attempt-root", type=Path, required=True)
+    recover_attempt.add_argument(
+        "--action",
+        choices=("inspect", "mark-interrupted"),
+        required=True,
+    )
 
     verify = subparsers.add_parser("verify")
     verify.add_argument("--package", type=Path, required=True)
@@ -10775,10 +12247,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = build_formal(
                 task_path=args.task,
                 matrix_path=args.matrix,
-                output=args.output,
-                build_a=args.build_a,
-                build_b=args.build_b,
-                receipt=args.receipt,
+                attempt_id=args.attempt_id,
+                attempts_root=args.attempts_root,
+            )
+        elif args.command == "recover-formal-attempt":
+            result = recover_formal_attempt(
+                attempt_root=args.attempt_root,
+                action=args.action,
             )
         else:
             result = verify_package(

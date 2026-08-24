@@ -15,7 +15,22 @@ def valid_hostile_receipt(
     dispatch: dict[str, object] | None = None,
 ) -> tuple[dict[str, object], dict[str, object]]:
     if dispatch is None:
-        dispatch = h0b.validate_dispatch(h0b.TASK_PATH, h0b.MATRIX_PATH)
+        dispatch = {
+            "schema_version": "skhynix_stage_h0b_dispatch_v4",
+            "verified": True,
+            "task_id": contracts.TASK_ID,
+            "matrix_sha256": h0b.MATRIX_SHA256,
+            "task_sha256": contracts.sha256_file(h0b.TASK_PATH),
+            "publication_remediation_review_sha256": (
+                h0b.task_field_pin(
+                    h0b.TASK_PATH,
+                    "publication_remediation_review_sha256",
+                )
+            ),
+            "runtime_source_tree_sha256": (
+                h0b.runtime_source_tree_sha256()
+            ),
+        }
     matrix = h0b.read_json(h0b.MATRIX_PATH)
     rows = [
         {
@@ -264,10 +279,33 @@ def test_frozen_hostile_authority_inventory_is_complete() -> None:
         h0b.DIAGNOSTIC_PLAN_REVIEW_PATH,
         h0b.PUBLICATION_REMEDIATION_PLAN_PATH,
         h0b.PUBLICATION_REMEDIATION_REVIEW_PATH,
+        h0b.CONTROL_REMEDIATION_PLAN_PATH,
+        h0b.CONTROL_CANDIDATE_RECEIPT_PATH,
+        h0b.CONTROL_REMEDIATION_REVIEW_PATH,
+        h0b.CONTROL_REVIEW_SUBMISSION_PATH,
         h0b.SEMANTIC_INVENTORY_PATH,
         h0b.SOURCE_INVENTORY_CONTRACT_PATH,
     }
-    assert all(path.is_file() for path in h0b.frozen_hostile_authority_paths())
+    pending_review = (
+        h0b.task_field_pin(h0b.TASK_PATH, "control_final_severity")
+        == "PENDING_INDEPENDENT_REVIEW"
+    )
+    deferred = {
+        h0b.CONTROL_CANDIDATE_RECEIPT_PATH,
+        h0b.CONTROL_REMEDIATION_REVIEW_PATH,
+        h0b.CONTROL_REVIEW_SUBMISSION_PATH,
+    }
+    if pending_review:
+        assert all(not path.exists() for path in deferred)
+        assert all(
+            path.is_file()
+            for path in h0b.frozen_hostile_authority_paths()
+            if path not in deferred
+        )
+    else:
+        assert all(
+            path.is_file() for path in h0b.frozen_hostile_authority_paths()
+        )
 
 
 def test_h0b0_does_not_create_root_before_dispatch(
@@ -295,6 +333,14 @@ def test_h0b0_does_not_create_root_before_dispatch(
 
 
 def test_dispatch_and_surface_assignment_oracles() -> None:
+    if (
+        h0b.task_field_pin(h0b.TASK_PATH, "control_final_severity")
+        == "PENDING_INDEPENDENT_REVIEW"
+    ):
+        with pytest.raises(contracts.H0BError) as captured:
+            h0b.validate_dispatch(h0b.TASK_PATH, h0b.MATRIX_PATH)
+        assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
+        return
     result = h0b.validate_dispatch(h0b.TASK_PATH, h0b.MATRIX_PATH)
     assert result["verified"] is True
     projection = h0b.surface_assignment_projection()
@@ -676,6 +722,213 @@ def test_dispatch_runtime_oracle_rejects_self_consistent_stale_tree(
             task_path=task,
         )
     assert captured.value.code == "H0B_OUTCOME_PERMIT_MISMATCH"
+
+
+def test_existing_package_uses_immutable_execution_authority() -> None:
+    admission = h0b.verify_package(package=h0b.DEFAULT_PACKAGE)
+    assert admission["verified"] is True
+    assert admission["zero_write"] is True
+    assert admission["execution_authority_commit"] == (
+        h0b.EXECUTION_AUTHORITY_COMMIT
+    )
+    assert admission["research_data_identity"] == (
+        h0b.FORMAL_PACKAGE_IDENTITIES["research_data_identity"]
+    )
+    assert admission["runtime_contract_identity"] == (
+        h0b.FORMAL_PACKAGE_IDENTITIES["runtime_contract_identity"]
+    )
+    assert admission["publication_envelope_identity"] == (
+        h0b.FORMAL_PACKAGE_IDENTITIES["publication_envelope_identity"]
+    )
+    assert admission["composite_package_identity"] == (
+        h0b.FORMAL_PACKAGE_IDENTITIES["composite_package_identity"]
+    )
+
+
+def test_execution_authority_rejects_mutable_task_identity() -> None:
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_execution_authority_pins(
+            commit=h0b.EXECUTION_AUTHORITY_COMMIT,
+            tree_sha256=h0b.EXECUTION_AUTHORITY_TREE_SHA256,
+            task_sha256=contracts.sha256_file(h0b.TASK_PATH),
+        )
+    assert captured.value.code == "H0B_EXECUTION_AUTHORITY_MISMATCH"
+
+
+def test_workflow_transition_requires_exact_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(h0b, "REPO_ROOT", tmp_path)
+    transition = tmp_path / ".workflow/reports/transition.json"
+    monkeypatch.setattr(h0b, "WORKFLOW_TRANSITION_RECEIPT_PATH", transition)
+    expected = {
+        "schema_version": h0b.WORKFLOW_TRANSITION_RECEIPT_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "outcome_rerun": False,
+    }
+    monkeypatch.setattr(
+        h0b,
+        "expected_workflow_transition_payload",
+        lambda **kwargs: expected,
+    )
+    task = tmp_path / ".workflow/tasks/0823T002.md"
+    task.parent.mkdir(parents=True)
+    task.write_text(
+        "状态：\n"
+        "- 待验收\n"
+        "- workflow_transition_receipt_path="
+        ".workflow/reports/transition.json\n"
+        "- workflow_transition_receipt_sha256="
+        f"{'0' * 64}\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_workflow_transition_authority(
+            task,
+            control_review={},
+        )
+    assert captured.value.code == "H0B_WORKFLOW_TRANSITION_MISMATCH"
+    h0b.write_json(transition, expected)
+    task.write_text(
+        task.read_text(encoding="utf-8").replace(
+            "0" * 64,
+            contracts.sha256_file(transition),
+        ),
+        encoding="utf-8",
+    )
+    result = h0b.validate_workflow_transition_authority(
+        task,
+        control_review={},
+    )
+    assert result["transition"] == "admitted"
+    mutated = copy.deepcopy(expected)
+    mutated["outcome_rerun"] = True
+    h0b.write_json(transition, mutated)
+    task.write_text(
+        task.read_text(encoding="utf-8").replace(
+            contracts.sha256_file(
+                transition
+            ),
+            contracts.sha256_file(transition),
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(contracts.H0BError):
+        h0b.validate_workflow_transition_payload(mutated, expected)
+
+
+def test_formal_attempt_receipt_precedes_build_roots_and_reuse_fails(
+    tmp_path: Path,
+) -> None:
+    paths, payload = h0b.begin_formal_attempt(
+        attempt_id="candidate-one",
+        dispatch={"verified": True},
+        attempts_root=tmp_path / "attempts",
+    )
+    assert paths["attempt_receipt"].is_file()
+    assert payload["status"] == "running"
+    assert not paths["build_a"].exists()
+    assert not paths["build_b"].exists()
+    before = paths["attempt_receipt"].read_bytes()
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.begin_formal_attempt(
+            attempt_id="candidate-one",
+            dispatch={"verified": True},
+            attempts_root=tmp_path / "attempts",
+        )
+    assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
+    assert paths["attempt_receipt"].read_bytes() == before
+
+
+def test_formal_attempt_failure_is_durable_and_preserves_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        h0b,
+        "validate_dispatch",
+        lambda task_path, matrix_path: {"verified": True},
+    )
+
+    def fail_after_partial_evidence(**kwargs: object) -> dict[str, object]:
+        build_a = Path(kwargs["build_a"])
+        build_a.mkdir()
+        (build_a / "partial.txt").write_text("preserved\n", encoding="ascii")
+        raise contracts.H0BError(
+            "H0B_BUILD_MISMATCH",
+            "$.fixture",
+            "injected failure",
+        )
+
+    monkeypatch.setattr(
+        h0b,
+        "_execute_formal_attempt",
+        fail_after_partial_evidence,
+    )
+    with pytest.raises(contracts.H0BError):
+        h0b.build_formal(
+            task_path=tmp_path / "task.md",
+            matrix_path=tmp_path / "matrix.json",
+            attempt_id="failed-one",
+            attempts_root=tmp_path / "attempts",
+        )
+    attempt_root = tmp_path / "attempts/failed-one"
+    receipt = h0b.read_json(attempt_root / "attempt_receipt.json")
+    assert receipt["status"] == "failed"
+    assert receipt["error"]["code"] == "H0B_BUILD_MISMATCH"
+    assert (attempt_root / "build-a/partial.txt").read_text(
+        encoding="ascii"
+    ) == "preserved\n"
+
+
+def test_formal_attempt_recovery_requires_dead_pid(
+    tmp_path: Path,
+) -> None:
+    paths, payload = h0b.begin_formal_attempt(
+        attempt_id="interrupted-one",
+        dispatch={"verified": True},
+        attempts_root=tmp_path / "attempts",
+    )
+    with pytest.raises(contracts.H0BError):
+        h0b.recover_formal_attempt(
+            attempt_root=paths["root"],
+            action="mark-interrupted",
+        )
+    payload["controller_pid"] = 2_147_483_647
+    h0b.write_formal_attempt_receipt(paths["attempt_receipt"], payload)
+    recovered = h0b.recover_formal_attempt(
+        attempt_root=paths["root"],
+        action="mark-interrupted",
+    )
+    assert recovered["status"] == "interrupted"
+    assert recovered["error"]["code"] == "H0B_FORMAL_ATTEMPT_INTERRUPTED"
+
+
+def test_occupied_package_staging_is_preserved(tmp_path: Path) -> None:
+    staging = tmp_path / "occupied-staging"
+    staging.mkdir()
+    marker = staging / "evidence.txt"
+    marker.write_text("keep\n", encoding="ascii")
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.require_publication_staging_absent(staging)
+    assert captured.value.code == "PUBLICATION_STAGING_EXISTS"
+    assert marker.read_text(encoding="ascii") == "keep\n"
+
+
+def test_reviewer_actor_and_candidate_binding_fail_closed() -> None:
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_reviewer_actor_binding(
+            controller_actor_id=h0b.CONTROLLER_ACTOR_ID,
+            reviewer_actor_id=h0b.CONTROLLER_ACTOR_ID,
+        )
+    assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_candidate_revision_binding(
+            candidate_commit="0" * 40,
+            expected_candidate_commit="1" * 40,
+        )
+    assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
 
 
 def test_external_receipt_dual_binds_runtime_and_publication(

@@ -3,7 +3,7 @@
     {
       "applicability": "required",
       "criterion_id": "EC1",
-      "planned_evidence": "Reviewed plan, task, matrix and accepted pins validate before outcome access."
+      "planned_evidence": "Reviewed V4 control authority, immutable formal execution authority, current task and matrix validate before any future outcome access."
     },
     {
       "applicability": "required",
@@ -13,7 +13,7 @@
     {
       "applicability": "required",
       "criterion_id": "EC3",
-      "planned_evidence": "All 65 current and frozen negative mutations reject with exact stable codes."
+      "planned_evidence": "All 74 current and frozen negative mutations reject with exact stable codes."
     },
     {
       "applicability": "required",
@@ -33,7 +33,7 @@
     {
       "applicability": "required",
       "criterion_id": "EC7",
-      "planned_evidence": "Business report ends at 待验收 and independent QA/controller closure record exact identities."
+      "planned_evidence": "Candidate receipt, actor-bound independent review and workflow transition receipt precede QA Round 2 handoff."
     }
   ],
   "kernel_pin": {
@@ -4305,8 +4305,8 @@
       ],
       "description": "Formal H0-B contract for output_schema.",
       "durable_evidence": {
-        "required": false,
-        "reason": "new_surface_no_prior_version"
+        "reason": "new_surface_no_prior_version",
+        "required": false
       },
       "exact_contract": {
         "canonicalization": "custom_explicit",
@@ -4817,6 +4817,356 @@
         "mode": "deterministic_derivation"
       },
       "surface_id": "zero_external_action"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-execution-authority.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "84333cf0b4915ef413b709f0a43db88fb9796d87b97ecfd24decea6ea32f1661"
+          },
+          "locator": "71adbfa678ff3646982160d220f5c223e0f7e59f",
+          "source_id": "formal_execution_authority",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "master_framework_pin"
+      ],
+      "description": "Immutable formal Git-object authority for the existing H0-B package.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=execution_authority",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "package admission compares packaged task, matrix, V3 plan/review and four runtime/test files to exact Git objects at 71adbfa6; current mutable task bytes are not the package authority"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "replace formal task SHA with mutable workflow task SHA",
+          "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+          "mutation_id": "mutate_execution_authority_task",
+          "operation": "other_explicit",
+          "target": "execution_authority_task_sha256"
+        },
+        {
+          "description": "alter formal authority commit while preserving other pins",
+          "expected_error_code": "H0B_EXECUTION_AUTHORITY_MISMATCH",
+          "mutation_id": "mutate_execution_authority_commit",
+          "operation": "other_explicit",
+          "target": "execution_authority_commit"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "execution_authority_contract_match",
+          "execution_authority_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "execution_authority"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-formal-attempt-protocol.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "1a51dcf142734a05e29154c710715cd345c66679ccdab93e7eea44c5de086543"
+          },
+          "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
+          "source_id": "reviewed_v4_attempt_protocol",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "execution_authority"
+      ],
+      "description": "Versioned durable formal attempt, failure and interruption recovery protocol.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=formal_attempt_protocol",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "attempt receipt is fsynced before build paths; attempts use unique versioned roots; failure/interruption preserves all evidence; package staging collision fails without deletion"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "reuse an occupied attempt ID",
+          "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+          "mutation_id": "mutate_formal_attempt_reuse",
+          "operation": "other_explicit",
+          "target": "formal_attempt_root"
+        },
+        {
+          "description": "reuse an occupied package staging root",
+          "expected_error_code": "PUBLICATION_STAGING_EXISTS",
+          "mutation_id": "mutate_formal_staging_reuse",
+          "operation": "other_explicit",
+          "target": "package_staging_root"
+        },
+        {
+          "description": "remove the durable attempt receipt",
+          "expected_error_code": "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+          "mutation_id": "mutate_formal_attempt_missing_receipt",
+          "operation": "other_explicit",
+          "target": "attempt_receipt"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "formal_attempt_protocol_contract_match",
+          "formal_attempt_protocol_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "formal_attempt_protocol"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-v4-candidate-receipt.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-plan-v4-review.md",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-plan-v4-review-submission.md",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-independent-review-provenance.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "1a51dcf142734a05e29154c710715cd345c66679ccdab93e7eea44c5de086543"
+          },
+          "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
+          "source_id": "reviewed_v4_provenance_contract",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "execution_authority",
+        "formal_attempt_protocol"
+      ],
+      "description": "Candidate-revision and distinct reviewer-actor attestation chain.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=independent_review_provenance",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "candidate commit predates candidate receipt and review; candidate Git objects are recomputed; reviewer actor differs from controller and review introduction commit has the frozen independent-review author identity"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "reuse the controller actor ID as reviewer",
+          "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+          "mutation_id": "mutate_review_same_actor",
+          "operation": "other_explicit",
+          "target": "reviewer_actor_id"
+        },
+        {
+          "description": "bind review to a different candidate commit",
+          "expected_error_code": "H0B_REVIEW_PROVENANCE_MISMATCH",
+          "mutation_id": "mutate_review_candidate_commit",
+          "operation": "other_explicit",
+          "target": "candidate_commit"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "independent_review_provenance_contract_match",
+          "independent_review_provenance_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "independent_review_provenance"
+    },
+    {
+      "artifacts": [
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-workflow-transition.json",
+          "required": false
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-surface-workflow-transition.json",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "1a51dcf142734a05e29154c710715cd345c66679ccdab93e7eea44c5de086543"
+          },
+          "locator": "docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md",
+          "source_id": "reviewed_v4_transition_contract",
+          "source_type": "immutable_input"
+        }
+      ],
+      "availability": {
+        "state": "available"
+      },
+      "decision_time": {
+        "clock": "not_applicable",
+        "field": null,
+        "kind": "not_applicable",
+        "observed_at_rule": "Freeze and validate this contract before its first dependent computation or publication.",
+        "relation": "not_applicable"
+      },
+      "depends_on_surfaces": [
+        "execution_authority",
+        "independent_review_provenance",
+        "package_tree"
+      ],
+      "description": "Mutable workflow status is authorized by a separate immutable-authority handoff receipt.",
+      "durable_evidence": {
+        "reason": "new_surface_no_prior_version",
+        "required": false
+      },
+      "exact_contract": {
+        "canonicalization": "custom_explicit",
+        "key_fields": [
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "surface_id",
+          "contract"
+        ],
+        "row_identity": "task_id=0823T002;surface_id=workflow_transition",
+        "schema_path": null,
+        "schema_sha256": null,
+        "unknown_field_policy": "reject",
+        "unknown_key_policy": "reject",
+        "value_contract": "\u6267\u884c\u4e2d requires PENDING_HANDOFF and no receipt; \u5f85\u9a8c\u6536 requires an exact receipt binding formal authority, package identities, candidate receipt and review attestation with outcome_rerun=false"
+      },
+      "identity_layer": "C",
+      "negative_mutations": [
+        {
+          "description": "alter one formal package identity in the transition receipt",
+          "expected_error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+          "mutation_id": "mutate_workflow_transition_identity",
+          "operation": "other_explicit",
+          "target": "workflow_transition_receipt"
+        },
+        {
+          "description": "set handoff status without a transition receipt",
+          "expected_error_code": "H0B_WORKFLOW_TRANSITION_MISMATCH",
+          "mutation_id": "mutate_workflow_status_without_transition",
+          "operation": "other_explicit",
+          "target": "workflow_status"
+        }
+      ],
+      "rebuild_oracle": {
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0b.py hostile-preflight --task .workflow/tasks/0823T002.md --matrix .workflow/contracts/0823T002-surface-matrix.json",
+        "expected_evidence": [
+          "workflow_transition_contract_match",
+          "workflow_transition_negative_rejected"
+        ],
+        "mode": "deterministic_derivation"
+      },
+      "surface_id": "workflow_transition"
     }
   ],
   "task_id": "0823T002",
