@@ -15,19 +15,25 @@ import skhynix_stage_h0b as h0b
 NEGATIVE_CASES = tuple(
     (
         surface["surface_id"],
-        surface["negative_mutations"][0]["expected_error_code"],
+        mutation["mutation_id"],
+        mutation["expected_error_code"],
     )
     for surface in h0b.read_json(h0b.MATRIX_PATH)["surfaces"]
+    for mutation in surface["negative_mutations"]
 )
 
 
-@pytest.mark.parametrize(("surface_id", "expected_code"), NEGATIVE_CASES)
+@pytest.mark.parametrize(
+    ("surface_id", "mutation_id", "expected_code"),
+    NEGATIVE_CASES,
+)
 def test_each_hostile_case_uses_production_error_code(
     surface_id: str,
+    mutation_id: str,
     expected_code: str,
 ) -> None:
     with pytest.raises(contracts.H0BError) as captured:
-        h0b.negative_case(surface_id, expected_code)
+        h0b.negative_case(surface_id, mutation_id, expected_code)
     assert captured.value.code == expected_code
 
 
@@ -40,7 +46,11 @@ def test_matrix_expected_code_cannot_issue_production_error(
     ] = "H0B_BUILD_MISMATCH"
     monkeypatch.setattr(h0b, "read_json", lambda _: matrix)
     with pytest.raises(contracts.H0BError) as captured:
-        h0b.negative_case("kernel_pin", "H0B_BUILD_MISMATCH")
+        h0b.negative_case(
+            "kernel_pin",
+            "mutate_kernel_pin",
+            "H0B_BUILD_MISMATCH",
+        )
     assert captured.value.code == "H0B_KERNEL_PIN_MISMATCH"
 
 
@@ -55,9 +65,10 @@ def test_noop_production_guard_cannot_pass_hostile_surface(
     with pytest.raises(contracts.H0BError) as captured:
         h0b.negative_case(
             "zero_external_action",
+            "mutate_zero_external_action",
             "H0B_EXTERNAL_ACTION_FORBIDDEN",
         )
-    expected_codes = {expected for _, expected in NEGATIVE_CASES}
+    expected_codes = {expected for _, _, expected in NEGATIVE_CASES}
     assert captured.value.code == h0b.HOSTILE_FAIL_OPEN_SENTINEL
     assert captured.value.code not in expected_codes
 
@@ -584,6 +595,7 @@ def test_hostile_generic_surface_executes_contract_mutation() -> None:
     with pytest.raises(contracts.H0BError) as captured:
         h0b.negative_case(
             "source_schema",
+            "mutate_source_schema",
             "H0B_SOURCE_SCHEMA_MISMATCH",
         )
     assert captured.value.code == "H0B_SOURCE_SCHEMA_MISMATCH"

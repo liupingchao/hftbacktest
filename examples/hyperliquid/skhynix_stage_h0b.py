@@ -50,6 +50,14 @@ PRIMARY_PLAN_REVIEW_PATH = (
 DIAGNOSTIC_PLAN_REVIEW_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-plan-v2-review.md"
 )
+PUBLICATION_REMEDIATION_PLAN_PATH = (
+    REPO_ROOT
+    / "docs/"
+    "skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md"
+)
+PUBLICATION_REMEDIATION_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v3-review.md"
+)
 SEMANTIC_INVENTORY_PATH = (
     REPO_ROOT
     / ".workflow/contracts/0823T002-semantic-source-inventory.csv"
@@ -93,6 +101,51 @@ DEFAULT_PACKAGE = (
     / "local_live_analysis/"
     "skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002"
 )
+FORMAL_BUILD_A = REPO_ROOT / ".workflow/reports/0823T002-build-a"
+FORMAL_BUILD_B = REPO_ROOT / ".workflow/reports/0823T002-build-b"
+FORMAL_BUILD_RECEIPT = (
+    REPO_ROOT / ".workflow/reports/0823T002-build-receipt.json"
+)
+SUPERSEDED_FORMAL_ARCHIVE = (
+    REPO_ROOT
+    / ".workflow/reports/0823T002-qa-round1-rejected-formal"
+)
+SUPERSEDED_FORMAL_ARCHIVE_STAGING = (
+    REPO_ROOT
+    / ".workflow/reports/.0823T002-qa-round1-rejected-formal.staging"
+)
+SUPERSEDED_FORMAL_IDENTITIES = {
+    "build_a_tree_sha256": (
+        "980ce48e11fd278a8c73394816bb7c12a9387a049dbc2c788b3987da662456a2"
+    ),
+    "build_b_tree_sha256": (
+        "6f1f1b3fc5cc19b7d6d0e0da648828e5215b227b7f5f6836c38025e02262ddc2"
+    ),
+    "build_receipt_sha256": (
+        "0f1f828917fd90e34ff4aaf90e4704bb5e15c1b4aba0ecc3ecab0bc20f05881e"
+    ),
+    "package_tree_sha256": (
+        "61a24313c24679000496920045f018d561363d5538473b37ec73d43034590eb6"
+    ),
+    "package_manifest_sha256": (
+        "83513cfab3fe975cc3ef174c1f23993b0532927e182f0ba572171d0c06fec9b7"
+    ),
+    "primary_seal_sha256": (
+        "bdcc9925bed058a675e49bd2b0d3ce087e7bf41ac37beeb38873d7b76b2e8c5b"
+    ),
+    "primary_results_sha256": (
+        "c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e"
+    ),
+    "primary_classification_sha256": (
+        "96e6bfadbb76a7d1289564ffa9a69d5a8fb200ebd3db2616c1d92620c772e878"
+    ),
+    "stage4_crosscheck_sha256": (
+        "5e277c73f2a67678962a793d466baead3f5d4e54ca0d838c5967b442aef500e2"
+    ),
+    "composite_package_identity": (
+        "a40c436510af3dce943cc20e44cb6fc017f80f1e0adaac94e1942c2f26656c37"
+    ),
+}
 PRIMARY_PLAN_SHA256 = (
     "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
 )
@@ -105,17 +158,66 @@ DIAGNOSTIC_PLAN_SHA256 = (
 DIAGNOSTIC_REVIEW_SHA256 = (
     "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d"
 )
+PUBLICATION_REMEDIATION_PLAN_SHA256 = (
+    "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+)
+PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
+    "skhynix_stage_h0b_v3_independent_review_v1"
+)
+PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
+PUBLICATION_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
 FRAMEWORK_SHA256 = (
     "20c711fc056004d36ddf671766d04a1bbc2df58116234b4be285a859b55ceeec"
 )
 EXPECTED_SEMANTIC_INVENTORY_SHA256 = (
     "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9"
 )
+PUBLICATION_BUILD_ROOT_ROLES = {
+    "A": "build_a",
+    "B": "build_b",
+}
+PUBLICATION_PERMIT_SCHEMA = (
+    "skhynix_stage_h0b_outcome_access_permit_publication_v1"
+)
+PUBLICATION_LEDGER_SCHEMA = (
+    "skhynix_stage_h0b_outcome_access_ledger_publication_v1"
+)
+RUNTIME_PERMIT_SCHEMA = "skhynix_stage_h0b_outcome_access_permit_v2"
+RUNTIME_LEDGER_SCHEMA = "skhynix_stage_h0b_outcome_access_ledger_v1"
+PUBLICATION_PROJECTION_CONTRACT = {
+    "excluded_runtime_fields": ["resolved_build_root", "runtime_pid"],
+    "publication_schema_version": PUBLICATION_PERMIT_SCHEMA,
+    "runtime_schema_version": RUNTIME_PERMIT_SCHEMA,
+    "version": "h0b_outcome_permit_publication_projection_v1",
+}
+PUBLICATION_PROJECTION_CONTRACT_SHA256 = (
+    contracts.canonical_json_sha256(PUBLICATION_PROJECTION_CONTRACT)
+)
+PACKAGED_RUNTIME_SOURCE_PATHS = {
+    "examples/hyperliquid/skhynix_stage_h0b.py": (
+        "runtime_source/skhynix_stage_h0b.py"
+    ),
+    "examples/hyperliquid/skhynix_stage_h0b_contracts.py": (
+        "runtime_source/skhynix_stage_h0b_contracts.py"
+    ),
+    "examples/hyperliquid/test_skhynix_stage_h0b.py": (
+        "runtime_tests/test_skhynix_stage_h0b.py"
+    ),
+    "examples/hyperliquid/test_skhynix_stage_h0b_package.py": (
+        "runtime_tests/test_skhynix_stage_h0b_package.py"
+    ),
+}
+PRIMARY_OUTCOME_SOURCE_ROLES = {
+    "r0_binance_bookticker",
+    "r0_hyperliquid_bbo",
+    "accepted_stage2_primary",
+    "accepted_stage3_primary",
+}
 SOURCE_INVENTORY_CONTRACT_SHA256 = (
     "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "478cb177fe5834bfd359d4d4e56004c3fa95c69cf2b4da0a67446ceeec22745b"
+    "541c386abb136ba0dba0bc9aff0152f1f5133d8a1b34321595bdc9bdad54995d"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -246,6 +348,7 @@ def production_contract_state() -> dict[str, Any]:
             PRIMARY_REVIEW_SHA256,
             DIAGNOSTIC_PLAN_SHA256,
             DIAGNOSTIC_REVIEW_SHA256,
+            PUBLICATION_REMEDIATION_PLAN_SHA256,
             FRAMEWORK_SHA256,
             MATRIX_SHA256,
         ),
@@ -285,6 +388,8 @@ def production_contract_state() -> dict[str, Any]:
         "guarded_opener": (
             "semantic_inventory_only_before_outcome_permit",
             "stage4_only_after_primary_seal_and_diagnostic_permit",
+            PUBLICATION_LEDGER_SCHEMA,
+            "exact_inventory_derived_primary_event_oracle",
         ),
         "feature_source_boundary": feature_sources,
         "two_envelope_boundary": (
@@ -293,7 +398,10 @@ def production_contract_state() -> dict[str, Any]:
             "fresh_H0B1_DIAGNOSTIC",
         ),
         "outcome_access_permit": (
-            "skhynix_stage_h0b_outcome_access_permit_v2",
+            RUNTIME_PERMIT_SCHEMA,
+            PUBLICATION_PERMIT_SCHEMA,
+            "verified_runtime_projection",
+            PUBLICATION_PROJECTION_CONTRACT_SHA256,
             "A",
             "B",
             "admitted",
@@ -430,6 +538,7 @@ def production_contract_state() -> dict[str, Any]:
             "byte_identical_primary",
             "byte_identical_diagnostic",
             "primary_bytes_unchanged_post_stage4",
+            "fresh_root_42_of_42_R_C_E_composite_parity",
         ),
         "output_schema": (
             tuple(sorted(contracts.CSV_HEADERS)),
@@ -437,6 +546,9 @@ def production_contract_state() -> dict[str, Any]:
             10,
             14,
             42,
+            PUBLICATION_PERMIT_SCHEMA,
+            PUBLICATION_LEDGER_SCHEMA,
+            "skhynix_stage_h0b_build_receipt_v2",
         ),
         "package_tree": (
             tuple(sorted(contracts.EXACT_PACKAGE_FILES)),
@@ -483,6 +595,7 @@ def validate_production_contract_state(state: Mapping[str, Any]) -> None:
             PRIMARY_REVIEW_SHA256,
             DIAGNOSTIC_PLAN_SHA256,
             DIAGNOSTIC_REVIEW_SHA256,
+            PUBLICATION_REMEDIATION_PLAN_SHA256,
             FRAMEWORK_SHA256,
             MATRIX_SHA256,
         ),
@@ -572,8 +685,10 @@ def validate_production_contract_state(state: Mapping[str, Any]) -> None:
         (
             "semantic_inventory_only_before_outcome_permit",
             "stage4_only_after_primary_seal_and_diagnostic_permit",
+            PUBLICATION_LEDGER_SCHEMA,
+            "exact_inventory_derived_primary_event_oracle",
         ),
-        "H0B_FORBIDDEN_PATH_ACCESS",
+        "H0B_OUTCOME_PERMIT_MISMATCH",
     )
     exact(
         "feature_source_boundary",
@@ -593,7 +708,10 @@ def validate_production_contract_state(state: Mapping[str, Any]) -> None:
     exact(
         "outcome_access_permit",
         (
-            "skhynix_stage_h0b_outcome_access_permit_v2",
+            RUNTIME_PERMIT_SCHEMA,
+            PUBLICATION_PERMIT_SCHEMA,
+            "verified_runtime_projection",
+            PUBLICATION_PROJECTION_CONTRACT_SHA256,
             "A",
             "B",
             "admitted",
@@ -902,12 +1020,22 @@ def validate_production_contract_state(state: Mapping[str, Any]) -> None:
             "byte_identical_primary",
             "byte_identical_diagnostic",
             "primary_bytes_unchanged_post_stage4",
+            "fresh_root_42_of_42_R_C_E_composite_parity",
         ),
         "H0B_BUILD_MISMATCH",
     )
     exact(
         "output_schema",
-        (tuple(sorted(contracts.CSV_HEADERS)), 17, 10, 14, 42),
+        (
+            tuple(sorted(contracts.CSV_HEADERS)),
+            17,
+            10,
+            14,
+            42,
+            PUBLICATION_PERMIT_SCHEMA,
+            PUBLICATION_LEDGER_SCHEMA,
+            "skhynix_stage_h0b_build_receipt_v2",
+        ),
         "H0B_OUTPUT_SCHEMA_MISMATCH",
     )
     exact(
@@ -1134,6 +1262,194 @@ def write_json(path: Path, value: Any, *, fsync: bool = False) -> None:
         contracts.fsync_file(path)
 
 
+def task_field_pin(task_path: Path, key: str) -> str:
+    prefix = f"- {key}="
+    values = [
+        line.removeprefix(prefix)
+        for line in Path(task_path).read_text(encoding="utf-8").splitlines()
+        if line.startswith(prefix)
+    ]
+    value = values[0] if len(values) == 1 else ""
+    contracts.require(
+        value != "",
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        str(task_path),
+        f"missing or duplicate task pin: {key}",
+    )
+    return value
+
+
+def task_sha256_pin(task_path: Path, key: str) -> str:
+    value = task_field_pin(task_path, key)
+    contracts.require(
+        len(value) == 64
+        and value == value.lower()
+        and all(character in "0123456789abcdef" for character in value),
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        str(task_path),
+        f"missing or invalid SHA256 pin: {key}",
+    )
+    return value
+
+
+def review_field(review_path: Path, key: str) -> str:
+    prefix = f"- {key}="
+    values = [
+        line.removeprefix(prefix)
+        for line in Path(review_path).read_text(
+            encoding="utf-8"
+        ).splitlines()
+        if line.startswith(prefix)
+    ]
+    value = values[0] if len(values) == 1 else ""
+    contracts.require(
+        value != "",
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        str(review_path),
+        f"missing or duplicate review field: {key}",
+    )
+    return value
+
+
+def validate_publication_remediation_task_pins(task_path: Path) -> str:
+    exact_values = {
+        "publication_remediation_plan_path": (
+            PUBLICATION_REMEDIATION_PLAN_PATH.relative_to(
+                REPO_ROOT
+            ).as_posix()
+        ),
+        "publication_remediation_plan_sha256": (
+            PUBLICATION_REMEDIATION_PLAN_SHA256
+        ),
+        "publication_remediation_review_path": (
+            PUBLICATION_REMEDIATION_REVIEW_PATH.relative_to(
+                REPO_ROOT
+            ).as_posix()
+        ),
+        "surface_matrix_sha256": MATRIX_SHA256,
+        "final_severity": PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY,
+    }
+    for key, expected in exact_values.items():
+        observed = task_field_pin(task_path, key)
+        contracts.require(
+            observed == expected,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+            str(task_path),
+            f"{key}: expected={expected} observed={observed}",
+        )
+    return task_sha256_pin(
+        task_path,
+        "publication_remediation_review_sha256",
+    )
+
+
+def validate_publication_remediation_review_payload(
+    review_path: Path,
+    *,
+    task_path: Path,
+    expected_review_sha256: str,
+) -> None:
+    expected_values = {
+        "schema_version": PUBLICATION_REMEDIATION_REVIEW_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "reviewer_role": "independent_read_only",
+        "reviewed_plan_sha256": PUBLICATION_REMEDIATION_PLAN_SHA256,
+        "reviewed_surface_matrix_sha256": MATRIX_SHA256,
+        "reviewed_runtime_source_tree_sha256": task_sha256_pin(
+            task_path,
+            "expected_runtime_source_tree_sha256",
+        ),
+        "final_severity": PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY,
+        "disposition": PUBLICATION_REMEDIATION_ACCEPTED_DISPOSITION,
+    }
+    contracts.require(
+        Path(review_path).is_file()
+        and not Path(review_path).is_symlink()
+        and contracts.sha256_file(review_path) == expected_review_sha256,
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        str(review_path),
+        "independent review file identity mismatch",
+    )
+    for key, expected in expected_values.items():
+        observed = review_field(review_path, key)
+        contracts.require(
+            observed == expected,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+            str(review_path),
+            f"{key}: expected={expected} observed={observed}",
+        )
+
+
+def validate_publication_remediation_authority(task_path: Path) -> str:
+    review_sha256 = validate_publication_remediation_task_pins(task_path)
+    validate_publication_remediation_review_payload(
+        PUBLICATION_REMEDIATION_REVIEW_PATH,
+        task_path=task_path,
+        expected_review_sha256=review_sha256,
+    )
+    return review_sha256
+
+
+def surface_matrix_markdown_table(
+    matrix: Mapping[str, Any],
+) -> str:
+    lines = [
+        (
+            "| Surface | Canonical negative mutations | "
+            "Artifact count | Identity layer |"
+        ),
+        "| --- | --- | ---: | --- |",
+    ]
+    for surface in matrix["surfaces"]:
+        mutations = "<br>".join(
+            f"`{mutation['mutation_id']}` -> "
+            f"`{mutation['expected_error_code']}`"
+            for mutation in surface["negative_mutations"]
+        )
+        lines.append(
+            f"| `{surface['surface_id']}` | {mutations} | "
+            f"{len(surface['artifacts'])} | "
+            f"`{surface['identity_layer']}` |"
+        )
+    return "\n".join(lines)
+
+
+def validate_task_surface_matrix_table(
+    task_path: Path,
+    matrix: Mapping[str, Any],
+) -> None:
+    marker = "Surface Matrix：\n\n"
+    task_text = Path(task_path).read_text(encoding="utf-8")
+    sections = task_text.split(marker)
+    observed = sections[1].strip() if len(sections) == 2 else ""
+    expected = surface_matrix_markdown_table(matrix)
+    contracts.require(
+        observed == expected,
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        f"{task_path}:Surface Matrix",
+        "human-readable Surface Matrix must equal the canonical JSON rendering",
+    )
+
+
+def validate_expected_runtime_source_tree(
+    observed_sha256: str,
+    *,
+    task_path: Path,
+    error_code: str = "H0B_OUTCOME_PERMIT_MISMATCH",
+) -> str:
+    expected_sha256 = task_sha256_pin(
+        task_path,
+        "expected_runtime_source_tree_sha256",
+    )
+    contracts.require(
+        observed_sha256 == expected_sha256,
+        error_code,
+        "$.expected_runtime_source_tree_sha256",
+        f"expected={expected_sha256} observed={observed_sha256}",
+    )
+    return expected_sha256
+
+
 def relative_source_path(path: str) -> Path:
     relative = Path(path)
     current = REPO_ROOT / relative
@@ -1204,6 +1520,9 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
         diagnostic_latency_ms=contracts.DIAGNOSTIC_LATENCY_MS,
     )
     validate_external_action_boundary(())
+    publication_review_sha256 = validate_publication_remediation_authority(
+        task_path
+    )
     for path, expected, code in (
         (
             PRIMARY_PLAN_PATH,
@@ -1223,6 +1542,16 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
         (
             DIAGNOSTIC_PLAN_REVIEW_PATH,
             DIAGNOSTIC_REVIEW_SHA256,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+        ),
+        (
+            PUBLICATION_REMEDIATION_PLAN_PATH,
+            PUBLICATION_REMEDIATION_PLAN_SHA256,
+            "H0B_MASTER_FRAMEWORK_MISMATCH",
+        ),
+        (
+            PUBLICATION_REMEDIATION_REVIEW_PATH,
+            publication_review_sha256,
             "H0B_MASTER_FRAMEWORK_MISMATCH",
         ),
         (FRAMEWORK_PATH, FRAMEWORK_SHA256, "H0B_MASTER_FRAMEWORK_MISMATCH"),
@@ -1245,6 +1574,8 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
             str(path),
             f"expected={expected} observed={observed}",
         )
+    matrix = read_json(matrix_path)
+    validate_task_surface_matrix_table(task_path, matrix)
     command = [
         sys.executable,
         str(
@@ -1270,7 +1601,54 @@ def validate_dispatch(task_path: Path, matrix_path: Path) -> dict[str, Any]:
         "$.dispatch",
         result.stdout + result.stderr,
     )
-    return json.loads(result.stdout)
+    observed_runtime_source_sha = runtime_source_tree_sha256()
+    validate_expected_runtime_source_tree(
+        observed_runtime_source_sha,
+        task_path=task_path,
+        error_code="H0B_MASTER_FRAMEWORK_MISMATCH",
+    )
+    generic_dispatch = json.loads(result.stdout)
+    contracts.require(
+        set(generic_dispatch)
+        == {
+            "verified",
+            "task_id",
+            "classification",
+            "matrix_sha256",
+            "surface_count",
+            "artifact_count",
+            "negative_mutation_count",
+            "exit_criterion_count",
+        }
+        and generic_dispatch["verified"] is True
+        and generic_dispatch["task_id"] == contracts.TASK_ID
+        and generic_dispatch["matrix_sha256"] == MATRIX_SHA256,
+        "H0B_MASTER_FRAMEWORK_MISMATCH",
+        "$.dispatch",
+        "generic dispatch result schema or identity mismatch",
+    )
+    return {
+        "schema_version": "skhynix_stage_h0b_dispatch_v3",
+        **generic_dispatch,
+        "task_sha256": contracts.sha256_file(task_path),
+        "publication_remediation_plan_path": (
+            PUBLICATION_REMEDIATION_PLAN_PATH.relative_to(
+                REPO_ROOT
+            ).as_posix()
+        ),
+        "publication_remediation_plan_sha256": (
+            PUBLICATION_REMEDIATION_PLAN_SHA256
+        ),
+        "publication_remediation_review_path": (
+            PUBLICATION_REMEDIATION_REVIEW_PATH.relative_to(
+                REPO_ROOT
+            ).as_posix()
+        ),
+        "publication_remediation_review_sha256": (
+            publication_review_sha256
+        ),
+        "runtime_source_tree_sha256": observed_runtime_source_sha,
+    }
 
 
 def runtime_source_inventory(
@@ -1287,6 +1665,32 @@ def runtime_source_inventory(
 
 def runtime_source_tree_sha256(root: Path = REPO_ROOT) -> str:
     return contracts.canonical_json_sha256(runtime_source_inventory(root))
+
+
+def packaged_runtime_source_inventory(
+    package_root: Path,
+) -> list[dict[str, Any]]:
+    root = Path(package_root)
+    rows = []
+    for original_path, package_path in sorted(
+        PACKAGED_RUNTIME_SOURCE_PATHS.items(),
+        key=lambda item: item[0].encode("utf-8"),
+    ):
+        path = root / package_path
+        rows.append(
+            {
+                "path": original_path,
+                "bytes": path.stat().st_size,
+                "sha256": contracts.sha256_file(path),
+            }
+        )
+    return rows
+
+
+def packaged_runtime_source_tree_sha256(package_root: Path) -> str:
+    return contracts.canonical_json_sha256(
+        packaged_runtime_source_inventory(package_root)
+    )
 
 
 def validate_semantic_inventory() -> tuple[list[dict[str, str]], str]:
@@ -1413,6 +1817,9 @@ def validate_upstream_identity_payloads(
 
 def accepted_binding_rows() -> list[dict[str, Any]]:
     validate_upstream_identity_payloads(*upstream_identity_payloads())
+    publication_review_sha256 = validate_publication_remediation_authority(
+        TASK_PATH
+    )
     authorities = (
         (
             "primary_plan_v1",
@@ -1433,6 +1840,21 @@ def accepted_binding_rows() -> list[dict[str, Any]]:
             "diagnostic_plan_review",
             DIAGNOSTIC_PLAN_REVIEW_PATH,
             DIAGNOSTIC_REVIEW_SHA256,
+        ),
+        (
+            "publication_remediation_plan_v3",
+            PUBLICATION_REMEDIATION_PLAN_PATH,
+            PUBLICATION_REMEDIATION_PLAN_SHA256,
+        ),
+        (
+            "publication_remediation_plan_v3_review",
+            PUBLICATION_REMEDIATION_REVIEW_PATH,
+            publication_review_sha256,
+        ),
+        (
+            "surface_matrix",
+            MATRIX_PATH,
+            MATRIX_SHA256,
         ),
         (
             "master_framework",
@@ -1498,12 +1920,22 @@ def accepted_binding_rows() -> list[dict[str, Any]]:
 
 
 def accepted_input_bindings_payload() -> dict[str, Any]:
+    publication_review_sha256 = validate_publication_remediation_authority(
+        TASK_PATH
+    )
     return {
         "schema_version": "skhynix_stage_h0b_accepted_input_bindings_v2",
         "task_id": contracts.TASK_ID,
+        "task_sha256": contracts.sha256_file(TASK_PATH),
         "primary_plan_sha256": PRIMARY_PLAN_SHA256,
         "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
         "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
+        "publication_remediation_plan_sha256": (
+            PUBLICATION_REMEDIATION_PLAN_SHA256
+        ),
+        "publication_remediation_review_sha256": (
+            publication_review_sha256
+        ),
         "surface_matrix_sha256": MATRIX_SHA256,
         "expected_semantic_source_inventory_sha256": (
             EXPECTED_SEMANTIC_INVENTORY_SHA256
@@ -1640,6 +2072,436 @@ def build_envelope(
     }
 
 
+def project_outcome_permit_for_publication(
+    permit: Mapping[str, Any],
+) -> dict[str, Any]:
+    label = permit.get("build_label")
+    envelope = permit.get("build_envelope")
+    envelope_keys = {
+        "build_label",
+        "resolved_build_root",
+        "runtime_pid",
+        "runtime_source_tree_sha256",
+        "semantic_source_inventory_sha256",
+        "preoutcome_contract_sha256",
+    }
+    contracts.require(
+        label in PUBLICATION_BUILD_ROOT_ROLES
+        and permit.get("schema_version")
+        == RUNTIME_PERMIT_SCHEMA
+        and permit.get("task_id") == contracts.TASK_ID
+        and permit.get("status") == "admitted"
+        and permit.get("fsynced") is True
+        and permit.get("primary_plan_sha256") == PRIMARY_PLAN_SHA256
+        and permit.get("diagnostic_plan_sha256") == DIAGNOSTIC_PLAN_SHA256
+        and permit.get("diagnostic_review_sha256")
+        == DIAGNOSTIC_REVIEW_SHA256
+        and permit.get("surface_matrix_sha256") == MATRIX_SHA256
+        and permit.get("source_inventory_contract_sha256")
+        == SOURCE_INVENTORY_CONTRACT_SHA256
+        and permit.get("semantic_source_inventory_sha256")
+        == EXPECTED_SEMANTIC_INVENTORY_SHA256
+        and isinstance(envelope, Mapping)
+        and set(envelope) == envelope_keys
+        and envelope["build_label"] == label
+        and Path(str(envelope["resolved_build_root"])).is_absolute()
+        and type(envelope["runtime_pid"]) is int
+        and envelope["runtime_pid"] > 0
+        and envelope["runtime_source_tree_sha256"]
+        == permit.get("runtime_source_tree_sha256")
+        and envelope["semantic_source_inventory_sha256"]
+        == permit.get("semantic_source_inventory_sha256")
+        and envelope["preoutcome_contract_sha256"]
+        == permit.get("preoutcome_contract_sha256")
+        and contracts.canonical_json_sha256(envelope)
+        == permit.get("build_envelope_sha256"),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        "$.publication_projection.outcome_permit",
+        "runtime outcome permit is not internally bound",
+    )
+    publication_envelope = {
+        "build_label": label,
+        "build_root_role": PUBLICATION_BUILD_ROOT_ROLES[str(label)],
+        "process_role": "H0B0",
+        "runtime_source_tree_sha256": permit[
+            "runtime_source_tree_sha256"
+        ],
+        "semantic_source_inventory_sha256": permit[
+            "semantic_source_inventory_sha256"
+        ],
+        "preoutcome_contract_sha256": permit[
+            "preoutcome_contract_sha256"
+        ],
+    }
+    return {
+        "schema_version": PUBLICATION_PERMIT_SCHEMA,
+        "task_id": permit["task_id"],
+        "build_label": label,
+        "status": "verified_runtime_projection",
+        "fsynced": True,
+        "primary_plan_sha256": permit["primary_plan_sha256"],
+        "diagnostic_plan_sha256": permit["diagnostic_plan_sha256"],
+        "diagnostic_review_sha256": permit[
+            "diagnostic_review_sha256"
+        ],
+        "surface_matrix_sha256": permit["surface_matrix_sha256"],
+        "runtime_source_tree_sha256": permit[
+            "runtime_source_tree_sha256"
+        ],
+        "preoutcome_contract_sha256": permit[
+            "preoutcome_contract_sha256"
+        ],
+        "source_inventory_contract_sha256": permit[
+            "source_inventory_contract_sha256"
+        ],
+        "semantic_source_inventory_sha256": permit[
+            "semantic_source_inventory_sha256"
+        ],
+        "publication_build_envelope": publication_envelope,
+        "publication_build_envelope_sha256": (
+            contracts.canonical_json_sha256(publication_envelope)
+        ),
+        "support_replay_receipt_sha256": permit[
+            "support_replay_receipt_sha256"
+        ],
+        "accepted_input_bindings_sha256": permit[
+            "accepted_input_bindings_sha256"
+        ],
+        "projection_contract_sha256": (
+            PUBLICATION_PROJECTION_CONTRACT_SHA256
+        ),
+    }
+
+
+def validate_publication_outcome_permit(
+    permit: Mapping[str, Any],
+    *,
+    build_label: str,
+    packaged_runtime_source_sha256: str,
+) -> None:
+    expected_keys = {
+        "schema_version",
+        "task_id",
+        "build_label",
+        "status",
+        "fsynced",
+        "primary_plan_sha256",
+        "diagnostic_plan_sha256",
+        "diagnostic_review_sha256",
+        "surface_matrix_sha256",
+        "runtime_source_tree_sha256",
+        "preoutcome_contract_sha256",
+        "source_inventory_contract_sha256",
+        "semantic_source_inventory_sha256",
+        "publication_build_envelope",
+        "publication_build_envelope_sha256",
+        "support_replay_receipt_sha256",
+        "accepted_input_bindings_sha256",
+        "projection_contract_sha256",
+    }
+    envelope = permit.get("publication_build_envelope")
+    contracts.require(
+        set(permit) == expected_keys
+        and build_label in PUBLICATION_BUILD_ROOT_ROLES
+        and permit.get("schema_version")
+        == PUBLICATION_PERMIT_SCHEMA
+        and permit.get("task_id") == contracts.TASK_ID
+        and permit.get("build_label") == build_label
+        and permit.get("status") == "verified_runtime_projection"
+        and permit.get("fsynced") is True
+        and permit.get("primary_plan_sha256") == PRIMARY_PLAN_SHA256
+        and permit.get("diagnostic_plan_sha256") == DIAGNOSTIC_PLAN_SHA256
+        and permit.get("diagnostic_review_sha256")
+        == DIAGNOSTIC_REVIEW_SHA256
+        and permit.get("surface_matrix_sha256") == MATRIX_SHA256
+        and permit.get("source_inventory_contract_sha256")
+        == SOURCE_INVENTORY_CONTRACT_SHA256
+        and permit.get("semantic_source_inventory_sha256")
+        == EXPECTED_SEMANTIC_INVENTORY_SHA256
+        and permit.get("runtime_source_tree_sha256")
+        == packaged_runtime_source_sha256
+        and permit.get("projection_contract_sha256")
+        == PUBLICATION_PROJECTION_CONTRACT_SHA256
+        and isinstance(envelope, Mapping)
+        and set(envelope)
+        == {
+            "build_label",
+            "build_root_role",
+            "process_role",
+            "runtime_source_tree_sha256",
+            "semantic_source_inventory_sha256",
+            "preoutcome_contract_sha256",
+        }
+        and envelope.get("build_label") == build_label
+        and envelope.get("build_root_role")
+        == PUBLICATION_BUILD_ROOT_ROLES[build_label]
+        and envelope.get("process_role") == "H0B0"
+        and envelope.get("runtime_source_tree_sha256")
+        == permit.get("runtime_source_tree_sha256")
+        and envelope.get("semantic_source_inventory_sha256")
+        == permit.get("semantic_source_inventory_sha256")
+        and envelope.get("preoutcome_contract_sha256")
+        == permit.get("preoutcome_contract_sha256")
+        and contracts.canonical_json_sha256(envelope)
+        == permit.get("publication_build_envelope_sha256"),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        f"$.publication_projection.permit.{build_label}",
+        "publication permit contains volatile or unbound build evidence",
+    )
+
+
+def primary_outcome_access_kind(source_role: str) -> str:
+    contracts.require(
+        source_role in PRIMARY_OUTCOME_SOURCE_ROLES,
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        "$.publication_projection.primary_source_role",
+        source_role,
+    )
+    if source_role in {
+        "r0_binance_bookticker",
+        "r0_hyperliquid_bbo",
+    }:
+        return "public_bbo_outcome_scan"
+    return "accepted_public_feature_metadata"
+
+
+def expected_primary_outcome_events(
+    inventory_rows: Sequence[Mapping[str, str]],
+    *,
+    permit_sha256: str,
+) -> list[dict[str, Any]]:
+    expected = []
+    sequence = 3
+    for row in inventory_rows:
+        if row["source_role"] not in PRIMARY_OUTCOME_SOURCE_ROLES:
+            continue
+        expected.append(
+            {
+                "sequence": sequence,
+                "process_role": "H0B1",
+                "phase": "primary_outcome",
+                "relative_path": row["relative_path"],
+                "access_kind": primary_outcome_access_kind(
+                    row["source_role"]
+                ),
+                "bytes_read": int(row["bytes"]),
+                "permit_sha256": permit_sha256,
+                "admitted": True,
+            }
+        )
+        sequence += 1
+    contracts.require(
+        bool(expected),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        "$.publication_projection.primary_events",
+        "no admitted primary outcome sources",
+    )
+    return expected
+
+
+def project_outcome_ledger_for_publication(
+    ledger: Mapping[str, Any],
+    *,
+    build_label: str,
+    runtime_permit_sha256: str,
+    publication_permit_sha256: str,
+    inventory_rows: Sequence[Mapping[str, str]],
+    inventory_bytes: int,
+) -> dict[str, Any]:
+    projected = json.loads(json.dumps(ledger))
+    events = projected.get("events")
+    event_keys = {
+        "sequence",
+        "process_role",
+        "phase",
+        "relative_path",
+        "access_kind",
+        "bytes_read",
+        "permit_sha256",
+        "admitted",
+    }
+    expected_runtime_primary = expected_primary_outcome_events(
+        inventory_rows,
+        permit_sha256=runtime_permit_sha256,
+    )
+    observed_runtime_primary = (
+        [
+            event
+            for event in events
+            if isinstance(event, Mapping)
+            and event.get("phase") == "primary_outcome"
+        ]
+        if isinstance(events, list)
+        else []
+    )
+    contracts.require(
+        isinstance(events, list)
+        and projected.get("schema_version") == RUNTIME_LEDGER_SCHEMA
+        and projected.get("task_id") == contracts.TASK_ID
+        and projected.get("build_label") == build_label
+        and all(
+            isinstance(event, Mapping) and set(event) == event_keys
+            for event in events
+        )
+        and [event["sequence"] for event in events]
+        == list(range(1, len(events) + 1))
+        and events[0]
+        == {
+            "sequence": 1,
+            "process_role": "H0B0",
+            "phase": "preoutcome",
+            "relative_path": "preoutcome_source_inventory.csv",
+            "access_kind": "identity_and_header_validation",
+            "bytes_read": inventory_bytes,
+            "permit_sha256": "",
+            "admitted": True,
+        }
+        and events[1]
+        == {
+            "sequence": 2,
+            "process_role": "H0B0",
+            "phase": "permit",
+            "relative_path": "outcome_access_permit.json",
+            "access_kind": "fsync_write",
+            "bytes_read": 0,
+            "permit_sha256": runtime_permit_sha256,
+            "admitted": True,
+        }
+        and observed_runtime_primary == expected_runtime_primary,
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        f"$.publication_projection.ledger.{build_label}",
+        "runtime ledger primary evidence does not match the inventory oracle",
+    )
+    runtime_references = [
+        event
+        for event in events
+        if event.get("permit_sha256") == runtime_permit_sha256
+    ]
+    contracts.require(
+        runtime_references
+        and all(
+            event.get("phase") in {"permit", "primary_outcome"}
+            for event in runtime_references
+        ),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        f"$.publication_projection.ledger.{build_label}",
+        "runtime permit is referenced outside its authorized phases",
+    )
+    projected["schema_version"] = PUBLICATION_LEDGER_SCHEMA
+    replacements = 0
+    for event in events:
+        if event["phase"] in {"permit", "primary_outcome"}:
+            contracts.require(
+                event["permit_sha256"] == runtime_permit_sha256,
+                "H0B_OUTCOME_PERMIT_MISMATCH",
+                f"$.publication_projection.ledger.{build_label}",
+                "runtime primary phase is not bound to the runtime permit",
+            )
+            event["permit_sha256"] = publication_permit_sha256
+            replacements += 1
+    contracts.require(
+        projected.get("build_label") == build_label
+        and replacements == 1 + len(expected_runtime_primary)
+        and all(
+            event.get("permit_sha256") != runtime_permit_sha256
+            for event in events
+        ),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        f"$.publication_projection.ledger.{build_label}",
+        "runtime permit references were not fully rebound",
+    )
+    return projected
+
+
+def validate_publication_outcome_ledger(
+    ledger: Mapping[str, Any],
+    *,
+    build_label: str,
+    publication_permit_sha256: str,
+    inventory_rows: Sequence[Mapping[str, str]],
+    inventory_bytes: int,
+) -> None:
+    events = ledger.get("events")
+    contracts.require(
+        isinstance(events, list)
+        and all(isinstance(event, Mapping) for event in events),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        f"$.publication_projection.ledger.{build_label}",
+        "publication ledger event schema is invalid",
+    )
+    permit_events = [
+        event
+        for event in events
+        if event.get("phase") == "permit"
+    ]
+    primary_events = [
+        event
+        for event in events
+        if event.get("phase") == "primary_outcome"
+    ]
+    preoutcome_events = [
+        event
+        for event in events
+        if event.get("phase") == "preoutcome"
+    ]
+    expected_primary = expected_primary_outcome_events(
+        inventory_rows,
+        permit_sha256=publication_permit_sha256,
+    )
+    event_keys = {
+        "sequence",
+        "process_role",
+        "phase",
+        "relative_path",
+        "access_kind",
+        "bytes_read",
+        "permit_sha256",
+        "admitted",
+    }
+    contracts.require(
+        ledger.get("schema_version")
+        == PUBLICATION_LEDGER_SCHEMA
+        and ledger.get("task_id") == contracts.TASK_ID
+        and ledger.get("build_label") == build_label
+        and all(set(event) == event_keys for event in events)
+        and [event["sequence"] for event in events]
+        == list(range(1, len(events) + 1))
+        and {
+            event["phase"]
+            for event in events
+        }
+        <= {
+            "preoutcome",
+            "permit",
+            "primary_outcome",
+            "post_primary_seal_permit",
+            "post_primary_seal_stage4",
+        }
+        and len(preoutcome_events) == 1
+        and preoutcome_events[0].get("process_role") == "H0B0"
+        and preoutcome_events[0].get("relative_path")
+        == "preoutcome_source_inventory.csv"
+        and preoutcome_events[0].get("access_kind")
+        == "identity_and_header_validation"
+        and preoutcome_events[0].get("bytes_read") == inventory_bytes
+        and preoutcome_events[0].get("permit_sha256") == ""
+        and preoutcome_events[0].get("admitted") is True
+        and len(permit_events) == 1
+        and permit_events[0].get("process_role") == "H0B0"
+        and permit_events[0].get("relative_path")
+        == "outcome_access_permit.json"
+        and permit_events[0].get("access_kind") == "fsync_write"
+        and permit_events[0].get("bytes_read") == 0
+        and permit_events[0].get("permit_sha256")
+        == publication_permit_sha256
+        and permit_events[0].get("admitted") is True
+        and primary_events == expected_primary,
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        f"$.publication_projection.ledger.{build_label}",
+        "publication ledger does not bind the canonical permit",
+    )
+
+
 def run_h0b0(
     *,
     task_path: Path,
@@ -1653,9 +2515,9 @@ def run_h0b0(
         "$.build_label",
         build_label,
     )
+    validate_dispatch(task_path, matrix_path)
     root = Path(build_root)
     root.mkdir(parents=True, exist_ok=False)
-    validate_dispatch(task_path, matrix_path)
     _, semantic_identity = validate_semantic_inventory()
     bindings = accepted_input_bindings_payload()
     bindings_path = root / "accepted_input_bindings.json"
@@ -1755,8 +2617,20 @@ def run_h0b0(
     }
 
 
-def validate_permit(build_root: Path) -> dict[str, Any]:
+def validate_permit(
+    build_root: Path,
+    *,
+    require_preoutcome_state: bool = False,
+) -> dict[str, Any]:
     root = Path(build_root)
+    contracts.require(
+        MATRIX_PATH.is_file()
+        and not MATRIX_PATH.is_symlink()
+        and contracts.sha256_file(MATRIX_PATH) == MATRIX_SHA256,
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        str(MATRIX_PATH),
+        "current Surface Matrix bytes differ from the reviewed authority",
+    )
     permit_path = root / "outcome_access_permit.json"
     permit = read_json(permit_path)
     expected_keys = {
@@ -1804,10 +2678,22 @@ def validate_permit(build_root: Path) -> dict[str, Any]:
     )
     envelope = permit["build_envelope"]
     contracts.require(
-        contracts.canonical_json_sha256(envelope)
+        isinstance(envelope, Mapping)
+        and set(envelope)
+        == {
+            "build_label",
+            "resolved_build_root",
+            "runtime_pid",
+            "runtime_source_tree_sha256",
+            "semantic_source_inventory_sha256",
+            "preoutcome_contract_sha256",
+        }
+        and contracts.canonical_json_sha256(envelope)
         == permit["build_envelope_sha256"]
         and Path(envelope["resolved_build_root"]).resolve() == root.resolve()
         and envelope["build_label"] == permit["build_label"]
+        and type(envelope["runtime_pid"]) is int
+        and envelope["runtime_pid"] > 0
         and envelope["runtime_source_tree_sha256"]
         == runtime_source_tree_sha256()
         and envelope["semantic_source_inventory_sha256"]
@@ -1830,6 +2716,95 @@ def validate_permit(build_root: Path) -> dict[str, Any]:
         "$.permit.bindings",
         "permit-bound file mismatch",
     )
+    contracts.require(
+        envelope["preoutcome_contract_sha256"]
+        == permit["preoutcome_contract_sha256"]
+        and read_json(bindings) == accepted_input_bindings_payload()
+        and read_json(preoutcome) == preoutcome_contract_payload(),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        "$.permit.authority_payloads",
+        "permit-bound authority payload differs from the current dispatch",
+    )
+    inventory_path = root / "preoutcome_source_inventory.csv"
+    contracts.require(
+        inventory_path.read_bytes() == SEMANTIC_INVENTORY_PATH.read_bytes(),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        str(inventory_path),
+        "permit-bound semantic inventory differs from the frozen authority",
+    )
+    accepted_support_path = (
+        H0A_ROOT / "support_projection_commitments.csv"
+    )
+    observed_support_path = (
+        root / "support_replay/support_projection_commitments.csv"
+    )
+    contracts.require(
+        observed_support_path.read_bytes() == accepted_support_path.read_bytes(),
+        "H0B_SUPPORT_COMMITMENT_MISMATCH",
+        str(observed_support_path),
+        "permit-bound support replay differs from accepted H0-A",
+    )
+    with accepted_support_path.open(
+        newline="",
+        encoding="utf-8",
+    ) as handle:
+        support_row_count = sum(1 for _ in csv.DictReader(handle))
+    expected_support_receipt = {
+        "schema_version": "skhynix_stage_h0b_support_replay_receipt_v1",
+        "task_id": contracts.TASK_ID,
+        "build_label": permit["build_label"],
+        "accepted_h0a_commitments_sha256": contracts.sha256_file(
+            accepted_support_path
+        ),
+        "observed_h0a_commitments_sha256": contracts.sha256_file(
+            observed_support_path
+        ),
+        "exact_commitment_match": True,
+        "forbidden_outcome_access_count": 0,
+        "replay_row_count": support_row_count,
+    }
+    contracts.require(
+        read_json(receipt) == expected_support_receipt,
+        "H0B_SUPPORT_COMMITMENT_MISMATCH",
+        str(receipt),
+        "support replay receipt differs from the accepted commitment",
+    )
+    if require_preoutcome_state:
+        permit_sha256 = contracts.sha256_file(permit_path)
+        expected_ledger = {
+            "schema_version": RUNTIME_LEDGER_SCHEMA,
+            "task_id": contracts.TASK_ID,
+            "build_label": permit["build_label"],
+            "events": [
+                {
+                    "sequence": 1,
+                    "process_role": "H0B0",
+                    "phase": "preoutcome",
+                    "relative_path": "preoutcome_source_inventory.csv",
+                    "access_kind": "identity_and_header_validation",
+                    "bytes_read": inventory_path.stat().st_size,
+                    "permit_sha256": "",
+                    "admitted": True,
+                },
+                {
+                    "sequence": 2,
+                    "process_role": "H0B0",
+                    "phase": "permit",
+                    "relative_path": "outcome_access_permit.json",
+                    "access_kind": "fsync_write",
+                    "bytes_read": 0,
+                    "permit_sha256": permit_sha256,
+                    "admitted": True,
+                },
+            ],
+        }
+        contracts.require(
+            read_json(root / "outcome_access_ledger.json")
+            == expected_ledger,
+            "H0B_OUTCOME_PERMIT_MISMATCH",
+            "$.permit.preoutcome_ledger",
+            "H0B1 requires the exact unopened preoutcome ledger",
+        )
     return permit
 
 
@@ -1885,6 +2860,202 @@ def hostile_stage4_ledger_mutation() -> None:
         build_label="A",
         diagnostic_permit_sha256=permit_sha,
     )
+
+
+def hostile_publication_ledger_mutation() -> None:
+    inventory_rows = [
+        {
+            "source_role": "r0_hyperliquid_bbo",
+            "relative_path": "local_live_analysis/accepted.csv.gz",
+            "bytes": "10",
+        }
+    ]
+    publication_permit_sha = "a" * 64
+    events = [
+        {
+            "sequence": 1,
+            "process_role": "H0B0",
+            "phase": "preoutcome",
+            "relative_path": "preoutcome_source_inventory.csv",
+            "access_kind": "identity_and_header_validation",
+            "bytes_read": 100,
+            "permit_sha256": "",
+            "admitted": True,
+        },
+        {
+            "sequence": 2,
+            "process_role": "H0B0",
+            "phase": "permit",
+            "relative_path": "outcome_access_permit.json",
+            "access_kind": "fsync_write",
+            "bytes_read": 0,
+            "permit_sha256": publication_permit_sha,
+            "admitted": True,
+        },
+        *expected_primary_outcome_events(
+            inventory_rows,
+            permit_sha256=publication_permit_sha,
+        ),
+    ]
+    events[2]["relative_path"] = "local_live_analysis/forged.csv.gz"
+    validate_publication_outcome_ledger(
+        {
+            "schema_version": PUBLICATION_LEDGER_SCHEMA,
+            "task_id": contracts.TASK_ID,
+            "build_label": "A",
+            "events": events,
+        },
+        build_label="A",
+        publication_permit_sha256=publication_permit_sha,
+        inventory_rows=inventory_rows,
+        inventory_bytes=100,
+    )
+
+
+def hostile_runtime_permit_fixture(
+    *,
+    build_root: str,
+    runtime_pid: int,
+    runtime_source_sha256: str,
+) -> dict[str, Any]:
+    envelope = {
+        "build_label": "A",
+        "resolved_build_root": build_root,
+        "runtime_pid": runtime_pid,
+        "runtime_source_tree_sha256": runtime_source_sha256,
+        "semantic_source_inventory_sha256": (
+            EXPECTED_SEMANTIC_INVENTORY_SHA256
+        ),
+        "preoutcome_contract_sha256": "b" * 64,
+    }
+    return {
+        "schema_version": RUNTIME_PERMIT_SCHEMA,
+        "task_id": contracts.TASK_ID,
+        "build_label": "A",
+        "status": "admitted",
+        "fsynced": True,
+        "primary_plan_sha256": PRIMARY_PLAN_SHA256,
+        "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
+        "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
+        "surface_matrix_sha256": MATRIX_SHA256,
+        "runtime_source_tree_sha256": runtime_source_sha256,
+        "preoutcome_contract_sha256": "b" * 64,
+        "source_inventory_contract_sha256": (
+            SOURCE_INVENTORY_CONTRACT_SHA256
+        ),
+        "semantic_source_inventory_sha256": (
+            EXPECTED_SEMANTIC_INVENTORY_SHA256
+        ),
+        "build_envelope": envelope,
+        "build_envelope_sha256": contracts.canonical_json_sha256(envelope),
+        "support_replay_receipt_sha256": "c" * 64,
+        "accepted_input_bindings_sha256": "d" * 64,
+    }
+
+
+def hostile_outcome_access_permit_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-outcome-permit-"
+    ) as raw:
+        root = Path(raw)
+        permit = hostile_runtime_permit_fixture(
+            build_root=str(root.resolve()),
+            runtime_pid=101,
+            runtime_source_sha256=runtime_source_tree_sha256(),
+        )
+        permit["status"] = "copied"
+        write_json(root / "outcome_access_permit.json", permit)
+        validate_permit(root, require_preoutcome_state=True)
+
+
+def hostile_packaged_runtime_source_mutation() -> None:
+    runtime_source_sha = "e" * 64
+    publication = project_outcome_permit_for_publication(
+        hostile_runtime_permit_fixture(
+            build_root="/tmp/0823T002-hostile-build-a",
+            runtime_pid=101,
+            runtime_source_sha256=runtime_source_sha,
+        )
+    )
+    validate_publication_outcome_permit(
+        publication,
+        build_label="A",
+        packaged_runtime_source_sha256="f" * 64,
+    )
+
+
+def hostile_runtime_source_external_oracle_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-runtime-oracle-"
+    ) as raw:
+        task = Path(raw) / "task.md"
+        task.write_text(
+            f"- expected_runtime_source_tree_sha256={'1' * 64}\n",
+            encoding="ascii",
+        )
+        validate_expected_runtime_source_tree(
+            "2" * 64,
+            task_path=task,
+        )
+
+
+def hostile_external_receipt_binding_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-receipt-binding-"
+    ) as raw:
+        root = Path(raw)
+        build = root / "build"
+        package = root / "package"
+        build.mkdir()
+        package.mkdir()
+        runtime_permit = hostile_runtime_permit_fixture(
+            build_root=str(build.resolve()),
+            runtime_pid=101,
+            runtime_source_sha256="e" * 64,
+        )
+        write_json(build / "outcome_access_permit.json", runtime_permit)
+        write_json(
+            build / "outcome_access_ledger.json",
+            {"schema_version": RUNTIME_LEDGER_SCHEMA},
+        )
+        write_json(
+            package / "outcome_access_permit_build_a.json",
+            project_outcome_permit_for_publication(runtime_permit),
+        )
+        write_json(
+            package / "outcome_access_ledger_build_a.json",
+            {"schema_version": PUBLICATION_LEDGER_SCHEMA},
+        )
+        summary = runtime_evidence_summary(build, package)
+        summary["publication_outcome_access_ledger_sha256"] = "0" * 64
+        validate_runtime_evidence_summary(
+            summary,
+            build_root=build,
+            package_root=package,
+        )
+
+
+def hostile_complete_package_portability_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-complete-package-parity-"
+    ) as raw:
+        left = Path(raw) / "left"
+        right = Path(raw) / "right"
+        left.mkdir()
+        right.mkdir()
+        for relative in contracts.EXACT_PACKAGE_FILES:
+            for root in (left, right):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((relative + "\n").encode("ascii"))
+        (right / "outcome_access_permit_build_a.json").write_bytes(
+            b"fresh-root drift\n"
+        )
+        compare_build_files(
+            left,
+            right,
+            contracts.EXACT_PACKAGE_FILES,
+        )
 
 
 def hostile_package_tree_mutation() -> None:
@@ -2054,7 +3225,11 @@ def hostile_deterministic_build_mutation() -> None:
         compare_build_files(left, right, ("result.csv",))
 
 
-def negative_case(surface_id: str, expected_code: str) -> None:
+def negative_case(
+    surface_id: str,
+    mutation_id: str,
+    expected_code: str,
+) -> None:
     matrix = read_json(MATRIX_PATH)
     surfaces = {
         surface["surface_id"]: surface
@@ -2067,18 +3242,24 @@ def negative_case(surface_id: str, expected_code: str) -> None:
         f"unknown surface={surface_id}",
     )
     surface = surfaces[surface_id]
-    declared_code = surface["negative_mutations"][0][
-        "expected_error_code"
-    ]
+    declared_mutations = {
+        mutation["mutation_id"]: mutation["expected_error_code"]
+        for mutation in surface["negative_mutations"]
+    }
+    declared_code = declared_mutations.get(mutation_id)
     declared_codes = {
-        item["negative_mutations"][0]["expected_error_code"]
+        mutation["expected_error_code"]
         for item in surfaces.values()
+        for mutation in item["negative_mutations"]
     }
     contracts.require(
         declared_code == expected_code,
         "H0B_MASTER_FRAMEWORK_MISMATCH",
         "$.negative_case",
-        f"surface={surface_id} expected={expected_code}",
+        (
+            f"surface={surface_id} mutation={mutation_id} "
+            f"expected={expected_code}"
+        ),
     )
     contracts.require(
         HOSTILE_FAIL_OPEN_SENTINEL not in declared_codes,
@@ -2087,7 +3268,7 @@ def negative_case(surface_id: str, expected_code: str) -> None:
         HOSTILE_FAIL_OPEN_SENTINEL,
     )
 
-    mutation_checks = {
+    surface_checks = {
         "kernel_pin": lambda: hostile_contract_state_mutation(
             "kernel_pin", "0" * 64
         ),
@@ -2137,11 +3318,7 @@ def negative_case(surface_id: str, expected_code: str) -> None:
         ),
         "source_schema": hostile_source_schema_mutation,
         "source_ordering": hostile_source_ordering_mutation,
-        "guarded_opener": lambda: validate_source_access(
-            "../forbidden.csv",
-            source_role="accepted_stage2_primary",
-            phase="feature_read",
-        ),
+        "guarded_opener": hostile_publication_ledger_mutation,
         "feature_source_boundary": lambda: validate_source_access(
             "local_live_analysis/alignment/decision_labels.csv",
             source_role="alignment_decision_labels",
@@ -2151,16 +3328,7 @@ def negative_case(surface_id: str, expected_code: str) -> None:
             "two_envelope_boundary",
             ("H0B1", "H0B1", "H0B1_DIAGNOSTIC"),
         ),
-        "outcome_access_permit": lambda: hostile_contract_state_mutation(
-            "outcome_access_permit",
-            (
-                "skhynix_stage_h0b_outcome_access_permit_v2",
-                "A",
-                "A",
-                "admitted",
-                True,
-            ),
-        ),
+        "outcome_access_permit": hostile_outcome_access_permit_mutation,
         "support_replay": lambda: hostile_contract_state_mutation(
             "support_replay", "0" * 64
         ),
@@ -2339,14 +3507,48 @@ def negative_case(surface_id: str, expected_code: str) -> None:
             ("network",)
         ),
     }
+    mutation_checks = {
+        surface["negative_mutations"][0]["mutation_id"]: (
+            surface_checks[surface_id]
+        )
+        for surface_id, surface in surfaces.items()
+    }
+    mutation_checks.update(
+        {
+            "mutate_packaged_runtime_source": (
+                hostile_packaged_runtime_source_mutation
+            ),
+            "mutate_runtime_source_external_oracle": (
+                hostile_runtime_source_external_oracle_mutation
+            ),
+            "mutate_complete_package_portability": (
+                hostile_complete_package_portability_mutation
+            ),
+            "mutate_external_receipt_binding": (
+                hostile_external_receipt_binding_mutation
+            ),
+        }
+    )
+    declared_mutation_ids = {
+        mutation["mutation_id"]
+        for surface in surfaces.values()
+        for mutation in surface["negative_mutations"]
+    }
     contracts.require(
-        set(mutation_checks) == set(surfaces),
+        set(surface_checks) == set(surfaces)
+        and set(mutation_checks) == declared_mutation_ids,
         "H0B_MASTER_FRAMEWORK_MISMATCH",
         "$.negative_case.universe",
-        f"missing={sorted(set(surfaces) - set(mutation_checks))} "
-        f"extra={sorted(set(mutation_checks) - set(surfaces))}",
+        (
+            f"surface_missing={sorted(set(surfaces) - set(surface_checks))} "
+            f"surface_extra={sorted(set(surface_checks) - set(surfaces))} "
+            "mutation_missing="
+            f"{sorted(declared_mutation_ids - set(mutation_checks))} "
+            "mutation_extra="
+            f"{sorted(set(mutation_checks) - declared_mutation_ids)}"
+        ),
     )
-    mutation_checks[surface_id]()
+    mutation_checks[mutation_id]()
     raise contracts.H0BError(
         HOSTILE_FAIL_OPEN_SENTINEL,
         surface_id,
@@ -2393,60 +3595,63 @@ def hostile_preflight(
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
         for surface in matrix["surfaces"]:
-            mutation = surface["negative_mutations"][0]
             surface_id = surface["surface_id"]
-            expected = mutation["expected_error_code"]
-            try:
-                negative_case(surface_id, expected)
-            except contracts.H0BError as exc:
-                observed = exc.code
-            current_rows.append(
-                {
-                    "mutation_id": mutation["mutation_id"],
-                    "expected_error_code": expected,
-                    "error_code": observed,
-                }
-            )
-            command = [
-                sys.executable,
-                str(frozen / "skhynix_stage_h0b.py"),
-                "negative-case",
-                "--surface",
-                surface_id,
-                "--expected-code",
-                expected,
-            ]
-            result = subprocess.run(
-                command,
-                cwd=frozen,
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                env={
-                    **os.environ,
-                    "PYTHONPATH": os.pathsep.join(
-                        (
-                            str(frozen),
-                            str(REPO_ROOT / "examples/hyperliquid"),
-                        )
-                    ),
-                },
-            )
-            contracts.require(
-                result.stdout.strip() != "",
-                "H0B_BUILD_MISMATCH",
-                f"$.frozen_negative.{surface_id}",
-                result.stderr,
-            )
-            payload = json.loads(result.stdout)
-            frozen_rows.append(
-                {
-                    "mutation_id": mutation["mutation_id"],
-                    "expected_error_code": expected,
-                    "error_code": payload["error"]["code"],
-                }
-            )
+            for mutation in surface["negative_mutations"]:
+                mutation_id = mutation["mutation_id"]
+                expected = mutation["expected_error_code"]
+                try:
+                    negative_case(surface_id, mutation_id, expected)
+                except contracts.H0BError as exc:
+                    observed = exc.code
+                current_rows.append(
+                    {
+                        "mutation_id": mutation_id,
+                        "expected_error_code": expected,
+                        "error_code": observed,
+                    }
+                )
+                command = [
+                    sys.executable,
+                    str(frozen / "skhynix_stage_h0b.py"),
+                    "negative-case",
+                    "--surface",
+                    surface_id,
+                    "--mutation-id",
+                    mutation_id,
+                    "--expected-code",
+                    expected,
+                ]
+                result = subprocess.run(
+                    command,
+                    cwd=frozen,
+                    check=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env={
+                        **os.environ,
+                        "PYTHONPATH": os.pathsep.join(
+                            (
+                                str(frozen),
+                                str(REPO_ROOT / "examples/hyperliquid"),
+                            )
+                        ),
+                    },
+                )
+                contracts.require(
+                    result.stdout.strip() != "",
+                    "H0B_BUILD_MISMATCH",
+                    f"$.frozen_negative.{mutation_id}",
+                    result.stderr,
+                )
+                payload = json.loads(result.stdout)
+                frozen_rows.append(
+                    {
+                        "mutation_id": mutation_id,
+                        "expected_error_code": expected,
+                        "error_code": payload["error"]["code"],
+                    }
+                )
         frozen_runtime_source_tree_sha256 = runtime_source_tree_sha256(
             frozen_repo
         )
@@ -2479,11 +3684,28 @@ def hostile_preflight(
     )
     write_json(output, receipt)
     if write_surface_evidence:
-        for surface, current, frozen in zip(
-            matrix["surfaces"],
-            current_rows,
-            frozen_rows,
-        ):
+        current_by_id = {
+            row["mutation_id"]: row for row in current_rows
+        }
+        frozen_by_id = {
+            row["mutation_id"]: row for row in frozen_rows
+        }
+        for surface in matrix["surfaces"]:
+            mutation_evidence = []
+            for mutation in surface["negative_mutations"]:
+                mutation_id = mutation["mutation_id"]
+                current = current_by_id[mutation_id]
+                frozen = frozen_by_id[mutation_id]
+                mutation_evidence.append(
+                    {
+                        "mutation_id": mutation_id,
+                        "current_error_code": current["error_code"],
+                        "frozen_error_code": frozen["error_code"],
+                        "expected_error_code": current[
+                            "expected_error_code"
+                        ],
+                    }
+                )
             for artifact in surface["artifacts"]:
                 if not artifact["path"].startswith(
                     ".workflow/reports/0823T002-surface-"
@@ -2493,16 +3715,11 @@ def hostile_preflight(
                     REPO_ROOT / artifact["path"],
                     {
                         "schema_version": (
-                            "skhynix_stage_h0b_surface_evidence_v1"
+                            "skhynix_stage_h0b_surface_evidence_v2"
                         ),
                         "task_id": contracts.TASK_ID,
                         "surface_id": surface["surface_id"],
-                        "mutation_id": current["mutation_id"],
-                        "current_error_code": current["error_code"],
-                        "frozen_error_code": frozen["error_code"],
-                        "expected_error_code": current[
-                            "expected_error_code"
-                        ],
+                        "mutations": mutation_evidence,
                         "current_and_frozen_rejected": True,
                         "outcome_predicate_evaluated": False,
                         "stage4_bytes_opened": False,
@@ -2561,15 +3778,12 @@ def validate_hostile_preflight_receipt(
     matrix = read_json(matrix_path)
     declared = [
         {
-            "mutation_id": surface["negative_mutations"][0]["mutation_id"],
-            "expected_error_code": surface["negative_mutations"][0][
-                "expected_error_code"
-            ],
-            "error_code": surface["negative_mutations"][0][
-                "expected_error_code"
-            ],
+            "mutation_id": mutation["mutation_id"],
+            "expected_error_code": mutation["expected_error_code"],
+            "error_code": mutation["expected_error_code"],
         }
         for surface in matrix["surfaces"]
+        for mutation in surface["negative_mutations"]
     ]
     contracts.require(
         receipt["surface_contract"] == declared
@@ -2604,6 +3818,93 @@ def validate_hostile_preflight_receipt(
         "hostile preflight crossed a prohibited execution boundary",
     )
     return receipt
+
+
+def validate_h0b_gate0(
+    *,
+    task_path: Path,
+    matrix_path: Path,
+    negative_evidence_path: Path,
+) -> dict[str, Any]:
+    dispatch = validate_dispatch(task_path, matrix_path)
+    receipt = validate_hostile_preflight_receipt(
+        negative_evidence_path,
+        matrix_path=matrix_path,
+        expected_dispatch=dispatch,
+    )
+    validator = [
+        sys.executable,
+        str(
+            REPO_ROOT
+            / ".workflow/workflow-kit/validate_research_package_task.py"
+        ),
+        "--task",
+        str(task_path),
+        "--matrix",
+        str(matrix_path),
+        "--negative-evidence",
+        str(negative_evidence_path),
+    ]
+    result = subprocess.run(
+        validator,
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    contracts.require(
+        result.returncode == 0,
+        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+        "$.gate0.trust_kernel",
+        result.stdout + result.stderr,
+    )
+    kernel_result = json.loads(result.stdout)
+    matrix = read_json(matrix_path)
+    mutation_count = sum(
+        len(surface["negative_mutations"])
+        for surface in matrix["surfaces"]
+    )
+    matrix_sha256 = contracts.sha256_file(matrix_path)
+    runtime_sha256 = runtime_source_tree_sha256()
+    expected_runtime_sha256 = task_sha256_pin(
+        task_path,
+        "expected_runtime_source_tree_sha256",
+    )
+    contracts.require(
+        kernel_result.get("verified") is True
+        and kernel_result.get("task_id") == contracts.TASK_ID
+        and kernel_result.get("matrix_sha256")
+        == matrix_sha256
+        == MATRIX_SHA256
+        and kernel_result.get("negative_mutation_count") == mutation_count
+        and kernel_result.get("executed_negative_mutation_count")
+        == mutation_count
+        and receipt["current_negative_mutation_count"] == mutation_count
+        and receipt["frozen_negative_mutation_count"] == mutation_count
+        and receipt["runtime_source_tree_sha256"]
+        == runtime_sha256
+        == expected_runtime_sha256
+        and receipt["fail_open_count"] == 0,
+        "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+        "$.gate0",
+        "H0-B Gate 0 dispatch, matrix, runtime or negative evidence mismatch",
+    )
+    return {
+        "schema_version": "skhynix_stage_h0b_gate0_v1",
+        "task_id": contracts.TASK_ID,
+        "verified": True,
+        "dispatch": dispatch,
+        "matrix_sha256": matrix_sha256,
+        "runtime_source_tree_sha256": runtime_sha256,
+        "negative_evidence_sha256": contracts.sha256_file(
+            negative_evidence_path
+        ),
+        "current_negative_mutation_count": mutation_count,
+        "frozen_negative_mutation_count": mutation_count,
+        "fail_open_count": 0,
+        "trust_kernel": kernel_result,
+    }
 
 
 @dataclass(frozen=True)
@@ -5127,7 +6428,7 @@ def run_h0b1(
     build_root: Path,
 ) -> dict[str, Any]:
     root = Path(build_root)
-    permit = validate_permit(root)
+    permit = validate_permit(root, require_preoutcome_state=True)
     h0a_sessions = h0a_support.load_sessions(CANONICAL_SOURCE_ROOT)
     spec_by_session = {
         spec.session_id: spec for spec in h0a_support.SESSION_SPECS
@@ -6321,6 +7622,7 @@ def validate_stage4_access_ledger(
     *,
     build_label: str,
     diagnostic_permit_sha256: str,
+    ledger_schema: str = RUNTIME_LEDGER_SCHEMA,
 ) -> None:
     events = ledger["events"]
     event_keys = {
@@ -6371,7 +7673,7 @@ def validate_stage4_access_ledger(
     ]
     contracts.require(
         ledger["schema_version"]
-        == "skhynix_stage_h0b_outcome_access_ledger_v1"
+        == ledger_schema
         and ledger["task_id"] == contracts.TASK_ID
         and ledger["build_label"] == build_label
         and [event["sequence"] for event in events]
@@ -6704,6 +8006,10 @@ def surface_assignment_projection() -> list[dict[str, Any]]:
 
 def runtime_contract_bridge(root: Path) -> dict[str, Any]:
     preoutcome = read_json(root / "preoutcome_contract.json")
+    publication_review_sha256 = task_sha256_pin(
+        TASK_PATH,
+        "publication_remediation_review_sha256",
+    )
     return {
         "schema_version": "skhynix_stage_h0b_runtime_contract_bridge_v2",
         "task_id": contracts.TASK_ID,
@@ -6711,6 +8017,12 @@ def runtime_contract_bridge(root: Path) -> dict[str, Any]:
         "primary_plan_sha256": PRIMARY_PLAN_SHA256,
         "diagnostic_plan_sha256": DIAGNOSTIC_PLAN_SHA256,
         "diagnostic_review_sha256": DIAGNOSTIC_REVIEW_SHA256,
+        "publication_remediation_plan_sha256": (
+            PUBLICATION_REMEDIATION_PLAN_SHA256
+        ),
+        "publication_remediation_review_sha256": (
+            publication_review_sha256
+        ),
         "surface_matrix_sha256": MATRIX_SHA256,
         "files": contracts.file_inventory(root, contracts.C_FILES),
         "research_surface_assignments_sha256": (
@@ -6734,6 +8046,9 @@ def runtime_contract_bridge(root: Path) -> dict[str, Any]:
             "classification": "h0b_screening_classification_v1",
             "output_schema": "h0b_output_schema_v1",
             "identity_bridge": "h0b_layered_identity_bridge_v1",
+            "publication_projection": (
+                "h0b_outcome_permit_publication_projection_v1"
+            ),
         },
         "hard_boundary": {
             "aug07_event_rows_read": False,
@@ -6809,6 +8124,256 @@ def package_identities(root: Path) -> dict[str, str]:
     }
 
 
+def regular_tree_inventory_sha256(root: Path) -> str:
+    tree = Path(root)
+    contracts.require(
+        tree.is_dir() and not tree.is_symlink(),
+        "H0B_BUILD_MISMATCH",
+        str(tree),
+        "tree identity requires an existing real directory",
+    )
+    paths = []
+    for path in sorted(
+        tree.rglob("*"),
+        key=lambda item: item.relative_to(tree).as_posix().encode("utf-8"),
+    ):
+        contracts.require(
+            not path.is_symlink() and (path.is_file() or path.is_dir()),
+            "H0B_BUILD_MISMATCH",
+            str(path),
+            "tree identity rejects symlinks and special entries",
+        )
+        if path.is_file():
+            paths.append(path.relative_to(tree).as_posix())
+    return contracts.canonical_json_sha256(
+        contracts.file_inventory(tree, paths)
+    )
+
+
+def superseded_formal_archive_entries() -> tuple[dict[str, Any], ...]:
+    return (
+        {
+            "entry_id": "build_a",
+            "source_path": FORMAL_BUILD_A,
+            "archive_relative_path": "build-a",
+            "entry_type": "directory",
+            "sha256": SUPERSEDED_FORMAL_IDENTITIES[
+                "build_a_tree_sha256"
+            ],
+        },
+        {
+            "entry_id": "build_b",
+            "source_path": FORMAL_BUILD_B,
+            "archive_relative_path": "build-b",
+            "entry_type": "directory",
+            "sha256": SUPERSEDED_FORMAL_IDENTITIES[
+                "build_b_tree_sha256"
+            ],
+        },
+        {
+            "entry_id": "build_receipt",
+            "source_path": FORMAL_BUILD_RECEIPT,
+            "archive_relative_path": "build-receipt.json",
+            "entry_type": "regular_file",
+            "sha256": SUPERSEDED_FORMAL_IDENTITIES[
+                "build_receipt_sha256"
+            ],
+        },
+        {
+            "entry_id": "package",
+            "source_path": DEFAULT_PACKAGE,
+            "archive_relative_path": "package",
+            "entry_type": "directory",
+            "sha256": SUPERSEDED_FORMAL_IDENTITIES[
+                "package_tree_sha256"
+            ],
+        },
+    )
+
+
+def archived_entry_sha256(path: Path, entry_type: str) -> str:
+    if entry_type == "directory":
+        return regular_tree_inventory_sha256(path)
+    contracts.require(
+        entry_type == "regular_file"
+        and Path(path).is_file()
+        and not Path(path).is_symlink(),
+        "H0B_BUILD_MISMATCH",
+        str(path),
+        "archive entry type mismatch",
+    )
+    return contracts.sha256_file(path)
+
+
+def validate_superseded_formal_identity(
+    *,
+    build_a: Path,
+    build_b: Path,
+    build_receipt: Path,
+    package: Path,
+) -> None:
+    observed = {
+        "build_a_tree_sha256": regular_tree_inventory_sha256(build_a),
+        "build_b_tree_sha256": regular_tree_inventory_sha256(build_b),
+        "build_receipt_sha256": contracts.sha256_file(build_receipt),
+        "package_tree_sha256": regular_tree_inventory_sha256(package),
+        "package_manifest_sha256": contracts.sha256_file(
+            Path(package) / contracts.MANIFEST_FILE
+        ),
+        "primary_seal_sha256": contracts.sha256_file(
+            Path(build_a) / "primary_result_seal.json"
+        ),
+    }
+    for key, value in observed.items():
+        contracts.require(
+            value == SUPERSEDED_FORMAL_IDENTITIES[key],
+            "H0B_BUILD_MISMATCH",
+            f"$.superseded_formal.{key}",
+            f"expected={SUPERSEDED_FORMAL_IDENTITIES[key]} observed={value}",
+        )
+    contracts.require(
+        contracts.sha256_file(
+            Path(build_b) / "primary_result_seal.json"
+        )
+        == SUPERSEDED_FORMAL_IDENTITIES["primary_seal_sha256"],
+        "H0B_BUILD_MISMATCH",
+        "$.superseded_formal.build_b_primary_seal",
+        "superseded Build B primary seal mismatch",
+    )
+    manifest = read_json(Path(package) / contracts.MANIFEST_FILE)
+    contracts.require(
+        manifest.get("primary_results_sha256")
+        == SUPERSEDED_FORMAL_IDENTITIES["primary_results_sha256"]
+        and manifest.get("primary_classification_sha256")
+        == SUPERSEDED_FORMAL_IDENTITIES[
+            "primary_classification_sha256"
+        ]
+        and manifest.get("stage4_crosscheck_sha256")
+        == SUPERSEDED_FORMAL_IDENTITIES["stage4_crosscheck_sha256"]
+        and manifest.get("composite_package_identity")
+        == SUPERSEDED_FORMAL_IDENTITIES["composite_package_identity"],
+        "H0B_BUILD_MISMATCH",
+        "$.superseded_formal.manifest",
+        "superseded package scientific or composite identity mismatch",
+    )
+
+
+def superseded_formal_archive_receipt(
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": "skhynix_stage_h0b_superseded_archive_v1",
+        "task_id": contracts.TASK_ID,
+        "status": "qa_round1_rejected_portability",
+        "dispatch": dict(dispatch),
+        "archive_method": "resumable_os_replace_no_delete",
+        "archive_root": SUPERSEDED_FORMAL_ARCHIVE.relative_to(
+            REPO_ROOT
+        ).as_posix(),
+        "entries": [
+            {
+                "entry_id": entry["entry_id"],
+                "source_path": Path(entry["source_path"]).relative_to(
+                    REPO_ROOT
+                ).as_posix(),
+                "archive_relative_path": entry[
+                    "archive_relative_path"
+                ],
+                "entry_type": entry["entry_type"],
+                "sha256": entry["sha256"],
+            }
+            for entry in superseded_formal_archive_entries()
+        ],
+        "prior_identities": dict(SUPERSEDED_FORMAL_IDENTITIES),
+        "canonical_paths_released": True,
+    }
+
+
+def validate_superseded_formal_archive(
+    *,
+    expected_dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    root = SUPERSEDED_FORMAL_ARCHIVE
+    receipt_path = root / "archive_receipt.json"
+    receipt = read_json(receipt_path)
+    contracts.require(
+        receipt == superseded_formal_archive_receipt(expected_dispatch),
+        "H0B_BUILD_MISMATCH",
+        str(receipt_path),
+        "superseded formal archive receipt mismatch",
+    )
+    validate_superseded_formal_identity(
+        build_a=root / "build-a",
+        build_b=root / "build-b",
+        build_receipt=root / "build-receipt.json",
+        package=root / "package",
+    )
+    return receipt
+
+
+def retire_superseded_formal(
+    *,
+    task_path: Path,
+    matrix_path: Path,
+) -> dict[str, Any]:
+    dispatch = validate_dispatch(task_path, matrix_path)
+    if SUPERSEDED_FORMAL_ARCHIVE.exists():
+        return validate_superseded_formal_archive(
+            expected_dispatch=dispatch
+        )
+    staging = SUPERSEDED_FORMAL_ARCHIVE_STAGING
+    contracts.require(
+        not staging.is_symlink()
+        and (not staging.exists() or staging.is_dir()),
+        "H0B_BUILD_MISMATCH",
+        str(staging),
+        "archive staging path must be absent or a real directory",
+    )
+    staging.mkdir(parents=True, exist_ok=True)
+    for entry in superseded_formal_archive_entries():
+        source = Path(entry["source_path"])
+        destination = staging / entry["archive_relative_path"]
+        contracts.require(
+            not (source.exists() and destination.exists())
+            and (source.exists() or destination.exists()),
+            "H0B_BUILD_MISMATCH",
+            str(source),
+            "archive entry must exist at exactly one lifecycle location",
+        )
+        current = source if source.exists() else destination
+        contracts.require(
+            archived_entry_sha256(current, entry["entry_type"])
+            == entry["sha256"],
+            "H0B_BUILD_MISMATCH",
+            str(current),
+            "superseded archive entry identity mismatch",
+        )
+        if source.exists():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(source, destination)
+            contracts.fsync_directory(destination.parent)
+    validate_superseded_formal_identity(
+        build_a=staging / "build-a",
+        build_b=staging / "build-b",
+        build_receipt=staging / "build-receipt.json",
+        package=staging / "package",
+    )
+    receipt = superseded_formal_archive_receipt(dispatch)
+    write_json(staging / "archive_receipt.json", receipt, fsync=True)
+    for path in sorted(staging.rglob("*"), reverse=True):
+        if path.is_file():
+            contracts.fsync_file(path)
+    for path in sorted(
+        [item for item in staging.rglob("*") if item.is_dir()],
+        reverse=True,
+    ):
+        contracts.fsync_directory(path)
+    contracts.fsync_directory(staging)
+    os.replace(staging, SUPERSEDED_FORMAL_ARCHIVE)
+    contracts.fsync_directory(SUPERSEDED_FORMAL_ARCHIVE.parent)
+    return validate_superseded_formal_archive(expected_dispatch=dispatch)
+
+
 def read_csv_rows(path: Path) -> list[dict[str, str]]:
     with Path(path).open(newline="", encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
@@ -6824,6 +8389,10 @@ def package_report_text(
     research_identity: str,
     runtime_identity: str,
 ) -> str:
+    publication_review_sha256 = task_sha256_pin(
+        TASK_PATH,
+        "publication_remediation_review_sha256",
+    )
     classification = read_json(root / "primary_classification.json")
     rq1 = {
         row["session"]: row
@@ -6851,6 +8420,10 @@ def package_report_text(
         f"- primary_plan_sha256: `{PRIMARY_PLAN_SHA256}`",
         f"- diagnostic_plan_sha256: `{DIAGNOSTIC_PLAN_SHA256}`",
         f"- diagnostic_review_sha256: `{DIAGNOSTIC_REVIEW_SHA256}`",
+        "- publication_remediation_plan_sha256: "
+        f"`{PUBLICATION_REMEDIATION_PLAN_SHA256}`",
+        "- publication_remediation_review_sha256: "
+        f"`{publication_review_sha256}`",
         "- formal_sessions: `jul30,aug04`",
         "- primary_tuple: `public_bbo_moves_through_quote/delta=0/horizon=50ms/latency=6600ms/equal_weight_bid_ask_session_scores`",
         f"- rq1_jul30_pass: `{report_value(rq1['jul30']['primary_pass'])}`",
@@ -6890,7 +8463,7 @@ def package_report_text(
 
 def copy_contract_surface(staging: Path) -> None:
     copies = {
-        "contracts/execution_plan.md": DIAGNOSTIC_PLAN_PATH,
+        "contracts/execution_plan.md": PUBLICATION_REMEDIATION_PLAN_PATH,
         "contracts/surface_matrix.json": MATRIX_PATH,
         "contracts/task.md": TASK_PATH,
         "contracts/v2_framework.md": FRAMEWORK_PATH,
@@ -6955,12 +8528,57 @@ def assemble_package(
         staging / "preoutcome_contract.json",
     )
     copy_contract_surface(staging)
+    packaged_runtime_sha = packaged_runtime_source_tree_sha256(staging)
+    publication_permits = {}
+    for label, root in (("A", build_a), ("B", build_b)):
+        validate_permit(root)
+        runtime_permit_path = root / "outcome_access_permit.json"
+        runtime_permit = read_json(runtime_permit_path)
+        publication_permit = project_outcome_permit_for_publication(
+            runtime_permit
+        )
+        validate_publication_outcome_permit(
+            publication_permit,
+            build_label=label,
+            packaged_runtime_source_sha256=packaged_runtime_sha,
+        )
+        publication_permit_path = (
+            staging
+            / f"outcome_access_permit_build_{label.lower()}.json"
+        )
+        write_json(publication_permit_path, publication_permit)
+        publication_permit_sha = contracts.sha256_file(
+            publication_permit_path
+        )
+        runtime_ledger = read_json(root / "outcome_access_ledger.json")
+        diagnostic_permit_sha = contracts.sha256_file(
+            root / "stage4_diagnostic_permit.json"
+        )
+        validate_stage4_access_ledger(
+            runtime_ledger,
+            build_label=label,
+            diagnostic_permit_sha256=diagnostic_permit_sha,
+        )
+        inventory_path = root / "preoutcome_source_inventory.csv"
+        inventory_rows = read_csv_rows(inventory_path)
+        publication_ledger = project_outcome_ledger_for_publication(
+            runtime_ledger,
+            build_label=label,
+            runtime_permit_sha256=contracts.sha256_file(
+                runtime_permit_path
+            ),
+            publication_permit_sha256=publication_permit_sha,
+            inventory_rows=inventory_rows,
+            inventory_bytes=inventory_path.stat().st_size,
+        )
+        publication_ledger_path = (
+            staging
+            / f"outcome_access_ledger_build_{label.lower()}.json"
+        )
+        write_json(publication_ledger_path, publication_ledger)
+        publication_permits[label] = publication_permit_sha
     evidence_copies = {
         "accepted_input_bindings.json": build_a / "accepted_input_bindings.json",
-        "outcome_access_ledger_build_a.json": build_a / "outcome_access_ledger.json",
-        "outcome_access_ledger_build_b.json": build_b / "outcome_access_ledger.json",
-        "outcome_access_permit_build_a.json": build_a / "outcome_access_permit.json",
-        "outcome_access_permit_build_b.json": build_b / "outcome_access_permit.json",
         "preoutcome_source_inventory.csv": build_a / "preoutcome_source_inventory.csv",
         "primary_result_seal.json": build_a / "primary_result_seal.json",
         "support_replay_receipt_build_a.json": build_a / "support_replay_receipt.json",
@@ -6972,6 +8590,18 @@ def assemble_package(
     }
     for relative, source in evidence_copies.items():
         shutil.copyfile(source, staging / relative)
+    for label in ("A", "B"):
+        inventory_path = staging / "preoutcome_source_inventory.csv"
+        validate_publication_outcome_ledger(
+            read_json(
+                staging
+                / f"outcome_access_ledger_build_{label.lower()}.json"
+            ),
+            build_label=label,
+            publication_permit_sha256=publication_permits[label],
+            inventory_rows=read_csv_rows(inventory_path),
+            inventory_bytes=inventory_path.stat().st_size,
+        )
     research = trust.compute_research_data_identity(
         contracts.file_inventory(staging, contracts.R_FILES)
     )
@@ -7046,12 +8676,7 @@ def assemble_package(
     contracts.fsync_directory(staging)
     os.replace(staging, final)
     contracts.fsync_directory(final.parent)
-    return {
-        "package_root": str(final),
-        **identities,
-        "package_file_count": package_file_count,
-        "package_total_bytes": package_total_bytes,
-    }
+    return formal_package_summary(final)
 
 
 def validate_json_key_universes(root: Path) -> None:
@@ -7059,9 +8684,12 @@ def validate_json_key_universes(root: Path) -> None:
         "accepted_input_bindings.json": {
             "schema_version",
             "task_id",
+            "task_sha256",
             "primary_plan_sha256",
             "diagnostic_plan_sha256",
             "diagnostic_review_sha256",
+            "publication_remediation_plan_sha256",
+            "publication_remediation_review_sha256",
             "surface_matrix_sha256",
             "expected_semantic_source_inventory_sha256",
             "bindings",
@@ -7109,10 +8737,11 @@ def validate_json_key_universes(root: Path) -> None:
             "preoutcome_contract_sha256",
             "source_inventory_contract_sha256",
             "semantic_source_inventory_sha256",
-            "build_envelope",
-            "build_envelope_sha256",
+            "publication_build_envelope",
+            "publication_build_envelope_sha256",
             "support_replay_receipt_sha256",
             "accepted_input_bindings_sha256",
+            "projection_contract_sha256",
         },
         "outcome_access_permit_build_b.json": {
             "schema_version",
@@ -7128,10 +8757,11 @@ def validate_json_key_universes(root: Path) -> None:
             "preoutcome_contract_sha256",
             "source_inventory_contract_sha256",
             "semantic_source_inventory_sha256",
-            "build_envelope",
-            "build_envelope_sha256",
+            "publication_build_envelope",
+            "publication_build_envelope_sha256",
             "support_replay_receipt_sha256",
             "accepted_input_bindings_sha256",
+            "projection_contract_sha256",
         },
         "preoutcome_contract.json": {
             "schema_version",
@@ -7336,12 +8966,67 @@ def verify_package(
     )
     permit_a = read_json(root / "outcome_access_permit_build_a.json")
     permit_b = read_json(root / "outcome_access_permit_build_b.json")
+    packaged_runtime_sha = packaged_runtime_source_tree_sha256(root)
+    validate_expected_runtime_source_tree(
+        packaged_runtime_sha,
+        task_path=TASK_PATH,
+    )
+    contracts.require(
+        (root / "contracts/task.md").read_bytes()
+        == TASK_PATH.read_bytes()
+        and (root / "contracts/surface_matrix.json").read_bytes()
+        == MATRIX_PATH.read_bytes()
+        and (root / "contracts/execution_plan.md").read_bytes()
+        == PUBLICATION_REMEDIATION_PLAN_PATH.read_bytes(),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        "$.package.external_runtime_oracle",
+        "packaged runtime or dispatch contracts differ from frozen authority",
+    )
+    accepted_bindings = read_json(root / "accepted_input_bindings.json")
+    contracts.require(
+        accepted_bindings == accepted_input_bindings_payload()
+        and accepted_bindings["task_sha256"]
+        == contracts.sha256_file(TASK_PATH)
+        == contracts.sha256_file(root / "contracts/task.md"),
+        "H0B_OUTCOME_PERMIT_MISMATCH",
+        "$.package.accepted_input_bindings",
+        "packaged accepted bindings differ from the exact current task",
+    )
+    validate_publication_outcome_permit(
+        permit_a,
+        build_label="A",
+        packaged_runtime_source_sha256=packaged_runtime_sha,
+    )
+    validate_publication_outcome_permit(
+        permit_b,
+        build_label="B",
+        packaged_runtime_source_sha256=packaged_runtime_sha,
+    )
+    preoutcome = read_json(root / "preoutcome_contract.json")
     contracts.require(
         permit_a["semantic_source_inventory_sha256"]
         == permit_b["semantic_source_inventory_sha256"]
         == EXPECTED_SEMANTIC_INVENTORY_SHA256
-        and permit_a["build_envelope_sha256"]
-        != permit_b["build_envelope_sha256"]
+        and permit_a["runtime_source_tree_sha256"]
+        == permit_b["runtime_source_tree_sha256"]
+        == preoutcome["runtime_source_tree_sha256"]
+        == packaged_runtime_sha
+        and permit_a["preoutcome_contract_sha256"]
+        == permit_b["preoutcome_contract_sha256"]
+        == contracts.sha256_file(root / "preoutcome_contract.json")
+        and permit_a["support_replay_receipt_sha256"]
+        == contracts.sha256_file(
+            root / "support_replay_receipt_build_a.json"
+        )
+        and permit_b["support_replay_receipt_sha256"]
+        == contracts.sha256_file(
+            root / "support_replay_receipt_build_b.json"
+        )
+        and permit_a["accepted_input_bindings_sha256"]
+        == permit_b["accepted_input_bindings_sha256"]
+        == contracts.sha256_file(root / "accepted_input_bindings.json")
+        and permit_a["publication_build_envelope_sha256"]
+        != permit_b["publication_build_envelope_sha256"]
         and permit_a["build_label"] == "A"
         and permit_b["build_label"] == "B",
         "H0B_BUILD_ENVELOPE_MISMATCH",
@@ -7377,6 +9062,9 @@ def verify_package(
     contracts.require(
         diagnostic_permit_a["build_label"] == "A"
         and diagnostic_permit_b["build_label"] == "B"
+        and diagnostic_permit_a["runtime_source_tree_sha256"]
+        == diagnostic_permit_b["runtime_source_tree_sha256"]
+        == packaged_runtime_sha
         and diagnostic_permit_a["primary_seal_sha256"]
         == diagnostic_permit_b["primary_seal_sha256"]
         == contracts.sha256_file(root / "primary_result_seal.json")
@@ -7405,12 +9093,24 @@ def verify_package(
             root / "stage4_diagnostic_permit_build_b.json"
         ),
     }
+    inventory_path = root / "preoutcome_source_inventory.csv"
+    inventory_rows = read_csv_rows(inventory_path)
     for label in ("a", "b"):
         ledger = read_json(root / f"outcome_access_ledger_build_{label}.json")
+        validate_publication_outcome_ledger(
+            ledger,
+            build_label=label.upper(),
+            publication_permit_sha256=contracts.sha256_file(
+                root / f"outcome_access_permit_build_{label}.json"
+            ),
+            inventory_rows=inventory_rows,
+            inventory_bytes=inventory_path.stat().st_size,
+        )
         validate_stage4_access_ledger(
             ledger,
             build_label=label.upper(),
             diagnostic_permit_sha256=diagnostic_permit_shas[label],
+            ledger_schema=PUBLICATION_LEDGER_SCHEMA,
         )
         for event in ledger["events"]:
             relative = str(event["relative_path"]).lower()
@@ -7478,6 +9178,227 @@ def run_subprocess(command: Sequence[str]) -> dict[str, Any]:
     return json.loads(result.stdout)
 
 
+def formal_package_summary(package_root: Path) -> dict[str, Any]:
+    root = Path(package_root)
+    publication_evidence = {}
+    for label in ("A", "B"):
+        suffix = label.lower()
+        publication_evidence[label] = {
+            "publication_outcome_access_permit_sha256": (
+                contracts.sha256_file(
+                    root / f"outcome_access_permit_build_{suffix}.json"
+                )
+            ),
+            "publication_outcome_access_ledger_sha256": (
+                contracts.sha256_file(
+                    root / f"outcome_access_ledger_build_{suffix}.json"
+                )
+            ),
+            "publication_projection_contract_sha256": (
+                PUBLICATION_PROJECTION_CONTRACT_SHA256
+            ),
+        }
+    return {
+        "package_root": str(root),
+        "packaged_runtime_source_tree_sha256": (
+            packaged_runtime_source_tree_sha256(root)
+        ),
+        "publication_evidence": publication_evidence,
+        **package_identities(root),
+        "package_file_count": len(contracts.EXACT_PACKAGE_FILES) - 1,
+        "package_total_bytes": sum(
+            (root / relative).stat().st_size
+            for relative in contracts.EXACT_PACKAGE_FILES
+            if relative != contracts.MANIFEST_FILE
+        ),
+    }
+
+
+def runtime_evidence_summary(
+    build_root: Path,
+    package_root: Path,
+) -> dict[str, Any]:
+    root = Path(build_root)
+    permit_path = root / "outcome_access_permit.json"
+    ledger_path = root / "outcome_access_ledger.json"
+    permit = read_json(permit_path)
+    label = permit["build_label"]
+    package = Path(package_root)
+    publication_permit_path = (
+        package / f"outcome_access_permit_build_{label.lower()}.json"
+    )
+    publication_ledger_path = (
+        package / f"outcome_access_ledger_build_{label.lower()}.json"
+    )
+    return {
+        "build_label": label,
+        "resolved_build_root": permit["build_envelope"][
+            "resolved_build_root"
+        ],
+        "runtime_pid": permit["build_envelope"]["runtime_pid"],
+        "build_envelope_sha256": permit["build_envelope_sha256"],
+        "runtime_outcome_access_permit_sha256": (
+            contracts.sha256_file(permit_path)
+        ),
+        "runtime_outcome_access_ledger_sha256": (
+            contracts.sha256_file(ledger_path)
+        ),
+        "publication_outcome_access_permit_sha256": (
+            contracts.sha256_file(publication_permit_path)
+        ),
+        "publication_outcome_access_ledger_sha256": (
+            contracts.sha256_file(publication_ledger_path)
+        ),
+        "publication_projection_contract_sha256": (
+            PUBLICATION_PROJECTION_CONTRACT_SHA256
+        ),
+    }
+
+
+def validate_runtime_evidence_summary(
+    summary: Mapping[str, Any],
+    *,
+    build_root: Path,
+    package_root: Path,
+) -> None:
+    expected = runtime_evidence_summary(build_root, package_root)
+    contracts.require(
+        dict(summary) == expected
+        and set(summary)
+        == {
+            "build_label",
+            "resolved_build_root",
+            "runtime_pid",
+            "build_envelope_sha256",
+            "runtime_outcome_access_permit_sha256",
+            "runtime_outcome_access_ledger_sha256",
+            "publication_outcome_access_permit_sha256",
+            "publication_outcome_access_ledger_sha256",
+            "publication_projection_contract_sha256",
+        },
+        "H0B_OUTPUT_SCHEMA_MISMATCH",
+        "$.build_receipt.runtime_evidence",
+        "runtime/publication evidence dual binding mismatch",
+    )
+
+
+def validate_formal_receipt_nested_payloads(
+    payload: Mapping[str, Any],
+    expected: Mapping[str, Mapping[str, Any]],
+) -> None:
+    contracts.require(
+        set(expected)
+        == {
+            "primary_result_seal",
+            "stage4_permit_build_a",
+            "stage4_permit_build_b",
+            "stage4_build_a",
+            "stage4_build_b",
+            "package",
+            "admission",
+        },
+        "H0B_OUTPUT_SCHEMA_MISMATCH",
+        "$.build_receipt.expected_nested",
+        "internal formal receipt expectation is incomplete",
+    )
+    for key, expected_value in expected.items():
+        observed = payload.get(key)
+        contracts.require(
+            isinstance(observed, Mapping)
+            and dict(observed) == dict(expected_value),
+            "H0B_OUTPUT_SCHEMA_MISMATCH",
+            f"$.build_receipt.{key}",
+            "formal receipt nested payload differs from durable evidence",
+        )
+
+
+def validate_formal_build_receipt_payload(
+    payload: Mapping[str, Any],
+    *,
+    build_a: Path,
+    build_b: Path,
+    package_root: Path,
+    expected_runtime_source_sha256: str,
+) -> None:
+    contracts.require(
+        set(payload)
+        == {
+            "schema_version",
+            "task_id",
+            "build_a",
+            "build_b",
+            "semantic_source_inventory_sha256",
+            "expected_runtime_source_tree_sha256",
+            "build_envelopes_distinct",
+            "primary_result_seal",
+            "stage4_permit_build_a",
+            "stage4_permit_build_b",
+            "stage4_build_a",
+            "stage4_build_b",
+            "runtime_evidence_build_a",
+            "runtime_evidence_build_b",
+            "package",
+            "admission",
+            "aug07_event_rows_opened",
+            "network_private_order_cancel_live_access",
+        }
+        and payload.get("schema_version")
+        == "skhynix_stage_h0b_build_receipt_v2"
+        and payload.get("task_id") == contracts.TASK_ID
+        and payload.get("build_a") == str(Path(build_a).resolve())
+        and payload.get("build_b") == str(Path(build_b).resolve())
+        and payload.get("semantic_source_inventory_sha256")
+        == EXPECTED_SEMANTIC_INVENTORY_SHA256
+        and payload.get("expected_runtime_source_tree_sha256")
+        == expected_runtime_source_sha256
+        and payload.get("build_envelopes_distinct") is True
+        and payload.get("aug07_event_rows_opened") is False
+        and payload.get("network_private_order_cancel_live_access")
+        is False,
+        "H0B_OUTPUT_SCHEMA_MISMATCH",
+        "$.build_receipt",
+        "formal build receipt schema or scalar mismatch",
+    )
+    validate_runtime_evidence_summary(
+        payload["runtime_evidence_build_a"],
+        build_root=build_a,
+        package_root=package_root,
+    )
+    validate_runtime_evidence_summary(
+        payload["runtime_evidence_build_b"],
+        build_root=build_b,
+        package_root=package_root,
+    )
+    seal_a = read_json(Path(build_a) / "primary_result_seal.json")
+    seal_b = read_json(Path(build_b) / "primary_result_seal.json")
+    contracts.require(
+        seal_a == seal_b,
+        "H0B_OUTPUT_SCHEMA_MISMATCH",
+        "$.build_receipt.primary_result_seal",
+        "Build A/B primary seals differ",
+    )
+    validate_formal_receipt_nested_payloads(
+        payload,
+        {
+            "primary_result_seal": seal_a,
+            "stage4_permit_build_a": read_json(
+                Path(build_a) / "stage4_diagnostic_permit.json"
+            ),
+            "stage4_permit_build_b": read_json(
+                Path(build_b) / "stage4_diagnostic_permit.json"
+            ),
+            "stage4_build_a": read_json(
+                Path(build_a) / "stage4_diagnostic_receipt.json"
+            ),
+            "stage4_build_b": read_json(
+                Path(build_b) / "stage4_diagnostic_receipt.json"
+            ),
+            "package": formal_package_summary(package_root),
+            "admission": verify_package(package=package_root),
+        },
+    )
+
+
 def compare_build_files(
     left: Path,
     right: Path,
@@ -7501,7 +9422,6 @@ def build_formal(
     build_b: Path,
     receipt: Path,
 ) -> dict[str, Any]:
-    dispatch = validate_dispatch(task_path, matrix_path)
     hostile_path = (
         REPO_ROOT / ".workflow/reports/0823T002-hostile-preflight.json"
     )
@@ -7511,10 +9431,35 @@ def build_formal(
         str(hostile_path),
         "hostile preflight receipt is required",
     )
-    validate_hostile_preflight_receipt(
-        hostile_path,
+    gate0 = validate_h0b_gate0(
+        task_path=task_path,
         matrix_path=matrix_path,
-        expected_dispatch=dispatch,
+        negative_evidence_path=hostile_path,
+    )
+    contracts.require(
+        Path(output).resolve() == DEFAULT_PACKAGE.resolve()
+        and Path(build_a).resolve() == FORMAL_BUILD_A.resolve()
+        and Path(build_b).resolve() == FORMAL_BUILD_B.resolve()
+        and Path(receipt).resolve() == FORMAL_BUILD_RECEIPT.resolve(),
+        "H0B_BUILD_ENVELOPE_MISMATCH",
+        "$.formal_paths",
+        "formal rebuild must use the exact canonical task paths",
+    )
+    validate_superseded_formal_archive(
+        expected_dispatch=gate0["dispatch"]
+    )
+    contracts.require(
+        not Path(output).exists()
+        and not Path(build_a).exists()
+        and not Path(build_b).exists()
+        and not Path(receipt).exists(),
+        "PUBLICATION_FINAL_EXISTS",
+        "$.formal_paths",
+        "canonical paths must be released by the controlled archive",
+    )
+    expected_runtime_source_sha = task_sha256_pin(
+        task_path,
+        "expected_runtime_source_tree_sha256",
     )
     with tempfile.TemporaryDirectory(
         prefix="0823T002-formal-hostile-replay-"
@@ -7532,20 +9477,6 @@ def build_formal(
             str(hostile_path),
             "formal hostile replay differs from submitted receipt",
         )
-    validator = [
-        sys.executable,
-        str(
-            REPO_ROOT
-            / ".workflow/workflow-kit/validate_research_package_task.py"
-        ),
-        "--task",
-        str(task_path),
-        "--matrix",
-        str(matrix_path),
-        "--negative-evidence",
-        str(hostile_path),
-    ]
-    run_subprocess(validator)
     runner = str(REPO_ROOT / "examples/hyperliquid/skhynix_stage_h0b.py")
     for root, label in ((build_a, "A"), (build_b, "B")):
         run_subprocess(
@@ -7645,12 +9576,15 @@ def build_formal(
     )
     admission = verify_package(package=output)
     result = {
-        "schema_version": "skhynix_stage_h0b_build_receipt_v1",
+        "schema_version": "skhynix_stage_h0b_build_receipt_v2",
         "task_id": contracts.TASK_ID,
         "build_a": str(Path(build_a).resolve()),
         "build_b": str(Path(build_b).resolve()),
         "semantic_source_inventory_sha256": (
             EXPECTED_SEMANTIC_INVENTORY_SHA256
+        ),
+        "expected_runtime_source_tree_sha256": (
+            expected_runtime_source_sha
         ),
         "build_envelopes_distinct": True,
         "primary_result_seal": seal,
@@ -7658,11 +9592,26 @@ def build_formal(
         "stage4_permit_build_b": diagnostic_permit_b,
         "stage4_build_a": diagnostic_a,
         "stage4_build_b": diagnostic_b,
+        "runtime_evidence_build_a": runtime_evidence_summary(
+            build_a,
+            output,
+        ),
+        "runtime_evidence_build_b": runtime_evidence_summary(
+            build_b,
+            output,
+        ),
         "package": package,
         "admission": admission,
         "aug07_event_rows_opened": False,
         "network_private_order_cancel_live_access": False,
     }
+    validate_formal_build_receipt_payload(
+        result,
+        build_a=build_a,
+        build_b=build_b,
+        package_root=output,
+        expected_runtime_source_sha256=expected_runtime_source_sha,
+    )
     write_json(receipt, result)
     return result
 
@@ -7676,8 +9625,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     hostile.add_argument("--matrix", type=Path, required=True)
     hostile.add_argument("--output", type=Path, required=True)
 
+    gate0 = subparsers.add_parser("gate0")
+    gate0.add_argument("--task", type=Path, required=True)
+    gate0.add_argument("--matrix", type=Path, required=True)
+    gate0.add_argument("--negative-evidence", type=Path, required=True)
+
+    retire = subparsers.add_parser("retire-superseded")
+    retire.add_argument("--task", type=Path, required=True)
+    retire.add_argument("--matrix", type=Path, required=True)
+
     negative = subparsers.add_parser("negative-case")
     negative.add_argument("--surface", required=True)
+    negative.add_argument("--mutation-id", required=True)
     negative.add_argument("--expected-code", required=True)
 
     h0b0 = subparsers.add_parser("h0b0")
@@ -7722,9 +9681,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                 matrix_path=args.matrix,
                 output=args.output,
             )
+        elif args.command == "gate0":
+            result = validate_h0b_gate0(
+                task_path=args.task,
+                matrix_path=args.matrix,
+                negative_evidence_path=args.negative_evidence,
+            )
+        elif args.command == "retire-superseded":
+            result = retire_superseded_formal(
+                task_path=args.task,
+                matrix_path=args.matrix,
+            )
         elif args.command == "negative-case":
             try:
-                negative_case(args.surface, args.expected_code)
+                negative_case(
+                    args.surface,
+                    args.mutation_id,
+                    args.expected_code,
+                )
             except contracts.H0BError as exc:
                 print(
                     json.dumps(

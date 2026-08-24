@@ -33,7 +33,7 @@
     {
       "applicability": "required",
       "criterion_id": "EC7",
-      "planned_evidence": "Business report ends at \u5f85\u9a8c\u6536 and independent QA/controller closure record exact identities."
+      "planned_evidence": "Business report ends at 待验收 and independent QA/controller closure record exact identities."
     }
   ],
   "kernel_pin": {
@@ -100,7 +100,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "accepted Trust Kernel v1 exact"
+        "value_contract": "accepted Trust Kernel v1 exact and immutable; H0-B negative evidence is admitted only by the composed gate0 binding exact reviewed dispatch, matrix SHA, current/frozen runtime trees, ordered 65-mutation contracts and fail_open_count=0 before invoking the generic validator"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -144,6 +144,24 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
           "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -178,7 +196,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact accepted v2 framework"
+        "value_contract": "exact authority chain: V1 primary, V2 post-seal diagnostic, V3 publication-portability remediation; dispatch binds raw task SHA plus exact V3 plan/review paths and SHAs, matrix SHA and runtime tree, and requires the review's machine-readable disposition=ACCEPTED plus P0/P1/P2/P3=0/0/0/0 to match task final_severity"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -733,6 +751,24 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
           "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -767,7 +803,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact root/process/runtime envelope"
+        "value_contract": "exact root/PID-bound runtime envelope plus distinct root/PID-free publication envelope; h0b0 validates dispatch before creating a root and neither envelope may authorize the other role"
       },
       "identity_layer": "E",
       "negative_mutations": [
@@ -957,6 +993,15 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
           "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -991,13 +1036,13 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "reject before forbidden read"
+        "value_contract": "reject forbidden reads and require publication-ledger schema plus exact inventory-derived primary path/access/bytes/event-order oracle"
       },
       "identity_layer": "E",
       "negative_mutations": [
         {
-          "description": "open forbidden path",
-          "expected_error_code": "H0B_FORBIDDEN_PATH_ACCESS",
+          "description": "forge publication ledger path/access/bytes/event order",
+          "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
           "mutation_id": "mutate_guarded_opener",
           "operation": "other_explicit",
           "target": "guarded_opener"
@@ -1181,6 +1226,24 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
           "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -1215,14 +1278,28 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact fsynced semantic+build binding"
+        "value_contract": "exact admitted runtime permit/ledger retained outside package; direct outcome rehashes the current canonical Surface Matrix and reconstructs current accepted bindings including that matrix, preoutcome contract, H0-A support receipt, semantic inventory and unopened two-event ledger; package uses non-executable publication schemas, exact projection contract, runtime-source binding, and inventory-derived primary ledger oracle"
       },
       "identity_layer": "E",
       "negative_mutations": [
         {
-          "description": "stale/copy permit",
+          "description": "stale/copy permit or post-H0B0 current Surface Matrix byte drift",
           "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
           "mutation_id": "mutate_outcome_access_permit",
+          "operation": "other_explicit",
+          "target": "outcome_access_permit"
+        },
+        {
+          "description": "replace packaged runtime source and internal runtime SHA fields self-consistently",
+          "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+          "mutation_id": "mutate_packaged_runtime_source",
+          "operation": "other_explicit",
+          "target": "outcome_access_permit"
+        },
+        {
+          "description": "replace dispatch-pinned runtime-source tree with a self-consistent stale tree",
+          "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+          "mutation_id": "mutate_runtime_source_external_oracle",
           "operation": "other_explicit",
           "target": "outcome_access_permit"
         }
@@ -3765,6 +3842,15 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
           "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -3799,7 +3885,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact pre-diagnostic allowlist/hash/schema plus distinct V1/V2 identities"
+        "value_contract": "primary result payload/classification and seal chronology unchanged; seal wrapper bytes rebind the reviewed matrix/runtime contract and may differ from QA Round 1"
       },
       "identity_layer": "E",
       "negative_mutations": [
@@ -3853,6 +3939,15 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
           "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -3887,7 +3982,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "eight exact paths/header/projected fields plus full censor mapping"
+        "value_contract": "eight exact paths/header/projected fields plus full censor mapping; aggregate bytes unchanged while permit/receipt wrappers rebind reviewed matrix/runtime identities"
       },
       "identity_layer": "E",
       "negative_mutations": [
@@ -4081,6 +4176,15 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
           "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -4115,7 +4219,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "Build A/B research bytes exact"
+        "value_contract": "Build A/B research bytes exact; two different root/PID Build A/B fixture pairs each use production assemble_package plus full verify_package and reproduce 42/42 bytes plus identical R/C/E/composite"
       },
       "identity_layer": "R",
       "negative_mutations": [
@@ -4123,6 +4227,13 @@
           "description": "mutate Build B",
           "expected_error_code": "H0B_BUILD_MISMATCH",
           "mutation_id": "mutate_deterministic_build",
+          "operation": "other_explicit",
+          "target": "deterministic_build"
+        },
+        {
+          "description": "drift one file in a complete 42-file fresh-root package comparison",
+          "expected_error_code": "H0B_BUILD_MISMATCH",
+          "mutation_id": "mutate_complete_package_portability",
           "operation": "other_explicit",
           "target": "deterministic_build"
         }
@@ -4142,6 +4253,11 @@
         {
           "entry_type": "regular_file",
           "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/runtime_tests/test_skhynix_stage_h0b_package.py",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-build-receipt.json",
           "required": true
         }
       ],
@@ -4163,6 +4279,15 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
           "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -4180,8 +4305,8 @@
       ],
       "description": "Formal H0-B contract for output_schema.",
       "durable_evidence": {
-        "reason": "new_surface_no_prior_version",
-        "required": false
+        "required": false,
+        "reason": "new_surface_no_prior_version"
       },
       "exact_contract": {
         "canonicalization": "custom_explicit",
@@ -4197,7 +4322,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact Section 26 byte contracts"
+        "value_contract": "exact V1/V2 research schemas, V3 publication permit/ledger schemas, and canonical external build-receipt v2 dual-binding schema; every nested seal, Stage 4, package and admission object equals durable or independently recomputed evidence"
       },
       "identity_layer": "C",
       "negative_mutations": [
@@ -4205,6 +4330,13 @@
           "description": "add/reorder field or report line",
           "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
           "mutation_id": "mutate_output_schema",
+          "operation": "other_explicit",
+          "target": "output_schema"
+        },
+        {
+          "description": "break raw-runtime to publication permit/ledger dual binding in the external receipt",
+          "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+          "mutation_id": "mutate_external_receipt_binding",
           "operation": "other_explicit",
           "target": "output_schema"
         }
@@ -4265,6 +4397,15 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
           "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -4299,7 +4440,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact path/type universe"
+        "value_contract": "exact R17/C10/E14/manifest1 path/type universe with four deterministic publication permit/ledger evidence files"
       },
       "identity_layer": "E",
       "negative_mutations": [
@@ -4347,6 +4488,15 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
           "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -4381,7 +4531,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact R/C/E bridges and reverse binding"
+        "value_contract": "exact R/C/E bridges; runtime raw evidence remains external while publication projections bind packaged runtime and make C/E/composite fresh-root portable"
       },
       "identity_layer": "E",
       "negative_mutations": [
@@ -4429,6 +4579,15 @@
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
           "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
+          "source_type": "immutable_input"
         }
       ],
       "availability": {
@@ -4463,7 +4622,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "only manifest excluded from E inventory/count/bytes"
+        "value_contract": "only manifest excluded from E inventory/count/bytes; fresh-root 42/42 bytes including manifest are exact"
       },
       "identity_layer": "E",
       "negative_mutations": [
@@ -4491,6 +4650,11 @@
           "entry_type": "regular_file",
           "path": ".workflow/reports/0823T002-surface-atomic_publication.json",
           "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": ".workflow/reports/0823T002-qa-round1-rejected-formal/archive_receipt.json",
+          "required": true
         }
       ],
       "authoritative_sources": [
@@ -4510,6 +4674,15 @@
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
           "source_id": "reviewed_h0b_diagnostic_plan_v2",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "66d85c4ba476b23546e016f8fce68b6f955b2351856fdf70cca97eabbb290b48"
+          },
+          "locator": "docs/skhynix_stage_h0b_publication_portability_remediation_plan_v3_20260824.md",
+          "source_id": "reviewed_h0b_publication_remediation_plan_v3",
           "source_type": "immutable_input"
         }
       ],
@@ -4545,7 +4718,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "no overwrite; fsync then rename"
+        "value_contract": "identity-bound resumable no-delete retirement of the rejected Round 1 canonical paths, followed by no-overwrite validation of raw runtime evidence and deterministic publication projections, fsync tree, then rename"
       },
       "identity_layer": "E",
       "negative_mutations": [
