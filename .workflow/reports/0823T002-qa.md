@@ -7,111 +7,125 @@
 - `0823T002`
 
 状态：
-- 未通过
+- 已通过
 
 更新时间：
-- 2026-08-24 08:47 CST
+- 2026-08-24 18:14 CST
 
 验收线程：
 - 独立 QA 验收线程
 
 验收对象：
 - `SKHYNIX-STAGE-H0B-CONDITIONAL-RISK-AUDIT`
-- frozen formal evidence：
-  `62a46e07e6e8355c438761a82fc3b1c58b401c93`
-- business handoff：
-  `a463f45fac829e9c1c662cec9692d1c4b7950b48`
+- exact handoff revision：
+  `60425952598100c2e59fde6997b5287aac8f611e`
+- immutable formal evidence：
+  `71adbfa678ff3646982160d220f5c223e0f7e59f`
+- final control evidence：
+  `efa0ace7d32a4458f6843c0d7737934559ad31fe`
 
 验收范围：
-- 在 fresh detached worktree 和全新 Build A/B/package roots 中独立重建
-  support、permits、primary outputs、primary seal、Stage 4 diagnostic、
-  R/C/E/composite 和 exact 42-file package tree。
-- 核对 `6600ms` unique primary、`850ms` diagnostic-only/non-rescue、
-  formal-session gates、Aug03 lifecycle、零 forbidden access 和 claim
-  limit。
+- 独立只读验收 immutable formal authority、V4 Round 6
+  candidate/receipt/review、workflow transition、最终 hostile/Gate 0
+  evidence 和既有 42-file package admission。
+- 核对 external hostile target contract 与 canonical Surface Matrix 的
+  ordered mutation、code、target、operation、description 逐项一致。
+- 核对所有 Round 6、transition、evidence 和 handoff commits 的 exact
+  path scope，确认未混入已暂存 staleness 文档或历史未跟踪 evidence。
+- 本轮不运行 `outcome`、`diagnostic`、`h0b0` 或 `build-formal`，不重跑
+  研究结论。
 
 P0/P1/P2/P3：
-- `0 / 1 / 0 / 0`
+- `0 / 0 / 0 / 0`
+
+reviewer actor：
+- `codex-independent-qa-reviewer-0823T002-round2-60425952`
 
 验收步骤：
-1. 从 formal evidence commit 建立 fresh detached worktree，并只读接入
-   accepted upstream artifacts。
-2. 执行 task validator、focused tests、current/frozen hostile replay、
-   Ruff、compileall 和 diff check。
-3. 在全新 roots 完整重建 Build A/B、primary seal、Stage 4 和 package。
-4. 分别 zero-write verify 正式包与 QA 包，再逐字节比较完整 package
-   tree 和 R/C/E/composite。
-5. 独立核对 classification、latency roles、session roles、Stage 4
-   chronology 和 forbidden-access boundary。
+1. 核对 handoff HEAD、父提交、commit author、exact path scope 和工作树
+   隔离状态。
+2. 独立验证 formal authority、mutable task、candidate receipt、
+   reviewer attestation 和 workflow transition receipt 的 exact
+   identity/chronology。
+3. 逐项复算 Surface Matrix、external hostile target contract、current
+   与 frozen hostile code/location 和 semantic probes。
+4. 执行 research-package validator、composed Gate 0、package verify、
+   focused pytest、Ruff、compileall 和 diff checks。
+5. 核对 package 的完整 Git-object authority、R/C/E/composite、文件与
+   目录计数、zero-write 和 scientific claim boundary。
 
 实际结果：
-- Validator 通过：
-  `61 surfaces / 61 mutations / 7 exit criteria / verified=true`。
-- Focused pytest 为 `105 passed`；Ruff、compileall、`git diff --check`
-  均通过。
-- Fresh hostile replay 为 `61 current + 61 frozen`，fail-open `0`；
-  receipt SHA 与正式提交件逐字节一致。
-- Fresh Build A/B 总耗时 `2347.52s`。两份 primary outputs、
-  classification、primary seal 和 Stage 4 bytes 均一致。
-- 正式包与 QA 包均为
-  `verified=true / zero_write=true / 42 files / 5 directories`。
-- R 一致：
-  `cfefe6b1d4e95a9caa5781984e5b75c0ce0f2bd528365fcc298d071e5adae2b4`。
-- C 一致：
-  `1096b93da21151e5ef8c9d9d2e060f0626bc8ee3d7fe3f3a3bf8ff437b59a469`。
-- 42-file 路径集合一致，但仅 `37/42` 文件逐字节一致。两份
-  outcome permits、两份 outcome ledgers 和 `h0b_manifest.json` 不同。
-- 正式包 E/composite 为
-  `59e07dc49176ceb4eb6601530aa2fd9ef9b73e98a8e9dd848a4a198ca4fd2a62` /
-  `a40c436510af3dce943cc20e44cb6fc017f80f1e0adaac94e1942c2f26656c37`。
-- QA 包 E/composite 为
-  `acff10d0...` / `fba330f0...`。
-- 根因是 runtime permit 将绝对 `resolved_build_root` 和
-  `runtime_pid` 写入原始 bytes，ledger 又绑定 permit SHA，而 E 对这些
-  package bytes 原样哈希。fresh root/PID 因而必然改变 E、composite
-  和 manifest。
-- 业务研究结论本身复现：
-  `h0b_coarse_cross_spread_predictability_not_indicated`；Jul30/Aug04
-  均 data quality pass、RQ1 pass、RQ2 fail，reason 为
-  `both_formal_sessions_fail_rq2`。
-- `6600ms` 是唯一 primary；`850ms` 是 diagnostic-only 且
-  `can_rescue_primary=false`。Aug03 为
-  `historical_transfer/formal_eligible=false`。
-- Stage 4 为 `8 paths / 11 fields / 268522 joined / 104127 eligible /
-  164395 censored`，primary seal unchanged。
-- 零 Aug07、R1 decision-label、network/private/order/cancel/live
-  access；claim limit 为
-  `screening_audit_not_final_signal_or_strategy`。
+- Exact handoff HEAD 为
+  `60425952598100c2e59fde6997b5287aac8f611e`；该提交严格只包含
+  `.workflow/reports/0823T002-business.md`、`progress.md` 和
+  `task_plan.md`。
+- Immutable authority 精确命中 formal commit `71adbfa6`、tree
+  `4c15ab4f` 和 formal task SHA256 `84333cf...1661`。
+- Mutable task 为 `待验收`，SHA256 为 `bf834fac...8a25`；transition
+  receipt SHA256 为 `fcb39e10...739e`。
+- Round 6 candidate `180572c6`、candidate receipt commit `a394c7f2`、
+  independent review commit `2a87677f`、controller pin `db6026e5`、
+  transition commit `2092924e`、final evidence `efa0ace7` 和 handoff
+  `60425952` 的提交链连续。
+- Candidate、receipt、review、transition、final evidence 和 handoff
+  commit scopes 分别为 `9 / 1 / 2 / 5 / 2 / 3` paths，均未混入两个
+  staged staleness 文档或历史未跟踪 evidence。
+- Task validator 通过：
+  `65 surfaces / 89 mutations / 99 artifacts / 7 exit criteria`。
+- External target contract 与 Surface Matrix 的 ordered mutation、code、
+  target、operation 和 description 逐项一致；7 个 semantic mutations
+  实际进入生产校验。
+- Hostile evidence 为
+  `89 current + 89 frozen` code/location exact、
+  `7 current + 7 frozen` semantic probes exact、`fail_open_count=0`；
+  evidence SHA256 为 `8743545c...abd0`。
+- Composed Gate 0 为 `verified=true`；runtime source tree SHA256 为
+  `800fb6380a5117139ccde27f1b1212f0e624ff2ea7fe2565861be6cd5bc54a1d`。
+- Focused pytest 为 `199 passed`；Ruff、compileall、working/staged/HEAD
+  diff checks 全部通过。
+- Package admission 为
+  `42 files / 5 directories / verified=true / zero_write=true`；全部
+  42 个 package 文件逐字节绑定 formal commit Git objects。
+- R/C/E/composite 精确命中
+  `cfefe6b1... / f9868b4a... / ddfcec05... / a196f3e7...`，研究
+  classification 和 claim boundary 未改变。
+- 未运行 `outcome`、`diagnostic`、`h0b0` 或 `build-formal`，未执行
+  scientific fresh rebuild。该项不构成本轮 blocker：Round 1 已独立
+  复现 primary science、seal 和 Stage 4；本轮变更仅涉及
+  authority/control handoff，生产双 root/PID 的 42/42 portability
+  regression 已通过。
 
 验收结论：
-- 未通过
+- 已通过
 - 结论说明：
-  - 研究结果与 R/C 可重现，但当前 package E/composite 和完整字节树
-    不具备 fresh-root portability，不满足任务的独立 QA 合同。
+  - 未发现可执行缺陷、身份漂移、fail-open、提交污染或 package
+    coupling 问题；允许 controller 将 `0823T002` 从 `待验收` 迁移到
+    `已通过`。
 
 通过项：
-1. Validator、hostile replay、focused tests 和静态检查通过。
-2. Primary outputs、classification、seal、Stage 4、R 和 C 独立复现。
-3. Latency/session roles、forbidden-access boundary 和 claim limit 正确。
+1. Immutable execution authority 与 mutable workflow status 已正确
+   分离，transition receipt 不进入 package R/C/E。
+2. Round 6 external location/semantic oracle、89+89 hostile evidence 和
+   Gate 0 全部 fail-closed。
+3. 42-file package 继续绑定 formal Git objects，zero-write admission
+   和 R/C/E/composite 不变。
+4. Candidate、review、transition、evidence 和 handoff commit scopes
+   均干净。
 
 不通过项：
-1. Fresh-root package 仅 `37/42` 文件 byte-identical，E/composite
-   不一致。
+1. 无
 
 缺陷清单：
-1. `[P1]` package E 原样包含 build-root/PID-sensitive outcome permit 和
-   ledger bytes，违反 `kernel_package_admission_portable=true` 和
-   fresh-root exact-package QA 要求。
+1. 无
 
 阻塞项：
-- 在 portable publication projection 或等价 normalization 完成并重新
-  冻结 formal package 前，`0823T002` 不得验收通过。
+- 无
 
 建议总控下一步：
-1. 保留 runtime Build A/B 根中的真实 permit/ledger 作为外部取证。
-2. 对 package 内 outcome permit/ledger 建立 deterministic canonical
-   publication projection，补 fresh-root byte-parity 回归。
-3. 重新运行 hostile preflight、formal Build A/B 和独立 QA。
+1. 将 task `0823T002` 更新为 `已通过`，保留 immutable formal authority
+   与所有 V4/QA evidence。
+2. 后续研究只消费 accepted H0-B identities，不重开本任务的 formal
+   execution entrypoint。
 
 提交信息：
 - commit：待本次 QA 事实源提交
