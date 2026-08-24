@@ -1,5 +1,31 @@
 # Progress
 
+## 2026-08-24 H0-B V3 Portable Formal Execution Awaiting QA
+
+- Independent V3 review round 10 closed at
+  `P0/P1/P2/P3=0/0/0/0`; accepted plan/matrix/review/runtime identities are
+  pinned in task `0823T002`.
+- The Round 1 rejected package, the fail-closed V3 receipt-schema attempt and
+  the post-fix review-superseded candidate are preserved in three exact,
+  resumable, no-delete archives. Canonical paths were released without
+  execution-time `rm -rf`.
+- The production portability regression now assembles and fully admits two
+  42-file packages from distinct roots/PIDs before byte comparison. The
+  corresponding hostile mutation modifies one real package file and fails
+  with `H0B_BUILD_MISMATCH`.
+- Verification passed `137` focused tests, Ruff, compileall,
+  `git diff --check`, `61/65/79` task validation and `65 current + 65 frozen`
+  hostile replay with `fail_open_count=0`.
+- Formal Build A/B completed from distinct envelopes. Package admission is
+  `verified=true / zero_write=true / 42 files / 5 directories`.
+- Classification remains
+  `h0b_coarse_cross_spread_predictability_not_indicated`: Jul30 and Aug04 pass
+  data quality and RQ1 but fail RQ2. `6600ms` is the sole primary and `850ms`
+  remains diagnostic-only/non-rescue.
+- Formal evidence is frozen at
+  `71adbfa678ff3646982160d220f5c223e0f7e59f`; task status is `待验收`
+  pending fresh-root independent QA.
+
 ## 2026-08-24 H0-B QA Round 1 Not Accepted
 
 - Fresh-root independent QA passed validator, `105` tests, hostile replay,

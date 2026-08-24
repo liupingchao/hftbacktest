@@ -1,5 +1,22 @@
 # Task Plan
 
+## 2026-08-24 Stage H0-B V3 Portable Formal Build Awaiting QA
+
+- Publication remediation V3 round 10 is independently accepted at
+  `P0/P1/P2/P3=0/0/0/0`.
+- Review findings are closed by exact historical/current retirement-dispatch
+  separation, three controlled no-delete archives and production
+  `assemble_package()` plus full `verify_package()` portability tests.
+- Formal evidence commit is
+  `71adbfa678ff3646982160d220f5c223e0f7e59f`.
+- The formal package is admitted as `42 files / 5 directories`,
+  `verified=true / zero_write=true`, with R/C/E/composite
+  `cfefe6b1... / f9868b4a... / ddfcec05... / a196f3e7...`.
+- `0823T002` is now `待验收`. Independent QA must use a fresh detached work
+  root from the formal evidence commit, rebuild with distinct roots/PIDs and
+  compare the complete production-assembled package tree and layered
+  identities.
+
 ## 2026-08-24 Stage H0-B QA Round 1 Failed
 
 - Independent fresh-root QA ended at `P0/P1/P2/P3=0/1/0/0`.

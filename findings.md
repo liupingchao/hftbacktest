@@ -1,5 +1,26 @@
 # Findings
 
+## 2026-08-24 H0-B V3 Portability Remediation Findings
+
+- Historical archive receipts and current execution authority are different
+  lifecycle objects. An existing archive must always be validated against the
+  dispatch that created it, while the current formal run independently passes
+  the current review and composed Gate 0.
+- A package comparator test is insufficient when its inputs are hand-written
+  placeholders. Portability evidence must invoke production
+  `assemble_package()` and full `verify_package()` on admission-valid builds
+  from distinct roots/PIDs before comparing all 42 files and R/C/E/composite.
+- Human-readable Surface Matrix duplication can drift even when the canonical
+  JSON remains valid. The task rendering is now derived and checked against
+  the canonical `61 surfaces / 65 mutations / 79 artifacts` contract.
+- The portable publication projection preserves real runtime permits and
+  ledgers as external Build A/B evidence while removing root/PID sensitivity
+  from package bytes. The accepted formal identities are R/C/E/composite
+  `cfefe6b1... / f9868b4a... / ddfcec05... / a196f3e7...`.
+- The remediation does not change the scientific result. Jul30 and Aug04 still
+  pass data quality and RQ1 but fail RQ2; the result remains a screening audit,
+  not a final signal, strategy, executable-arbitrage or PnL claim.
+
 ## 2026-08-24 H0-B QA Round 1 Findings
 
 - A portable inventory row is not enough when the raw E file still embeds an
