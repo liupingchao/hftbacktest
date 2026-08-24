@@ -1,5 +1,22 @@
 # Progress
 
+## 2026-08-24 H0-B V4 Round 3 Candidate Prepared
+
+- Exact Round 2 candidate `32c5ef62` was independently rejected at
+  `P0/P1/P2/P3=0/2/1/0`; the review and submission are preserved in commit
+  `1171674d`.
+- Frozen hostile execution now attaches the current worktree's read-only Git
+  object store. The new full production regression executes all
+  `87 current + 87 frozen` mutations and passes with `fail_open_count=0`.
+- Attempts-root creation fsyncs every newly created parent entry. Bootstrap
+  ownership uses an atomic no-replace hard-link claim.
+- Receipt validation reloads the immutable bootstrap and cross-binds
+  `attempt_id`, `controller_pid`, `dispatch`, `paths` and `outcome_rerun`.
+- The canonical contract is now
+  `65 surfaces / 87 mutations / 93 artifacts`.
+- No research outcome or formal build was run. Existing package identities
+  remain frozen and unchanged.
+
 ## 2026-08-24 H0-B V4 Round 2 Candidate Prepared
 
 - Round 1 V4 review is preserved at commit `4413d36f` and rejected at

@@ -32,6 +32,11 @@ The existing 42-file package remains the formal research package. V4 is a
 control-plane compatibility and recovery layer around that immutable
 evidence.
 
+The exact Round 2 candidate `32c5ef62` was subsequently rejected at
+`P0/P1/P2/P3=0/2/1/0`. Round 3 adds a readable Git object store to frozen
+hostile execution, durable publication of the attempts namespace and an
+atomic no-replace bootstrap ownership claim with receipt cross-binding.
+
 ## 2. Immutable Execution Authority
 
 The package execution authority is the exact Git object:
@@ -172,9 +177,13 @@ build-receipt.json
 ```
 
 The attempt ID is restricted to lowercase ASCII letters, digits and hyphens.
-The attempt root and bootstrap staging path must not exist before start. The
-bootstrap is moved into the root and a durable `attempt_receipt.json` is
-written before any Build A/B root or package staging path is created.
+Every newly created directory entry in the attempts namespace has its parent
+directory fsynced. The attempt root and bootstrap claim path must not exist
+before start. Each caller writes a private fsynced temporary bootstrap and
+uses an atomic no-replace hard-link claim. A second caller cannot replace that
+claim. The winning bootstrap is moved into the root and a durable
+`attempt_receipt.json` is written before any Build A/B root or package staging
+path is created.
 
 The receipt records:
 
@@ -218,6 +227,10 @@ Every receipt update uses a same-directory temporary file, file fsync,
 `os.replace()` and parent-directory fsync. Evidence files are never deleted
 or overwritten. Every existing file and directory under the attempt root,
 including hidden package staging, enters the exact evidence inventory.
+
+Every receipt validation reloads the immutable bootstrap and requires exact
+equality for `attempt_id`, `controller_pid`, `dispatch`, `paths` and
+`outcome_rerun`.
 
 The attempts root is fixed at the path above. CLI callers cannot override it.
 The `h0b0`, `outcome`, `diagnostic-permit` and `diagnostic` entrypoints require
@@ -275,13 +288,13 @@ review attestation.
 The controller then issues:
 
 ```text
-.workflow/reports/0823T002-v4-candidate-receipt-round2.json
+.workflow/reports/0823T002-v4-candidate-receipt-round3.json
 ```
 
 with schema:
 
 ```text
-skhynix_stage_h0b_v4_candidate_receipt_v2
+skhynix_stage_h0b_v4_candidate_receipt_v3
 ```
 
 and exact keys:
@@ -382,6 +395,10 @@ The current matrix and runtime are not substituted for the package's formal
 authority. Conversely, the old formal authority does not authorize future
 execution under unreviewed current code.
 
+Frozen hostile execution uses copied frozen files plus a read-only link to the
+candidate's Git object store. Git-dependent mutations must execute with their
+declared codes in both current and frozen runtimes.
+
 ## 11. Required Regression And Negative Coverage
 
 Before handoff:
@@ -406,9 +423,13 @@ Before handoff:
 16. duplicate attempt IDs fail without changing the prior attempt;
 17. torn receipts fail with the stable attempt-state error;
 18. non-canonical attempt roots and standalone formal subcommands fail;
-19. an occupied package staging path fails without deletion;
-20. receipt/review commits containing implementation changes fail;
-21. the current and frozen hostile suites reject every declared mutation with
+19. missing parent-directory fsync fails the durability contract;
+20. concurrent duplicate bootstrap claims fail without replacement;
+21. receipt/bootstrap caller cross-binding fails;
+22. frozen hostile execution without a Git object store fails;
+23. an occupied package staging path fails without deletion;
+24. receipt/review commits containing implementation changes fail;
+25. the current and frozen hostile suites reject every declared mutation with
     `fail_open_count=0`.
 
 ## 12. Handoff

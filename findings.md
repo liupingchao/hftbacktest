@@ -1,5 +1,19 @@
 # Findings
 
+## 2026-08-24 H0-B V4 Round 2 Review Findings
+
+- A copied runtime directory is not a complete frozen execution environment
+  when mutations use Git object APIs. Frozen tests need read-only access to
+  the candidate object store.
+- Fsyncing a newly created directory does not durably publish its name in the
+  parent. Every newly created attempts-namespace parent entry must be fsynced.
+- Check-then-create is not an ownership protocol. A deterministic no-replace
+  claim is required before root creation.
+- Bootstrap and receipt are two views of one controller attempt. Their
+  controller PID, dispatch and path identities must cross-bind exactly.
+- These findings are formal-build blockers only; they do not change any
+  research result or package identity.
+
 ## 2026-08-24 H0-B V4 Round 1 Review Findings
 
 - A running attempt receipt must tolerate in-progress disk drift so recovery

@@ -11,6 +11,24 @@ import skhynix_stage_h0b as h0b
 import skhynix_stage_h0b_contracts as contracts
 
 
+def set_attempt_controller_pid(
+    paths: dict[str, Path],
+    payload: dict[str, object],
+    pid: int,
+) -> None:
+    payload["controller_pid"] = pid
+    bootstrap = h0b.read_json(paths["attempt_bootstrap"])
+    bootstrap["controller_pid"] = pid
+    h0b.write_formal_attempt_receipt(
+        paths["attempt_bootstrap"],
+        bootstrap,
+    )
+    h0b.write_formal_attempt_receipt(
+        paths["attempt_receipt"],
+        payload,
+    )
+
+
 def valid_hostile_receipt(
     dispatch: dict[str, object] | None = None,
 ) -> tuple[dict[str, object], dict[str, object]]:
@@ -283,6 +301,9 @@ def test_frozen_hostile_authority_inventory_is_complete() -> None:
         h0b.CONTROL_ROUND1_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_ROUND1_REVIEW_PATH,
         h0b.CONTROL_ROUND1_REVIEW_SUBMISSION_PATH,
+        h0b.CONTROL_ROUND2_CANDIDATE_RECEIPT_PATH,
+        h0b.CONTROL_ROUND2_REVIEW_PATH,
+        h0b.CONTROL_ROUND2_REVIEW_SUBMISSION_PATH,
         h0b.CONTROL_CANDIDATE_RECEIPT_PATH,
         h0b.CONTROL_REMEDIATION_REVIEW_PATH,
         h0b.CONTROL_REVIEW_SUBMISSION_PATH,
@@ -926,8 +947,7 @@ def test_formal_attempt_recovery_requires_dead_pid(
             attempt_root=paths["root"],
             action="mark-interrupted",
         )
-    payload["controller_pid"] = 2_147_483_647
-    h0b.write_formal_attempt_receipt(paths["attempt_receipt"], payload)
+    set_attempt_controller_pid(paths, payload, 2_147_483_647)
     recovered = h0b.recover_formal_attempt(
         attempt_root=paths["root"],
         action="mark-interrupted",
@@ -953,8 +973,7 @@ def test_formal_attempt_recovery_seals_partial_hard_stop_evidence(
     partial = paths["root"] / ".package.staging-123"
     partial.mkdir()
     (partial / "partial.bin").write_bytes(b"partial")
-    payload["controller_pid"] = 2_147_483_647
-    h0b.write_formal_attempt_receipt(paths["attempt_receipt"], payload)
+    set_attempt_controller_pid(paths, payload, 2_147_483_647)
     inspected = h0b.recover_formal_attempt(
         attempt_root=paths["root"],
         action="inspect",
@@ -1000,6 +1019,62 @@ def test_formal_attempt_receipt_update_is_atomic(tmp_path: Path) -> None:
     assert not tuple(
         paths["root"].glob(".attempt_receipt.json.tmp-*")
     )
+
+
+def test_formal_attempts_root_creation_fsyncs_parent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed = []
+    original = contracts.fsync_directory
+
+    def record(path: Path) -> None:
+        observed.append(Path(path).resolve())
+        original(path)
+
+    monkeypatch.setattr(contracts, "fsync_directory", record)
+    attempts_root = tmp_path / "reports/formal-attempts"
+    h0b.begin_formal_attempt(
+        attempt_id="durable-parent",
+        dispatch={"verified": True},
+        attempts_root=attempts_root,
+    )
+    assert attempts_root.parent.resolve() in observed
+
+
+def test_formal_attempt_bootstrap_claim_is_no_replace(
+    tmp_path: Path,
+) -> None:
+    claim = tmp_path / ".claim.json"
+    h0b.write_formal_attempt_bootstrap_claim(claim, {"caller": "A"})
+    before = claim.read_bytes()
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.write_formal_attempt_bootstrap_claim(
+            claim,
+            {"caller": "B"},
+        )
+    assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
+    assert claim.read_bytes() == before
+    assert not tuple(tmp_path.glob(f".{claim.name}.claim-*"))
+
+
+def test_formal_attempt_receipt_cross_binds_bootstrap(
+    tmp_path: Path,
+) -> None:
+    paths, _ = h0b.begin_formal_attempt(
+        attempt_id="cross-binding",
+        dispatch={"caller": "A"},
+        attempts_root=tmp_path / "attempts",
+    )
+    bootstrap = h0b.read_json(paths["attempt_bootstrap"])
+    bootstrap["dispatch"] = {"caller": "B"}
+    h0b.write_formal_attempt_receipt(
+        paths["attempt_bootstrap"],
+        bootstrap,
+    )
+    with pytest.raises(contracts.H0BError) as captured:
+        h0b.validate_formal_attempt_receipt(paths["root"])
+    assert captured.value.code == "H0B_FORMAL_ATTEMPT_STATE_MISMATCH"
 
 
 def test_formal_entrypoint_rejects_attempts_root_escape(
@@ -1121,6 +1196,42 @@ def test_review_commit_chronology_fails_closed() -> None:
             review_commit=head,
         )
     assert captured.value.code == "H0B_REVIEW_PROVENANCE_MISMATCH"
+
+
+def test_full_hostile_preflight_executes_current_and_frozen_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dispatch = {
+        "schema_version": "skhynix_stage_h0b_dispatch_v4",
+        "verified": True,
+        "task_id": contracts.TASK_ID,
+        "matrix_sha256": h0b.MATRIX_SHA256,
+    }
+    monkeypatch.setattr(
+        h0b,
+        "validate_dispatch",
+        lambda task_path, matrix_path: dispatch,
+    )
+    existing_authority = tuple(
+        path
+        for path in h0b.frozen_hostile_authority_paths()
+        if path.exists()
+    )
+    monkeypatch.setattr(
+        h0b,
+        "frozen_hostile_authority_paths",
+        lambda: existing_authority,
+    )
+    receipt = h0b.hostile_preflight(
+        task_path=h0b.TASK_PATH,
+        matrix_path=h0b.MATRIX_PATH,
+        output=tmp_path / "hostile.json",
+        write_surface_evidence=False,
+    )
+    assert receipt["current_negative_mutation_count"] == 87
+    assert receipt["frozen_negative_mutation_count"] == 87
+    assert receipt["fail_open_count"] == 0
     with pytest.raises(contracts.H0BError) as captured:
         h0b.validate_commit_path_scope(
             observed_paths=("review.md", "runtime.py"),

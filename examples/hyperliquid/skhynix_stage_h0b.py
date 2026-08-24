@@ -67,8 +67,11 @@ CONTROL_REMEDIATION_PLAN_PATH = (
 CONTROL_ROUND1_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt.json"
 )
-CONTROL_CANDIDATE_RECEIPT_PATH = (
+CONTROL_ROUND2_CANDIDATE_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round2.json"
+)
+CONTROL_CANDIDATE_RECEIPT_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-v4-candidate-receipt-round3.json"
 )
 CONTROL_REMEDIATION_REVIEW_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review.md"
@@ -82,6 +85,13 @@ CONTROL_ROUND1_REVIEW_PATH = (
 CONTROL_ROUND1_REVIEW_SUBMISSION_PATH = (
     REPO_ROOT
     / ".workflow/reports/0823T002-plan-v4-review-round1-submission.md"
+)
+CONTROL_ROUND2_REVIEW_PATH = (
+    REPO_ROOT / ".workflow/reports/0823T002-plan-v4-review-round2.md"
+)
+CONTROL_ROUND2_REVIEW_SUBMISSION_PATH = (
+    REPO_ROOT
+    / ".workflow/reports/0823T002-plan-v4-review-round2-submission.md"
 )
 WORKFLOW_TRANSITION_RECEIPT_PATH = (
     REPO_ROOT / ".workflow/reports/0823T002-workflow-transition.json"
@@ -393,10 +403,10 @@ PUBLICATION_REMEDIATION_REVIEW_SCHEMA = (
 PUBLICATION_REMEDIATION_ACCEPTED_SEVERITY = "P0/P1/P2/P3=0/0/0/0"
 PUBLICATION_REMEDIATION_ACCEPTED_DISPOSITION = "ACCEPTED"
 CONTROL_REMEDIATION_PLAN_SHA256 = (
-    "40a6df1ee20a790e64a5bcb200afaaeba6f520d40f3c32a8e274b7e5f0a6afcb"
+    "84ba21a2d9104de2d39a9e3f46154edb9eeed5c658ede180cd57d062329968f9"
 )
 CONTROL_CANDIDATE_RECEIPT_SCHEMA = (
-    "skhynix_stage_h0b_v4_candidate_receipt_v2"
+    "skhynix_stage_h0b_v4_candidate_receipt_v3"
 )
 CONTROL_REMEDIATION_REVIEW_SCHEMA = (
     "skhynix_stage_h0b_v4_independent_review_v1"
@@ -500,7 +510,7 @@ SOURCE_INVENTORY_CONTRACT_SHA256 = (
     "c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
 )
 MATRIX_SHA256 = (
-    "34f3ba621e9ecc5f8df15390c95ec0385878c4e1b9e263feeda083257a1d5e1e"
+    "d414d0a99393ade350d5c5d26c2940877e2d4a386a20f4195bc7a4854abcd26e"
 )
 H0A_TUPLE_SHA256 = (
     "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
@@ -2100,6 +2110,41 @@ def git_commit_changed_paths(commit: str) -> tuple[str, ...]:
     return tuple(sorted(paths, key=lambda value: value.encode("utf-8")))
 
 
+def validate_frozen_git_object_store(frozen_repo: Path) -> None:
+    root = Path(frozen_repo)
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel", "HEAD"],
+        cwd=root,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    lines = result.stdout.splitlines()
+    contracts.require(
+        result.returncode == 0
+        and len(lines) == 2
+        and Path(lines[0]).resolve() == root.resolve()
+        and re.fullmatch(r"[0-9a-f]{40}", lines[1]) is not None,
+        "H0B_EXECUTION_AUTHORITY_MISMATCH",
+        str(root / ".git"),
+        "frozen hostile runtime lacks a readable Git object store",
+    )
+
+
+def attach_read_only_git_object_store(frozen_repo: Path) -> None:
+    root = Path(frozen_repo)
+    git_dir = git_output_bytes(
+        "rev-parse",
+        "--absolute-git-dir",
+    ).decode("utf-8").strip()
+    (root / ".git").write_text(
+        f"gitdir: {git_dir}\n",
+        encoding="utf-8",
+    )
+    validate_frozen_git_object_store(root)
+
+
 def validate_review_blob_binding(
     *,
     current_path: Path,
@@ -2356,7 +2401,7 @@ def validate_reviewer_actor_binding(
         and reviewer_actor_id != controller_actor_id
         and re.fullmatch(
             (
-                r"codex-independent-reviewer-0823T002-v4-round2-"
+                r"codex-independent-reviewer-0823T002-v4-round3-"
                 r"[0-9a-f]{8,40}"
             ),
             reviewer_actor_id,
@@ -5027,6 +5072,12 @@ def hostile_formal_partial_hard_stop_recovery_mutation() -> None:
         partial.mkdir()
         (partial / "partial.bin").write_bytes(b"partial")
         payload["controller_pid"] = 2_147_483_647
+        bootstrap = read_json(paths["attempt_bootstrap"])
+        bootstrap["controller_pid"] = payload["controller_pid"]
+        write_formal_attempt_receipt(
+            paths["attempt_bootstrap"],
+            bootstrap,
+        )
         write_formal_attempt_receipt(paths["attempt_receipt"], payload)
         recovered = recover_formal_attempt_state(
             attempt_root=paths["root"],
@@ -5107,6 +5158,45 @@ def hostile_formal_subcommand_without_attempt_mutation() -> None:
     )
 
 
+def hostile_formal_attempts_parent_fsync_mutation() -> None:
+    validate_created_directory_parent_fsync(
+        created=True,
+        parent_fsynced=False,
+        location="$.formal_attempts_root",
+    )
+
+
+def hostile_formal_concurrent_claim_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-claim-"
+    ) as raw:
+        claim = Path(raw) / ".duplicate.bootstrap.json"
+        payload = {"caller": "A"}
+        write_formal_attempt_bootstrap_claim(claim, payload)
+        write_formal_attempt_bootstrap_claim(
+            claim,
+            {"caller": "B"},
+        )
+
+
+def hostile_formal_bootstrap_receipt_cross_binding_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-attempt-cross-binding-"
+    ) as raw:
+        paths, _ = begin_formal_attempt(
+            attempt_id="cross-binding",
+            dispatch={"caller": "A"},
+            attempts_root=Path(raw),
+        )
+        bootstrap = read_json(paths["attempt_bootstrap"])
+        bootstrap["dispatch"] = {"caller": "B"}
+        write_formal_attempt_receipt(
+            paths["attempt_bootstrap"],
+            bootstrap,
+        )
+        validate_formal_attempt_receipt(paths["root"])
+
+
 def hostile_review_same_actor_mutation() -> None:
     validate_reviewer_actor_binding(
         controller_actor_id=CONTROLLER_ACTOR_ID,
@@ -5147,6 +5237,13 @@ def hostile_review_commit_scope_mutation() -> None:
         expected_paths=(".workflow/reports/review.md",),
         location="$.review.commit_scope",
     )
+
+
+def hostile_frozen_git_object_store_mutation() -> None:
+    with tempfile.TemporaryDirectory(
+        prefix="0823T002-frozen-git-store-"
+    ) as raw:
+        validate_frozen_git_object_store(Path(raw))
 
 
 def negative_case(
@@ -5463,6 +5560,9 @@ def negative_case(
             "mutate_execution_authority_package_object": (
                 hostile_execution_authority_package_object_mutation
             ),
+            "mutate_frozen_git_object_store": (
+                hostile_frozen_git_object_store_mutation
+            ),
             "mutate_workflow_status_without_transition": (
                 hostile_workflow_missing_transition_mutation
             ),
@@ -5486,6 +5586,15 @@ def negative_case(
             ),
             "mutate_formal_subcommand_without_attempt": (
                 hostile_formal_subcommand_without_attempt_mutation
+            ),
+            "mutate_formal_attempts_parent_fsync": (
+                hostile_formal_attempts_parent_fsync_mutation
+            ),
+            "mutate_formal_concurrent_claim": (
+                hostile_formal_concurrent_claim_mutation
+            ),
+            "mutate_formal_bootstrap_receipt_cross_binding": (
+                hostile_formal_bootstrap_receipt_cross_binding_mutation
             ),
             "mutate_review_candidate_commit": (
                 hostile_review_candidate_mutation
@@ -5548,6 +5657,9 @@ def frozen_hostile_authority_paths() -> tuple[Path, ...]:
         CONTROL_ROUND1_CANDIDATE_RECEIPT_PATH,
         CONTROL_ROUND1_REVIEW_PATH,
         CONTROL_ROUND1_REVIEW_SUBMISSION_PATH,
+        CONTROL_ROUND2_CANDIDATE_RECEIPT_PATH,
+        CONTROL_ROUND2_REVIEW_PATH,
+        CONTROL_ROUND2_REVIEW_SUBMISSION_PATH,
         CONTROL_CANDIDATE_RECEIPT_PATH,
         CONTROL_REMEDIATION_REVIEW_PATH,
         CONTROL_REVIEW_SUBMISSION_PATH,
@@ -5571,6 +5683,7 @@ def hostile_preflight(
         frozen_repo = Path(raw) / "repo"
         frozen = frozen_repo / "examples/hyperliquid"
         frozen.mkdir(parents=True)
+        attach_read_only_git_object_store(frozen_repo)
         frozen_matrix = (
             frozen_repo
             / ".workflow/contracts/0823T002-surface-matrix.json"
@@ -12355,6 +12468,71 @@ def write_formal_attempt_receipt(
     contracts.fsync_directory(parent)
 
 
+def write_formal_attempt_bootstrap_claim(
+    path: Path,
+    payload: Mapping[str, Any],
+) -> None:
+    claim = Path(path)
+    parent = claim.parent
+    encoded = contracts.canonical_json_bytes(dict(payload))
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            prefix=f".{claim.name}.claim-",
+            dir=parent,
+            delete=False,
+        ) as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+            temporary = Path(handle.name)
+        os.link(temporary, claim)
+        contracts.fsync_directory(parent)
+    except FileExistsError as exc:
+        raise contracts.H0BError(
+            "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+            str(claim),
+            "formal attempt ID already has an atomic bootstrap claim",
+        ) from exc
+    finally:
+        if temporary is not None and temporary.exists():
+            temporary.unlink()
+            contracts.fsync_directory(parent)
+
+
+def validate_created_directory_parent_fsync(
+    *,
+    created: bool,
+    parent_fsynced: bool,
+    location: str,
+) -> None:
+    contracts.require(
+        not created or parent_fsynced,
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        location,
+        "new directory entry was not durably fsynced in its parent",
+    )
+
+
+def durably_ensure_directory(path: Path) -> None:
+    target = Path(path)
+    missing = []
+    cursor = target
+    while not cursor.exists():
+        missing.append(cursor)
+        cursor = cursor.parent
+    target.mkdir(parents=True, exist_ok=True)
+    for created in reversed(missing):
+        contracts.fsync_directory(created.parent)
+        validate_created_directory_parent_fsync(
+            created=True,
+            parent_fsynced=True,
+            location=str(created),
+        )
+    contracts.fsync_directory(target)
+
+
 def require_formal_attempt_root_absent(root: Path) -> None:
     contracts.require(
         not Path(root).exists(),
@@ -12374,7 +12552,7 @@ def begin_formal_attempt(
         attempt_id,
         attempts_root=attempts_root,
     )
-    Path(attempts_root).mkdir(parents=True, exist_ok=True)
+    durably_ensure_directory(Path(attempts_root))
     require_formal_attempt_root_absent(paths["root"])
     contracts.require(
         not paths["bootstrap_staging"].exists(),
@@ -12391,7 +12569,10 @@ def begin_formal_attempt(
         "paths": formal_attempt_public_paths(paths),
         "outcome_rerun": True,
     }
-    write_formal_attempt_receipt(paths["bootstrap_staging"], bootstrap)
+    write_formal_attempt_bootstrap_claim(
+        paths["bootstrap_staging"],
+        bootstrap,
+    )
     paths["root"].mkdir(parents=False, exist_ok=False)
     contracts.fsync_directory(Path(attempts_root))
     os.replace(
@@ -12490,7 +12671,7 @@ def validate_formal_attempt_receipt(
         }
         and payload["schema_version"] == FORMAL_ATTEMPT_RECEIPT_SCHEMA
         and payload["task_id"] == contracts.TASK_ID
-        and payload["attempt_id"] == root.name
+        and payload["attempt_id"] == paths["root"].name
         and payload["status"]
         in {"running", "failed", "interrupted", "completed"}
         and payload["phase"]
@@ -12511,6 +12692,20 @@ def validate_formal_attempt_receipt(
         "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
         str(paths["attempt_receipt"]),
         "formal attempt receipt schema or scalar mismatch",
+    )
+    bootstrap = validate_formal_attempt_bootstrap_payload(
+        paths["attempt_bootstrap"],
+        paths=paths,
+    )
+    contracts.require(
+        payload["attempt_id"] == bootstrap["attempt_id"]
+        and payload["controller_pid"] == bootstrap["controller_pid"]
+        and payload["dispatch"] == bootstrap["dispatch"]
+        and payload["paths"] == bootstrap["paths"]
+        and payload["outcome_rerun"] == bootstrap["outcome_rerun"],
+        "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
+        "$.formal_attempt.bootstrap_binding",
+        "attempt receipt differs from its immutable bootstrap claim",
     )
     observed_identities = formal_attempt_completed_identities(paths)
     contracts.require(
@@ -12556,12 +12751,24 @@ def load_formal_attempt_bootstrap(
         str(root),
         "missing or ambiguous formal attempt bootstrap",
     )
+    payload = validate_formal_attempt_bootstrap_payload(
+        existing[0],
+        paths=paths,
+    )
+    return paths, payload
+
+
+def validate_formal_attempt_bootstrap_payload(
+    path: Path,
+    *,
+    paths: Mapping[str, Path],
+) -> dict[str, Any]:
     try:
-        payload = read_json(existing[0])
+        payload = read_json(path)
     except (OSError, ValueError) as exc:
         raise contracts.H0BError(
             "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
-            str(existing[0]),
+            str(path),
             f"formal attempt bootstrap is unreadable: {exc}",
         ) from exc
     contracts.require(
@@ -12577,16 +12784,16 @@ def load_formal_attempt_bootstrap(
         }
         and payload["schema_version"] == FORMAL_ATTEMPT_BOOTSTRAP_SCHEMA
         and payload["task_id"] == contracts.TASK_ID
-        and payload["attempt_id"] == root.name
+        and payload["attempt_id"] == paths["root"].name
         and type(payload["controller_pid"]) is int
         and payload["controller_pid"] > 0
         and payload["paths"] == formal_attempt_public_paths(paths)
         and payload["outcome_rerun"] is True,
         "H0B_FORMAL_ATTEMPT_STATE_MISMATCH",
-        str(existing[0]),
+        str(path),
         "formal attempt bootstrap schema or scalar mismatch",
     )
-    return paths, payload
+    return payload
 
 
 def recover_formal_attempt_bootstrap(

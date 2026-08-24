@@ -1,5 +1,19 @@
 # Task Plan
 
+## 2026-08-24 Stage H0-B V4 Round 3 Candidate Ready
+
+- Preserve Round 2 candidate `32c5ef62`, receipt `b0522750` and rejected
+  independent review `1171674d` at `P0/P1/P2/P3=0/2/1/0`.
+- Attach a read-only Git object store to frozen hostile execution and require
+  complete production `current 87 + frozen 87` replay with zero fail-open.
+- Durably fsync every newly created attempts-namespace parent entry.
+- Atomically claim each attempt ID with no-replace semantics and cross-bind
+  bootstrap/receipt PID, dispatch, paths and outcome policy.
+- Freeze a new Round 3 candidate and receipt, then obtain a fresh independent
+  review before any transition receipt or QA Round 2 handoff.
+- Continue to prohibit outcome, diagnostic and formal-build commands in this
+  control remediation.
+
 ## 2026-08-24 Stage H0-B V4 Round 2 Candidate Ready
 
 - Preserve the rejected Round 1 candidate, controller receipt and independent

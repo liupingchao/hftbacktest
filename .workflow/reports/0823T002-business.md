@@ -13,9 +13,9 @@
 - 否
 
 QA说明：
-- QA Round 2 尚未开始。V4 Round 1 candidate 已由独立 review 以
-  `P0/P1/P2/P3=0/3/2/1` 拒绝并保留；Round 2 control candidate 已完成
-  实现与本地验证，仍需 exact candidate receipt 和独立 review。
+- QA Round 2 尚未开始。V4 Round 2 candidate `32c5ef62` 已由独立
+  review 以 `P0/P1/P2/P3=0/2/1/0` 拒绝并保留；Round 3 control
+  candidate 已完成实现，仍需 exact candidate receipt 和独立 review。
 
 files：
 - `.workflow/contracts/0823T002-surface-matrix.json`
@@ -28,6 +28,9 @@ files：
 - `.workflow/reports/0823T002-v4-candidate-receipt.json`
 - `.workflow/reports/0823T002-plan-v4-review-round1.md`
 - `.workflow/reports/0823T002-plan-v4-review-round1-submission.md`
+- `.workflow/reports/0823T002-v4-candidate-receipt-round2.json`
+- `.workflow/reports/0823T002-plan-v4-review-round2.md`
+- `.workflow/reports/0823T002-plan-v4-review-round2-submission.md`
 - `docs/skhynix_stage_h0b_execution_authority_recovery_plan_v4_20260824.md`
 - `.workflow/reports/0823T002-qa-round1-rejected-formal/`
 - `.workflow/reports/0823T002-v3-receipt-schema-failed-formal/`
@@ -42,6 +45,11 @@ files：
 - `findings.md`
 
 action：
+- 为 frozen hostile runtime 挂接只读 Git object store，并增加完整生产
+  `current 87 + frozen 87` regression。
+- 对 attempts namespace 的新目录项逐级 parent fsync。
+- 使用 atomic no-replace hard-link bootstrap claim，并将 receipt 与
+  bootstrap 的 PID/dispatch/paths/outcome policy 精确交叉绑定。
 - 将 immutable execution authority 与 mutable workflow transition
   分离；现有 package 逐一绑定 formal commit `71adbfa6` 的 42 个 Git
   blobs。
@@ -72,10 +80,12 @@ action：
 - 发布 42-file exact package tree，并执行独立 zero-write verify。
 
 verify：
-- V4 Round 2 candidate 本地验证为 `173 passed`；Ruff、compileall、
+- Round 3 新增的完整 production hostile-preflight regression 通过：
+  `87 current + 87 frozen / fail_open_count=0`。
+- V4 Round 3 candidate 本地验证为 `181 passed`；Ruff、compileall、
   `git diff --check` 通过。
 - research-package validator 为
-  `65 surfaces / 83 mutations / 90 artifacts / 7 exit criteria`。
+  `65 surfaces / 87 mutations / 93 artifacts / 7 exit criteria`。
 - `83/83` direct hostile mutations 均返回声明错误码，fail-open 为零。
 - 旧 formal package 仍为
   `42 files / 5 directories / verified=true / zero_write=true`；R/C/E/
@@ -121,8 +131,8 @@ done：
   并核对上述 identities。
 
 blockers：
-- Round 2 candidate 尚未冻结并签发 candidate receipt。
-- Round 2 independent review 尚未接受 exact candidate；workflow
+- Round 3 candidate 尚未冻结并签发 candidate receipt。
+- Round 3 independent review 尚未接受 exact candidate；workflow
   transition receipt 不得提前签发，QA Round 2 不得提前开始。
 
 commit：
