@@ -224,6 +224,53 @@ economic convenience.
 Event-arrival sampling may be published only as a robustness view. It may not
 replace equal calendar-time exposure.
 
+### 7.1 Observation resolution is not phase timescale
+
+The selected calendar grid defines only the minimum observation resolution at
+which the public market state can be reconstructed consistently. It does not
+define:
+
+```text
+phase duration
+cycle duration
+episode window
+maximum response horizon
+required number of grid steps per phase
+```
+
+Track A must not pre-register a fixed window such as `500ms`, `2s` or `10s`
+inside which N/S/P/R is expected to complete.
+
+The research hypothesis is instead:
+
+> If recurrent phase structure exists, the market data will reveal its state
+> dwell, transition and complete-cycle timescale distributions.
+
+The allowed relationship is:
+
+```text
+data-supported observation grid
+  -> variable-length state estimation
+  -> variable-length maximal runs
+  -> data-discovered phase and cycle timescales
+```
+
+The forbidden relationship is:
+
+```text
+researcher-selected episode window
+  -> force every candidate path into that window
+```
+
+Track A must allow:
+
+- no identifiable phase timescale;
+- one dominant timescale;
+- state-specific timescales;
+- the same transition grammar at multiple timescales;
+- session-specific timescale drift;
+- a continuous process with no stable phase boundary.
+
 ## 8. Stage A1: Causal State Representation
 
 ### 8.1 State tensor
@@ -316,6 +363,39 @@ only through `t`.
 Rows without a sufficiently identified orientation remain neutral or OOD.
 They may not be assigned the favorable side after observing the completed run.
 
+### 8.5 Multi-resolution causal feature bank
+
+An unknown phase timescale cannot be discovered from a representation that
+contains only one researcher-selected trailing window.
+
+The primary state representation must therefore include:
+
+```text
+instantaneous/base-grid state
++ a bounded multi-resolution bank of trailing causal summaries
+```
+
+The candidate lookbacks or exponential half-lives must be generated
+mechanically from:
+
+- the accepted observation grid;
+- measured channel cadence and freshness;
+- uninterrupted complete-block support;
+- a bounded approximately logarithmic spacing rule;
+- compute and memory feasibility.
+
+They may not be selected from motif compactness, cycle completion rate, future
+response or economic performance.
+
+Every trailing feature remains an observation operator, not a proposed phase
+duration. The HSMM may use evidence from several resolutions simultaneously,
+and Track A must report whether inferred state boundaries and duration modes
+survive removal of the shortest and longest feature scales.
+
+If the inferred grammar appears only under one narrow lookback choice and does
+not transport across adjacent accepted scales, it is classified as
+scale-specific exploratory structure rather than stable phase support.
+
 ## 9. Stage A2: Neutral Phase Segmentation
 
 ### 9.1 Primary model family
@@ -383,16 +463,35 @@ heavy-tailed and contain genuine bursts that must not automatically create a
 new state merely because a Gaussian emission treats them as extreme
 outliers.
 
-The primary duration family is a shifted, truncated negative-binomial
+The primary parametric duration family is a shifted negative-binomial
 distribution in calendar-grid steps:
 
 \[
 D_k \sim 1 + \operatorname{NegBin}(r_k,p_k)
 \]
 
-with a reviewed maximum dwell and explicit right censoring at segment,
-sequence, reconnect, quality and collection-end boundaries. A geometric
-duration is retained only as the memoryless baseline.
+Its scale parameters are estimated from eligible market data rather than fixed
+from a desired cycle horizon. A geometric duration is retained only as the
+memoryless baseline.
+
+Implementation may require finite computational support. Any truncation must:
+
+- be derived only from uninterrupted block support, memory limits and
+  deterministic replay feasibility;
+- be materially wider than the dwell region observed only in
+  `historical_method_development` fits before prospective roles are opened;
+- treat boundary hits as censored or overflow observations;
+- publish sensitivity to wider support;
+- never be interpreted as the market's maximum phase duration.
+
+Segment, sequence, reconnect, quality and collection-end boundaries create
+explicit right censoring. They do not imply that the latent phase naturally
+ended at the boundary.
+
+A reviewed flexible discrete-hazard or duration-histogram estimator must be
+included as a robustness model. If it reveals stable multimodal dwell
+distributions that the negative-binomial family cannot represent, the
+parametric HSMM must not collapse those modes into one artificial timescale.
 
 The execution supplement must freeze:
 
@@ -401,7 +500,7 @@ emission field list
 emission covariance blocks
 degrees-of-freedom treatment
 duration family and support
-minimum and maximum dwell
+computational duration support and overflow treatment
 initial-state treatment
 transition-prior strength
 numerical convergence criteria
@@ -525,6 +624,27 @@ The grammar miner operates on maximal runs, not grid rows. It must publish path
 support by session, duration vectors, censoring, maximum session share,
 transition-block null frequency and cross-channel-shift null frequency.
 
+The same neutral transition path may occur with different dwell vectors and
+complete-cycle durations. Track A must first report the joint distribution:
+
+\[
+\left(D_{Q_0},D_{Q_2},D_{Q_5},D_{Q_3},D_{\text{cycle}}\right)
+\]
+
+and then test whether it supports:
+
+```text
+one recurrent timescale family
+multiple recurrent timescale families
+continuous duration variation
+session-specific duration only
+no stable duration support
+```
+
+Any fast/medium/slow labels are post-estimation reporting labels defined from
+frozen duration-distribution features. They may not be preselected windows
+used to create the runs.
+
 The framework must permit:
 
 - aborted stress paths;
@@ -638,6 +758,13 @@ accepted source quality and freshness
 not OOD
 no reset boundary
 ```
+
+No absolute cycle-completion timeout may be selected from intuition or economic
+convenience. If a detector timeout is required operationally, it must be
+derived from past-only fitted duration tails, remain separate from the
+structural definition of a completed cycle, and publish timeout sensitivity.
+Crossing that timeout produces a censored or unresolved path, not evidence
+that the phase or cycle ended.
 
 The detector must emit decision-time events rather than waiting for a complete
 cycle:
@@ -790,6 +917,10 @@ Track A must publish at least:
 - maximal-run count;
 - complete and censored run count;
 - run duration;
+- state-dwell vector and complete-cycle duration;
+- within-grammar duration modes and multimodality diagnostics;
+- duration-distribution transport across sessions;
+- grid-resolution sensitivity of phase boundaries and duration estimates;
 - reset and merge counts;
 - transition-path frequency;
 - longest continuous run;
@@ -857,6 +988,7 @@ Require:
 - accepted sequence continuity and source freshness;
 - sufficient eligible calendar exposure;
 - sufficient complete structural blocks;
+- explicit separation of observation grid from inferred phase timescale;
 - no future joins;
 - explicit quality and reset boundaries.
 
@@ -893,6 +1025,8 @@ Require:
 - recurrent transition paths in multiple sessions;
 - observed grammar stronger than transition-block and cross-channel nulls;
 - stable maximal-run and reset semantics;
+- data-supported dwell and cycle-duration distributions;
+- grammar and duration conclusions robust to accepted observation grids;
 - no interpretation based on overlapping window counts.
 
 Failure classification:
@@ -960,6 +1094,7 @@ contracts/
 support/
   source_inventory.csv
   cadence_and_grid_support.csv
+  observation_resolution_contract.json
   quality_intervals.csv
   dependence_support.csv
 
@@ -976,6 +1111,9 @@ state/
 motifs/
   maximal_run_ledger.csv.gz
   transition_grammar.csv
+  phase_and_cycle_duration_by_session.csv
+  duration_mode_stability.csv
+  grid_timescale_robustness.csv
   motif_prototypes.json
   prototype_assignment_by_session.csv
   prototype_stability.csv
@@ -1078,6 +1216,8 @@ It should:
 - inventory available Binance raw/top5 data;
 - freeze session roles;
 - measure cadence and candidate calendar grids;
+- freeze the separation between observation resolution and inferred market
+  timescale;
 - freeze the state-tensor schema and causal normalization candidates;
 - freeze the Student-t emission, covariance-block and duration candidates;
 - freeze Gaussian, memoryless and continuous-state model baselines;
