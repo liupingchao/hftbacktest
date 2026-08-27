@@ -1,0 +1,10 @@
+surface,model,k,observation_grid_ms,duration_support_seconds,parameter_count,development_row_count,validation_mean_log_predictive_density,replay_mean_log_predictive_density,complexity_penalty,selection_score
+state_count_selection,student_t_negative_binomial_shared_scale_k2,2,1000,300,46,39600,-37.66291115806599,,0.046,-37.70891115806599
+state_count_selection,student_t_negative_binomial_shared_scale_k3,3,1000,300,66,39600,-37.12032349961425,,0.066,-37.186323499614254
+state_count_selection,student_t_negative_binomial_shared_scale_k4,4,1000,300,88,39600,-37.13347218444602,,0.088,-37.22147218444602
+duration_support,student_t_negative_binomial_shared_scale_k3_duration_support_60,3,1000,60,66,39600,-37.120425015618494,-36.35034007067582,0.066,-37.1864250156185
+duration_support,student_t_negative_binomial_shared_scale_k3_duration_support_120,3,1000,120,66,39600,-37.122104570850844,-36.35124455938128,0.066,-37.18810457085085
+duration_support,student_t_negative_binomial_shared_scale_k3_duration_support_300,3,1000,300,66,39600,-37.12261882772709,-36.351621362522366,0.066,-37.18861882772709
+baseline,minute_ridge_var1_gaussian,,1000,,195,39600,-34.71655583721092,-33.762756284171225,0,-34.71655583721092
+baseline,minute_diagonal_ar1_gaussian,,1000,,39,39600,-34.74760038312846,-33.89306615882118,0,-34.74760038312846
+baseline,minute_single_state_student_t,1,1000,,26,39600,-37.6116717971627,-37.21563867950821,0,-37.6116717971627

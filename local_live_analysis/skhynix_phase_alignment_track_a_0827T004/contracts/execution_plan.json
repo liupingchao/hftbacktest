@@ -1,6 +1,9 @@
 {
   "a5_excluded": true,
   "bindings_path": "/Users/liu/Documents/hftbacktest/local_live_analysis/bn_factor_screen_SKHYNIXUSDT_20260827_0827T001/b1_input_bindings.csv",
+  "post_registered_robustness": [
+    "minute_scale_low_parameter_duration_support"
+  ],
   "prospective_claim_excluded": true,
   "schema_version": "skhynix_phase_alignment_track_a_v1",
   "semantic_mapping_excluded": true,

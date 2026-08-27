@@ -4,62 +4,62 @@
     {
       "capture_support": 29,
       "date_support": 9,
-      "development_count": 8157,
+      "development_count": 8228,
       "grammar_id": "c448af53139e",
-      "maximum_capture_share": 0.25880819366852886,
+      "maximum_capture_share": 0.25981660874066403,
       "neutral_path": "Q1->Q0->Q1",
-      "occurrence_count": 26850,
+      "occurrence_count": 27046,
       "path_length": 3,
-      "replay_count": 4888,
-      "validation_count": 6629
+      "replay_count": 4910,
+      "validation_count": 6653
     },
     {
       "capture_support": 29,
       "date_support": 9,
-      "development_count": 7890,
+      "development_count": 7954,
       "grammar_id": "63ccdbbeea72",
-      "maximum_capture_share": 0.29377695104422086,
+      "maximum_capture_share": 0.2949794307782722,
       "neutral_path": "Q0->Q1->Q0",
-      "occurrence_count": 23654,
+      "occurrence_count": 23822,
       "path_length": 3,
-      "replay_count": 3871,
-      "validation_count": 4818
+      "replay_count": 3883,
+      "validation_count": 4831
     },
     {
       "capture_support": 29,
       "date_support": 9,
-      "development_count": 6553,
+      "development_count": 6619,
       "grammar_id": "1e721abcd652",
-      "maximum_capture_share": 0.40986314299197735,
+      "maximum_capture_share": 0.41039719626168225,
       "neutral_path": "Q1->Q0->Q1->Q0->Q1",
-      "occurrence_count": 16952,
+      "occurrence_count": 17120,
       "path_length": 5,
-      "replay_count": 2076,
-      "validation_count": 1357
+      "replay_count": 2090,
+      "validation_count": 1366
     },
     {
       "capture_support": 29,
       "date_support": 9,
-      "development_count": 6528,
+      "development_count": 6594,
       "grammar_id": "10663514f7ee",
-      "maximum_capture_share": 0.4191349460095313,
+      "maximum_capture_share": 0.41963805769575346,
       "neutral_path": "Q0->Q1->Q0->Q1->Q0",
-      "occurrence_count": 16577,
+      "occurrence_count": 16743,
       "path_length": 5,
-      "replay_count": 1965,
-      "validation_count": 1128
+      "replay_count": 1979,
+      "validation_count": 1136
     },
     {
       "capture_support": 23,
       "date_support": 9,
-      "development_count": 1676,
+      "development_count": 1680,
       "grammar_id": "544a9df1a50f",
-      "maximum_capture_share": 0.1636186888632359,
+      "maximum_capture_share": 0.16378630768297858,
       "neutral_path": "Q1->Q4->Q1",
-      "occurrence_count": 16459,
+      "occurrence_count": 16491,
       "path_length": 3,
-      "replay_count": 7321,
-      "validation_count": 7169
+      "replay_count": 7332,
+      "validation_count": 7186
     }
   ],
   "semantic_mapping_performed": false

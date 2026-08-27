@@ -183,3 +183,14 @@ def test_deterministic_gzip_writer(tmp_path: Path) -> None:
     assert paths[0].read_bytes() == paths[1].read_bytes()
     with gzip.open(paths[0], "rt") as fh:
         assert fh.read() == payload
+
+
+def test_duration_fit_excludes_censored_sequence_boundaries() -> None:
+    labels = np.asarray([0] * 100 + [1] * 3 + [0] * 100, dtype=np.int16)
+    pmf, _, _ = track_a._fit_duration_distribution([labels], 2, 128)
+    support = np.arange(1, 129)
+
+    state_zero_mean = float(np.sum(pmf[0] * support))
+    state_one_mean = float(np.sum(pmf[1] * support))
+    assert state_zero_mean < 10
+    assert state_one_mean < 10

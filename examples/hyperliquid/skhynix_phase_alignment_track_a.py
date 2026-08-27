@@ -1090,12 +1090,17 @@ def _runs(labels: np.ndarray) -> list[tuple[int, int, int]]:
     return output
 
 
+def _uncensored_runs(labels: np.ndarray) -> list[tuple[int, int, int]]:
+    runs = _runs(labels)
+    return runs[1:-1] if len(runs) > 2 else []
+
+
 def _fit_duration_distribution(
     labels_by_sequence: Sequence[np.ndarray], k: int, max_duration: int
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     durations: list[list[int]] = [[] for _ in range(k)]
     for labels in labels_by_sequence:
-        for state, start, end in _runs(labels):
+        for state, start, end in _uncensored_runs(labels):
             durations[state].append(end - start)
     pmf = np.zeros((k, max_duration), dtype=np.float64)
     for state in range(k):
@@ -1130,6 +1135,9 @@ def _estimate_model_from_labels(
     sequences: Sequence[np.ndarray],
     labels_by_sequence: Sequence[np.ndarray],
     k: int,
+    *,
+    max_duration_steps: int = MAX_DURATION_STEPS,
+    shared_scales: bool = False,
 ) -> StateModel:
     all_x = np.concatenate(sequences)
     all_labels = np.concatenate(labels_by_sequence)
@@ -1143,6 +1151,13 @@ def _estimate_model_from_labels(
         q25 = np.percentile(values, 25, axis=0)
         q75 = np.percentile(values, 75, axis=0)
         scales[state] = np.maximum((q75 - q25) / 1.349, MIN_SCALE)
+    if shared_scales:
+        pooled_q25 = np.percentile(all_x, 25, axis=0)
+        pooled_q75 = np.percentile(all_x, 75, axis=0)
+        pooled_scale = np.maximum(
+            (pooled_q75 - pooled_q25) / 1.349, MIN_SCALE
+        )
+        scales[:] = pooled_scale
     transition_counts = np.full((k, k), TRANSITION_PSEUDOCOUNT)
     transition_counts[np.arange(k), np.arange(k)] += STICKY_PSEUDOCOUNT
     initial_counts = np.ones(k)
@@ -1154,13 +1169,13 @@ def _estimate_model_from_labels(
     initial = initial_counts / initial_counts.sum()
     if duration == "negative_binomial":
         pmf, hazard, survival = _fit_duration_distribution(
-            labels_by_sequence, k, MAX_DURATION_STEPS
+            labels_by_sequence, k, max_duration_steps
         )
     else:
-        pmf = np.zeros((k, MAX_DURATION_STEPS))
+        pmf = np.zeros((k, max_duration_steps))
         for state in range(k):
             stay = min(max(transitions[state, state], 0.01), 0.99)
-            support = np.arange(1, MAX_DURATION_STEPS + 1)
+            support = np.arange(1, max_duration_steps + 1)
             row = (1 - stay) * np.power(stay, support - 1)
             row[-1] += max(1 - float(np.sum(row)), 0)
             pmf[state] = row / np.sum(row)
@@ -1294,16 +1309,33 @@ def _fit_state_model(
     duration: str,
     seed: int,
     iterations: int = 2,
+    max_duration_steps: int = MAX_DURATION_STEPS,
+    shared_scales: bool = False,
 ) -> StateModel:
     labels = _initial_labels(sequences, k, seed)
-    name = f"{emission}_{duration}_k{k}"
+    scale_name = "shared_scale" if shared_scales else "state_scale"
+    name = f"{emission}_{duration}_{scale_name}_k{k}"
     model = _estimate_model_from_labels(
-        name, emission, duration, sequences, labels, k
+        name,
+        emission,
+        duration,
+        sequences,
+        labels,
+        k,
+        max_duration_steps=max_duration_steps,
+        shared_scales=shared_scales,
     )
     for _ in range(iterations):
         labels = [_hsmm_viterbi(model, values)[0] for values in sequences]
         model = _estimate_model_from_labels(
-            name, emission, duration, sequences, labels, k
+            name,
+            emission,
+            duration,
+            sequences,
+            labels,
+            k,
+            max_duration_steps=max_duration_steps,
+            shared_scales=shared_scales,
         )
     return model
 
@@ -1379,6 +1411,47 @@ def _fit_var_baseline(
     for sequence in validation:
         for _, values in _valid_chunks(sequence):
             prediction = estimator.predict(values[:-1])
+            z = (values[1:] - prediction) / scale
+            logpdf = (
+                -0.5 * np.sum(z * z, axis=1)
+                - np.sum(np.log(scale))
+                - 0.5 * values.shape[1] * math.log(2 * math.pi)
+            )
+            total_loglik += float(np.sum(logpdf))
+            rows += len(logpdf)
+    return {
+        "mean_log_predictive_density": total_loglik / max(rows, 1),
+        "row_count": rows,
+    }
+
+
+def _fit_diagonal_ar_baseline(
+    development: Sequence[dict[str, Any]],
+    evaluation: Sequence[dict[str, Any]],
+) -> dict[str, float]:
+    train_x = []
+    train_y = []
+    for sequence in development:
+        for _, values in _valid_chunks(sequence):
+            train_x.append(values[:-1])
+            train_y.append(values[1:])
+    x = np.concatenate(train_x)
+    y = np.concatenate(train_y)
+    x_mean = np.mean(x, axis=0)
+    y_mean = np.mean(y, axis=0)
+    centered_x = x - x_mean
+    centered_y = y - y_mean
+    numerator = np.sum(centered_x * centered_y, axis=0)
+    denominator = np.sum(centered_x * centered_x, axis=0) + 10.0
+    coefficient = numerator / denominator
+    intercept = y_mean - coefficient * x_mean
+    residual = y - (intercept + coefficient * x)
+    scale = np.maximum(np.std(residual, axis=0), MIN_SCALE)
+    total_loglik = 0.0
+    rows = 0
+    for sequence in evaluation:
+        for _, values in _valid_chunks(sequence):
+            prediction = intercept + coefficient * values[:-1]
             z = (values[1:] - prediction) / scale
             logpdf = (
                 -0.5 * np.sum(z * z, axis=1)
@@ -1856,6 +1929,339 @@ def write_decoding_diagnostics(
         robustness_rows,
         list(robustness_rows[0]),
     )
+
+
+MINUTE_PROJECTION_NAMES = (
+    *(f"depth_imbalance_l{level}" for level in range(1, TOP_N + 1)),
+    *(f"book_flow_pressure_l{level}" for level in range(1, TOP_N + 1)),
+    "trade_flow_pressure",
+    "spread_ticks",
+    "microprice_displacement_ticks",
+)
+
+
+def _minute_projection(values: np.ndarray) -> np.ndarray:
+    index = {name: idx for idx, name in enumerate(EMISSION_FEATURE_NAMES)}
+    columns = []
+    for level in range(1, TOP_N + 1):
+        columns.append(
+            values[:, index[f"bid_qty_log_l{level}"]]
+            - values[:, index[f"ask_qty_log_l{level}"]]
+        )
+    for level in range(1, TOP_N + 1):
+        columns.append(values[:, index[f"ewm8_level_pressure_l{level}"]])
+    columns.extend(
+        (
+            values[:, index["ewm8_trade_pressure"]],
+            values[:, index["spread_ticks"]],
+            values[:, index["microprice_displacement_ticks"]],
+        )
+    )
+    return np.column_stack(columns).astype(np.float32)
+
+
+def _minute_sequences(sequences: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    stride = int(1_000 / MODEL_GRID_MS)
+    output = []
+    for sequence in sequences:
+        projected = _minute_projection(sequence["x"])
+        output.append(
+            {
+                **sequence,
+                "ts": sequence["ts"][::stride],
+                "x": projected[::stride],
+                "valid": np.all(np.isfinite(projected[::stride]), axis=1),
+            }
+        )
+    return output
+
+
+def _state_model_parameter_count(
+    *, k: int, dimension: int, shared_scales: bool
+) -> int:
+    emission = k * dimension + (dimension if shared_scales else k * dimension)
+    duration = 2 * k
+    transition_and_initial = k * k - 1
+    return emission + duration + transition_and_initial
+
+
+def run_minute_scale_robustness(
+    sequences: Sequence[dict[str, Any]],
+    out_dir: Path,
+) -> dict[str, Any]:
+    minute = _minute_sequences(sequences)
+    development = [
+        sequence
+        for sequence in minute
+        if sequence["capture"].role == ROLE_DEVELOPMENT
+    ]
+    validation = [
+        sequence
+        for sequence in minute
+        if sequence["capture"].role == ROLE_VALIDATION
+    ]
+    replay = [
+        sequence
+        for sequence in minute
+        if sequence["capture"].role == ROLE_REPLAY
+    ]
+    development_arrays = _training_arrays(development)
+    candidate_rows = []
+    candidates = []
+    for k in (2, 3, 4):
+        model = _fit_state_model(
+            development_arrays,
+            k=k,
+            emission="student_t",
+            duration="negative_binomial",
+            seed=SEED + 10_000 + k,
+            iterations=2,
+            max_duration_steps=300,
+            shared_scales=True,
+        )
+        validation_score = _score_model(model, validation)
+        parameter_count = _state_model_parameter_count(
+            k=k, dimension=len(MINUTE_PROJECTION_NAMES), shared_scales=True
+        )
+        penalty = 0.001 * parameter_count
+        selection_score = (
+            validation_score["mean_log_predictive_density"] - penalty
+        )
+        row = {
+            "surface": "state_count_selection",
+            "model": model.name,
+            "k": k,
+            "observation_grid_ms": 1000,
+            "duration_support_seconds": 300,
+            "parameter_count": parameter_count,
+            "development_row_count": sum(
+                len(values) for values in development_arrays
+            ),
+            "validation_mean_log_predictive_density": validation_score[
+                "mean_log_predictive_density"
+            ],
+            "replay_mean_log_predictive_density": "",
+            "complexity_penalty": penalty,
+            "selection_score": selection_score,
+        }
+        candidate_rows.append(row)
+        candidates.append((model, row))
+        print(
+            f"minute robustness K={k}: {selection_score:.6f}, "
+            f"params={parameter_count}",
+            flush=True,
+        )
+    selected, selected_row = max(
+        candidates, key=lambda item: item[1]["selection_score"]
+    )
+    development_labels = [
+        _hsmm_viterbi(selected, values)[0] for values in development_arrays
+    ]
+    duration_evidence_rows = []
+    duration_evidence = []
+    for state in range(selected.k):
+        durations = [
+            end - start
+            for labels in development_labels
+            for run_state, start, end in _uncensored_runs(labels)
+            if run_state == state
+        ]
+        row = {
+            "state": f"Q{state}",
+            "run_count": len(durations),
+            "duration_p50_seconds": _percentile(durations, 50),
+            "duration_p90_seconds": _percentile(durations, 90),
+            "duration_p99_seconds": _percentile(durations, 99),
+            "duration_max_seconds": max(durations) if durations else 0,
+            "run_count_ge_60s": sum(value >= 60 for value in durations),
+            "run_count_ge_120s": sum(value >= 120 for value in durations),
+            "run_count_ge_300s": sum(value >= 300 for value in durations),
+        }
+        duration_evidence_rows.append(row)
+        duration_evidence.append(row)
+    _write_csv(
+        out_dir / "state/minute_scale_duration_support_by_state.csv",
+        duration_evidence_rows,
+        list(duration_evidence_rows[0]),
+    )
+    support_rows = []
+    for support_seconds in (60, 120, 300):
+        candidate = _model_with_duration_support(
+            selected, development_labels, support_seconds
+        )
+        validation_score = _score_model(candidate, validation)
+        replay_score = _score_model(candidate, replay)
+        support_rows.append(
+            {
+                "surface": "duration_support",
+                "model": candidate.name,
+                "k": selected.k,
+                "observation_grid_ms": 1000,
+                "duration_support_seconds": support_seconds,
+                "parameter_count": selected_row["parameter_count"],
+                "development_row_count": selected_row[
+                    "development_row_count"
+                ],
+                "validation_mean_log_predictive_density": validation_score[
+                    "mean_log_predictive_density"
+                ],
+                "replay_mean_log_predictive_density": replay_score[
+                    "mean_log_predictive_density"
+                ],
+                "complexity_penalty": selected_row["complexity_penalty"],
+                "selection_score": validation_score[
+                    "mean_log_predictive_density"
+                ]
+                - selected_row["complexity_penalty"],
+            }
+        )
+    var_validation = _fit_var_baseline(development, validation)
+    var_replay = _fit_var_baseline(development, replay)
+    var_parameters = (
+        len(MINUTE_PROJECTION_NAMES) ** 2
+        + 2 * len(MINUTE_PROJECTION_NAMES)
+    )
+    baseline_rows = [
+        {
+            "surface": "baseline",
+            "model": "minute_ridge_var1_gaussian",
+            "k": "",
+            "observation_grid_ms": 1000,
+            "duration_support_seconds": "",
+            "parameter_count": var_parameters,
+            "development_row_count": selected_row["development_row_count"],
+            "validation_mean_log_predictive_density": var_validation[
+                "mean_log_predictive_density"
+            ],
+            "replay_mean_log_predictive_density": var_replay[
+                "mean_log_predictive_density"
+            ],
+            "complexity_penalty": 0,
+            "selection_score": var_validation[
+                "mean_log_predictive_density"
+            ],
+        }
+    ]
+    diagonal_validation = _fit_diagonal_ar_baseline(
+        development, validation
+    )
+    diagonal_replay = _fit_diagonal_ar_baseline(development, replay)
+    baseline_rows.append(
+        {
+            "surface": "baseline",
+            "model": "minute_diagonal_ar1_gaussian",
+            "k": "",
+            "observation_grid_ms": 1000,
+            "duration_support_seconds": "",
+            "parameter_count": 3 * len(MINUTE_PROJECTION_NAMES),
+            "development_row_count": selected_row["development_row_count"],
+            "validation_mean_log_predictive_density": diagonal_validation[
+                "mean_log_predictive_density"
+            ],
+            "replay_mean_log_predictive_density": diagonal_replay[
+                "mean_log_predictive_density"
+            ],
+            "complexity_penalty": 0,
+            "selection_score": diagonal_validation[
+                "mean_log_predictive_density"
+            ],
+        }
+    )
+    single_validation = _single_state_baseline(
+        development_arrays, validation
+    )
+    single_replay = _single_state_baseline(development_arrays, replay)
+    baseline_rows.append(
+        {
+            "surface": "baseline",
+            "model": "minute_single_state_student_t",
+            "k": 1,
+            "observation_grid_ms": 1000,
+            "duration_support_seconds": "",
+            "parameter_count": 2 * len(MINUTE_PROJECTION_NAMES),
+            "development_row_count": selected_row["development_row_count"],
+            "validation_mean_log_predictive_density": single_validation[
+                "mean_log_predictive_density"
+            ],
+            "replay_mean_log_predictive_density": single_replay[
+                "mean_log_predictive_density"
+            ],
+            "complexity_penalty": 0,
+            "selection_score": single_validation[
+                "mean_log_predictive_density"
+            ],
+        }
+    )
+    rows = candidate_rows + support_rows + baseline_rows
+    _write_csv(
+        out_dir / "state/minute_scale_low_parameter_comparison.csv",
+        rows,
+        list(rows[0]),
+    )
+    five_minute = next(
+        row
+        for row in support_rows
+        if row["duration_support_seconds"] == 300
+    )
+    continuous_score = var_validation["mean_log_predictive_density"]
+    result = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "discrete_minute_scale_support"
+        if five_minute["validation_mean_log_predictive_density"]
+        > continuous_score
+        else "continuous_state_still_preferred_at_minute_scale",
+        "observation_grid_ms": 1000,
+        "projection_fields": list(MINUTE_PROJECTION_NAMES),
+        "projection_dimension": len(MINUTE_PROJECTION_NAMES),
+        "candidate_k": [2, 3, 4],
+        "selected_k": selected.k,
+        "shared_emission_scale": True,
+        "student_df": STUDENT_DF,
+        "duration_family": "shifted_negative_binomial",
+        "duration_parameters_per_state": 2,
+        "duration_support_seconds": [60, 120, 300],
+        "selected_parameter_count": selected_row["parameter_count"],
+        "development_row_count": selected_row["development_row_count"],
+        "validation_row_count": sum(
+            len(values)
+            for sequence in validation
+            for _, values in _valid_chunks(sequence)
+        ),
+        "replay_row_count": sum(
+            len(values)
+            for sequence in replay
+            for _, values in _valid_chunks(sequence)
+        ),
+        "five_minute_validation_mean_log_predictive_density": five_minute[
+            "validation_mean_log_predictive_density"
+        ],
+        "continuous_var_validation_mean_log_predictive_density": continuous_score,
+        "five_minute_minus_continuous": five_minute[
+            "validation_mean_log_predictive_density"
+        ]
+        - continuous_score,
+        "diagonal_ar_parameter_count": 3 * len(MINUTE_PROJECTION_NAMES),
+        "diagonal_ar_validation_mean_log_predictive_density": (
+            diagonal_validation["mean_log_predictive_density"]
+        ),
+        "five_minute_minus_diagonal_ar": five_minute[
+            "validation_mean_log_predictive_density"
+        ]
+        - diagonal_validation["mean_log_predictive_density"],
+        "duration_evidence_by_state": duration_evidence,
+        "states_with_at_least_20_runs_ge_60s": sum(
+            row["run_count_ge_60s"] >= 20 for row in duration_evidence
+        ),
+        "minute_duration_tail_identified": all(
+            row["run_count_ge_60s"] >= 20 for row in duration_evidence
+        ),
+        "prospective_session_count": 0,
+        "changes_primary_classification": False,
+    }
+    _write_json(
+        out_dir / "state/minute_scale_low_parameter_manifest.json", result
+    )
+    return result
 
 
 def _maximal_run_rows(decoded: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -2391,6 +2797,7 @@ def _write_report(
     a2: dict[str, Any],
     a3: dict[str, Any],
     a4: dict[str, Any],
+    minute: dict[str, Any],
     classification: dict[str, Any],
     runtime_seconds: float,
 ) -> None:
@@ -2417,6 +2824,14 @@ Track B.
 | A2 neutral state stability | `{"passed" if a2["passed"] else "failed"}` | selected `{a2["selected_model"]}`, K={a2["selected_k"]}, beats all baselines={a2["primary_beats_all_baselines"]} |
 | A3 grammar recurrence | `{a3["formal_status"]}` | runs={a3["maximal_run_count"]}, diagnostic grammars={a3["diagnostic_accepted_grammar_count"]}, null p={a3["top_grammar_null_pvalue"]:.6f} |
 | A4 online recognition | `{"passed" if a4["passed"] else "failed"}` | replay recall={a4["replay_mean_run_recall"]:.6f}, late={a4["replay_mean_late_detection_fraction"]:.6f}, OOD={a4["replay_mean_ood_fraction"]:.6f} |
+| Minute-scale low-parameter robustness | `{minute["status"]}` | K={minute["selected_k"]}, parameters={minute["selected_parameter_count"]}, 5min-minus-VAR={minute["five_minute_minus_continuous"]:.6f} |
+
+The minute-scale branch uses a fixed 13-dimensional L1-L5 projection, a 1s
+observation grid, shared emission scales and two negative-binomial duration
+parameters per state. Its 66-parameter K=3 HSMM also trails a 39-parameter
+diagonal AR(1) by {minute["five_minute_minus_diagonal_ar"]:.6f} log-density
+units per row. Minute-duration tails are jointly identified across all states:
+`{str(minute["minute_duration_tail_identified"]).lower()}`.
 
 ## Interpretation Boundary
 
@@ -2482,6 +2897,9 @@ def run_all(
             "schema_version": SCHEMA_VERSION,
             "task_id": TASK_ID,
             "stages": ["A0", "A1", "A2", "A3", "A4"],
+            "post_registered_robustness": [
+                "minute_scale_low_parameter_duration_support"
+            ],
             "a5_excluded": True,
             "semantic_mapping_excluded": True,
             "prospective_claim_excluded": True,
@@ -2496,6 +2914,7 @@ def run_all(
     selected, sequences, a2 = run_a2(results, normalization, out_dir)
     decoded = _decode_all(selected, sequences)
     write_decoding_diagnostics(selected, decoded, sequences, out_dir)
+    minute = run_minute_scale_robustness(sequences, out_dir)
     run_rows, grammar_rows, a3 = run_a3(
         decoded, out_dir, upstream_state_gate_passed=a2["passed"]
     )
@@ -2526,7 +2945,9 @@ def run_all(
         },
     )
     runtime = time.monotonic() - started
-    _write_report(out_dir, a0, a2, a3, a4, classification, runtime)
+    _write_report(
+        out_dir, a0, a2, a3, a4, minute, classification, runtime
+    )
     manifest = _manifest(out_dir, started_at, runtime)
     return {
         "classification": classification,
@@ -2534,6 +2955,7 @@ def run_all(
         "a2": a2,
         "a3": a3,
         "a4": a4,
+        "minute_scale_robustness": minute,
         "manifest": manifest,
     }
 

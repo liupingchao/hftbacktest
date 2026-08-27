@@ -1314,6 +1314,66 @@ The 400ms robustness replay had label-matched agreement of:
 The result is also not a narrow-grid instability. The important issue is model
 class, not a missing researcher-selected phase window.
 
+### 22.3.1 Minute-scale low-parameter robustness
+
+After the first execution, duration support was extended to the minute scale
+under an explicitly lower-parameter contract:
+
+- 1s observation grid;
+- fixed 13-dimensional projection retaining L1-L5 depth imbalance and L1-L5
+  book-flow pressure, plus trade pressure, spread and microprice displacement;
+- `K in {2, 3, 4}`;
+- shared emission scale across states;
+- shared Student-t degrees of freedom;
+- two shifted-negative-binomial duration parameters per state;
+- 60s, 120s and 300s computational duration support.
+
+K=3 was selected. It has 66 parameters and was fit on 39,600 development rows,
+then evaluated on 43,200 blocked-validation rows and 37,500 no-refit replay
+rows.
+
+| Duration support | Validation mean log density |
+| --- | ---: |
+| 60s | -37.1204 |
+| 120s | -37.1221 |
+| 300s | -37.1226 |
+
+Longer support did not improve held-out structure.
+
+The parameter-count control is decisive:
+
+| Model | Parameters | Validation mean log density |
+| --- | ---: | ---: |
+| K=3 minute Student-t HSMM | 66 | -37.1226 |
+| full ridge VAR(1) | 195 | -34.7166 |
+| diagonal AR(1) | 39 | **-34.7476** |
+| single-state Student-t | 26 | -37.6117 |
+
+Even the 39-parameter diagonal AR(1) beat the 66-parameter minute HSMM by
+2.3750 log-density units per row. The continuous-model advantage therefore
+cannot be attributed to the full VAR having more parameters.
+
+Boundary-censored first and last runs were excluded from duration fitting and
+tail counts. The remaining development evidence was:
+
+| State | Complete runs | p50 | p90 | >=60s | >=120s | >=300s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Q0 | 56 | 5s | 8.5s | 0 | 0 | 0 |
+| Q1 | 147 | 29s | 151.8s | 44 | 19 | 8 |
+| Q2 | 153 | 31s | 228.2s | 48 | 25 | 11 |
+
+The data contain minute-scale persistence for two broad states, but the
+five-minute tail has only 8 and 11 complete examples and the third state has
+no complete one-minute dwell. Minute-scale duration support is therefore not
+jointly identified across the state alphabet. Allowing a five-minute support
+must not be reported as discovering a five-minute phase.
+
+This post-registered robustness does not change the primary classification:
+
+```text
+continuous_state_no_discrete_phase_support
+```
+
 ### 22.4 Downstream diagnostic findings
 
 The discrete decoder produced 417,628 maximal runs, roughly 3.23 run changes

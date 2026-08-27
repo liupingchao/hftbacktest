@@ -1,0 +1,85 @@
+{
+  "candidate_k": [
+    2,
+    3,
+    4
+  ],
+  "changes_primary_classification": false,
+  "continuous_var_validation_mean_log_predictive_density": -34.71655583721092,
+  "development_row_count": 39600,
+  "diagonal_ar_parameter_count": 39,
+  "diagonal_ar_validation_mean_log_predictive_density": -34.74760038312846,
+  "duration_evidence_by_state": [
+    {
+      "duration_max_seconds": 13,
+      "duration_p50_seconds": 5.0,
+      "duration_p90_seconds": 8.5,
+      "duration_p99_seconds": 13.0,
+      "run_count": 56,
+      "run_count_ge_120s": 0,
+      "run_count_ge_300s": 0,
+      "run_count_ge_60s": 0,
+      "state": "Q0"
+    },
+    {
+      "duration_max_seconds": 613,
+      "duration_p50_seconds": 29.0,
+      "duration_p90_seconds": 151.8,
+      "duration_p99_seconds": 415.5999999999993,
+      "run_count": 147,
+      "run_count_ge_120s": 19,
+      "run_count_ge_300s": 8,
+      "run_count_ge_60s": 44,
+      "state": "Q1"
+    },
+    {
+      "duration_max_seconds": 1257,
+      "duration_p50_seconds": 31.0,
+      "duration_p90_seconds": 228.2000000000004,
+      "duration_p99_seconds": 843.9599999999976,
+      "run_count": 153,
+      "run_count_ge_120s": 25,
+      "run_count_ge_300s": 11,
+      "run_count_ge_60s": 48,
+      "state": "Q2"
+    }
+  ],
+  "duration_family": "shifted_negative_binomial",
+  "duration_parameters_per_state": 2,
+  "duration_support_seconds": [
+    60,
+    120,
+    300
+  ],
+  "five_minute_minus_continuous": -2.406062990516169,
+  "five_minute_minus_diagonal_ar": -2.3750184445986307,
+  "five_minute_validation_mean_log_predictive_density": -37.12261882772709,
+  "minute_duration_tail_identified": false,
+  "observation_grid_ms": 1000,
+  "projection_dimension": 13,
+  "projection_fields": [
+    "depth_imbalance_l1",
+    "depth_imbalance_l2",
+    "depth_imbalance_l3",
+    "depth_imbalance_l4",
+    "depth_imbalance_l5",
+    "book_flow_pressure_l1",
+    "book_flow_pressure_l2",
+    "book_flow_pressure_l3",
+    "book_flow_pressure_l4",
+    "book_flow_pressure_l5",
+    "trade_flow_pressure",
+    "spread_ticks",
+    "microprice_displacement_ticks"
+  ],
+  "prospective_session_count": 0,
+  "replay_row_count": 37500,
+  "schema_version": "skhynix_phase_alignment_track_a_v1",
+  "selected_k": 3,
+  "selected_parameter_count": 66,
+  "shared_emission_scale": true,
+  "states_with_at_least_20_runs_ge_60s": 2,
+  "status": "continuous_state_still_preferred_at_minute_scale",
+  "student_df": 5.0,
+  "validation_row_count": 43200
+}

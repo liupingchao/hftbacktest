@@ -6,9 +6,9 @@
     "posterior_persistence_steps": 3,
     "posterior_threshold": 0.8,
     "prospective_session_count": 0,
-    "replay_mean_late_detection_fraction": 0.5286983033376925,
+    "replay_mean_late_detection_fraction": 0.5283525412784742,
     "replay_mean_ood_fraction": 0.0002400056890405966,
-    "replay_mean_run_recall": 0.3651604893658851,
+    "replay_mean_run_recall": 0.3649757830995629,
     "upstream_grammar_gate_passed": false
   },
   "offline_smoother_used_as_input": false,
