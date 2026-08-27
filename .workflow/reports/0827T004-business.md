@@ -37,12 +37,17 @@ action：
   prototype diagnostic、causal online filter 和 prefix detector artifacts。
 - 对 12.8s/25.6s/51.2s duration support 与 400ms observation grid 做
   稳健性 replay。
+- 按用户追加要求执行分钟尺度低参数 robustness：1s grid、固定 13 维
+  L1-L5 投影、K=2/3/4、shared emission scale、每状态 2 个负二项
+  duration 参数，并比较 60s/120s/300s support。
+- 修正 duration fitting：capture/chunk 首尾 run 按 right censor 处理，
+  不再作为完整 dwell 进入负二项估计或分钟尾部计数。
 - 全程未读取 future return、future midpoint/BBO、future volatility、
   markout、fill 或 PnL；未访问 private API、未下单、未采集新数据。
 
 verify：
 - `python -m pytest -q examples/hyperliquid/test_skhynix_phase_alignment_track_a.py`：
-  `4 passed`。
+  `5 passed`。
 - 合成 fixture 两次构建的压缩 NPZ SHA256 一致。
 - 合成 `U/u/pu` gap 返回 fail-closed `depth_sequence_gap`。
 - 修改未来输入不改变在线 HSMM filter 的历史 posterior prefix。
@@ -52,6 +57,11 @@ verify：
   零 sequence gap。
 - duration support 扩大到 51.2s 后 validation score 不变到小数点后
   9 位；400ms replay 的 validation/replay label agreement 约 0.996。
+- 分钟尺度 K=3 HSMM 为 66 参数，300s support validation density
+  `-37.1226`；39 参数 diagonal AR(1) 为 `-34.7476`，仍领先
+  `2.3750`/row。
+- 排除边界删失后，Q0/Q1/Q2 的完整 `>=300s` dwell 数分别为
+  `0 / 8 / 11`，分钟尾部不具备全状态共同识别支持。
 - `python -m py_compile`、`git diff --check`：通过。
 
 done：
@@ -66,6 +76,9 @@ done：
   late-detection fraction 为 `0.529`。
 - Primary classification：
   `continuous_state_no_discrete_phase_support`。
+- Minute-scale robustness：
+  `continuous_state_still_preferred_at_minute_scale`；不改变 primary
+  classification。
 - N/S/P/R semantic mapping、Track B 和 positive structural claim 均未授权。
 
 blockers：
@@ -74,7 +87,7 @@ blockers：
   历史 no-refit replay 结论。
 
 commit：
-- 974a88c1
+- 7d26fa9a
 
 提交信息：
-- research: execute phase alignment A0-A4
+- research: extend phase duration robustness to minutes
