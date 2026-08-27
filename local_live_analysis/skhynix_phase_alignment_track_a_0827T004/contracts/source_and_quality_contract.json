@@ -1,0 +1,45 @@
+{
+  "allowed_channels": [
+    "trade",
+    "depthUpdate",
+    "bookTicker",
+    "snapshot"
+  ],
+  "capture_count": 29,
+  "duration_hours": 35.91720081416666,
+  "future_join_allowed": false,
+  "generated_at": "2026-08-27T17:10:17.291912+00:00",
+  "has_true_prospective_session": false,
+  "hashes_verified_now": true,
+  "outcome_fields_read": [],
+  "prospective_claim_prohibited": true,
+  "research_dates": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-03",
+    "2026-08-04",
+    "2026-08-07",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27"
+  ],
+  "reset_boundaries": [
+    "capture_start",
+    "snapshot_rebootstrap",
+    "sequence_gap",
+    "source_end"
+  ],
+  "role_counts": {
+    "historical_blocked_validation": 3,
+    "historical_method_development": 19,
+    "historical_no_refit_replay": 5,
+    "historical_normalization_calibration": 2
+  },
+  "schema_version": "skhynix_phase_alignment_track_a_v1",
+  "sequence_contract": "snapshot_bridge_then_U_u_pu_continuity",
+  "status": "passed",
+  "symbol": "SKHYNIXUSDT",
+  "task_id": "0827T004",
+  "top_n": 5
+}

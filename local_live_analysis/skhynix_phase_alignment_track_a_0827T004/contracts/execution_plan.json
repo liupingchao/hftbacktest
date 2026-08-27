@@ -1,0 +1,16 @@
+{
+  "a5_excluded": true,
+  "bindings_path": "/Users/liu/Documents/hftbacktest/local_live_analysis/bn_factor_screen_SKHYNIXUSDT_20260827_0827T001/b1_input_bindings.csv",
+  "prospective_claim_excluded": true,
+  "schema_version": "skhynix_phase_alignment_track_a_v1",
+  "semantic_mapping_excluded": true,
+  "source_root": "/Users/liu/Documents/hftbacktest",
+  "stages": [
+    "A0",
+    "A1",
+    "A2",
+    "A3",
+    "A4"
+  ],
+  "task_id": "0827T004"
+}

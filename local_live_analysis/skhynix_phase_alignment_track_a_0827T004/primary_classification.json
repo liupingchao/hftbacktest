@@ -1,0 +1,13 @@
+{
+  "a0_passed": true,
+  "a1_passed": true,
+  "a2_state_stability_passed": false,
+  "a3_grammar_passed": false,
+  "a4_online_passed": false,
+  "classification": "continuous_state_no_discrete_phase_support",
+  "first_failed_gate": "A1",
+  "positive_track_a_claim_authorized": false,
+  "schema_version": "skhynix_phase_alignment_track_a_v1",
+  "semantic_nspr_mapping_performed": false,
+  "true_prospective_session_count": 0
+}

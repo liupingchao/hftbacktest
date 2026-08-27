@@ -1,0 +1,454 @@
+{
+  "base_features": [
+    {
+      "causal": true,
+      "index": 0,
+      "name": "bid_qty_log_l1",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 1,
+      "name": "bid_qty_log_l2",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 2,
+      "name": "bid_qty_log_l3",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 3,
+      "name": "bid_qty_log_l4",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 4,
+      "name": "bid_qty_log_l5",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 5,
+      "name": "ask_qty_log_l1",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 6,
+      "name": "ask_qty_log_l2",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 7,
+      "name": "ask_qty_log_l3",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 8,
+      "name": "ask_qty_log_l4",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 9,
+      "name": "ask_qty_log_l5",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 10,
+      "name": "bid_distance_ticks_l1",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 11,
+      "name": "bid_distance_ticks_l2",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 12,
+      "name": "bid_distance_ticks_l3",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 13,
+      "name": "bid_distance_ticks_l4",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 14,
+      "name": "bid_distance_ticks_l5",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 15,
+      "name": "ask_distance_ticks_l1",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 16,
+      "name": "ask_distance_ticks_l2",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 17,
+      "name": "ask_distance_ticks_l3",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 18,
+      "name": "ask_distance_ticks_l4",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 19,
+      "name": "ask_distance_ticks_l5",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 20,
+      "name": "bid_add_log_l1",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 21,
+      "name": "bid_add_log_l2",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 22,
+      "name": "bid_add_log_l3",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 23,
+      "name": "bid_add_log_l4",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 24,
+      "name": "bid_add_log_l5",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 25,
+      "name": "bid_cancel_log_l1",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 26,
+      "name": "bid_cancel_log_l2",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 27,
+      "name": "bid_cancel_log_l3",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 28,
+      "name": "bid_cancel_log_l4",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 29,
+      "name": "bid_cancel_log_l5",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 30,
+      "name": "ask_add_log_l1",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 31,
+      "name": "ask_add_log_l2",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 32,
+      "name": "ask_add_log_l3",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 33,
+      "name": "ask_add_log_l4",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 34,
+      "name": "ask_add_log_l5",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 35,
+      "name": "ask_cancel_log_l1",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 36,
+      "name": "ask_cancel_log_l2",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 37,
+      "name": "ask_cancel_log_l3",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 38,
+      "name": "ask_cancel_log_l4",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 39,
+      "name": "ask_cancel_log_l5",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 40,
+      "name": "trade_buy_qty_log",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 41,
+      "name": "trade_sell_qty_log",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 42,
+      "name": "trade_buy_count_log",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 43,
+      "name": "trade_sell_count_log",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 44,
+      "name": "spread_ticks",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 45,
+      "name": "microprice_displacement_ticks",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 46,
+      "name": "midpoint_delta_ticks",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 47,
+      "name": "bid_depth_concentration",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 48,
+      "name": "ask_depth_concentration",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 49,
+      "name": "source_age_ms_log",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 50,
+      "name": "no_new_information",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    },
+    {
+      "causal": true,
+      "index": 51,
+      "name": "depth_update_count_log",
+      "observed_at": "grid_close_local_receive_time",
+      "outcome": false
+    }
+  ],
+  "base_grid_ms": 100.0,
+  "emission_features": [
+    "bid_qty_log_l1",
+    "bid_qty_log_l2",
+    "bid_qty_log_l3",
+    "bid_qty_log_l4",
+    "bid_qty_log_l5",
+    "ask_qty_log_l1",
+    "ask_qty_log_l2",
+    "ask_qty_log_l3",
+    "ask_qty_log_l4",
+    "ask_qty_log_l5",
+    "bid_add_log_l1",
+    "bid_add_log_l2",
+    "bid_add_log_l3",
+    "bid_add_log_l4",
+    "bid_add_log_l5",
+    "bid_cancel_log_l1",
+    "bid_cancel_log_l2",
+    "bid_cancel_log_l3",
+    "bid_cancel_log_l4",
+    "bid_cancel_log_l5",
+    "ask_add_log_l1",
+    "ask_add_log_l2",
+    "ask_add_log_l3",
+    "ask_add_log_l4",
+    "ask_add_log_l5",
+    "ask_cancel_log_l1",
+    "ask_cancel_log_l2",
+    "ask_cancel_log_l3",
+    "ask_cancel_log_l4",
+    "ask_cancel_log_l5",
+    "trade_buy_qty_log",
+    "trade_sell_qty_log",
+    "trade_buy_count_log",
+    "trade_sell_count_log",
+    "spread_ticks",
+    "microprice_displacement_ticks",
+    "midpoint_delta_ticks",
+    "bid_depth_concentration",
+    "ask_depth_concentration",
+    "source_age_ms_log",
+    "no_new_information",
+    "ewm2_level_pressure_l1",
+    "ewm2_level_pressure_l2",
+    "ewm2_level_pressure_l3",
+    "ewm2_level_pressure_l4",
+    "ewm2_level_pressure_l5",
+    "ewm2_trade_pressure",
+    "ewm8_level_pressure_l1",
+    "ewm8_level_pressure_l2",
+    "ewm8_level_pressure_l3",
+    "ewm8_level_pressure_l4",
+    "ewm8_level_pressure_l5",
+    "ewm8_trade_pressure",
+    "ewm32_level_pressure_l1",
+    "ewm32_level_pressure_l2",
+    "ewm32_level_pressure_l3",
+    "ewm32_level_pressure_l4",
+    "ewm32_level_pressure_l5",
+    "ewm32_trade_pressure"
+  ],
+  "forbidden_terms": [
+    "future_return",
+    "future_mid",
+    "future_bbo",
+    "future_volatility",
+    "markout",
+    "fill",
+    "pnl"
+  ],
+  "future_fields": [],
+  "model_grid_ms": 200.0,
+  "multi_resolution_half_life_ms": [
+    200.0,
+    800.0,
+    3200.0
+  ],
+  "multi_resolution_half_life_steps": [
+    2,
+    8,
+    32
+  ],
+  "normalization_method": "frozen_prior_session_median_and_iqr",
+  "schema_version": "skhynix_phase_alignment_track_a_v1",
+  "top_n": 5
+}

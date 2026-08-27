@@ -1,0 +1,14 @@
+{
+  "A0": "deterministic reconstruction, continuity, exposure, no future joins",
+  "A1": "stable states and structural improvement over all baselines",
+  "A2": "cross-session recurrent grammar stronger than null",
+  "A3": "prototype transport without refit",
+  "A4": "causal early recognition with bounded OOD/flicker",
+  "numeric_thresholds": {
+    "grammar_null_pvalue_max": 0.05,
+    "online_late_fraction_max": 0.2,
+    "online_ood_fraction_max": 0.2,
+    "online_replay_recall_min": 0.7,
+    "profile_correlation_mean_min": 0.7
+  }
+}

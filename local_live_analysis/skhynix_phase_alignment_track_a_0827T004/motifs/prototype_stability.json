@@ -1,0 +1,11 @@
+{
+  "accepted_grammar_count": 0,
+  "diagnostic_accepted_grammar_count": 21,
+  "formal_status": "not_eligible_upstream_state_gate_failed",
+  "grammar_count": 100,
+  "maximal_run_count": 417628,
+  "passed": false,
+  "prototype_count": 5,
+  "top_grammar_null_pvalue": 0.024390243902439025,
+  "upstream_state_gate_passed": false
+}

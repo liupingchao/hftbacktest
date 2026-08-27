@@ -1,0 +1,30 @@
+{
+  "capture_count": 29,
+  "duration_hours": 35.91720081416666,
+  "generated_at": "2026-08-27T17:10:17.291912+00:00",
+  "has_true_prospective_session": false,
+  "hashes_verified_now": true,
+  "outcome_fields_read": [],
+  "prospective_claim_prohibited": true,
+  "research_dates": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-03",
+    "2026-08-04",
+    "2026-08-07",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27"
+  ],
+  "role_counts": {
+    "historical_blocked_validation": 3,
+    "historical_method_development": 19,
+    "historical_no_refit_replay": 5,
+    "historical_normalization_calibration": 2
+  },
+  "schema_version": "skhynix_phase_alignment_track_a_v1",
+  "status": "passed",
+  "symbol": "SKHYNIXUSDT",
+  "task_id": "0827T004"
+}

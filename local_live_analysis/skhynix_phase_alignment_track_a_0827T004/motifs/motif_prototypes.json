@@ -1,0 +1,66 @@
+{
+  "method": "grammar_path_medoid_duration_profile",
+  "prototypes": [
+    {
+      "capture_support": 29,
+      "date_support": 9,
+      "development_count": 8157,
+      "grammar_id": "c448af53139e",
+      "maximum_capture_share": 0.25880819366852886,
+      "neutral_path": "Q1->Q0->Q1",
+      "occurrence_count": 26850,
+      "path_length": 3,
+      "replay_count": 4888,
+      "validation_count": 6629
+    },
+    {
+      "capture_support": 29,
+      "date_support": 9,
+      "development_count": 7890,
+      "grammar_id": "63ccdbbeea72",
+      "maximum_capture_share": 0.29377695104422086,
+      "neutral_path": "Q0->Q1->Q0",
+      "occurrence_count": 23654,
+      "path_length": 3,
+      "replay_count": 3871,
+      "validation_count": 4818
+    },
+    {
+      "capture_support": 29,
+      "date_support": 9,
+      "development_count": 6553,
+      "grammar_id": "1e721abcd652",
+      "maximum_capture_share": 0.40986314299197735,
+      "neutral_path": "Q1->Q0->Q1->Q0->Q1",
+      "occurrence_count": 16952,
+      "path_length": 5,
+      "replay_count": 2076,
+      "validation_count": 1357
+    },
+    {
+      "capture_support": 29,
+      "date_support": 9,
+      "development_count": 6528,
+      "grammar_id": "10663514f7ee",
+      "maximum_capture_share": 0.4191349460095313,
+      "neutral_path": "Q0->Q1->Q0->Q1->Q0",
+      "occurrence_count": 16577,
+      "path_length": 5,
+      "replay_count": 1965,
+      "validation_count": 1128
+    },
+    {
+      "capture_support": 23,
+      "date_support": 9,
+      "development_count": 1676,
+      "grammar_id": "544a9df1a50f",
+      "maximum_capture_share": 0.1636186888632359,
+      "neutral_path": "Q1->Q4->Q1",
+      "occurrence_count": 16459,
+      "path_length": 3,
+      "replay_count": 7321,
+      "validation_count": 7169
+    }
+  ],
+  "semantic_mapping_performed": false
+}

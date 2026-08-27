@@ -168,7 +168,9 @@ def _write_csv(path: Path, rows: Iterable[dict[str, Any]], fields: Sequence[str]
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     with temporary.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(fields))
+        writer = csv.DictWriter(
+            fh, fieldnames=list(fields), lineterminator="\n"
+        )
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field, "") for field in fields})
@@ -795,11 +797,12 @@ def run_a1(captures: Sequence[Capture], out_dir: Path, *, rebuild: bool) -> list
     ]
     grid_contract = {
         "schema_version": SCHEMA_VERSION,
-        "observation_grid_ms": GRID_NS / 1_000_000,
+        "reconstruction_grid_ms": GRID_NS / 1_000_000,
+        "observation_grid_ms": MODEL_GRID_MS,
         "model_grid_ms": MODEL_GRID_MS,
         "selection_rule": (
-            "smallest round grid >= maximum formal-capture depth interarrival p99, "
-            "rounded upward to 100ms; model uses deterministic 2x stride"
+            "reconstruct at 100ms; select the smallest 100ms multiple >= the "
+            "maximum formal-capture depth interarrival p99, yielding 200ms"
         ),
         "max_capture_depth_interarrival_p99_ms": max(p99_values),
         "total_rows": total_rows,
@@ -807,7 +810,7 @@ def run_a1(captures: Sequence[Capture], out_dir: Path, *, rebuild: bool) -> list
         "valid_fraction": valid_rows / total_rows,
         "phase_duration_is_inferred": True,
         "observation_grid_is_not_phase_duration": True,
-        "accepted_robustness_grid_ms": [200.0],
+        "accepted_robustness_grid_ms": [400.0],
         "status": "passed" if valid_rows / total_rows >= 0.99 else "failed",
     }
     _write_json(
@@ -1646,6 +1649,38 @@ def run_a2(
             "semantic_mapping_performed": False,
         },
     )
+    profile_rows = []
+    for state in range(selected.k):
+        for feature_index, feature in enumerate(EMISSION_FEATURE_NAMES):
+            profile_rows.append(
+                {
+                    "state": f"Q{state}",
+                    "feature": feature,
+                    "location": selected.means[state, feature_index],
+                    "scale": selected.scales[state, feature_index],
+                }
+            )
+    _write_csv(
+        out_dir / "state/neutral_state_profiles.csv",
+        profile_rows,
+        list(profile_rows[0]),
+    )
+    holdout_rows = []
+    for sequence in validation:
+        score = _score_model(selected, [sequence])
+        holdout_rows.append(
+            {
+                "capture_id": sequence["capture"].capture_id,
+                "research_date": sequence["capture"].research_date,
+                "role": sequence["capture"].role,
+                **score,
+            }
+        )
+    _write_csv(
+        out_dir / "state/structural_holdout_scores.csv",
+        holdout_rows,
+        list(holdout_rows[0]),
+    )
     return selected, sequences, gate
 
 
@@ -1672,6 +1707,155 @@ def _decode_all(
                 }
             )
     return decoded
+
+
+def _model_with_duration_support(
+    model: StateModel,
+    labels_by_sequence: Sequence[np.ndarray],
+    support: int,
+) -> StateModel:
+    pmf, hazard, continuation = _fit_duration_distribution(
+        labels_by_sequence, model.k, support
+    )
+    return StateModel(
+        name=f"{model.name}_duration_support_{support}",
+        emission=model.emission,
+        duration=model.duration,
+        k=model.k,
+        means=model.means,
+        scales=model.scales,
+        initial=model.initial,
+        transitions=model.transitions,
+        duration_pmf=pmf,
+        duration_hazard=hazard,
+        duration_survival=continuation,
+        df=model.df,
+    )
+
+
+def _coarsen_duration_model(model: StateModel, factor: int) -> StateModel:
+    target_support = math.ceil(model.duration_pmf.shape[1] / factor)
+    pmf = np.zeros((model.k, target_support), dtype=np.float64)
+    for state in range(model.k):
+        for target in range(target_support):
+            start = target * factor
+            end = min(start + factor, model.duration_pmf.shape[1])
+            pmf[state, target] = np.sum(model.duration_pmf[state, start:end])
+        pmf[state, -1] += max(1 - np.sum(pmf[state]), 0)
+        pmf[state] /= np.sum(pmf[state])
+    survival_mass = np.flip(np.cumsum(np.flip(pmf, axis=1), axis=1), axis=1)
+    hazard = np.clip(pmf / np.maximum(survival_mass, 1e-12), 1e-8, 1)
+    hazard[:, -1] = 1
+    return StateModel(
+        name=f"{model.name}_grid_factor_{factor}",
+        emission=model.emission,
+        duration=model.duration,
+        k=model.k,
+        means=model.means,
+        scales=model.scales,
+        initial=model.initial,
+        transitions=model.transitions,
+        duration_pmf=pmf,
+        duration_hazard=hazard,
+        duration_survival=np.clip(1 - hazard, 1e-8, 1),
+        df=model.df,
+    )
+
+
+def _label_agreement(reference: np.ndarray, candidate: np.ndarray, k: int) -> float:
+    confusion = np.zeros((k, k), dtype=np.int64)
+    for left, right in zip(reference, candidate):
+        confusion[int(left), int(right)] += 1
+    row, col = linear_sum_assignment(-confusion)
+    return float(confusion[row, col].sum() / max(len(reference), 1))
+
+
+def write_decoding_diagnostics(
+    model: StateModel,
+    decoded: Sequence[dict[str, Any]],
+    sequences: Sequence[dict[str, Any]],
+    out_dir: Path,
+) -> None:
+    transition_rows = []
+    for item in decoded:
+        labels = item["offline_labels"]
+        counts = np.zeros((model.k, model.k), dtype=np.int64)
+        for left, right in zip(labels, labels[1:]):
+            counts[left, right] += 1
+        totals = counts.sum(axis=1, keepdims=True)
+        matrix = counts / np.maximum(totals, 1)
+        for source in range(model.k):
+            for destination in range(model.k):
+                transition_rows.append(
+                    {
+                        "capture_id": item["capture"].capture_id,
+                        "research_date": item["capture"].research_date,
+                        "role": item["capture"].role,
+                        "source_state": f"Q{source}",
+                        "destination_state": f"Q{destination}",
+                        "transition_count": int(counts[source, destination]),
+                        "transition_probability": matrix[source, destination],
+                    }
+                )
+    _write_csv(
+        out_dir / "state/transition_matrix_by_session.csv",
+        transition_rows,
+        list(transition_rows[0]),
+    )
+
+    development_labels = [
+        item["offline_labels"]
+        for item in decoded
+        if item["capture"].role == ROLE_DEVELOPMENT
+    ]
+    validation = [
+        sequence
+        for sequence in sequences
+        if sequence["capture"].role == ROLE_VALIDATION
+    ]
+    sensitivity_rows = []
+    for support in (64, 128, 256):
+        candidate = _model_with_duration_support(
+            model, development_labels, support
+        )
+        score = _score_model(candidate, validation)
+        sensitivity_rows.append(
+            {
+                "duration_support_steps": support,
+                "duration_support_ms": support * MODEL_GRID_MS,
+                **score,
+            }
+        )
+    _write_csv(
+        out_dir / "state/duration_support_sensitivity.csv",
+        sensitivity_rows,
+        list(sensitivity_rows[0]),
+    )
+
+    coarse_model = _coarsen_duration_model(model, 2)
+    robustness_rows = []
+    for item in decoded:
+        coarse_x = item["x"][::2]
+        coarse_labels, _ = _hsmm_viterbi(coarse_model, coarse_x)
+        reference = item["offline_labels"][::2][: len(coarse_labels)]
+        robustness_rows.append(
+            {
+                "capture_id": item["capture"].capture_id,
+                "research_date": item["capture"].research_date,
+                "role": item["capture"].role,
+                "reference_grid_ms": MODEL_GRID_MS,
+                "robustness_grid_ms": MODEL_GRID_MS * 2,
+                "label_matched_agreement": _label_agreement(
+                    reference, coarse_labels, model.k
+                ),
+                "row_count": len(coarse_labels),
+            }
+        )
+    _write_csv(
+        out_dir / "motifs/grid_timescale_robustness.csv",
+        robustness_rows,
+        list(robustness_rows[0]),
+    )
 
 
 def _maximal_run_rows(decoded: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1837,13 +2021,18 @@ def _prototype_assignments(
 
 
 def run_a3(
-    decoded: Sequence[dict[str, Any]], out_dir: Path
+    decoded: Sequence[dict[str, Any]],
+    out_dir: Path,
+    *,
+    upstream_state_gate_passed: bool,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     run_rows = _maximal_run_rows(decoded)
     ledger_path = out_dir / "motifs/maximal_run_ledger.csv.gz"
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
     with _deterministic_gzip_writer(ledger_path) as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(run_rows[0]))
+        writer = csv.DictWriter(
+            fh, fieldnames=list(run_rows[0]), lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(run_rows)
     counts = _grammar_counts(run_rows)
@@ -1891,7 +2080,7 @@ def run_a3(
         duration_rows,
         list(duration_rows[0]),
     )
-    accepted_grammar = [
+    diagnostic_accepted_grammar = [
         row
         for row in grammar_rows
         if int(row["development_count"]) > 0
@@ -1899,14 +2088,32 @@ def run_a3(
         and int(row["replay_count"]) > 0
         and int(row["date_support"]) >= 4
         and float(row["maximum_capture_share"]) <= 0.50
+        and int(row["path_length"]) >= 5
+        and len(set(row["neutral_path"].split("->"))) >= 3
     ]
+    formal_pass = bool(
+        upstream_state_gate_passed
+        and diagnostic_accepted_grammar
+        and null_exceedance <= 0.05
+    )
     gate = {
         "maximal_run_count": len(run_rows),
         "grammar_count": len(grammar_rows),
-        "accepted_grammar_count": len(accepted_grammar),
+        "diagnostic_accepted_grammar_count": len(diagnostic_accepted_grammar),
+        "accepted_grammar_count": len(diagnostic_accepted_grammar)
+        if upstream_state_gate_passed
+        else 0,
         "top_grammar_null_pvalue": null_exceedance,
         "prototype_count": len(prototypes["prototypes"]),
-        "passed": bool(accepted_grammar and null_exceedance <= 0.05),
+        "upstream_state_gate_passed": upstream_state_gate_passed,
+        "formal_status": "passed"
+        if formal_pass
+        else (
+            "not_eligible_upstream_state_gate_failed"
+            if not upstream_state_gate_passed
+            else "failed"
+        ),
+        "passed": formal_pass,
     }
     _write_json(out_dir / "motifs/prototype_stability.json", gate)
     _write_json(
@@ -1915,14 +2122,16 @@ def run_a3(
             "seed": SEED,
             "replicates": NULL_REPLICATES,
             "implemented_primary_null": "transition_block_permutation",
-            "unimplemented_secondary_nulls": [
+            "secondary_nulls_not_interpretable_after_upstream_failure": [
                 "cross_channel_block_shift",
                 "book_level_identity_permutation",
                 "side_orientation_disruption",
             ],
-            "secondary_null_status": "not_required_for_positive_claim_because_gate_is_fail_closed"
-            if not gate["passed"]
-            else "required_before_positive_acceptance",
+            "secondary_null_status": (
+                "not_run_because_upstream_state_gate_failed"
+                if not upstream_state_gate_passed
+                else "required_before_positive_acceptance"
+            ),
         },
     )
     return run_rows, grammar_rows, gate
@@ -1957,6 +2166,8 @@ def run_a4(
     decoded: Sequence[dict[str, Any]],
     grammar_rows: Sequence[dict[str, Any]],
     out_dir: Path,
+    *,
+    upstream_grammar_gate_passed: bool,
 ) -> dict[str, Any]:
     recognition_rows: list[dict[str, Any]] = []
     event_rows: list[dict[str, Any]] = []
@@ -2071,7 +2282,7 @@ def run_a4(
                 "prefix_length",
             ]
         )
-        writer = csv.DictWriter(fh, fieldnames=fields)
+        writer = csv.DictWriter(fh, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(event_rows)
     replay_rows = [row for row in recognition_rows if row["role"] == ROLE_REPLAY]
@@ -2097,9 +2308,11 @@ def run_a4(
         "replay_mean_late_detection_fraction": replay_late,
         "replay_mean_ood_fraction": replay_ood,
         "accepted_prefix_grammar_count": len(accepted_paths),
+        "upstream_grammar_gate_passed": upstream_grammar_gate_passed,
         "prospective_session_count": 0,
         "passed": bool(
-            accepted_paths
+            upstream_grammar_gate_passed
+            and accepted_paths
             and replay_recall >= 0.70
             and replay_late <= 0.20
             and replay_ood <= 0.20
@@ -2200,9 +2413,9 @@ Track B.
 | Stage | Result | Evidence |
 | --- | --- | --- |
 | A0 data admissibility | `{a0["status"]}` | {a0["capture_count"]} captures, {a0["duration_hours"]:.3f} hours, zero declared depth gaps |
-| A1 causal representation | `passed` | 100ms top-5 grid; model replay at 200ms |
+| A1 causal representation | `passed` | 100ms reconstruction grid; state observation at 200ms |
 | A2 neutral state stability | `{"passed" if a2["passed"] else "failed"}` | selected `{a2["selected_model"]}`, K={a2["selected_k"]}, beats all baselines={a2["primary_beats_all_baselines"]} |
-| A3 grammar recurrence | `{"passed" if a3["passed"] else "failed"}` | runs={a3["maximal_run_count"]}, accepted grammars={a3["accepted_grammar_count"]}, null p={a3["top_grammar_null_pvalue"]:.6f} |
+| A3 grammar recurrence | `{a3["formal_status"]}` | runs={a3["maximal_run_count"]}, diagnostic grammars={a3["diagnostic_accepted_grammar_count"]}, null p={a3["top_grammar_null_pvalue"]:.6f} |
 | A4 online recognition | `{"passed" if a4["passed"] else "failed"}` | replay recall={a4["replay_mean_run_recall"]:.6f}, late={a4["replay_mean_late_detection_fraction"]:.6f}, OOD={a4["replay_mean_ood_fraction"]:.6f} |
 
 ## Interpretation Boundary
@@ -2282,9 +2495,17 @@ def run_all(
     write_feature_contract(out_dir, normalization)
     selected, sequences, a2 = run_a2(results, normalization, out_dir)
     decoded = _decode_all(selected, sequences)
-    run_rows, grammar_rows, a3 = run_a3(decoded, out_dir)
+    write_decoding_diagnostics(selected, decoded, sequences, out_dir)
+    run_rows, grammar_rows, a3 = run_a3(
+        decoded, out_dir, upstream_state_gate_passed=a2["passed"]
+    )
     del run_rows
-    a4 = run_a4(decoded, grammar_rows, out_dir)
+    a4 = run_a4(
+        decoded,
+        grammar_rows,
+        out_dir,
+        upstream_grammar_gate_passed=a3["passed"],
+    )
     classification = _primary_classification(a0, True, a2, a3, a4)
     _write_json(out_dir / "primary_classification.json", classification)
     _write_json(

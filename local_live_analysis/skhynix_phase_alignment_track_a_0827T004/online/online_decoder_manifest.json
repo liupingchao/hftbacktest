@@ -1,0 +1,17 @@
+{
+  "filter": "duration_expanded_hsmm_forward_filter",
+  "gate": {
+    "accepted_prefix_grammar_count": 5,
+    "passed": false,
+    "posterior_persistence_steps": 3,
+    "posterior_threshold": 0.8,
+    "prospective_session_count": 0,
+    "replay_mean_late_detection_fraction": 0.5286983033376925,
+    "replay_mean_ood_fraction": 0.0002400056890405966,
+    "replay_mean_run_recall": 0.3651604893658851,
+    "upstream_grammar_gate_passed": false
+  },
+  "offline_smoother_used_as_input": false,
+  "schema_version": "skhynix_phase_alignment_track_a_v1",
+  "uses_observations_through_t_only": true
+}

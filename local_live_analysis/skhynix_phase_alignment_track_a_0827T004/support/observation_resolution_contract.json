@@ -1,0 +1,17 @@
+{
+  "accepted_robustness_grid_ms": [
+    400.0
+  ],
+  "max_capture_depth_interarrival_p99_ms": 155.85751138000006,
+  "model_grid_ms": 200.0,
+  "observation_grid_is_not_phase_duration": true,
+  "observation_grid_ms": 200.0,
+  "phase_duration_is_inferred": true,
+  "reconstruction_grid_ms": 100.0,
+  "schema_version": "skhynix_phase_alignment_track_a_v1",
+  "selection_rule": "reconstruct at 100ms; select the smallest 100ms multiple >= the maximum formal-capture depth interarrival p99, yielding 200ms",
+  "status": "passed",
+  "total_rows": 1292945,
+  "valid_fraction": 1.0,
+  "valid_rows": 1292945
+}

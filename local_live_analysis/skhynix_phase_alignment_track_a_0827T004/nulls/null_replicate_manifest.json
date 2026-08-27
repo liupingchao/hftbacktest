@@ -1,0 +1,11 @@
+{
+  "implemented_primary_null": "transition_block_permutation",
+  "replicates": 40,
+  "secondary_null_status": "not_run_because_upstream_state_gate_failed",
+  "secondary_nulls_not_interpretable_after_upstream_failure": [
+    "cross_channel_block_shift",
+    "book_level_identity_permutation",
+    "side_orientation_disruption"
+  ],
+  "seed": 827004
+}

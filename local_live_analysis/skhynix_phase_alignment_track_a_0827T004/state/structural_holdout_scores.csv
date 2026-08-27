@@ -1,0 +1,4 @@
+capture_id,research_date,role,mean_log_predictive_density,row_count,ood_fraction_internal_tail
+2026-08-07_46d1e1a74698,2026-08-07,historical_blocked_validation,-147.3041365519676,71999,0.010000138890817929
+2026-08-24_aeee94c4bfe5,2026-08-24,historical_blocked_validation,-149.96968411061695,71999,0.010000138890817929
+2026-08-25_fd89fc8de22f,2026-08-25,historical_blocked_validation,-151.43603965957095,71999,0.010000138890817929
