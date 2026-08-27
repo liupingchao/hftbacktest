@@ -320,11 +320,12 @@ They may not be assigned the favorable side after observing the completed run.
 
 ### 9.1 Primary model family
 
-The recommended primary estimator is an interpretable sticky hidden
-semi-Markov model:
+The primary estimator is an interpretable multivariate Student-t emission
+sticky hidden semi-Markov model:
 
 ```text
-sticky HSMM
+causal interpretable observation vector
+  -> multivariate Student-t emission sticky HSMM
   + explicit state duration
   + neutral state identifiers
   + blocked held-out structural scoring
@@ -333,10 +334,106 @@ sticky HSMM
 The sticky transition prior limits state flicker. Explicit duration prevents
 one continuous run from becoming hundreds of event samples.
 
+The HSMM must not hard-code:
+
+```text
+N -> S -> P -> R -> N
+```
+
+It first estimates neutral states `Q0, ..., Q(K-1)` and their unconstrained
+outcome-blind transition graph. The N/S/P/R ontology is tested only after the
+neutral model, duration model and state profiles are frozen.
+
 Neural encoders, autoencoders and unconstrained deep sequence models are not
 primary Track A estimators.
 
-### 9.2 Candidate state counts
+### 9.2 Emission and duration contract
+
+The canonical spatial tensor remains the source representation, but the HSMM
+emission layer consumes a reviewed compact observation vector derived from it.
+The projection must:
+
+- remain causal and outcome-blind;
+- preserve separate L1-L5 depth, add, withdrawal, depletion and replenishment
+  surfaces rather than replacing them with one aggregate imbalance;
+- preserve signed trade-flow, spread, microprice displacement and quality
+  state;
+- use prior-only robust scaling;
+- be fixed before state-count or emission-family comparison;
+- publish an exact field-to-tensor provenance map.
+
+For state `k`, the primary emission family is:
+
+\[
+X_t \mid Q_t=k \sim
+t_{\nu_k}(\mu_k,\Sigma_k)
+\]
+
+where:
+
+- `X_t` is the frozen interpretable observation vector;
+- `mu_k` is the state profile;
+- `Sigma_k` is diagonal or reviewed block-diagonal covariance;
+- `nu_k` is a bounded or shared degrees-of-freedom parameter;
+- no unrestricted full covariance is allowed unless support and numerical
+  stability are demonstrated out of sample.
+
+Student-t emissions are primary because order-book and trade-flow features are
+heavy-tailed and contain genuine bursts that must not automatically create a
+new state merely because a Gaussian emission treats them as extreme
+outliers.
+
+The primary duration family is a shifted, truncated negative-binomial
+distribution in calendar-grid steps:
+
+\[
+D_k \sim 1 + \operatorname{NegBin}(r_k,p_k)
+\]
+
+with a reviewed maximum dwell and explicit right censoring at segment,
+sequence, reconnect, quality and collection-end boundaries. A geometric
+duration is retained only as the memoryless baseline.
+
+The execution supplement must freeze:
+
+```text
+emission field list
+emission covariance blocks
+degrees-of-freedom treatment
+duration family and support
+minimum and maximum dwell
+initial-state treatment
+transition-prior strength
+numerical convergence criteria
+```
+
+### 9.3 Mandatory model baselines
+
+The Student-t sticky HSMM is accepted only if it improves structural evidence
+over all frozen simpler alternatives:
+
+```text
+Gaussian sticky HSMM
+Student-t memoryless HMM
+continuous autoregressive or state-space model
+single-state heavy-tailed null
+```
+
+The comparison must use blocked held-out structural likelihood, predictive
+one-step density, duration calibration, state-profile stability,
+transition-graph stability, session concentration and OOD rate.
+
+If the continuous autoregressive/state-space baseline explains held-out
+structure as well as or better than the discrete models, Track A must classify:
+
+```text
+continuous_state_no_discrete_phase_support
+```
+
+It may not retain the HSMM merely because discrete phase plots are easier to
+interpret.
+
+### 9.4 Candidate state counts
 
 A reviewed execution supplement must freeze a bounded candidate set, for
 example:
@@ -358,7 +455,7 @@ State count may be selected only using outcome-blind structural criteria:
 
 No future-response metric may break a tie.
 
-### 9.3 Offline and online estimands
+### 9.5 Offline and online estimands
 
 Track A must distinguish:
 
@@ -414,6 +511,20 @@ Q1 -> Q4 -> Q3
 The transition graph and motif family are learned without future-response
 labels.
 
+Cycle discovery therefore has two distinct estimators:
+
+```text
+sticky HSMM
+  -> estimates neutral state and duration sequence
+
+maximal-run grammar miner
+  -> estimates recurrent state paths and their cross-session support
+```
+
+The grammar miner operates on maximal runs, not grid rows. It must publish path
+support by session, duration vectors, censoring, maximum session share,
+transition-block null frequency and cross-channel-shift null frequency.
+
 The framework must permit:
 
 - aborted stress paths;
@@ -451,6 +562,8 @@ separately frozen prefix-only matcher.
 
 ## 11. Stage A4: Causal Online Recognition
 
+### 11.1 Online phase filter
+
 For each offline structural transition, A4 measures:
 
 ```text
@@ -475,6 +588,98 @@ The primary recognizability question is:
 
 Recognition thresholds, debounce, hysteresis and posterior persistence must be
 fit on past structural blocks only.
+
+The deployable state estimate is the HSMM forward filter:
+
+\[
+\pi_t(k,d)=P(Q_t=k,\text{current dwell}=d\mid X_1,\ldots,X_t)
+\]
+
+It must expose both state posterior and duration/hazard information. The
+offline smoother or completed run may provide evaluation labels, but it may
+not provide an online detector input.
+
+### 11.2 Causal transition-prefix detector
+
+The cycle detector is not a second unconstrained clustering model. It is a
+frozen finite-state prefix matcher over an accepted neutral transition
+grammar, driven by the online HSMM posterior.
+
+Before semantic mapping, it operates on neutral paths such as:
+
+```text
+Q0
+Q0 -> Q2
+Q0 -> Q2 -> Q5
+Q0 -> Q2 -> Q5 -> Q3
+Q0 -> Q2 -> Q5 -> Q3 -> Q0
+```
+
+After the neutral state-profile mapping is frozen, the same prefixes may be
+rendered as:
+
+```text
+N
+N -> S
+N -> S -> P
+N -> S -> P -> R
+N -> S -> P -> R -> N
+```
+
+A prefix may advance only when all frozen conditions pass:
+
+```text
+minimum state posterior
+minimum posterior persistence
+allowed neutral-state transition
+duration support or transition hazard
+debounce and hysteresis
+accepted source quality and freshness
+not OOD
+no reset boundary
+```
+
+The detector must emit decision-time events rather than waiting for a complete
+cycle:
+
+```text
+phase_entry_candidate
+phase_entry_confirmed
+transition_prefix_advanced
+transition_prefix_aborted
+recovery_failed
+cycle_completed
+online_ood
+detector_reset
+```
+
+It must preserve incomplete and contradictory paths, including:
+
+```text
+N -> S -> N
+N -> S -> P -> N
+N -> S -> P -> S
+N -> S -> P -> R -> P
+N -> OOD
+```
+
+The detector may not reinterpret a skipped or failed phase as a complete cycle.
+Thresholds and state-machine rules must be frozen using past structural blocks
+and replayed without refitting on prospective sessions.
+
+### 11.3 Online cycle metrics
+
+In addition to state-level recognition metrics, A4 must publish:
+
+- prefix precision and false-entry rate by session;
+- time from offline phase entry to online prefix advancement;
+- remaining structural dwell at each prefix milestone;
+- complete-cycle precision and recall against frozen offline structural runs;
+- aborted-path and recovery-failure rates;
+- reset, OOD and quality-gated detector counts;
+- the fraction of detections that occur only after the relevant phase has
+  effectively ended;
+- prospective no-refit performance by session.
 
 ## 12. Stage A5: Semantic Mapping To N/S/P/R
 
@@ -669,8 +874,9 @@ Require:
 - non-degenerate duration distributions;
 - acceptable OOD and missing-state rates;
 - no single session carrying the state definition;
-- structural held-out improvement over a simpler continuous or memoryless
-  baseline.
+- structural held-out improvement over the frozen Gaussian HSMM, memoryless
+  HMM, continuous autoregressive/state-space and single-state heavy-tailed
+  baselines.
 
 Failure classification:
 
@@ -715,9 +921,11 @@ session_specific_motifs_only
 Require:
 
 - causal online phase detection;
-- bounded false entry and flicker;
+- frozen neutral-grammar and transition-prefix detector identities;
+- bounded false entry, false prefix advancement, abort and flicker rates;
 - detection before the structural phase is effectively over;
-- consistency across prospective sessions.
+- explicit recovery-failure, OOD and reset handling;
+- consistency across prospective sessions without refitting.
 
 Failure classification:
 
@@ -757,7 +965,9 @@ support/
 
 state/
   normalization_contract.json
+  emission_and_duration_contract.json
   state_model_manifest.json
+  model_baseline_comparison.csv
   neutral_state_profiles.csv
   state_duration_by_session.csv
   transition_matrix_by_session.csv
@@ -772,8 +982,11 @@ motifs/
 
 online/
   online_decoder_manifest.json
+  transition_prefix_detector_manifest.json
+  transition_prefix_events.csv.gz
   offline_online_transition_comparison.csv
   online_recognition_by_session.csv
+  online_cycle_recognition_by_session.csv
   online_ood_summary.csv
 
 nulls/
@@ -866,6 +1079,9 @@ It should:
 - freeze session roles;
 - measure cadence and candidate calendar grids;
 - freeze the state-tensor schema and causal normalization candidates;
+- freeze the Student-t emission, covariance-block and duration candidates;
+- freeze Gaussian, memoryless and continuous-state model baselines;
+- freeze neutral-grammar and causal prefix-detector surfaces;
 - freeze allowed and forbidden data surfaces;
 - define the prospective collection requirement;
 - define the Track A model-selection and null surfaces;
