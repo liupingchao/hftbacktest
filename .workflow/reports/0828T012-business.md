@@ -21,7 +21,9 @@ QA说明：
   `P0/P1/P2/P3 = 0/2/2/0`。
 - 第四次独立只读 QA 仍建议 `未通过`，缺陷统计
   `P0/P1/P2/P3 = 0/2/1/0`。
-- 已完成第四轮 plan-only remediation，等待第五次独立 QA。
+- 第五次独立只读 QA 仍建议 `未通过`，缺陷统计
+  `P0/P1/P2/P3 = 0/2/0/0`。
+- 已完成第五轮 plan-only remediation，等待第六次独立 QA。
 
 files：
 - `.workflow/tasks/0828T012.md`
@@ -70,6 +72,12 @@ action：
     和 integer draw contract；
   - ordered `failed_gates`/`failed_conditions` 与唯一 primary
     classification mapping。
+- 第五次 QA 后补齐：
+  - detector-ready/active-flow hour、anchor rates、raw qualifying
+    checkpoints、inter-anchor median、5s burst、direction/type shares 和
+    component-pair family 的精确统计公式；
+  - `primary_tau` 唯一由 A0-7 产生并写入合同，A1/A2/A3 只读且禁止
+    重选。
 
 verify：
 - Hypothesis/version boundary 人工核对通过。
@@ -86,7 +94,7 @@ verify：
 - Sparse、near-continuous、date concentration 和 dependence support gates
   均已冻结。
 - A0 zero-outcome boundary 与 downstream target stub 分离。
-- Markdown 共 `296` 个 fence，奇偶配对检查通过。
+- Markdown 共 `322` 个 fence，奇偶配对检查通过。
 - 必需 hypothesis、anchor、failure transitions、control labels、gates 和
   classifications 静态存在性检查通过。
 - Frozen predecessor authority blobs 从 commit `91cc0770` 重算 SHA，与
@@ -94,7 +102,7 @@ verify：
 - Total transition table 覆盖全部 7 个状态。
 - `git diff --check` 通过。
 - Plan SHA256:
-  `81ad22981fd1567d2bea4b01c96ec3650e799a5d0fc38144845416805e3ffc0a`。
+  `6278d6b5f0d0dfd855b2d2ee121fa4fbebf6b3a864acecc4a0f5368e558aeeed`。
 
 done：
 - A0 design contract 已起草。
@@ -116,6 +124,8 @@ commit：
 - third QA remediation：`ad422293`
 - third remediation record：`b3b1ca07`
 - fourth QA remediation：`26a32c24`
+- fourth remediation record：`f2331f38`
+- fifth QA remediation：待提交
 
 提交信息：
 - initial：docs: freeze flow internal directional alpha A0 plan
@@ -123,3 +133,4 @@ commit：
 - second remediation：docs: freeze directional alpha primary estimand
 - third remediation：docs: close directional alpha score boundaries
 - fourth remediation：docs: finalize directional alpha reproducibility
+- fifth remediation：docs: freeze directional alpha gate statistics

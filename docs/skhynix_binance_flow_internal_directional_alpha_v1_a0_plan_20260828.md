@@ -1571,9 +1571,8 @@ event_key > entry_event_key and 0ms <= elapsed <= 100ms
 2000ms < elapsed <= 5000ms
 ```
 
-If A1 boundary geometry rejects `5000ms`, truncate this list mechanically at
-the largest horizon that passes A1. No event rate or return magnitude may
-participate in truncation.
+Truncate this list mechanically at the `primary_tau` frozen by A0-7. A1, A2
+and A3 read that value and may not reject, extend, shorten or reselect it.
 
 For cause `k in {continuation,reversal}`:
 
@@ -1998,6 +1997,132 @@ summaries, support tables and exact hashes.
 
 ## 27. A0 Gates
 
+### 27.1 Frozen Gate Statistic Formulas
+
+Detector-ready interval:
+
+```text
+one complete 20ms interval
+whose ending checkpoint:
+  is inside one capture and one segment;
+  has valid uncrossed L1-L5 state;
+  has complete contiguous 2000ms history;
+  is not at a reset or quality boundary.
+```
+
+Durations:
+
+```text
+detector_ready_hours =
+  20ms * count(detector-ready intervals) / 3.6e6ms
+
+active_flow_hours =
+  20ms * count(detector-ready intervals whose ending checkpoint
+               has active-flow support=true) / 3.6e6ms
+```
+
+Zero denominator:
+
+```text
+if detector_ready_hours=0 or active_flow_hours=0:
+  corresponding rate is unavailable
+  corresponding rate gate fails
+```
+
+Rates:
+
+```text
+anchor_rate_per_hour =
+  total confirmed anchors / detector_ready_hours
+
+active_flow_anchor_rate =
+  total confirmed anchors / active_flow_hours
+```
+
+Raw qualifying checkpoints:
+
+```text
+one checkpoint-direction pair (checkpoint_event_key,d) where:
+  detector-ready=true
+  active-flow support=true
+  Q_d=true
+  Q_both=false
+```
+
+Each pair is counted once regardless of current state. If anchor count is
+zero, `raw_qualifying_checkpoints/anchors` is unavailable and its gate fails.
+
+Inter-anchor intervals:
+
+```text
+sort anchors by event key within each (capture_id,segment_id)
+take differences only between consecutive anchors in that same group
+pool those positive differences across groups
+```
+
+Median rule:
+
+```text
+sort n pooled values
+h=(n-1)*0.50
+linearly interpolate floor(h),ceil(h)
+no pooled gap values -> gate fails
+```
+
+Same-capture 5s burst:
+
+```text
+for every anchor a:
+  count anchors in the same (capture_id,segment_id)
+  with anchor_ts in [a.anchor_ts,a.anchor_ts+5s)
+
+maximum 5s burst = maximum of those counts
+```
+
+The right endpoint is excluded. Equal-timestamp anchors are ordered by event
+sequence but counted in the same window.
+
+Direction and type shares:
+
+```text
+minority_direction_share =
+  min(count(d=+1),count(d=-1)) / total anchors
+
+mixed_onset_share =
+  count(anchor_type=mixed_onset) / total anchors
+
+single_date_anchor_share =
+  max_date(anchor count on date) / total anchors
+```
+
+Zero total anchors makes all shares unavailable and their gates fail.
+
+Component-pair family assignment at each anchor uses direction-adjusted
+100ms component ratios at threshold `0.50`:
+
+```text
+qualifying component set =
+  {trade,dep,ofi where d*D_component(100ms) >=0.50}
+
+if exactly two qualify:
+  contribute their one unordered pair family
+
+if all three qualify:
+  contribute all three unordered pair families:
+    dep_trade
+    dep_ofi
+    trade_ofi
+```
+
+The gate's family count is the cardinality of the union across anchors.
+Unavailable components do not qualify. Pair names and ordering are exactly:
+
+```text
+dep_trade
+dep_ofi
+trade_ofi
+```
+
 ### Gate A0-0: Source Closure
 
 Require:
@@ -2131,6 +2256,24 @@ maximum per-date pair-dependence share:     0.10
 
 Select the largest predeclared horizon satisfying all eight geometry conditions.
 This selection reads timestamps and quality boundaries only.
+
+A0-7 writes:
+
+```text
+primary_tau
+primary_tau_geometry_metrics
+eligible_horizons_in_ascending_order
+```
+
+to `downstream_target_stub.json` and `classification.json`. If no horizon
+passes, `primary_tau=null`, A0 fails, and A1 is unauthorized.
+
+Once A0 passes:
+
+```text
+A1/A2/A3 primary_tau authority = read-only A0-7 output
+horizon reselection in A1/A2/A3 = forbidden
+```
 
 ## 28. A0 Classifications
 
