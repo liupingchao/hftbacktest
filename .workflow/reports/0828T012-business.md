@@ -75,7 +75,7 @@ blockers：
 - A0 execution 尚未授权。
 
 commit：
-- 待提交
+- `1b339d05`
 
 提交信息：
 - docs: freeze flow internal directional alpha A0 plan
