@@ -79,4 +79,4 @@
    background departure 语义，而不是调高当前 z threshold。
 
 提交信息：
-- commit：待 QA 事实源提交
+- commit：`69cfa9d3`
