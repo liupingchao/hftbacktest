@@ -4,114 +4,59 @@
 - QA验收线程
 
 任务ID：
-- 0828T006
+- 0828T007
 
 状态：
 - 已通过
 
 更新时间：
-- 2026-08-28 11:35 CST
+- 2026-08-28 12:00 CST
 
 验收线程：
 - QA验收线程
 
 验收对象：
-- SKHYNIX OBI Reversal Track A3 业务线程
-- implementation commit：`168839e0`
-- business report commit：`9c65987f`
+- SKHYNIX Liquidity Break Onset A0 Contract 业务线程
+- final contract remediation commit：`37a56393`
 
 验收范围：
-- 验收 A3 role split、H0/H1 nested design、regularization selection 和
-  no-refit boundaries。
-- 验收 discrete-time multinomial competing-risk likelihood、proper scores、
-  date-block uncertainty 和 influence diagnostics。
-- 验收 scientific failure classification 未被 replay、ridge sensitivity
-  或 secondary analysis 救回。
-- 验收 tests、determinism、artifact closure、plan 回写和 exact-path git
-  scope。
-
-验收步骤：
-1. 核对 implementation 和 business-report commit paths。
-2. 执行 A0-A3 focused pytest、Python compile、`git diff --check` 和
-   Markdown fence parity。
-3. 核对 20 个正式 artifacts 的 size/SHA closure 和双构建确定性。
-4. 核对 H0/H1 design matrices 和 target identity；确认 H1 只增加 `R`。
-5. 核对 ridge 仅由 development-date H0 LODO NLL 选择。
-6. 核对 blocked-validation NLL/IBS、date-block bootstrap、date/bin
-   influence 和 coefficient directions。
-7. 核对 replay 仅为 no-refit diagnostic，不参与 A3 classification。
-8. 核对 outcome-access ledger 未读取 post-first-passage return、markout、
-   fill、PnL 或 prospective data。
+- 验收 `LIQUIDITY_BREAK_ONSET_V1` A0 causal-anchor design contract、
+  zero-outcome boundary、gates 和执行可行性。
 
 实际结果：
-- `168839e0` 只包含 0828T006 task、canonical plan、A3 runner/tests 和
-  20 个 compact artifacts；`9c65987f` 只包含业务回报。
-- A0-A3 focused pytest 为 `16 passed`；compile、diff check 和 Markdown
-  fence parity 通过。
-- 两个独立 A3 builds 的 20 个 artifact manifests 完全一致；正式
-  20/20 size/SHA closure 通过。
-- Role split 为 train 1,296、blocked validation 3,187、no-refit replay
-  2,681 entries，日期与冻结 contract 一致。
-- H0/H1 使用相同 targets、risk rows、scaler、time basis 和 ridge；
-  H1 的唯一新增列为 `reversal_indicator_R`。
-- H0/H1 parameter counts 为 50/52，均收敛；maximum absolute gradients
-  低于 `1e-7`。
-- Ridge `0.001` 由 H0-only development-date LODO entry NLL 选择；
-  validation/replay 未参与选择。
-- Train `Delta_NLL=+0.003015`，但 blocked validation
-  `Delta_NLL=-0.001603`、`Delta_IBS=-0.000675`。
-- 三个 blocked-validation dates 的 Delta NLL 全部为负。
-- Date-block bootstrap 95% interval 为
-  `[-0.003007,-0.000245]`，整个区间低于零。
-- `beta_follow=+0.164963`、`beta_fail=-0.158056`，方向符合预期，但
-  out-of-sample proper scores 变差。
-- No-refit replay `Delta_NLL=-0.008676`、`Delta_IBS=-0.001749`，不能
-  救回 primary。
-- 100ms 和 200-500ms bins 有低于 materiality 的微弱正增量；600ms
-  后均为负。排除 first-100ms 后 Delta NLL 为 `-0.002711`。
-- Ridge sensitivity 中仅 `0.1` 有 `+0.000118` 的 negligible increment，
-  远低于 frozen materiality `0.002`，且明确标记为 non-rescue。
-- Outcome-access ledger 证明未运行 dependence nulls、stronger-H0、
-  maker economics 或 prospective confirmation。
-- Scientific classification 正确冻结为 `A3_no_increment_over_H0`。
+- Final contract Revision 2 使用 raw-message event-driven onset。
+- `start_anchor` 不 backdate、不等待 future dwell。
+- `end_anchor` 仅用于 active-lock 和 duplicate suppression。
+- 50ms pressure window、三个 interpretable components、20ms checkpoint
+  median/IQR normalization 和 A1 timeliness gate 均在 outcome access 前
+  冻结。
+- Final SHA256：
+  `b69146b92411a425e9d78d9deb88ac5347ccc0b2ad5b6f2ac32167b9eecb1141`。
+- 静态检查和 Git path scope 通过。
 
 验收结论：
 - 已通过
 - 结论说明：
-  - A3 实验设计、实现、执行和失败分类均可信闭合。QA 的“已通过”表示
-    任务正确得出 primary hypothesis failure，不表示 OBI reversal
-    path-dependence 成立。
+  - Contract 可作为 A0 implementation/execution 的唯一 authority；
+    A1 仍必须等待 A0 passing classification。
 
 通过项：
-1. Frozen role split 和 nested H0/H1 contract 闭合。
-2. Multinomial hazard、gradient、risk expansion 和 CIF 验证通过。
-3. Regularization selection 未使用 validation/replay。
-4. Date-equal proper score 和 block uncertainty 正确。
-5. Scientific failure 在所有 validation dates 和 replay 中稳定。
-6. Ridge/time-bin diagnostics 未被用于 rescue。
-7. Tests、determinism、artifact closure 和 git scope 通过。
+1. Causal anchor 和 version boundary 闭合。
+2. Outcome-blind gates 与 normalization operator 闭合。
+3. A1 stop gate 已冻结。
 
 不通过项：
-1. 无执行或 QA 缺陷。
+1. 无。
 
 缺陷清单：
 1. 无。
 
 阻塞项：
-- 无任务验收阻塞。
-- `OBI_REVERSAL_V1` primary path 已科学失败，不应继续正向 A4/A5。
-- 新假设必须重新版本化，不能修改当前 frozen tuple 后声称 robustness。
+- 无合同验收阻塞。
+- A1 尚未授权。
 
 建议总控下一步：
-1. 正式关闭 `OBI_REVERSAL_V1` primary route，保留
-   `A3_no_increment_over_H0` 为 canonical result。
-2. 不运行旨在救回 primary 的 null、stronger-H0、barrier 或 alignment
-   variants。
-3. 回到可解释 hypothesis generation，优先研究：
-   - 更接近 decision time 的 causal onset indicator；
-   - 不依赖完整 opposite-state confirmation 的 transition-pressure
-     hypothesis；
-   - 明确区分 continuation、exhaustion 和 liquidity-recovery 的新版本。
+1. 执行 A0 causal detector。
 
 提交信息：
 - commit：待 QA 事实源提交
