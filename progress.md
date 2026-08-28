@@ -9413,7 +9413,7 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Task `0828T013` is closed as `已通过`; A1 remains unauthorized and work
   pauses at the completed A0 boundary.
 
-## 2026-08-29 0828T014 Flow Coherence A-1 QA Round 1 Rejected
+## 2026-08-28 0828T014 Flow Coherence A-1 QA Round 1 Rejected
 
 - Independent QA accepted the negative scientific result but rejected the
   execution package with `P0/P1/P2/P3 = 0/1/2/1`.
@@ -9422,6 +9422,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   gate, fail-closed Gate 0/1 evidence, and one fingerprint identity wording
   conflict.
 - The task is `未通过`; A0 drafting and future-target access remain forbidden.
+
+## 2026-08-28 0828T014 Flow Coherence A-1 Remediation Ready For QA
+
+- Remediation commit `73807220` leaves the hypothesis, thresholds, null and
+  scientific stop unchanged.
+- Slice/reset invariance now covers all nine registered variants across 1,692
+  artificial-start rows, with zero identity, metric or aggregate mismatches.
+- The frozen cross-segment/cross-quality feature-window condition is now an
+  explicit atomic gate and has zero violations.
+- Source Git blobs, exact cache schema, consumed-field whitelist and Build A/B
+  determinism are verified at runtime rather than self-declared.
+- Build A/B remain byte-identical across all non-cache artifacts; 13 focused
+  tests and all static checks pass. The task is back to `待验收`.
 - 2026-08-28: 0828T014 Revision 2 independent review failed
   (`P0/P1/P2/P3=1/4/1/0`); formal data execution remains locked. Revision 3
   now uses activity-matched 10s direction-path permutation within 5m parents,

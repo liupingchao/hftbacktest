@@ -8713,3 +8713,8 @@ Drift guard:
   feature-window boundary gate was absent, Gate 0/1 relied partly on
   self-declaration, and one fingerprint paragraph named cache files instead
   of the frozen capture ordinal.
+- 0828T014 remediation closes those four defects without changing the
+  registered science. All V0-V8 slices are exact; quality boundaries are
+  covered because replay increments `segment_id` and restarts warmup at each
+  initial bridge failure or sequence gap; Gate 0/1 now binds Git blobs, an
+  exact cache-field schema and an independently recomputed Build A/B pair.
