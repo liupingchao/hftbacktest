@@ -115,7 +115,7 @@ commit：
 - second remediation record：`a495150c`
 - third QA remediation：`ad422293`
 - third remediation record：`b3b1ca07`
-- fourth QA remediation：待提交
+- fourth QA remediation：`26a32c24`
 
 提交信息：
 - initial：docs: freeze flow internal directional alpha A0 plan
