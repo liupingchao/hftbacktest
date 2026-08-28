@@ -1,5 +1,21 @@
 # Findings
 
+## 2026-08-28 Flow Coherence A-1 Audit Design
+
+- The predecessor execution passed QA but failed scientifically at A0.
+- A new audit must test whether cross-component coherence is a recurrent
+  market structure before another complete state machine is frozen.
+- Reconnect cooldown and detector slice invariance are load-bearing because
+  every predecessor anchor occurred in one reconnect-adjacent episode.
+- A component-shift structural null is required to distinguish observed
+  synchronization from patterns induced by autocorrelated marginal channels.
+- Independent review showed that shifting depletion and OFI independently is
+  invalid because both are mechanically depth-derived. Revision 2 instead
+  keeps the complete depth bundle and activity regime fixed while randomizing
+  only aggressive-trade direction in fixed blocks.
+- Existing Aug26/Aug27 dates are historically consumed by the hypothesis
+  revision process; no existing date is an independent holdout.
+
 ## 2026-08-24 H0-B QA Round 2 Acceptance
 
 - Independent QA accepted exact handoff `60425952` at
@@ -8637,3 +8653,40 @@ Drift guard:
   mixed history, activity, persistence or refractory after observing A0.
 - Third-round independent QA found no remaining P0-P3 defects. The accepted
   result freezes a support failure and does not authorize A1.
+- 0828T014 plan review Round 2: a five-minute Rademacher sign flip is not a
+  valid conditional structural null without sign exchangeability. It can
+  change block direction marginals and truncate randomized dwell. The revised
+  null must preserve target-time magnitude/missingness and donor direction-path
+  serial structure, with the identical microblock boundary censor applied to
+  observed and null runs.
+- 0828T014 plan review Round 2: the proposed pre-state was only
+  `recent conflict`, not a direct transition. Primary admission now requires a
+  contiguous conflict run of at least 120ms ending exactly one checkpoint
+  before the coherence rising edge.
+- 0828T014 plan review Round 3: `sign(r_trade_100ms)` is not an always-defined
+  orientation. Revision 4 uses the first finite non-zero trade horizon,
+  defaulting to +1 only when all horizons are zero/unavailable, so
+  reorientation preserves target magnitude, zero mask, missingness and
+  denominators exactly.
+- 0828T014 plan review Round 3: a conditional null needs joint matching on
+  detector activity and unsigned trade/depletion/OFI intensity, exact
+  per-date/per-replicate balance gates, explicit sensitivity rules and
+  comparable-support floors. These are admission conditions, not diagnostics.
+- 0828T014 plan review Round 4: an arbitrary `+1` label for a directionless
+  checkpoint can become artificial positive direction after transfer even
+  while numeric masks remain unchanged. The exact null now swaps only genuine
+  nonzero microblock orientation labels inside fixed positive/negative pairs.
+- 0828T014 plan review Round 4: inference requires a registered randomization
+  law and effective support. Independent Bernoulli(0.5) swaps are uniform over
+  `2^K` pair states; at least 190 distinct aggregate fingerprints are required
+  among 199 replicates.
+- 0828T014 plan review Round 5: allowing unmatched nodes makes a generic
+  linear-assignment call insufficient to define maximum-cardinality,
+  minimum-distance pairing. Revision 6 uses an exact bitmask dynamic program
+  with a three-level objective and full pair-tuple lexicographic tie-break.
+- 0828T014 plan review Round 5: orientation and randomization identities now
+  freeze chronological float64 accumulation, exact zero, non-finite
+  fail-closed behavior, capture ordinal, pair ID and fingerprint row order.
+- 0828T014 plan review Round 6: no P0-P3 findings remain. The accepted
+  contract authorizes only an outcome-blind A-1 structural audit; it does not
+  imply scientific support or authorize future-target access.

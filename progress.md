@@ -1,5 +1,31 @@
 # Progress
 
+## 2026-08-28 0828T014 Flow Coherence A-1 Audit
+
+- Created isolated worktree
+  `/Users/liu/Documents/hftbacktest-0828t014-flow-coherence-a-minus1-audit`.
+- Drafted the candidate A-1 primitive-support contract and formal task.
+- Round 1 independent review rejected the candidate at
+  `P0/P1/P2/P3=1/5/1/1`.
+- Revision 2 was independently rejected at `P0/P1/P2/P3=1/4/1/0`.
+- Revision 3 was independently rejected at `P0/P1/P2/P3=1/4/2/0`.
+- Revision 4 freezes always-assigned trade orientation, joint-distance
+  caliper matching, randomized perfect derangement, per-checkpoint invariants,
+  complete 10s/30s/60s null gates, support floors and a no-refractory shadow
+  detector.
+- No future price response, target, H0/H1, fill, fee or PnL was accessed.
+- Revision 4 was independently rejected at `P0/P1/P2/P3=1/2/1/0`.
+- Revision 5 replaces directionless checkpoint labels with genuinely nonzero
+  microblock path orientation and exact uniform Bernoulli swaps inside frozen
+  opposite-orientation matched pairs. Coverage, anchor/date support and
+  assignment diversity are now explicit.
+- Revision 5 was independently rejected at `P0/P1/P2/P3=0/1/2/0`.
+- Revision 6 freezes an exact bitmask-DP pairing objective, capture/pair
+  ordinals, fingerprint row order and chronological float64 exact-zero
+  orientation semantics.
+- Round 6 independent contract review passed at
+  `P0/P1/P2/P3=0/0/0/0`; the data execution lock is released.
+
 ## 2026-08-24 H0-B V4 Round 6 Accepted
 
 - Exact Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and independent
@@ -9371,3 +9397,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Third-round independent QA passed with `P0/P1/P2/P3 = 0/0/0/0`.
 - Task `0828T013` is closed as `已通过`; A1 remains unauthorized and work
   pauses at the completed A0 boundary.
+- 2026-08-28: 0828T014 Revision 2 independent review failed
+  (`P0/P1/P2/P3=1/4/1/0`); formal data execution remains locked. Revision 3
+  now uses activity-matched 10s direction-path permutation within 5m parents,
+  symmetric boundary censor, adjacent contiguous component conflict,
+  trade-plus-depth availability and pre-refractory density gates.

@@ -1,5 +1,19 @@
 # Task Plan
 
+## 2026-08-28 0828T014 Flow Coherence A-1 Audit In Progress
+
+- Register `FLOW_COHERENCE_TRANSITION_V1_A_MINUS1` as the current formal task.
+- Audit only structural support for
+  `discordant_active -> coherent_active_d`.
+- Preserve zero future-price, target, H0/H1, cost and PnL access.
+- Require 30s startup/reconnect exclusion, nine one-factor variants,
+  activity-matched 10s/30s/60s direction-path structural nulls and
+  artificial-slice invariance.
+- Revision 6 passed independent plan review at
+  `P0/P1/P2/P3=0/0/0/0`; execute only the frozen outcome-blind audit.
+- A positive result may authorize only drafting a separately reviewed A0
+  contract.
+
 ## 2026-08-24 Stage H0-B V4 Round 6 Accepted
 
 - Preserve Round 5 candidate `72257a3b`, receipt `7ad2e9e8` and rejected
