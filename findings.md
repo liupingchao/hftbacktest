@@ -8708,3 +8708,8 @@ Drift guard:
   `FLOW_COHERENCE_TRANSITION_V1`. This rejects the registered predicate, not
   the broader possibility of interpretable alignment under another
   hypothesis.
+- 0828T014 QA Round 1 confirmed the scientific stop but found four evidence
+  completeness defects: slice/reset invariance covered only V0, one frozen
+  feature-window boundary gate was absent, Gate 0/1 relied partly on
+  self-declaration, and one fingerprint paragraph named cache files instead
+  of the frozen capture ordinal.

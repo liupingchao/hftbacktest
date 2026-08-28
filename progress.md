@@ -9412,6 +9412,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Third-round independent QA passed with `P0/P1/P2/P3 = 0/0/0/0`.
 - Task `0828T013` is closed as `已通过`; A1 remains unauthorized and work
   pauses at the completed A0 boundary.
+
+## 2026-08-29 0828T014 Flow Coherence A-1 QA Round 1 Rejected
+
+- Independent QA accepted the negative scientific result but rejected the
+  execution package with `P0/P1/P2/P3 = 0/1/2/1`.
+- Required remediation is limited to execution completeness: all-nine-variant
+  slice invariance, the cross-segment/cross-quality feature-window atomic
+  gate, fail-closed Gate 0/1 evidence, and one fingerprint identity wording
+  conflict.
+- The task is `未通过`; A0 drafting and future-target access remain forbidden.
 - 2026-08-28: 0828T014 Revision 2 independent review failed
   (`P0/P1/P2/P3=1/4/1/0`); formal data execution remains locked. Revision 3
   now uses activity-matched 10s direction-path permutation within 5m parents,
