@@ -1365,7 +1365,9 @@ H0 activity field = log1p(activity_500ms)
 H0 volatility = unchanged
 H0 spread = unchanged
 H0 direction main effect = d
-H0 time block = UTC floor(entry_at / 30 minutes)
+H0 time block =
+  floor((UTC nanoseconds since midnight at entry_at) / 30 minutes)
+  with fixed integer levels 0..47
 ```
 
 Raw bid/ask depth, raw un-oriented OBI and raw un-oriented returns do not enter
@@ -1602,6 +1604,34 @@ if population std=0, standardized value is fixed to 0 and field is retained
 categorical reference = lexicographically first frozen level
 ```
 
+LODO preprocessing is fold-local:
+
+```text
+for held-out development date v:
+  fold training dates = other two development dates
+  fit continuous medians, means and population std only on fold training entries
+  transform fold training and held-out entries with those statistics
+  fit H0 on fold training dates
+  score H0 on held-out date
+
+after lambda selection:
+  refit preprocessing on all three development dates
+  refit final H0 and H1 on all three development dates
+  freeze preprocessing and coefficients
+  apply unchanged to blocked validation and historical no-refit replay
+```
+
+Primary categorical handling is not data-discovered:
+
+```text
+time block levels: fixed integers 0..47, reference 0
+direction sign: numeric value -1 or +1, not one-hot encoded
+unknown time block: invalid entry, not an unknown category
+```
+
+No held-out development entry may influence its fold's imputation,
+standardization, feature validity or fitted coefficients.
+
 Use ridge penalties:
 
 ```text
@@ -1756,6 +1786,27 @@ linearly interpolate between floor(h) and ceil(h)
 ties remain repeated observations
 non-finite replicate values cause A3 failure
 ```
+
+Exact random draw contract:
+
+```text
+PRNG: NumPy Generator(PCG64(20260828))
+date order: ascending ISO research_date
+component order within date:
+  ascending pair_dependence_component_id lowercase hex
+replicate order: r=0..1999
+loop nesting:
+  for replicate r
+    for date in ascending order
+draw for a date with n components:
+  rng.integers(0,n,size=n,endpoint=false,dtype=int64)
+sampling probability: equal 1/n with replacement
+duplicate draws: retain full multiplicity
+reseed between dates or replicates: forbidden
+```
+
+The generator stream is created once before replicate zero. Component members
+are expanded in ascending `pair_id` order before fixed-prediction scoring.
 
 Frozen evaluation families:
 
@@ -2104,6 +2155,72 @@ A0_control_common_support_insufficient
 A0_followup_geometry_insufficient
 ```
 
+Canonical multi-failure rule:
+
+```text
+gate evaluation order:
+  A0-0, A0-1, A0-2, A0-3, A0-4, A0-5, A0-6, A0-7
+
+failed_gates:
+  every failed gate ID in that order
+
+failed_conditions:
+  every failed atomic condition in gate order and in the written order
+  inside each gate
+```
+
+Primary `classification` is unique:
+
+```text
+no failed gates:
+  A0_directional_state_contract_supported
+
+first failed gate A0-0:
+  A0_source_not_admissible
+
+first failed gate A0-1:
+  A0_zero_outcome_boundary_violated
+
+first failed gate A0-2:
+  A0_directional_feature_support_failed
+
+first failed gate A0-3:
+  if anchor rate >150/hour:
+    A0_directional_anchor_near_continuous
+  else if maximum single-date anchor share >0.35:
+    A0_directional_anchor_date_concentrated
+  else:
+    A0_directional_anchor_support_insufficient
+
+first failed gate A0-4:
+  if any zero-violation invariant fails, either direction is absent,
+  or fewer than two component-pair families appear:
+    A0_directional_state_semantics_failed
+  else:
+    A0_directional_anchor_near_continuous
+
+first failed gate A0-5:
+  A0_dependence_support_insufficient
+
+first failed gate A0-6:
+  A0_control_common_support_insufficient
+
+first failed gate A0-7:
+  A0_followup_geometry_insufficient
+```
+
+`classification.json` must contain:
+
+```text
+classification
+gate_results in canonical gate order
+failed_gates
+failed_conditions
+A1_authorized
+```
+
+`A1_authorized=true` only when `failed_gates=[]`.
+
 Only:
 
 ```text
@@ -2164,8 +2281,11 @@ Formal implementation must include focused tests for:
 - exact H0 direction-orientation map;
 - exact primary penalty mask and weighted objective;
 - canonical anchor/control/pair SHA serialization;
+- fold-local LODO preprocessing and final all-development refit;
 - deterministic lambda tie rule and optimizer convergence;
 - fixed-model component bootstrap and one-sided percentile interpolation;
+- exact PCG64 component sampling stream;
+- canonical multi-gate classification and ordered failure ledger;
 - zero-target outcome ledger;
 - deterministic double-build identity.
 

@@ -19,7 +19,9 @@ QA说明：
   `P0/P1/P2/P3 = 0/4/1/0`。
 - 第三次独立只读 QA 仍建议 `未通过`，缺陷统计
   `P0/P1/P2/P3 = 0/2/2/0`。
-- 已完成第三轮 plan-only remediation，等待第四次独立 QA。
+- 第四次独立只读 QA 仍建议 `未通过`，缺陷统计
+  `P0/P1/P2/P3 = 0/2/1/0`。
+- 已完成第四轮 plan-only remediation，等待第五次独立 QA。
 
 files：
 - `.workflow/tasks/0828T012.md`
@@ -62,6 +64,12 @@ action：
   - fixed-model component bootstrap、one-sided 5% percentile 和 seed；
   - global control/pair identity 与 canonical JSON SHA serialization；
   - lambda tie-break 和 deterministic L-BFGS-B convergence contract。
+- 第四次 QA 后补齐：
+  - fold-local LODO preprocessing 和 final all-development refit；
+  - fixed `PCG64(20260828)` bootstrap stream、canonical iteration order
+    和 integer draw contract；
+  - ordered `failed_gates`/`failed_conditions` 与唯一 primary
+    classification mapping。
 
 verify：
 - Hypothesis/version boundary 人工核对通过。
@@ -78,7 +86,7 @@ verify：
 - Sparse、near-continuous、date concentration 和 dependence support gates
   均已冻结。
 - A0 zero-outcome boundary 与 downstream target stub 分离。
-- Markdown 共 `284` 个 fence，奇偶配对检查通过。
+- Markdown 共 `296` 个 fence，奇偶配对检查通过。
 - 必需 hypothesis、anchor、failure transitions、control labels、gates 和
   classifications 静态存在性检查通过。
 - Frozen predecessor authority blobs 从 commit `91cc0770` 重算 SHA，与
@@ -86,7 +94,7 @@ verify：
 - Total transition table 覆盖全部 7 个状态。
 - `git diff --check` 通过。
 - Plan SHA256:
-  `182d5c844b7bb7e7a41318219bb8aad528c717f10e3c9be07c9cc91c8298c8c1`。
+  `81ad22981fd1567d2bea4b01c96ec3650e799a5d0fc38144845416805e3ffc0a`。
 
 done：
 - A0 design contract 已起草。
@@ -106,9 +114,12 @@ commit：
 - second QA remediation：`1cb23fa8`
 - second remediation record：`a495150c`
 - third QA remediation：`ad422293`
+- third remediation record：`b3b1ca07`
+- fourth QA remediation：待提交
 
 提交信息：
 - initial：docs: freeze flow internal directional alpha A0 plan
 - remediation：docs: close directional alpha A0 contract gaps
 - second remediation：docs: freeze directional alpha primary estimand
 - third remediation：docs: close directional alpha score boundaries
+- fourth remediation：docs: finalize directional alpha reproducibility
