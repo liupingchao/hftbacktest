@@ -22,10 +22,12 @@
   ],
   "checkpoint_count": 89891,
   "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "manual_activity_q60": 44.0,
   "per_date_refits": 0,
   "plan_path": "docs/skhynix_binance_flow_internal_directional_alpha_v1_a0_plan_20260828.md",
   "plan_sha256": "6278d6b5f0d0dfd855b2d2ee121fa4fbebf6b3a864acecc4a0f5368e558aeeed",
   "quantile_method": "numpy_linear_type7",
+  "quantile_rule_match": true,
   "return_500_quintile_edges": [
     -10.998535402086423,
     0.0,

@@ -327,7 +327,35 @@
     {
       "conditions": [
         {
-          "condition": "at_least_one_geometry_horizon_passes",
+          "condition": "overall_complete_coverage_ge_0_95",
+          "passed": true
+        },
+        {
+          "condition": "minimum_date_complete_coverage_ge_0_80",
+          "passed": true
+        },
+        {
+          "condition": "overlap_component_count_ge_100",
+          "passed": false
+        },
+        {
+          "condition": "max_overlap_component_entry_share_le_0_05",
+          "passed": false
+        },
+        {
+          "condition": "max_date_overlap_component_share_le_0_10",
+          "passed": false
+        },
+        {
+          "condition": "pair_dependence_component_count_ge_100",
+          "passed": false
+        },
+        {
+          "condition": "max_pair_dependence_pair_share_le_0_05",
+          "passed": false
+        },
+        {
+          "condition": "max_date_pair_dependence_share_le_0_10",
           "passed": false
         }
       ],

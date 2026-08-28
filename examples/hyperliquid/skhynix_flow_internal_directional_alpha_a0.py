@@ -78,6 +78,7 @@ DEPENDENCE_NS = 30_000_000_000
 TAU_CANDIDATES_MS = (100, 250, 500, 1_000, 2_000, 5_000)
 LEVEL_WEIGHTS = np.asarray([1.0, 0.5, 1 / 3, 0.25, 0.2])
 TOP_N = 5
+CACHE_SCHEMA_VERSION = 4
 
 INACTIVE = "INACTIVE_FLOW"
 MIXED_BUILDING = "MIXED_ACTIVE_BUILDING"
@@ -194,6 +195,18 @@ def _finite_percentile(values: Sequence[float] | np.ndarray, q: float) -> float:
     return float(np.percentile(array, q, method="linear")) if len(array) else math.nan
 
 
+def _type7_quantile(values: Sequence[float] | np.ndarray, probability: float) -> float:
+    array = np.asarray(values, dtype=np.float64)
+    array = np.sort(array[np.isfinite(array)])
+    if not len(array):
+        return math.nan
+    h = (len(array) - 1) * probability
+    lower = int(math.floor(h))
+    upper = int(math.ceil(h))
+    fraction = h - lower
+    return float(array[lower] + fraction * (array[upper] - array[lower]))
+
+
 def _bool(value: bool) -> str:
     return str(bool(value)).lower()
 
@@ -210,6 +223,12 @@ def _git_blob(path: str) -> bytes:
 def load_authoritative_captures(
     *, verify_hashes: bool
 ) -> tuple[list[Capture], list[dict[str, Any]], dict[str, Any]]:
+    resolved_source_commit = subprocess.run(
+        ["git", "rev-parse", SOURCE_COMMIT],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
     blob_status = []
     for relative, expected in AUTHORITY_BLOBS.items():
         raw = _git_blob(str(SOURCE_ROOT / relative))
@@ -265,6 +284,8 @@ def load_authoritative_captures(
     )
     status = {
         "predecessor_execution_commit": SOURCE_COMMIT,
+        "predecessor_execution_commit_resolved": resolved_source_commit,
+        "predecessor_execution_commit_verified": bool(resolved_source_commit),
         "authority_blobs": blob_status,
         "authority_blobs_match": all(row["matched"] for row in blob_status),
         "inventory_count": len(rows),
@@ -318,6 +339,31 @@ class FlowReplay:
         self.ofi = 0.0
         self.ofi_abs = 0.0
         self.activity = 0
+
+    def _bin_totals(self) -> tuple[float, ...]:
+        return (
+            self.trade_signed,
+            self.trade_total,
+            self.ask_depletion,
+            self.bid_depletion,
+            self.ofi,
+            self.ofi_abs,
+            float(self.activity),
+        )
+
+    def _check_event_bin(self, ts_ns: int) -> None:
+        if self.next_checkpoint is None or not (
+            self.next_checkpoint - CHECKPOINT_NS
+            <= ts_ns
+            < self.next_checkpoint
+        ):
+            self.bin_boundary_violations += 1
+
+    def _audit_message_contribution(
+        self, before: tuple[float, ...], *, admitted: bool
+    ) -> None:
+        if not admitted and self._bin_totals() != before:
+            self.non_admitted_contributions += 1
 
     def _book_state(self) -> tuple[bool, float, float, float, float, float]:
         bid_px, bid_qty = self.bid_book.top(bid=True)
@@ -383,24 +429,26 @@ class FlowReplay:
             return False
         if self.initial_bridge_failed:
             return False
-        if update_u <= self.snapshot_id and self.last_u is None:
+        if update_u < self.snapshot_id and self.last_u is None:
             return False
         if self.last_u is None:
-            if not (update_U <= self.snapshot_id + 1 <= update_u):
-                if update_U > self.snapshot_id + 1:
+            if not (update_U <= self.snapshot_id <= update_u):
+                if update_U > self.snapshot_id:
                     self.initial_bridge_failed = True
                     self.initial_bridge_failure_count += 1
                     self.quality_boundary_count += 1
+                    self.segment_end_by_id[self.segment_id] = ts_ns
+                    self.segment_id += 1
+                    self.segment_start_ts = ts_ns
+                    self.sequence_ready = False
+                    self._clear_bin()
                 return False
-            if self.initialized and not self.sequence_ready:
-                self.segment_end_by_id[self.segment_id] = ts_ns
-                self.segment_id += 1
-                self.segment_start_ts = ts_ns
-                self.sequence_ready = True
-                self._clear_bin()
         elif update_pu != self.last_u:
             self.sequence_gap_count += 1
             self.quality_boundary_count += 1
+            self.segment_end_by_id[self.segment_id] = ts_ns
+            self.segment_id += 1
+            self.segment_start_ts = ts_ns
             self.sequence_ready = False
             self.initial_bridge_failed = True
             self._clear_bin()
@@ -430,10 +478,12 @@ class FlowReplay:
                 self.ofi += atomic_ofi
                 self.ofi_abs += abs(atomic_ofi)
         self.last_u = update_u
+        self._check_event_bin(ts_ns)
         self.activity += 1
         return True
 
-    def _apply_trade(self, data: dict[str, Any]) -> bool:
+    def _apply_trade(self, ts_ns: int, data: dict[str, Any]) -> bool:
+        self._check_event_bin(ts_ns)
         quantity = float(data.get("q", 0.0))
         self.trade_signed += -quantity if bool(data.get("m")) else quantity
         self.trade_total += quantity
@@ -468,7 +518,7 @@ class FlowReplay:
                     self.snapshot_id = int(data["lastUpdateId"])
                     self.last_u = None
                     self.initialized = True
-                    self.sequence_ready = False
+                    self.sequence_ready = True
                     self.initial_bridge_failed = False
                     self.segment_id += 1
                     self.segment_start_ts = ts_ns
@@ -478,10 +528,13 @@ class FlowReplay:
                 if not self.initialized:
                     continue
                 event_type = data.get("e")
+                before = self._bin_totals()
+                admitted = False
                 if event_type == "depthUpdate":
-                    self._apply_depth(ts_ns, data)
+                    admitted = self._apply_depth(ts_ns, data)
                 elif event_type == "trade" and self.sequence_ready:
-                    self._apply_trade(data)
+                    admitted = self._apply_trade(ts_ns, data)
+                self._audit_message_contribution(before, admitted=admitted)
         if self.initialized and self.next_checkpoint is not None:
             while self.next_checkpoint <= self.last_message_ts:
                 if callback is not None:
@@ -514,7 +567,12 @@ CACHE_FIELDS = (
 )
 
 
-def build_capture_cache(capture: Capture, out_dir: Path) -> tuple[Path, dict[str, Any]]:
+def build_capture_cache(
+    capture: Capture,
+    out_dir: Path,
+    *,
+    cache_namespace: str = "primary",
+) -> tuple[Path, dict[str, Any]]:
     columns: dict[str, list[Any]] = {field: [] for field in CACHE_FIELDS}
 
     def collect(row: ReplayRow) -> None:
@@ -526,7 +584,10 @@ def build_capture_cache(capture: Capture, out_dir: Path) -> tuple[Path, dict[str
     segment_ends = engine.run(collect)
     if not columns["ts_ns"]:
         raise A0Error(f"no_checkpoints:{capture.capture_id}")
-    path = out_dir / "cache" / f"{capture.capture_id}.npz"
+    cache_root = out_dir / "cache"
+    if cache_namespace != "primary":
+        cache_root = cache_root / cache_namespace
+    path = cache_root / f"{capture.capture_id}.npz"
     arrays: dict[str, np.ndarray] = {}
     for field, values in columns.items():
         if field in {"ts_ns"}:
@@ -551,7 +612,15 @@ def build_capture_cache(capture: Capture, out_dir: Path) -> tuple[Path, dict[str
         quality_boundary_count=np.asarray(
             [engine.quality_boundary_count], dtype=np.int32
         ),
+        reset_count=np.asarray([engine.reset_count], dtype=np.int32),
         sequence_gap_count=np.asarray([engine.sequence_gap_count], dtype=np.int32),
+        cache_schema_version=np.asarray([CACHE_SCHEMA_VERSION], dtype=np.int32),
+        bin_boundary_violations=np.asarray(
+            [engine.bin_boundary_violations], dtype=np.int32
+        ),
+        non_admitted_message_contributions=np.asarray(
+            [engine.non_admitted_contributions], dtype=np.int32
+        ),
     )
     diagnostics = {
         "capture_id": capture.capture_id,
@@ -623,6 +692,9 @@ def build_features(cache_path: Path) -> dict[str, np.ndarray]:
         enough = np.sum(available, axis=1) >= 2
         composite[enough] = np.nanmedian(ratios[enough], axis=1)
         features[f"ratios_{window_ms}"] = ratios
+        features[f"denominators_{window_ms}"] = np.column_stack(
+            (trade_total, dep_den, ofi_abs)
+        )
         features[f"available_{window_ms}"] = np.sum(available, axis=1)
         features[f"composite_{window_ms}"] = composite
     features["activity_500"] = _rolling_sum(values["activity"], segments, 25)
@@ -674,6 +746,28 @@ def build_features(cache_path: Path) -> dict[str, np.ndarray]:
     return features
 
 
+def _ratio_audit_counts(
+    ratios: np.ndarray, denominators: np.ndarray
+) -> tuple[int, int, int, int]:
+    finite = np.isfinite(ratios)
+    zero_denominator = int(np.count_nonzero((denominators == 0) & finite))
+    positive_denominator_missing = int(
+        np.count_nonzero((denominators > 0) & ~finite)
+    )
+    ratio_bound = int(
+        np.count_nonzero(finite & ((ratios < -1.000001) | (ratios > 1.000001)))
+    )
+    denominator_floor_substitution = int(
+        np.count_nonzero((denominators <= 0) & finite)
+    )
+    return (
+        zero_denominator,
+        positive_denominator_missing,
+        ratio_bound,
+        denominator_floor_substitution,
+    )
+
+
 def calibration_contract(
     captures: Sequence[Capture], cache_paths: dict[str, Path]
 ) -> dict[str, Any]:
@@ -702,9 +796,13 @@ def calibration_contract(
         return values[np.isfinite(values)]
 
     activity = joined(activity_chunks)
+    activity_q60 = _finite_percentile(activity, 60)
+    manual_activity_q60 = _type7_quantile(activity, 0.60)
     result = {
         "checkpoint_count": checkpoint_count,
-        "activity_q60": _finite_percentile(activity, 60),
+        "activity_q60": activity_q60,
+        "manual_activity_q60": manual_activity_q60,
+        "quantile_rule_match": bool(activity_q60 == manual_activity_q60),
         "activity_zero_share": float(np.mean(activity == 0)),
         "bid_depth_quintile_edges": [
             _finite_percentile(joined(bid_chunks), q) for q in (20, 40, 60, 80)
@@ -783,6 +881,7 @@ class DominanceStateMachine:
         self.renewal_count = 0
         self.flip_attempt_count = 0
         self.previous_q_direction = False
+        self.candidate_origin_mixed_history_ns = 0
 
     def _clear(self) -> None:
         self.state = INACTIVE
@@ -796,6 +895,7 @@ class DominanceStateMachine:
         self.renewal_count = 0
         self.flip_attempt_count = 0
         self.previous_q_direction = False
+        self.candidate_origin_mixed_history_ns = 0
 
     def step(
         self,
@@ -851,6 +951,7 @@ class DominanceStateMachine:
                 self.state = DOM_CANDIDATE
                 self.candidate_at = ts_ns
                 self.candidate_exposure_ns = 0
+                self.candidate_origin_mixed_history_ns = self.mixed_exposure_ns
                 result.transition = (
                     f"{before}->{self.state}_{self.direction}:mixed_onset_candidate"
                 )
@@ -866,6 +967,7 @@ class DominanceStateMachine:
                 self.state = MIXED_BUILDING
                 self.mixed_exposure_ns = 0
                 self.candidate_exposure_ns = 0
+                self.candidate_origin_mixed_history_ns = 0
                 result.transition = f"{before}->{self.state}:direction_switch"
             elif (
                 effective_q[self.direction]
@@ -884,6 +986,7 @@ class DominanceStateMachine:
                 self.state = MIXED_BUILDING
                 self.mixed_exposure_ns = 0
                 self.candidate_exposure_ns = 0
+                self.candidate_origin_mixed_history_ns = 0
                 result.transition = f"{before}->{self.state}:timeout"
             elif effective_q[self.direction]:
                 self.candidate_exposure_ns += CHECKPOINT_NS
@@ -1034,6 +1137,26 @@ def _context(
     }
 
 
+def _control_grid_assignment(
+    next_control_grid: int | None,
+    ts_ns: int,
+    *,
+    segment_changed: bool,
+    checkpoint_valid: bool,
+) -> tuple[int | None, int]:
+    if next_control_grid is None or segment_changed:
+        next_control_grid = (
+            (ts_ns + CONTROL_STRIDE_NS - 1) // CONTROL_STRIDE_NS
+        ) * CONTROL_STRIDE_NS
+    if ts_ns < next_control_grid or not checkpoint_valid:
+        return None, next_control_grid
+    grid_ts = next_control_grid
+    next_control_grid = (
+        ts_ns // CONTROL_STRIDE_NS + 1
+    ) * CONTROL_STRIDE_NS
+    return grid_ts, next_control_grid
+
+
 def detect_capture(
     capture: Capture,
     cache_path: Path,
@@ -1052,10 +1175,17 @@ def detect_capture(
     transition_count = 0
     multi_transition_violations = 0
     multi_anchor_violations = 0
+    zero_denominator_representation_violations = 0
+    positive_denominator_missing_ratio_violations = 0
+    ratio_bound_violations = 0
+    denominator_floor_substitution_count = 0
+    counter_survived_reset_or_support_loss = 0
     last_anchor_ts = -10**30
     current_state_start = 0
     next_control_grid: int | None = None
     mapped_control_checkpoints: set[tuple[int, int]] = set()
+    last_ts_ns = 0
+    last_segment_id = -1
     segment_ends = {
         int(key): int(value)
         for key, value in zip(feature["segment_end_ids"], feature["segment_end_ts"])
@@ -1064,9 +1194,26 @@ def detect_capture(
     for index, ts_value in enumerate(feature["ts_ns"]):
         ts_ns = int(ts_value)
         segment_id = int(feature["segment_id"][index])
+        last_ts_ns = ts_ns
+        last_segment_id = segment_id
         quality_ok = bool(feature["ready"][index])
         if quality_ok:
             ready_count += 1
+            for window in WINDOWS_MS:
+                ratios = feature[f"ratios_{window}"][index]
+                denominators = feature[f"denominators_{window}"][index]
+                (
+                    zero_count,
+                    positive_missing_count,
+                    bound_count,
+                    floor_count,
+                ) = _ratio_audit_counts(ratios, denominators)
+                zero_denominator_representation_violations += zero_count
+                positive_denominator_missing_ratio_violations += (
+                    positive_missing_count
+                )
+                ratio_bound_violations += bound_count
+                denominator_floor_substitution_count += floor_count
         ratios_100 = feature["ratios_100"][index]
         q, q_both, q_release, agreement_payload = ratio_predicates(
             ratios_100,
@@ -1104,6 +1251,18 @@ def detect_capture(
             q_release=q_release,
             q_mixed=q_mixed,
         )
+        if (not quality_ok or not active) and any(
+            (
+                machine.mixed_exposure_ns,
+                machine.candidate_at,
+                machine.candidate_exposure_ns,
+                machine.release_exposure_ns,
+                machine.confirmed_at,
+                machine.renewal_count,
+                machine.flip_attempt_count,
+            )
+        ):
+            counter_survived_reset_or_support_loss += 1
         if step.transition:
             transition_count += 1
             if before in {DOMINANT, FLIP_CANDIDATE, RELEASE_CANDIDATE} and (
@@ -1172,7 +1331,9 @@ def detect_capture(
                 "candidate_at_ts_ns": machine.candidate_at,
                 "persistence_exposure_ms": machine.candidate_exposure_ns / 1e6,
                 "mixed_history_ms": (
-                    MIXED_HISTORY_NS / 1e6 if step.anchor_type == "mixed_onset" else ""
+                    machine.candidate_origin_mixed_history_ns / 1e6
+                    if step.anchor_type == "mixed_onset"
+                    else ""
                 ),
                 "dominance_acceleration": (
                     float(feature["composite_100"][index])
@@ -1209,17 +1370,16 @@ def detect_capture(
             machine.renewal_count = 0
             machine.flip_attempt_count = 0
 
-        if next_control_grid is None or (
+        segment_changed = bool(
             index > 0 and feature["segment_id"][index - 1] != segment_id
-        ):
-            next_control_grid = (
-                (ts_ns + CONTROL_STRIDE_NS - 1) // CONTROL_STRIDE_NS
-            ) * CONTROL_STRIDE_NS
-        if quality_ok and next_control_grid is not None and ts_ns >= next_control_grid:
-            grid_ts = next_control_grid
-            next_control_grid = (
-                ts_ns // CONTROL_STRIDE_NS + 1
-            ) * CONTROL_STRIDE_NS
+        )
+        grid_ts, next_control_grid = _control_grid_assignment(
+            next_control_grid,
+            ts_ns,
+            segment_changed=segment_changed,
+            checkpoint_valid=bool(feature["valid_book"][index]),
+        )
+        if grid_ts is not None:
             checkpoint_key = (segment_id, ts_ns)
             eligible_state = machine.state in {MIXED_BUILDING, MIXED_READY, INACTIVE}
             if (
@@ -1248,6 +1408,46 @@ def detect_capture(
                         }
                     )
 
+    if machine.state in {DOMINANT, FLIP_CANDIDATE, RELEASE_CANDIDATE}:
+        parent_direction = (
+            -machine.direction if machine.state == FLIP_CANDIDATE else machine.direction
+        )
+        state_rows.append(
+            {
+                "capture_id": capture.capture_id,
+                "research_date": capture.research_date,
+                "segment_id": last_segment_id,
+                "state_id": machine.parent_state_id,
+                "direction": parent_direction,
+                "state_start_ts_ns": current_state_start,
+                "state_end_ts_ns": last_ts_ns,
+                "duration_ms": (last_ts_ns - current_state_start) / 1e6,
+                "exit_reason": "capture_end_censored",
+                "renewal_count": machine.renewal_count,
+                "flip_attempt_count": machine.flip_attempt_count,
+            }
+        )
+    if machine.state in {DOM_CANDIDATE, FLIP_CANDIDATE, RELEASE_CANDIDATE}:
+        candidates.append(
+            {
+                "capture_id": capture.capture_id,
+                "research_date": capture.research_date,
+                "segment_id": last_segment_id,
+                "candidate_ts_ns": machine.candidate_at,
+                "resolved_ts_ns": last_ts_ns,
+                "candidate_type": (
+                    "persistent_flip"
+                    if machine.state == FLIP_CANDIDATE
+                    else "release"
+                    if machine.state == RELEASE_CANDIDATE
+                    else "mixed_onset"
+                ),
+                "direction": machine.direction,
+                "status": "capture_end_censored",
+                "elapsed_ms": (last_ts_ns - machine.candidate_at) / 1e6,
+            }
+        )
+
     diagnostics = {
         "capture_id": capture.capture_id,
         "research_date": capture.research_date,
@@ -1264,6 +1464,19 @@ def detect_capture(
         "transition_count": transition_count,
         "multiple_transition_violations": multi_transition_violations,
         "multiple_anchor_violations": multi_anchor_violations,
+        "zero_denominator_representation_violations": (
+            zero_denominator_representation_violations
+        ),
+        "positive_denominator_missing_ratio_violations": (
+            positive_denominator_missing_ratio_violations
+        ),
+        "ratio_bound_violations": ratio_bound_violations,
+        "denominator_floor_substitution_count": (
+            denominator_floor_substitution_count
+        ),
+        "counter_survived_reset_or_support_loss": (
+            counter_survived_reset_or_support_loss
+        ),
     }
     return {
         "anchors": anchors,
@@ -1679,6 +1892,61 @@ def geometry_audit(
     return geometry_rows, overlap_rows, pair_component_rows, max(passing, default=None)
 
 
+def _geometry_conditions_for_row(
+    row: dict[str, Any],
+) -> list[tuple[str, bool]]:
+    return [
+        (
+            "overall_complete_coverage_ge_0_95",
+            float(row["overall_complete_coverage"]) >= 0.95,
+        ),
+        (
+            "minimum_date_complete_coverage_ge_0_80",
+            float(row["minimum_date_complete_coverage"]) >= 0.80,
+        ),
+        (
+            "overlap_component_count_ge_100",
+            int(row["overlap_component_count"]) >= 100,
+        ),
+        (
+            "max_overlap_component_entry_share_le_0_05",
+            float(row["max_overlap_component_entry_share"]) <= 0.05,
+        ),
+        (
+            "max_date_overlap_component_share_le_0_10",
+            float(row["max_date_overlap_component_share"]) <= 0.10,
+        ),
+        (
+            "pair_dependence_component_count_ge_100",
+            int(row["pair_dependence_component_count"]) >= 100,
+        ),
+        (
+            "max_pair_dependence_pair_share_le_0_05",
+            float(row["max_pair_dependence_pair_share"]) <= 0.05,
+        ),
+        (
+            "max_date_pair_dependence_share_le_0_10",
+            float(row["max_date_pair_dependence_share"]) <= 0.10,
+        ),
+    ]
+
+
+def _select_geometry_evaluation_row(
+    rows: Sequence[dict[str, Any]], primary_tau: int | None
+) -> dict[str, Any] | None:
+    if not rows:
+        return None
+    if primary_tau is not None:
+        return next(row for row in rows if int(row["tau_ms"]) == primary_tau)
+    return max(
+        rows,
+        key=lambda row: (
+            sum(passed for _, passed in _geometry_conditions_for_row(row)),
+            int(row["tau_ms"]),
+        ),
+    )
+
+
 def _max_burst(anchors: Sequence[dict[str, Any]]) -> int:
     maximum = 0
     grouped: dict[tuple[str, int], list[int]] = defaultdict(list)
@@ -1712,6 +1980,31 @@ def _inter_anchor_ms(anchors: Sequence[dict[str, Any]]) -> np.ndarray:
     return np.asarray(gaps)
 
 
+def _state_overlap_violations(states: Sequence[dict[str, Any]]) -> int:
+    violations = 0
+    grouped: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
+    for row in states:
+        grouped[(row["capture_id"], int(row["segment_id"]))].append(row)
+    for rows in grouped.values():
+        rows.sort(
+            key=lambda row: (
+                int(row["state_start_ts_ns"]),
+                int(row["state_end_ts_ns"]),
+                str(row["state_id"]),
+            )
+        )
+        prior_end = -1
+        active_ids: set[str] = set()
+        for row in rows:
+            start = int(row["state_start_ts_ns"])
+            end = int(row["state_end_ts_ns"])
+            if start < prior_end or str(row["state_id"]) in active_ids:
+                violations += 1
+            prior_end = max(prior_end, end)
+            active_ids.add(str(row["state_id"]))
+    return violations
+
+
 def evaluate_gates(
     captures: Sequence[Capture],
     source_status: dict[str, Any],
@@ -1719,6 +2012,7 @@ def evaluate_gates(
     detector_diagnostics: Sequence[dict[str, Any]],
     anchors: Sequence[dict[str, Any]],
     candidates: Sequence[dict[str, Any]],
+    states: Sequence[dict[str, Any]],
     controls: Sequence[dict[str, Any]],
     pairs: Sequence[dict[str, Any]],
     anchor_clusters: Sequence[dict[str, Any]],
@@ -1726,6 +2020,7 @@ def evaluate_gates(
     pair_clusters: Sequence[dict[str, Any]],
     geometry_rows: Sequence[dict[str, Any]],
     primary_tau: int | None,
+    calibration: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], str, dict[str, Any]]:
     date_hours = defaultdict(float)
     for capture in captures:
@@ -1831,6 +2126,26 @@ def evaluate_gates(
     median_anchors_cluster = _finite_percentile(
         [int(row["member_count"]) for row in anchor_clusters], 50
     )
+    zero_denominator_violations = sum(
+        int(row["zero_denominator_representation_violations"])
+        for row in detector_diagnostics
+    )
+    positive_denominator_missing_violations = sum(
+        int(row["positive_denominator_missing_ratio_violations"])
+        for row in detector_diagnostics
+    )
+    runtime_ratio_bound_violations = sum(
+        int(row["ratio_bound_violations"]) for row in detector_diagnostics
+    )
+    boundary_representation_violations = sum(
+        max(
+            int(row["initial_bridge_failure_count"])
+            + int(row["sequence_gap_count"])
+            - int(row["quality_boundary_count"]),
+            0,
+        )
+        for row in replay_diagnostics
+    )
 
     zero_invariants = {
         "mixed_history_violations": sum(
@@ -1844,32 +2159,94 @@ def evaluate_gates(
         "backdated_confirmations": sum(
             int(row["anchor_ts_ns"]) < int(row["candidate_at_ts_ns"]) for row in anchors
         ),
-        "same_direction_renewal_anchors": 0,
+        "same_direction_renewal_anchors": sum(
+            row["anchor_type"] == "same_direction_renewal" for row in anchors
+        ),
         "refractory_anchor_violations": sum(
             gap < 300 for gap in gaps
         ),
-        "raw_sign_flip_anchors": 0,
-        "overlapping_dominant_state_ids": 0,
+        "raw_sign_flip_anchors": sum(
+            row["anchor_type"] == "raw_sign_flip" for row in anchors
+        ),
+        "overlapping_dominant_state_ids": _state_overlap_violations(states),
         "multiple_transition_violations": sum(
             int(row["multiple_transition_violations"]) for row in detector_diagnostics
         ),
         "multiple_anchor_violations": sum(
             int(row["multiple_anchor_violations"]) for row in detector_diagnostics
         ),
-        "counter_survived_reset_or_support_loss": 0,
+        "counter_survived_reset_or_support_loss": sum(
+            int(row["counter_survived_reset_or_support_loss"])
+            for row in detector_diagnostics
+        ),
     }
+    geometry_numeric = [
+        {
+            **row,
+            "passed": row["passed"] == "true",
+        }
+        for row in geometry_rows
+    ]
+    primary_tau_geometry_metrics = next(
+        (
+            row
+            for row in geometry_numeric
+            if primary_tau is not None and int(row["tau_ms"]) == primary_tau
+        ),
+        None,
+    )
+    geometry_evaluation_row = _select_geometry_evaluation_row(
+        geometry_numeric, primary_tau
+    )
+    geometry_conditions = (
+        _geometry_conditions_for_row(geometry_evaluation_row)
+        if geometry_evaluation_row is not None
+        else [
+            (name, False)
+            for name, _ in _geometry_conditions_for_row(
+                {
+                    "overall_complete_coverage": 0,
+                    "minimum_date_complete_coverage": 0,
+                    "overlap_component_count": 0,
+                    "max_overlap_component_entry_share": 1,
+                    "max_date_overlap_component_share": 1,
+                    "pair_dependence_component_count": 0,
+                    "max_pair_dependence_pair_share": 1,
+                    "max_date_pair_dependence_share": 1,
+                }
+            )
+        ]
+    )
 
     gate_conditions: list[tuple[str, list[tuple[str, bool]]]] = [
         (
             "A0-0",
             [
-                ("predecessor_execution_commit_exact", True),
+                (
+                    "predecessor_execution_commit_exact",
+                    source_status["predecessor_execution_commit_verified"],
+                ),
                 ("authority_blob_sha256_match", source_status["authority_blobs_match"]),
                 ("exact_29_row_inventory", source_status["exact_29_row_inventory"]),
-                ("raw_size_and_sha_closure", source_status["all_raw_sizes_match"] and source_status["all_raw_hashes_match"]),
-                ("zero_unhandled_depth_gaps", source_status["depth_gap_count"] == 0 and sum(row["sequence_gap_count"] for row in replay_diagnostics) == 0),
-                ("deterministic_replay_contract", True),
-                ("reset_quality_boundaries_represented", True),
+                (
+                    "raw_size_and_sha_closure",
+                    source_status["hashes_verified_now"]
+                    and source_status["all_raw_sizes_match"]
+                    and source_status["all_raw_hashes_match"],
+                ),
+                (
+                    "zero_unhandled_depth_gaps",
+                    source_status["depth_gap_count"] == 0
+                    and boundary_representation_violations == 0,
+                ),
+                (
+                    "deterministic_replay_contract",
+                    source_status["deterministic_replay_verified"],
+                ),
+                (
+                    "reset_quality_boundaries_represented",
+                    boundary_representation_violations == 0,
+                ),
             ],
         ),
         (
@@ -1889,16 +2266,41 @@ def evaluate_gates(
             "A0-2",
             [
                 ("anchor_ratio_availability_ge_2", anchor_availability),
-                ("all_valid_ratios_bounded", ratios_bounded),
-                ("zero_denominator_is_unavailable", True),
-                ("epsilon_floor_substitutions_zero", True),
-                ("all_anchors_complete_2000ms", all(float(row["vol_2000"]) >= 0 for row in anchors)),
+                (
+                    "all_valid_ratios_bounded",
+                    ratios_bounded and runtime_ratio_bound_violations == 0,
+                ),
+                (
+                    "zero_denominator_is_unavailable",
+                    zero_denominator_violations == 0
+                    and positive_denominator_missing_violations == 0,
+                ),
+                (
+                    "epsilon_floor_substitutions_zero",
+                    sum(
+                        int(row["denominator_floor_substitution_count"])
+                        for row in detector_diagnostics
+                    )
+                    == 0,
+                ),
+                (
+                    "all_anchors_complete_2000ms",
+                    all(float(row["vol_2000"]) >= 0 for row in anchors),
+                ),
                 ("right_open_bin_violations_zero", sum(row["bin_boundary_violations"] for row in replay_diagnostics) == 0),
                 ("non_admitted_contributions_zero", sum(row["non_admitted_message_contributions"] for row in replay_diagnostics) == 0),
                 ("u_below_abs_o_violations_zero", sum(row["u_below_abs_o_violations"] for row in replay_diagnostics) == 0),
-                ("calibration_role_only", True),
-                ("quantile_type7_tie_rule_exact", True),
-                ("per_date_refits_zero", True),
+                (
+                    "calibration_role_only",
+                    calibration["roles_used"]
+                    == ["historical_normalization_calibration"],
+                ),
+                (
+                    "quantile_type7_tie_rule_exact",
+                    calibration["quantile_rule_match"]
+                    and calibration["active_tie_rule"] == ">=",
+                ),
+                ("per_date_refits_zero", calibration["per_date_refits"] == 0),
                 ("overall_active_two_component_availability_ge_0_90", overall_availability >= 0.90),
                 ("minimum_date_availability_ge_0_80", min_date_availability >= 0.80),
             ],
@@ -1956,9 +2358,7 @@ def evaluate_gates(
         ),
         (
             "A0-7",
-            [
-                ("at_least_one_geometry_horizon_passes", primary_tau is not None),
-            ],
+            geometry_conditions,
         ),
     ]
     gate_results = []
@@ -2028,7 +2428,21 @@ def evaluate_gates(
         "control_dependence_cluster_count": len(control_clusters),
         "pair_dependence_cluster_count": len(pair_clusters),
         "primary_tau_ms": primary_tau,
+        "primary_tau_geometry_metrics": primary_tau_geometry_metrics,
+        "A0_7_evaluation_tau_ms": (
+            int(geometry_evaluation_row["tau_ms"])
+            if geometry_evaluation_row is not None
+            else None
+        ),
+        "A0_7_evaluation_geometry_metrics": geometry_evaluation_row,
+        "candidate_geometry_metrics": geometry_numeric,
         "zero_invariants": zero_invariants,
+        "boundary_representation_violations": boundary_representation_violations,
+        "zero_denominator_representation_violations": zero_denominator_violations,
+        "positive_denominator_missing_ratio_violations": (
+            positive_denominator_missing_violations
+        ),
+        "runtime_ratio_bound_violations": runtime_ratio_bound_violations,
         "initial_bridge_failure_count": sum(
             int(row["initial_bridge_failure_count"])
             for row in replay_diagnostics
@@ -2072,6 +2486,7 @@ def write_contracts(
     source_status: dict[str, Any],
     primary_tau: int | None,
     gate_results: Sequence[dict[str, Any]],
+    gate_metrics: dict[str, Any],
 ) -> None:
     common = {
         "schema_version": SCHEMA_VERSION,
@@ -2156,6 +2571,26 @@ def write_contracts(
             "targets_materialized": False,
             "candidate_taus_ms": list(TAU_CANDIDATES_MS),
             "primary_tau_ms": primary_tau,
+            "primary_tau_geometry_metrics": gate_metrics[
+                "primary_tau_geometry_metrics"
+            ],
+            "A0_7_evaluation_tau_ms": gate_metrics[
+                "A0_7_evaluation_tau_ms"
+            ],
+            "A0_7_evaluation_geometry_metrics": gate_metrics[
+                "A0_7_evaluation_geometry_metrics"
+            ],
+            "failure_diagnostic_selection": (
+                "maximum_passed_atomic_conditions_then_largest_tau"
+            ),
+            "eligible_horizons_in_ascending_order": [
+                int(row["tau_ms"])
+                for row in gate_metrics["candidate_geometry_metrics"]
+                if row["passed"]
+            ],
+            "candidate_geometry_metrics": gate_metrics[
+                "candidate_geometry_metrics"
+            ],
             "selection_information": "timestamps_and_quality_boundaries_only",
         },
         "H0_H1_H2_contract.json": {
@@ -2231,6 +2666,7 @@ def run_a0(
     *,
     out_dir: Path = DEFAULT_OUT_DIR,
     verify_hashes: bool = False,
+    verify_replay_determinism: bool = False,
 ) -> dict[str, Any]:
     if _sha256(PLAN_PATH) != PLAN_SHA256:
         raise A0Error("frozen_plan_sha_mismatch")
@@ -2265,10 +2701,19 @@ def run_a0(
 
     cache_paths = {}
     replay_diagnostics = []
+    deterministic_replay_matches = []
     for index, capture in enumerate(captures, start=1):
         _progress(f"replay {index}/{len(captures)} {capture.capture_id}")
         cache_path = out_dir / "cache" / f"{capture.capture_id}.npz"
+        cache_current = False
         if cache_path.is_file():
+            with np.load(cache_path, allow_pickle=False) as existing:
+                cache_current = bool(
+                    "cache_schema_version" in existing.files
+                    and int(existing["cache_schema_version"][0])
+                    == CACHE_SCHEMA_VERSION
+                )
+        if cache_current:
             with np.load(cache_path, allow_pickle=False) as existing:
                 segment_count = len(existing["segment_end_ids"])
                 bridge_failures = int(
@@ -2281,9 +2726,7 @@ def run_a0(
                         "checkpoint_count": len(existing["ts_ns"]),
                         "ready_checkpoint_count": int(np.count_nonzero(existing["ready"])),
                         "segment_count": segment_count,
-                        "reset_count": max(
-                            (segment_count + bridge_failures) // 2 - 1, 0
-                        ),
+                        "reset_count": int(existing["reset_count"][0]),
                         "sequence_gap_count": int(
                             existing["sequence_gap_count"][0]
                         ),
@@ -2291,8 +2734,12 @@ def run_a0(
                         "quality_boundary_count": int(
                             existing["quality_boundary_count"][0]
                         ),
-                        "bin_boundary_violations": 0,
-                        "non_admitted_message_contributions": 0,
+                        "bin_boundary_violations": int(
+                            existing["bin_boundary_violations"][0]
+                        ),
+                        "non_admitted_message_contributions": int(
+                            existing["non_admitted_message_contributions"][0]
+                        ),
                         "u_below_abs_o_violations": int(
                             np.count_nonzero(
                                 existing["ofi_abs"].astype(np.float64) + 1e-6
@@ -2302,10 +2749,20 @@ def run_a0(
                     }
                 )
             cache_paths[capture.capture_id] = cache_path
-            continue
-        path, diagnostics = build_capture_cache(capture, out_dir)
-        cache_paths[capture.capture_id] = path
-        replay_diagnostics.append(diagnostics)
+        else:
+            path, diagnostics = build_capture_cache(capture, out_dir)
+            cache_paths[capture.capture_id] = path
+            replay_diagnostics.append(diagnostics)
+        if verify_replay_determinism:
+            deterministic_path, _ = build_capture_cache(
+                capture,
+                out_dir,
+                cache_namespace="determinism",
+            )
+            deterministic_replay_matches.append(
+                _sha256(cache_paths[capture.capture_id])
+                == _sha256(deterministic_path)
+            )
 
     _write_rows(
         out_dir / "support/replay_quality_by_capture.csv",
@@ -2325,6 +2782,15 @@ def run_a0(
     )
     source_status["quality_boundary_count"] = sum(
         int(row["quality_boundary_count"]) for row in replay_diagnostics
+    )
+    source_status["deterministic_replay_checked"] = verify_replay_determinism
+    source_status["deterministic_replay_capture_count"] = len(
+        deterministic_replay_matches
+    )
+    source_status["deterministic_replay_verified"] = bool(
+        verify_replay_determinism
+        and len(deterministic_replay_matches) == len(captures)
+        and all(deterministic_replay_matches)
     )
     calibration = calibration_contract(captures, cache_paths)
     _progress(f"calibration activity_q60={calibration['activity_q60']:.6g}")
@@ -2399,6 +2865,7 @@ def run_a0(
         detector_diagnostics,
         anchors,
         candidates,
+        states,
         controls,
         pairs,
         anchor_clusters,
@@ -2406,8 +2873,16 @@ def run_a0(
         pair_clusters,
         geometry_rows,
         primary_tau,
+        calibration,
     )
-    write_contracts(out_dir, calibration, source_status, primary_tau, gate_results)
+    write_contracts(
+        out_dir,
+        calibration,
+        source_status,
+        primary_tau,
+        gate_results,
+        metrics,
+    )
 
     _write_rows(
         out_dir / "support/directional_anchor_ledger.csv",
@@ -2679,6 +3154,14 @@ def run_a0(
         "failed_conditions": metrics["failed_conditions"],
         "A1_authorized": not metrics["failed_gates"],
         "primary_tau_ms": primary_tau,
+        "primary_tau_geometry_metrics": metrics[
+            "primary_tau_geometry_metrics"
+        ],
+        "A0_7_evaluation_tau_ms": metrics["A0_7_evaluation_tau_ms"],
+        "A0_7_evaluation_geometry_metrics": metrics[
+            "A0_7_evaluation_geometry_metrics"
+        ],
+        "candidate_geometry_metrics": metrics["candidate_geometry_metrics"],
         "eligible_horizons_in_ascending_order": [
             int(row["tau_ms"]) for row in geometry_rows if row["passed"] == "true"
         ],
@@ -2714,10 +3197,17 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
     parser.add_argument("--verify-hashes", action="store_true")
+    parser.add_argument("--verify-replay-determinism", action="store_true")
     args = parser.parse_args()
     print(
         json.dumps(
-            _json_ready(run_a0(out_dir=args.out_dir, verify_hashes=args.verify_hashes)),
+            _json_ready(
+                run_a0(
+                    out_dir=args.out_dir,
+                    verify_hashes=args.verify_hashes,
+                    verify_replay_determinism=args.verify_replay_determinism,
+                )
+            ),
             indent=2,
             sort_keys=True,
         )

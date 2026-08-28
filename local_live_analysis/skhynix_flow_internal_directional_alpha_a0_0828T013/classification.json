@@ -1,5 +1,92 @@
 {
+  "A0_7_evaluation_geometry_metrics": {
+    "max_date_overlap_component_share": 0.5,
+    "max_date_pair_dependence_share": 1.0,
+    "max_overlap_component_entry_share": 0.5,
+    "max_pair_dependence_pair_share": 1.0,
+    "minimum_date_complete_coverage": 1.0,
+    "overall_complete_coverage": 1.0,
+    "overlap_component_count": 2,
+    "pair_dependence_component_count": 1,
+    "passed": false,
+    "tau_ms": 5000
+  },
+  "A0_7_evaluation_tau_ms": 5000,
   "A1_authorized": false,
+  "candidate_geometry_metrics": [
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 100
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 250
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 500
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 1000
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 2000
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 5000
+    }
+  ],
   "classification": "A0_directional_anchor_date_concentrated",
   "eligible_horizons_in_ascending_order": [],
   "failed_conditions": [
@@ -18,7 +105,12 @@
     "A0-6:overall_common_support_ge_0_90",
     "A0-6:minimum_date_common_support_ge_0_75",
     "A0-6:max_single_date_pair_share_le_0_35",
-    "A0-7:at_least_one_geometry_horizon_passes"
+    "A0-7:overlap_component_count_ge_100",
+    "A0-7:max_overlap_component_entry_share_le_0_05",
+    "A0-7:max_date_overlap_component_share_le_0_10",
+    "A0-7:pair_dependence_component_count_ge_100",
+    "A0-7:max_pair_dependence_pair_share_le_0_05",
+    "A0-7:max_date_pair_dependence_share_le_0_10"
   ],
   "failed_gates": [
     "A0-3",
@@ -344,7 +436,35 @@
     {
       "conditions": [
         {
-          "condition": "at_least_one_geometry_horizon_passes",
+          "condition": "overall_complete_coverage_ge_0_95",
+          "passed": true
+        },
+        {
+          "condition": "minimum_date_complete_coverage_ge_0_80",
+          "passed": true
+        },
+        {
+          "condition": "overlap_component_count_ge_100",
+          "passed": false
+        },
+        {
+          "condition": "max_overlap_component_entry_share_le_0_05",
+          "passed": false
+        },
+        {
+          "condition": "max_date_overlap_component_share_le_0_10",
+          "passed": false
+        },
+        {
+          "condition": "pair_dependence_component_count_ge_100",
+          "passed": false
+        },
+        {
+          "condition": "max_pair_dependence_pair_share_le_0_05",
+          "passed": false
+        },
+        {
+          "condition": "max_date_pair_dependence_share_le_0_10",
           "passed": false
         }
       ],
@@ -353,6 +473,7 @@
     }
   ],
   "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "primary_tau_geometry_metrics": null,
   "primary_tau_ms": null,
   "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
   "task_id": "0828T013"

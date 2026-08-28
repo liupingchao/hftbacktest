@@ -1,7 +1,20 @@
 {
+  "A0_7_evaluation_geometry_metrics": {
+    "max_date_overlap_component_share": 0.5,
+    "max_date_pair_dependence_share": 1.0,
+    "max_overlap_component_entry_share": 0.5,
+    "max_pair_dependence_pair_share": 1.0,
+    "minimum_date_complete_coverage": 1.0,
+    "overall_complete_coverage": 1.0,
+    "overlap_component_count": 2,
+    "pair_dependence_component_count": 1,
+    "passed": false,
+    "tau_ms": 5000
+  },
+  "A0_7_evaluation_tau_ms": 5000,
   "A1_authorized": false,
-  "active_flow_anchor_rate_per_hour": 0.23783202892742156,
-  "active_flow_hours": 12.613944444444446,
+  "active_flow_anchor_rate_per_hour": 0.20998102004891,
+  "active_flow_hours": 14.287005555555556,
   "activity_calibration": {
     "active_tie_rule": ">=",
     "activity_q60": 44.0,
@@ -25,8 +38,10 @@
       5.238500118255615
     ],
     "checkpoint_count": 89891,
+    "manual_activity_q60": 44.0,
     "per_date_refits": 0,
     "quantile_method": "numpy_linear_type7",
+    "quantile_rule_match": true,
     "return_500_quintile_edges": [
       -10.998535402086423,
       0.0,
@@ -48,11 +63,86 @@
     "2026-08-24": 3
   },
   "anchor_dependence_cluster_count": 1,
-  "anchor_rate_per_hour": 0.10102610720404075,
+  "anchor_rate_per_hour": 0.08850245004282534,
   "anchor_type_counts": {
     "mixed_onset": 1,
     "persistent_flip": 2
   },
+  "boundary_representation_violations": 0,
+  "candidate_geometry_metrics": [
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 100
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 250
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 500
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 1000
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 2000
+    },
+    {
+      "max_date_overlap_component_share": 0.5,
+      "max_date_pair_dependence_share": 1.0,
+      "max_overlap_component_entry_share": 0.5,
+      "max_pair_dependence_pair_share": 1.0,
+      "minimum_date_complete_coverage": 1.0,
+      "overall_complete_coverage": 1.0,
+      "overlap_component_count": 2,
+      "pair_dependence_component_count": 1,
+      "passed": false,
+      "tau_ms": 5000
+    }
+  ],
   "candidate_status_counts": {
     "confirmed": 3,
     "flip_rejected_original_reasserted": 2,
@@ -62,13 +152,7 @@
   },
   "capture_count": 29,
   "captures_with_initial_bridge_failure": [
-    "2026-07-29_c092d6b4402c",
-    "2026-07-30_1b18a29f3daf",
-    "2026-08-03_098332acc16a",
-    "2026-08-03_b7b76aed76b8",
-    "2026-08-03_d8e3322d6f2c",
-    "2026-08-07_46d1e1a74698",
-    "2026-08-26_a055aa6c7a87"
+    "2026-07-29_c092d6b4402c"
   ],
   "classification": "A0_directional_anchor_date_concentrated",
   "component_pair_families": [
@@ -76,9 +160,9 @@
     "dep_trade",
     "trade_ofi"
   ],
-  "control_dependence_cluster_count": 3553,
-  "control_pseudo_candidate_count": 363536,
-  "detector_ready_hours": 29.695294444444443,
+  "control_dependence_cluster_count": 4044,
+  "control_pseudo_candidate_count": 411658,
+  "detector_ready_hours": 33.89736666666667,
   "direction_counts": {
     "-1": 2,
     "1": 1
@@ -99,7 +183,12 @@
     "A0-6:overall_common_support_ge_0_90",
     "A0-6:minimum_date_common_support_ge_0_75",
     "A0-6:max_single_date_pair_share_le_0_35",
-    "A0-7:at_least_one_geometry_horizon_passes"
+    "A0-7:overlap_component_count_ge_100",
+    "A0-7:max_overlap_component_entry_share_le_0_05",
+    "A0-7:max_date_overlap_component_share_le_0_10",
+    "A0-7:pair_dependence_component_count_ge_100",
+    "A0-7:max_pair_dependence_pair_share_le_0_05",
+    "A0-7:max_date_pair_dependence_share_le_0_10"
   ],
   "failed_gates": [
     "A0-3",
@@ -108,7 +197,7 @@
     "A0-7"
   ],
   "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
-  "initial_bridge_failure_count": 7,
+  "initial_bridge_failure_count": 1,
   "matched_pair_count": 1,
   "maximum_same_capture_5s_burst": 2,
   "median_inter_anchor_ms": 4120.0,
@@ -119,17 +208,21 @@
   "overall_active_two_component_availability": 1.0,
   "overall_common_support": 0.3333333333333333,
   "pair_dependence_cluster_count": 1,
+  "positive_denominator_missing_ratio_violations": 0,
+  "primary_tau_geometry_metrics": null,
   "primary_tau_ms": null,
-  "quality_boundary_count": 7,
-  "raw_qualifying_checkpoint_direction_count": 798594,
-  "raw_qualifying_to_anchor_ratio": 266198.0,
+  "quality_boundary_count": 1,
+  "raw_qualifying_checkpoint_direction_count": 904401,
+  "raw_qualifying_to_anchor_ratio": 301467.0,
   "replay_sequence_gap_count": 0,
   "research_date_count": 9,
+  "runtime_ratio_bound_violations": 0,
   "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
   "single_date_anchor_share": 1.0,
   "status": "failed",
   "task_id": "0828T013",
   "unmatched_anchor_count": 2,
+  "zero_denominator_representation_violations": 0,
   "zero_invariants": {
     "backdated_confirmations": 0,
     "counter_survived_reset_or_support_loss": 0,
