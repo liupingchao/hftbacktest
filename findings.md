@@ -8690,3 +8690,21 @@ Drift guard:
 - 0828T014 plan review Round 6: no P0-P3 findings remain. The accepted
   contract authorizes only an outcome-blind A-1 structural audit; it does not
   imply scientific support or authorize future-target access.
+- 0828T014 formal result: simultaneous trade-plus-depth support exists at only
+  `72.01%` of activity-supported checkpoints overall and `59.21%` on the
+  weakest date, so the primary detector does not have the frozen feature
+  support needed for admission.
+- The direct transition is sparse and concentrated rather than
+  near-continuous: V0 has `93` anchors, shadow has `94`, median shadow gap is
+  `188.98s`, maximum 5s burst is 2, and Jul30 contributes `52.69%`.
+  Refractory removes only one confirmation and is not the bottleneck.
+- The structural null does not support a recurrent trade-depth coupling:
+  observed counts are below null p95 at 10s, 30s and 60s, while the 60s dwell
+  ties rather than strictly exceeds null p95. Date-level separation is absent.
+- The negative result is not caused by a broken randomization implementation:
+  all durations have 199 distinct fingerprints, zero conservation/invariant/
+  caliper/censor defects, and Build A/B are byte-identical.
+- Scientific stop: do not draft A0 for
+  `FLOW_COHERENCE_TRANSITION_V1`. This rejects the registered predicate, not
+  the broader possibility of interpretable alignment under another
+  hypothesis.

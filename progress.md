@@ -25,6 +25,21 @@
   orientation semantics.
 - Round 6 independent contract review passed at
   `P0/P1/P2/P3=0/0/0/0`; the data execution lock is released.
+- Formal Build A/B completed from independent roots with zero non-cache
+  artifact differences. Execution evidence is commit `b61d246c`.
+- Classification is `Aminus1_feature_support_failed`: overall/minimum-date
+  trade-plus-depth availability is `0.720148/0.592082`, below
+  `0.90/0.80`.
+- V0 produced `93` anchors across 8 dates and 89 clusters, but Jul30 owns
+  `52.69%`, the rate is `2.763869/hour`, minimum represented-date support is
+  1, and no variant passes the frozen stable-support rule.
+- Exact null count separation fails at all durations:
+  `34<41.1` (10s), `40<46` (30s), `25<26` (60s); date-level separation is
+  `0/1/0` dates versus the required 6.
+- Pairing/randomization implementation is healthy: `199/199` distinct
+  fingerprints at every duration, zero invariant/caliper/censor violations,
+  and `188/188` slice checks exact.
+- Task is `待验收`. A0 and future-target access remain unauthorized.
 
 ## 2026-08-24 H0-B V4 Round 6 Accepted
 
