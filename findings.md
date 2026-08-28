@@ -8718,3 +8718,6 @@ Drift guard:
   covered because replay increments `segment_id` and restarts warmup at each
   initial bridge failure or sequence gap; Gate 0/1 now binds Git blobs, an
   exact cache-field schema and an independently recomputed Build A/B pair.
+- 0828T014 QA Round 2 independently reproduced the 1,692-row supplemental
+  audit and accepted the package with no P0-P3 findings. This is execution
+  acceptance of a negative A-1 result, not support for the hypothesis.

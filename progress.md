@@ -9435,6 +9435,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   determinism are verified at runtime rather than self-declared.
 - Build A/B remain byte-identical across all non-cache artifacts; 13 focused
   tests and all static checks pass. The task is back to `待验收`.
+
+## 2026-08-28 0828T014 Flow Coherence A-1 QA Round 2 Accepted
+
+- Independent QA passed with `P0/P1/P2/P3 = 0/0/0/0`.
+- QA independently recomputed all 1,692 V0-V8 slice rows and the
+  cross-segment/cross-quality audit from the 29 task caches.
+- Source blobs, exact cache schema, consumed-field boundary, manifest closure
+  and distinct-root Build A/B equality all passed.
+- Task `0828T014` is closed as `已通过`, while the scientific result remains
+  `Aminus1_feature_support_failed`.
+- A0 drafting, A0 execution and future-target access remain forbidden.
 - 2026-08-28: 0828T014 Revision 2 independent review failed
   (`P0/P1/P2/P3=1/4/1/0`); formal data execution remains locked. Revision 3
   now uses activity-matched 10s direction-path permutation within 5m parents,
