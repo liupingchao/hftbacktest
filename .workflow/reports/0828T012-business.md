@@ -95,7 +95,7 @@ commit：
 - initial commit record：`05829a24`
 - QA remediation：`3a55c448`
 - first remediation record：`fdb099c3`
-- second QA remediation：待提交
+- second QA remediation：`1cb23fa8`
 
 提交信息：
 - initial：docs: freeze flow internal directional alpha A0 plan
