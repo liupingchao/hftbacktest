@@ -86,4 +86,4 @@
 3. A0 执行结果仍需独立 QA，且不得用 outcome 调整 V1 tuple。
 
 提交信息：
-- commit：待提交
+- commit：`5a5d6b5f`
