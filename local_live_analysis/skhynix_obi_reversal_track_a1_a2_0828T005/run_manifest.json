@@ -1,0 +1,82 @@
+{
+  "artifact_count": 15,
+  "artifacts": [
+    {
+      "path": "classification.json",
+      "sha256": "14dd748d64bb42ebda7146cab4b7f060e4ec342e1e2db61069c778b3da806c95",
+      "size_bytes": 1256
+    },
+    {
+      "path": "contracts/gate_contract.json",
+      "sha256": "3f93b45b9838fd7aa6ce9deb9379a51bbd21177e3c5b388284c55f59315e65ee",
+      "size_bytes": 1060
+    },
+    {
+      "path": "contracts/outcome_access_ledger.json",
+      "sha256": "b46b714f2f8788380e1f189a0946f6c5b0dd4cd535336e12ee6f2d546a9073d5",
+      "size_bytes": 1462
+    },
+    {
+      "path": "contracts/state_feature_contract.json",
+      "sha256": "97251b80d09c4586f77c10e029861194671f7991f0399f639ba674949abb5738",
+      "size_bytes": 847
+    },
+    {
+      "path": "contracts/target_materialization_contract.json",
+      "sha256": "104adbb468d604f67d09c61f8e91f78910a767c1800d7a1b1dd2a80144b1d060",
+      "size_bytes": 774
+    },
+    {
+      "path": "contracts/upstream_closure.json",
+      "sha256": "8bd341432a63ee2656f7425d7bdc87b7dfbf325a4b8d6af67f175c456055c6a3",
+      "size_bytes": 605
+    },
+    {
+      "path": "reports/A1_A2_summary.json",
+      "sha256": "f087375ae93f916d89391f17c02d3cc69b3adbf62f17243dbecba95a9aac4adf",
+      "size_bytes": 1785
+    },
+    {
+      "path": "states/common_risk_set_support.csv",
+      "sha256": "d51ca8ec5c688341fa368f059110e2c8a0d2f433ce53fab9bcaa0b90ad7e0f88",
+      "size_bytes": 4630
+    },
+    {
+      "path": "states/directional_entry_ledger.csv",
+      "sha256": "7b3f8496b050e89f46996c1371a42cb62458c75a114aa025f81f86e19fc12b01",
+      "size_bytes": 2875342
+    },
+    {
+      "path": "states/reversal_ledger.csv",
+      "sha256": "d6a33d3cd589f35e7d4695beaeb8e300d986d93b1accf2a7ed90a73ae2385dd8",
+      "size_bytes": 1656283
+    },
+    {
+      "path": "support/target_diagnostics.json",
+      "sha256": "01fb34af836a01ec4b17ca653c8875fbb84e10287026d7ddf6a5591b02518e96",
+      "size_bytes": 1573
+    },
+    {
+      "path": "targets/censoring_summary.csv",
+      "sha256": "29441883c6deb5502432ed71ee7fed750e25f7e41eb4881f245ffcd05eeed277",
+      "size_bytes": 44
+    },
+    {
+      "path": "targets/first_passage_ledger.csv",
+      "sha256": "ef6029f66ecb1259ccb0912a433f2a2186ef00b9eb7e430a547a4057e763fab7",
+      "size_bytes": 913223
+    },
+    {
+      "path": "targets/pre_detection_transition.csv",
+      "sha256": "34af23b0dc0c64d60730f22aa9486ef6e90ba6bb0a5fb98e3626bd8dce80a01d",
+      "size_bytes": 555327
+    },
+    {
+      "path": "targets/target_variation_by_date.csv",
+      "sha256": "15249f53e7f8b2307872ae15ba45e95e6e7fe1a015eaa0728f484d43d940b14a",
+      "size_bytes": 289
+    }
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a1_a2_v1",
+  "task_id": "0828T005"
+}

@@ -1,0 +1,67 @@
+{
+  "cause_metrics": {
+    "fail": {
+      "date_count": 9,
+      "event_count": 2917,
+      "event_time_ms_p10": 100.0,
+      "event_time_ms_p50": 400.0,
+      "event_time_ms_p90": 1600.0,
+      "maximum_single_date_share": 0.27562564278368185
+    },
+    "follow": {
+      "date_count": 9,
+      "event_count": 4247,
+      "event_time_ms_p10": 100.0,
+      "event_time_ms_p50": 300.0,
+      "event_time_ms_p90": 1500.0,
+      "maximum_single_date_share": 0.34212385213091595
+    }
+  },
+  "censor_reason_counts": {},
+  "diagnostic_warnings": [
+    "one_tick_barrier_near_100ms_grid_resolution",
+    "high_pre_detection_transition_fraction"
+  ],
+  "entry_count": 7164,
+  "entry_type_counts": {
+    "control": 3159,
+    "reversal": 4005
+  },
+  "entry_type_event_counts": {
+    "control": {
+      "fail": 1257,
+      "follow": 1902
+    },
+    "reversal": {
+      "fail": 1660,
+      "follow": 2345
+    }
+  },
+  "event_counts": {
+    "fail": 2917,
+    "follow": 4247
+  },
+  "event_fractions": {
+    "fail": 0.4071747627024009,
+    "follow": 0.5928252372975991
+  },
+  "event_time_cdf": {
+    "100": 0.24455611390284757,
+    "1000": 0.8331937465103294,
+    "10000": 0.9991624790619765,
+    "120000": 1.0,
+    "200": 0.4007537688442211,
+    "2000": 0.9343941931881631,
+    "300": 0.5079564489112228,
+    "30000": 1.0,
+    "500": 0.6602456728084869,
+    "5000": 0.9875767727526521
+  },
+  "interval_ambiguity_fraction": 0.0,
+  "pre_detection_transition_counts": {
+    "fail": 716,
+    "follow": 2986,
+    "none": 303
+  },
+  "pre_detection_transition_fraction": 0.9243445692883895
+}

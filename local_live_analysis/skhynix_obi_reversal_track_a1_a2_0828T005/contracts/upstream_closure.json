@@ -1,0 +1,11 @@
+{
+  "a0_artifact_count": 21,
+  "a0_classification": "A0_support_and_tuple_frozen",
+  "a0_manifest_sha256": "f7749fba3485357e5953fc57666907f02e847023f18c49b68a74449085b013b2",
+  "control_contract_sha256": "b33ff9a3cb7f505f3e847150817eb186cd948f09880a162d1c497cca9d291893",
+  "feature_cache_count": 29,
+  "feature_cache_hashes_verified_now": true,
+  "schema_version": "skhynix_obi_reversal_track_a1_a2_v1",
+  "state_machine_contract_sha256": "8464654dc4b8163216bef93936aef446a440cc8cc6ae26696bee1b49a2dd63af",
+  "target_contract_sha256": "082716cd3b01c1cc51e68f21e34ebd89be8919542459fb17db78e6aa6797fe8c"
+}

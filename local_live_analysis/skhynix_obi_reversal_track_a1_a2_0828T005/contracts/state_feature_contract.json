@@ -1,0 +1,30 @@
+{
+  "decision_timestamp": "reversal_detected_at_or_control_detected_at",
+  "future_information_allowed": false,
+  "primary_risk_set": "full reusable date_side_absolute_OBI_bin common support",
+  "schema_version": "skhynix_obi_reversal_track_a1_a2_v1",
+  "state_feature_fields": [
+    "current_obi",
+    "current_l1_obi",
+    "current_l1_l3_obi",
+    "level_imbalance_dispersion",
+    "log_total_depth",
+    "bid_depth_concentration",
+    "ask_depth_concentration",
+    "spread_ticks",
+    "signed_book_flow",
+    "signed_trade_flow",
+    "trailing_midpoint_1s_ticks",
+    "trailing_midpoint_5s_ticks",
+    "trailing_abs_midpoint_5s_ticks",
+    "source_age_ms",
+    "no_new_information",
+    "depth_update_count",
+    "utc_time_sin",
+    "utc_time_cos"
+  ],
+  "stronger_H0_only_not_primary": [
+    "generic_OBI_slope",
+    "generic_OBI_lags"
+  ]
+}

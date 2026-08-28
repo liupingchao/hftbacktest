@@ -1,0 +1,61 @@
+{
+  "a1_gates": {
+    "a0_contract_closure": true,
+    "all_dates_represented": true,
+    "common_risk_set_has_both_types": true,
+    "frozen_control_count_reproduced": true,
+    "frozen_reversal_count_reproduced": true,
+    "maximum_date_entry_share": true,
+    "state_feature_finiteness": true
+  },
+  "a2_gates": {
+    "both_causes_in_controls": true,
+    "both_causes_in_reversals": true,
+    "censoring_fraction": true,
+    "fail_date_concentration": true,
+    "fail_date_support": true,
+    "follow_date_concentration": true,
+    "follow_date_support": true,
+    "interval_ambiguity_fraction": true,
+    "minimum_fail_events": true,
+    "minimum_follow_events": true
+  },
+  "all_entry_count": 7183,
+  "cause_metrics": {
+    "fail": {
+      "date_count": 9,
+      "event_count": 2917,
+      "event_time_ms_p10": 100.0,
+      "event_time_ms_p50": 400.0,
+      "event_time_ms_p90": 1600.0,
+      "maximum_single_date_share": 0.27562564278368185
+    },
+    "follow": {
+      "date_count": 9,
+      "event_count": 4247,
+      "event_time_ms_p10": 100.0,
+      "event_time_ms_p50": 300.0,
+      "event_time_ms_p90": 1500.0,
+      "maximum_single_date_share": 0.34212385213091595
+    }
+  },
+  "classification": "A1_A2_state_and_targets_materialized",
+  "diagnostic_warnings": [
+    "one_tick_barrier_near_100ms_grid_resolution",
+    "high_pre_detection_transition_fraction"
+  ],
+  "pre_detection_transition_fraction": 0.9243445692883895,
+  "primary_control_count": 3159,
+  "primary_entry_count": 7164,
+  "primary_reversal_count": 4005,
+  "schema_version": "skhynix_obi_reversal_track_a1_a2_v1",
+  "status": "passed",
+  "target_event_counts": {
+    "fail": 2917,
+    "follow": 4247
+  },
+  "target_event_fractions": {
+    "fail": 0.4071747627024009,
+    "follow": 0.5928252372975991
+  }
+}

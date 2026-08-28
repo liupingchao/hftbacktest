@@ -1,0 +1,32 @@
+{
+  "a1_gates": {
+    "a0_contract_closure": true,
+    "all_dates_represented": true,
+    "common_risk_set_has_both_types": true,
+    "frozen_control_count_reproduced": true,
+    "frozen_reversal_count_reproduced": true,
+    "maximum_date_entry_share": true,
+    "state_feature_finiteness": true
+  },
+  "a2_gates": {
+    "both_causes_in_controls": true,
+    "both_causes_in_reversals": true,
+    "censoring_fraction": true,
+    "fail_date_concentration": true,
+    "fail_date_support": true,
+    "follow_date_concentration": true,
+    "follow_date_support": true,
+    "interval_ambiguity_fraction": true,
+    "minimum_fail_events": true,
+    "minimum_follow_events": true
+  },
+  "a2_thresholds_frozen_before_target_materialization": {
+    "both_causes_required_in_each_entry_type": true,
+    "maximum_censoring_fraction": 0.5,
+    "maximum_interval_ambiguity_fraction": 0.01,
+    "maximum_single_date_share_per_cause": 0.35,
+    "minimum_dates_per_cause": 8,
+    "minimum_events_per_cause": 200
+  },
+  "schema_version": "skhynix_obi_reversal_track_a1_a2_v1"
+}

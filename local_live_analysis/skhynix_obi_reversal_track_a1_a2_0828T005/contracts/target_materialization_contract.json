@@ -1,0 +1,20 @@
+{
+  "barrier_ticks": 1.0,
+  "causes": {
+    "0": "censored",
+    "1": "follow",
+    "2": "fail"
+  },
+  "clock_start": "decision_timestamp",
+  "future_accumulation_starts": "next_grid_after_decision",
+  "hypothesis_id": "OBI_REVERSAL_V1",
+  "input_future_field": "midpoint_delta_ticks",
+  "input_semantics": "100ms grid-close midpoint increment versus previous grid",
+  "orientation": "side_times_future_midpoint_displacement_ticks",
+  "post_barrier_return_or_markout_allowed": false,
+  "post_first_passage_values_retained": false,
+  "quote_convention": "midpoint",
+  "sampling_limitation": "first passage is observed at 100ms grid closes; within-grid dual barrier hits are not observable",
+  "schema_version": "skhynix_obi_reversal_track_a1_a2_v1",
+  "tau_max_ms": 120000
+}

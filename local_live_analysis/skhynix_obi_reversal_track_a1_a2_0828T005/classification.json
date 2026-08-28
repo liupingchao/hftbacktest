@@ -1,0 +1,37 @@
+{
+  "H0_H1_increment_tested": false,
+  "a1_gates": {
+    "a0_contract_closure": true,
+    "all_dates_represented": true,
+    "common_risk_set_has_both_types": true,
+    "frozen_control_count_reproduced": true,
+    "frozen_reversal_count_reproduced": true,
+    "maximum_date_entry_share": true,
+    "state_feature_finiteness": true
+  },
+  "a2_gates": {
+    "both_causes_in_controls": true,
+    "both_causes_in_reversals": true,
+    "censoring_fraction": true,
+    "fail_date_concentration": true,
+    "fail_date_support": true,
+    "follow_date_concentration": true,
+    "follow_date_support": true,
+    "interval_ambiguity_fraction": true,
+    "minimum_fail_events": true,
+    "minimum_follow_events": true
+  },
+  "classification": "A1_A2_state_and_targets_materialized",
+  "diagnostic_warnings": [
+    "one_tick_barrier_near_100ms_grid_resolution",
+    "high_pre_detection_transition_fraction"
+  ],
+  "next_stage": "A3_H0_baseline_and_H1_incremental_competing_risk_test",
+  "next_stage_authorized": true,
+  "predictive_value_claim_allowed": false,
+  "prospective_claim_prohibited": true,
+  "schema_version": "skhynix_obi_reversal_track_a1_a2_v1",
+  "stage": "A1_state_ledger_and_A2_target_materialization",
+  "status": "passed",
+  "task_id": "0828T005"
+}

@@ -1436,3 +1436,207 @@ A0 support and tuple freeze completed.
 OBI reversal predictive value remains untested.
 Historical results cannot be called prospective.
 ```
+
+## 41. A1/A2 Execution Result - 2026-08-28
+
+Formal task `0828T005` materialized the frozen causal state ledger and
+first-passage target without fitting H0 or H1.
+
+The result is:
+
+```text
+status: passed
+classification: A1_A2_state_and_targets_materialized
+H0_H1_increment_tested: false
+predictive_value_claim_allowed: false
+next_stage: A3 H0/H1 competing-risk test
+```
+
+This pass means that both target causes vary across dates and entry types with
+enough support to fit the frozen model comparison. It is not evidence that the
+reversal-history indicator improves H0.
+
+### 41.1 A1 State Ledger
+
+A1 reproduced the frozen A0 ledgers exactly:
+
+```text
+all reversal entries:       4,021
+all control candidates:     3,162
+all entries:                7,183
+```
+
+The primary reusable common risk set contains:
+
+```text
+primary reversal entries:   4,005
+primary control entries:    3,159
+primary entries:            7,164
+research dates:             9
+```
+
+Each entry carries the frozen decision identity and only information available
+by `decision_timestamp`:
+
+- current equal-weight L1-L5 OBI;
+- L1 and L1-L3 imbalance summaries;
+- per-level imbalance dispersion;
+- total depth and depth concentration;
+- spread;
+- contemporaneous signed book flow and public trade flow;
+- trailing 1-second and 5-second midpoint movement;
+- trailing 5-second absolute movement;
+- source age, activity and no-new-information state;
+- frozen UTC time-of-day basis.
+
+Generic OBI slope and lag features remain outside primary H0 and are reserved
+for the stronger-H0 diagnostic.
+
+### 41.2 A2 Target Materialization
+
+The target uses the frozen convention:
+
+```text
+quote:                 midpoint
+grid:                  100ms grid close
+clock start:           decision timestamp
+first future input:    next grid after decision
+orientation:           side * future midpoint displacement
+follow barrier:        +1 tick
+fail barrier:          -1 tick
+tau_max:               120 seconds
+```
+
+The output retains only:
+
+- first transition type;
+- cause code;
+- first transition time;
+- censoring and observed interval-ambiguity status.
+
+It does not retain post-hit displacement, return, markout or any path after the
+first hit.
+
+### 41.3 Target Variation
+
+Across 7,164 primary entries:
+
+| Cause | Count | Fraction | Date count | Maximum date share | Time p50 | Time p90 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Follow | 4,247 | 0.5928 | 9 | 0.3421 | 300ms | 1,500ms |
+| Fail | 2,917 | 0.4072 | 9 | 0.2756 | 400ms | 1,600ms |
+
+Both causes occur in both entry types:
+
+| Entry type | Follow | Fail |
+| --- | ---: | ---: |
+| Reversal | 2,345 | 1,660 |
+| Control | 1,902 | 1,257 |
+
+There were no `tau_max`, capture-end or quality censored entries in the
+primary ledger. No observed grid-close interval was classified as an
+ambiguous dual hit.
+
+The raw marginal follow fractions are approximately:
+
+```text
+reversal: 0.5855
+control:  0.6021
+```
+
+These marginals are not the H0/H1 result. They do not control current state,
+date, activity, elapsed time or the reusable risk-set structure, and they
+cannot be used to accept or reject `OBI_REVERSAL_V1`.
+
+### 41.4 Temporal Resolution Warning
+
+The one-tick target is short relative to the 100ms observation grid:
+
+| Elapsed time | Fraction with a first hit |
+| ---: | ---: |
+| 100ms | 0.2446 |
+| 200ms | 0.4008 |
+| 500ms | 0.6602 |
+| 1s | 0.8332 |
+| 2s | 0.9344 |
+| 5s | 0.9876 |
+| 10s | 0.9992 |
+| 30s | 1.0000 |
+
+This is recorded as:
+
+```text
+one_tick_barrier_near_100ms_grid_resolution
+```
+
+The A0 barrier cannot be changed after viewing these outcomes. A3 must use the
+frozen one-tick target and report elapsed-time-bin influence. A different
+barrier or event-time quote reconstruction would be a separately versioned
+hypothesis, not a robustness result that can rescue this version.
+
+The ambiguity rate of zero means that no dual hit is observable at grid-close
+sampling. It is not proof that both barriers were never touched inside a
+100ms interval.
+
+### 41.5 Confirmation-Delay Warning
+
+Among the 4,005 primary reversal entries, the cross-to-detection interval
+contains:
+
+```text
+pre-detection follow hit:  2,986
+pre-detection fail hit:      716
+no pre-detection hit:        303
+any pre-detection hit:    0.9243
+```
+
+This is recorded as:
+
+```text
+high_pre_detection_transition_fraction
+```
+
+The result does not leak into the post-decision target. It is a separate
+actionability diagnostic using information already known at
+`reversal_detected_at`.
+
+It changes the interpretation of a future positive A3 result. Even if
+reversal history improves post-detection first-passage prediction, the signal
+would often be detected after an earlier one-tick transition had already
+occurred. A3 must therefore distinguish:
+
+- incremental continuation risk after confirmation;
+- price movement that occurred before causal confirmation;
+- statistical path dependence from maker actionability.
+
+### 41.6 Gate And Access Result
+
+All frozen A1 and A2 identification gates passed:
+
+- upstream A0 contracts and artifacts closed;
+- state features were finite and deterministic;
+- both entry types had common support on all 9 dates;
+- both target causes exceeded 200 events and covered all 9 dates;
+- maximum per-date cause shares remained below 0.35;
+- censoring and observed ambiguity remained below their caps;
+- both reversal and control entries contained both causes.
+
+The access ledger confirms:
+
+```text
+A1 future fields read:                         []
+A2 future field read:                          midpoint_delta_ticks
+future values retained:                        J, T, censoring
+post-first-passage return/markout materialized: false
+H0/H1 fitted:                                  false
+private access/orders/new collection:          false
+```
+
+The strongest current claim is:
+
+```text
+A1 state ledger and A2 target materialization completed.
+The target is identifiable but temporally short.
+Confirmation delay is a major actionability risk.
+OBI reversal path-dependence remains untested until A3.
+```
