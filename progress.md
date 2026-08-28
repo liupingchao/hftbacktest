@@ -9354,12 +9354,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Implemented the frozen outcome-blind 20ms flow-path detector and complete
   dominance/flip/release state machine.
 - Verified all 29 raw captures by exact size and SHA256.
-- Detected seven initial snapshot-depth bridge failures and excluded invalid
-  reconstruction intervals instead of carrying static book state.
+- Corrected Binance snapshot bridge admission to
+  `U <= lastUpdateId <= u`. One capture has a true initial bridge failure;
+  six captures incorrectly excluded by the first implementation are restored.
 - Frozen calibration output is `Q_activity_60=44 messages/500ms`.
 - A0 produced only three anchors, all on 2026-08-24, and one matched control.
 - Classification is `A0_directional_anchor_date_concentrated`; A1 is not
   authorized and `primary_tau` is null.
-- Focused tests passed `14/14`; canonical and fresh build B are byte-identical
+- Detector-ready support is `33.897367h`; active-flow support is
+  `14.287006h`.
+- A0-7 now evaluates all eight atomic conditions on one frozen diagnostic
+  horizon (`5000ms` in this failed run).
+- Focused tests passed `28/28`; canonical and fresh build B are byte-identical
   across all 47 non-cache files.
-- Task `0828T013` is ready for independent QA.
+- Code, tests and canonical evidence are bound by commit `c3cb7137`.
+- Task `0828T013` remains `待验收` pending third-round independent QA.

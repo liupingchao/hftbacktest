@@ -8613,8 +8613,9 @@ Drift guard:
 ## 2026-08-28 Flow Internal Directional Alpha A0 Findings
 
 - A snapshot file and a zero declared `depth_gap_count` do not prove that the
-  first websocket depth event bridges the snapshot update ID. Seven captures
-  contain an initial bridge failure; replay must mark those intervals invalid.
+  first websocket depth event bridges the snapshot update ID. The correct
+  Binance admission rule is `U <= lastUpdateId <= u`; one capture contains a
+  true initial bridge failure and must be marked invalid until reset.
 - Letting trades advance against an unbridged static snapshot creates
   artificial constant depth, midpoint and volatility calibration support.
   Fail-closed sequence readiness is therefore part of the causal feature
@@ -8622,11 +8623,15 @@ Drift guard:
 - After valid-segment filtering, the frozen Jul 29 activity threshold is
   `44 messages/500ms`.
 - The V1 mixed-history requirement is the dominant compression bottleneck:
-  798,594 raw qualifying checkpoint-direction pairs compress to only three
-  anchors across 29.695 detector-ready hours.
+  904,401 raw qualifying checkpoint-direction pairs compress to only three
+  anchors across 33.897 detector-ready hours.
 - All three anchors occur in one 2026-08-24 active-flow episode. The detector
   satisfies its state invariants but lacks cross-date support, dependence
   support, control common support and usable follow-up geometry.
+- Follow-up geometry must be evaluated jointly at one horizon. In the final
+  A0 package, the deterministic failure diagnostic selects `5000ms`; both
+  coverage conditions pass there, while all six overlap/dependence conditions
+  fail.
 - This is a hypothesis-support failure, not evidence against directional
   response conditional on a looser event. V1 cannot be rescued by changing
   mixed history, activity, persistence or refractory after observing A0.
