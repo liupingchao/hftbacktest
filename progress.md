@@ -9346,7 +9346,7 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `已通过`.
 - No lead-lag, maker-fill, PnL or live-readiness claim is made.
 
-## 2026-08-28 0828T013 FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1 A0 Ready For QA
+## 2026-08-28 0828T013 FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1 A0 QA Accepted
 
 - Created clean worktree
   `/Users/liu/Documents/hftbacktest-0828t013-flow-internal-directional-alpha-a0`
@@ -9368,4 +9368,6 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused tests passed `28/28`; canonical and fresh build B are byte-identical
   across all 47 non-cache files.
 - Code, tests and canonical evidence are bound by commit `c3cb7137`.
-- Task `0828T013` remains `待验收` pending third-round independent QA.
+- Third-round independent QA passed with `P0/P1/P2/P3 = 0/0/0/0`.
+- Task `0828T013` is closed as `已通过`; A1 remains unauthorized and work
+  pauses at the completed A0 boundary.

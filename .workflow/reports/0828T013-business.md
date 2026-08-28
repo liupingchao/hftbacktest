@@ -7,7 +7,7 @@
 - 0828T013
 
 状态：
-- 待验收
+- 已通过
 
 是否进行QA验收：
 - 是
@@ -71,11 +71,12 @@ verify：
 - raw hash verification：29/29 通过。
 - per-capture dual replay NPZ SHA：29/29 一致。
 - 第一轮 QA `0/2/2/0`、第二轮 QA `0/0/4/0` 的 P1/P2 项已在
-  `c3cb7137` 修复；第三轮独立 QA 待执行。
+  `c3cb7137` 修复；第三轮独立 QA `0/0/0/0`，状态 `已通过`。
 
 done：
 - A0 已完整执行并冻结 failure classification。
 - A1 未获授权。
+- 第三轮独立 QA 已通过。
 - 大型 cache 和 `control_candidates.csv` 留在本地；Git 仅跟踪紧凑
   contracts、summaries、support tables 和 exact manifest hashes。
 

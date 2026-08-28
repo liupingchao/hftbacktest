@@ -8635,3 +8635,5 @@ Drift guard:
 - This is a hypothesis-support failure, not evidence against directional
   response conditional on a looser event. V1 cannot be rescued by changing
   mixed history, activity, persistence or refractory after observing A0.
+- Third-round independent QA found no remaining P0-P3 defects. The accepted
+  result freezes a support failure and does not authorize A1.

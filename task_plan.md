@@ -6097,4 +6097,4 @@ require a new formal task or risk decision.
 - [x] Execute all 29 captures with full raw size/SHA closure.
 - [x] Build outcome-blind controls, dependence geometry and A0 gates.
 - [x] Complete focused tests and deterministic fresh-output rebuild.
-- [ ] Independent QA accepts implementation and evidence.
+- [x] Independent QA accepts implementation and evidence.
