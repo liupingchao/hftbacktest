@@ -1,15 +1,20 @@
 {
-  "artifact_count": 28,
+  "artifact_count": 29,
   "artifacts": [
     {
       "path": "classification.json",
-      "sha256": "3851001a69d63a703b03bc86064c3cc90eb409fe020338d74fcaa919a5404fad",
-      "size_bytes": 6664
+      "sha256": "77d5491ccff4d4841a5d1793baca73d7da0a8108b4f4f5732481290f7c966ae3",
+      "size_bytes": 6762
+    },
+    {
+      "path": "contracts/execution_evidence_contract.json",
+      "sha256": "2f8de7cc3b0d0320d06fb93e54bf329551c9a5d1f8bb221140ce45ad93e9b6fc",
+      "size_bytes": 1169
     },
     {
       "path": "contracts/gate_contract.json",
-      "sha256": "358893d84a5e5a9e97a64a9cb1729d0f66c5162f03c7e5494097829dd64de569",
-      "size_bytes": 12888
+      "sha256": "d6c99b880a666e9ecd0c6025edef149d63421708a013b219a520480379ef88af",
+      "size_bytes": 13662
     },
     {
       "path": "contracts/nuisance_contract.json",
@@ -18,8 +23,8 @@
     },
     {
       "path": "contracts/outcome_access_ledger.json",
-      "sha256": "60e684a3aa9c668a6c2d25d0a523fa58d58fcd559a3644e06b25299752c72293",
-      "size_bytes": 333
+      "sha256": "23fa7011adbdaef4cd8f8fd1f6113f289af12c983de3e43afd7f85d518df23b4",
+      "size_bytes": 1193
     },
     {
       "path": "contracts/primitive_contract.json",
@@ -33,13 +38,13 @@
     },
     {
       "path": "contracts/slice_invariance_contract.json",
-      "sha256": "1f67fe83e25822b48547a6da87678a33f182c9fc267cd16f4550ba69741df762",
-      "size_bytes": 103
+      "sha256": "87f6b4acb0f30baf311cf7285212748927ee035e388534a7adb54bc5126c5dbb",
+      "size_bytes": 291
     },
     {
       "path": "contracts/source_cache_contract.json",
-      "sha256": "3afdeb1a77d500720f5e7f8df029abd7fc920086eef266e07eb900c987277a96",
-      "size_bytes": 492
+      "sha256": "cac045aa068ea2d96e75ee43e4fd327bfacc3f211d147262933755010389c418",
+      "size_bytes": 2135
     },
     {
       "path": "contracts/structural_null_contract.json",
@@ -53,8 +58,8 @@
     },
     {
       "path": "reports/A_minus1_summary.json",
-      "sha256": "237ea1bdf4816b9be56519741ed1ea2d2e62ce889767dd654de41c3d7c683d31",
-      "size_bytes": 29968
+      "sha256": "b4c6e512253ce295f09daf6da3e3319787c8f8d3ce1534913d2348f63cf35d38",
+      "size_bytes": 31626
     },
     {
       "path": "support/compression_by_date.csv",
@@ -113,8 +118,8 @@
     },
     {
       "path": "support/slice_invariance.csv",
-      "sha256": "7dbfa074fdfcde1cb2f6a35f1f8e71bc85d55159dae1e22a3954336c028d5689",
-      "size_bytes": 16310
+      "sha256": "7c3d7ee8bc83dc80d737cf720f3c7e3e22ca92343488b9bd2f5e58e499a1df87",
+      "size_bytes": 416568
     },
     {
       "path": "support/source_cache_inventory.csv",

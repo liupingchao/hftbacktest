@@ -1,5 +1,17 @@
 {
   "artificial_start_stride_ms": 600000,
+  "comparison": "anchor_identity_direction_counts_and_median_dwell_exact",
   "comparison_guard_ms": 32000,
-  "required_mismatches": 0
+  "required_mismatches": 0,
+  "variant_ids": [
+    "V0",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8"
+  ]
 }

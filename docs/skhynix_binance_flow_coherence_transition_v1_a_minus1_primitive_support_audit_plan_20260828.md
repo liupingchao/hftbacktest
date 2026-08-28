@@ -629,7 +629,7 @@ distinct aggregate swap-vector fingerprints across 199 replicates >= 190
 ```
 
 The fingerprint is SHA256 over ordered
-`(capture_cache_name,segment_id,parent_id,pair_id,swap)` rows. Ties fail.
+`(capture_ordinal,segment_id,parent_id,pair_id,swap)` rows. Ties fail.
 
 The structural null reads no future price.
 

@@ -11,6 +11,7 @@
   "deterministic_build": true,
   "draft_a0_contract": false,
   "feature_support": {
+    "cross_segment_or_quality_feature_window_violations": 0,
     "denominator_substitutions": 0,
     "minimum_date_availability": 0.5920817324636786,
     "overall_trade_plus_depth_availability": 0.7201477411635836,
@@ -41,6 +42,12 @@
         },
         {
           "condition": "cache_pair_closure",
+          "passed": true,
+          "threshold": "true",
+          "value": true
+        },
+        {
+          "condition": "source_commit_blob_closure",
           "passed": true,
           "threshold": "true",
           "value": true
@@ -89,6 +96,12 @@
         },
         {
           "condition": "denominator_substitutions_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "cross_segment_or_quality_feature_windows_zero",
           "passed": true,
           "threshold": "0",
           "value": 0
@@ -496,10 +509,28 @@
           "value": 0
         },
         {
+          "condition": "slice_identity_mismatches_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "slice_metric_mismatches_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "slice_variants_complete",
+          "passed": true,
+          "threshold": "9",
+          "value": 9
+        },
+        {
           "condition": "artificial_starts_ge_10",
           "passed": true,
           "threshold": ">=10",
-          "value": 188
+          "value": 1692
         },
         {
           "condition": "unique_clusters_ge_150",
@@ -602,8 +633,29 @@
   },
   "schema_version": "skhynix_flow_coherence_a_minus1_audit_v1",
   "slice_invariance": {
-    "artificial_start_count": 188,
-    "mismatch_count": 0
+    "artificial_start_count": 1692,
+    "identity_mismatch_count": 0,
+    "metric_mismatch_count": 0,
+    "mismatch_count": 0,
+    "variant_count_tested": 9
+  },
+  "source_binding": {
+    "source_blob_closure": true,
+    "source_blob_count": 2,
+    "source_blobs": [
+      {
+        "matches_source_commit_blob": true,
+        "path": "local_live_analysis/skhynix_flow_internal_directional_alpha_a0_0828T013/support/source_inventory.csv",
+        "sha256": "5c44f5f6888170a71178d82c1cbf700d5cff5d19b19bd49a2b2404d2361db011"
+      },
+      {
+        "matches_source_commit_blob": true,
+        "path": "local_live_analysis/skhynix_flow_internal_directional_alpha_a0_0828T013/contracts/session_role_ledger.csv",
+        "sha256": "5910288825e89dd37c1db3ef98c8025ede0d593cf404c7b8038c45e851c4da3e"
+      }
+    ],
+    "source_commit_exists": true,
+    "source_commit_is_ancestor": true
   },
   "source_commit": "5603a670e617636b9994d605faef833164d3add4",
   "source_count": 29,

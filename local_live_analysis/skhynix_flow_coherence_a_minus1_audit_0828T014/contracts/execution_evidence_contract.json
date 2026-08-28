@@ -1,0 +1,33 @@
+{
+  "cache_schema_evidence": {
+    "cache_count": 29,
+    "cache_field_schema_exact": true,
+    "cache_inventory_sha256": "bbd719343c156a9d6c1854fb7dc86e5ed47ad359c8deab436bc94735c9360352"
+  },
+  "determinism_evidence": {
+    "final_difference_count": 0,
+    "pending_difference_count": 0,
+    "preseal_difference_count": 0,
+    "verification": "full_non_cache_sha256_pair"
+  },
+  "deterministic_build": true,
+  "source_binding": {
+    "source_blob_closure": true,
+    "source_blob_count": 2,
+    "source_blobs": [
+      {
+        "matches_source_commit_blob": true,
+        "path": "local_live_analysis/skhynix_flow_internal_directional_alpha_a0_0828T013/support/source_inventory.csv",
+        "sha256": "5c44f5f6888170a71178d82c1cbf700d5cff5d19b19bd49a2b2404d2361db011"
+      },
+      {
+        "matches_source_commit_blob": true,
+        "path": "local_live_analysis/skhynix_flow_internal_directional_alpha_a0_0828T013/contracts/session_role_ledger.csv",
+        "sha256": "5910288825e89dd37c1db3ef98c8025ede0d593cf404c7b8038c45e851c4da3e"
+      }
+    ],
+    "source_commit_exists": true,
+    "source_commit_is_ancestor": true
+  },
+  "zero_outcome_boundary": true
+}

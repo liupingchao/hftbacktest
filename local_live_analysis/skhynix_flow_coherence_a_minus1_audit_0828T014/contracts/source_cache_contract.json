@@ -2,7 +2,69 @@
   "cache_authority_path": "docs/skhynix_flow_internal_directional_alpha_a0_cache_authority_20260828.csv",
   "cache_authority_sha256": "49bd38bb974e6bbda28db84e5116b850c1d75e234408d41fb429e08cc3b2300f",
   "cache_count": 29,
+  "cache_field_schema": [
+    "activity",
+    "ask_depletion",
+    "ask_depth",
+    "bid_depletion",
+    "bid_depth",
+    "bin_boundary_violations",
+    "cache_schema_version",
+    "event_seq",
+    "initial_bridge_failure_count",
+    "midpoint",
+    "non_admitted_message_contributions",
+    "obi",
+    "ofi",
+    "ofi_abs",
+    "quality_boundary_count",
+    "ready",
+    "reset_count",
+    "segment_end_ids",
+    "segment_end_ts",
+    "segment_id",
+    "sequence_gap_count",
+    "spread_ticks",
+    "tick_size",
+    "trade_signed",
+    "trade_total",
+    "ts_ns",
+    "valid_book"
+  ],
+  "cache_inventory_sha256": "bbd719343c156a9d6c1854fb7dc86e5ed47ad359c8deab436bc94735c9360352",
+  "consumed_cache_fields": [
+    "activity",
+    "ask_depletion",
+    "bid_depletion",
+    "event_seq",
+    "ofi",
+    "ofi_abs",
+    "ready",
+    "segment_id",
+    "trade_signed",
+    "trade_total",
+    "ts_ns",
+    "valid_book"
+  ],
   "plan_path": "docs/skhynix_binance_flow_coherence_transition_v1_a_minus1_primitive_support_audit_plan_20260828.md",
-  "plan_sha256": "013539f10da4243663992bb91c6b7a1afe6975e16fb1d3c5fdafb9feb35394ee",
+  "plan_sha256": "ec299f44386b8fcbf5498c5a0099290be968a2bdfc6d6c4c4bb78fbb1b59fcf3",
+  "source_binding": {
+    "source_blob_closure": true,
+    "source_blob_count": 2,
+    "source_blobs": [
+      {
+        "matches_source_commit_blob": true,
+        "path": "local_live_analysis/skhynix_flow_internal_directional_alpha_a0_0828T013/support/source_inventory.csv",
+        "sha256": "5c44f5f6888170a71178d82c1cbf700d5cff5d19b19bd49a2b2404d2361db011"
+      },
+      {
+        "matches_source_commit_blob": true,
+        "path": "local_live_analysis/skhynix_flow_internal_directional_alpha_a0_0828T013/contracts/session_role_ledger.csv",
+        "sha256": "5910288825e89dd37c1db3ef98c8025ede0d593cf404c7b8038c45e851c4da3e"
+      }
+    ],
+    "source_commit_exists": true,
+    "source_commit_is_ancestor": true
+  },
   "source_commit": "5603a670e617636b9994d605faef833164d3add4"
 }

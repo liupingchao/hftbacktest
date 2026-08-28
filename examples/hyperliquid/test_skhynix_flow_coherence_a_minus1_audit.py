@@ -220,3 +220,55 @@ def test_classification_prefers_nuisance_failure() -> None:
         },
     ]
     assert AUDIT.classify(gates) == "Aminus1_nuisance_dominated"
+
+
+def test_cache_field_schema_fails_closed_on_extra_field() -> None:
+    AUDIT.validate_cache_field_names(
+        sorted(AUDIT.ALLOWED_CACHE_FIELDS), "accepted.npz"
+    )
+    with np.testing.assert_raises(AUDIT.AuditError):
+        AUDIT.validate_cache_field_names(
+            sorted((*AUDIT.ALLOWED_CACHE_FIELDS, "future_return_500ms")),
+            "hostile.npz",
+        )
+
+
+def test_feature_window_boundary_audit_detects_cross_segment_history() -> None:
+    features = synthetic_features(120)
+    features["ready"][:] = False
+    features["ready"][99:] = True
+    assert AUDIT.feature_window_boundary_violations(features) == 0
+    features["segment_id"][105:] = 1
+    assert AUDIT.feature_window_boundary_violations(features) == 15
+
+
+def test_slice_invariance_records_variant_identity_and_metrics() -> None:
+    features = synthetic_features(32_000)
+    active = np.zeros(len(features["ts_ns"]), dtype=bool)
+    q = {
+        -1: np.zeros(len(active), dtype=bool),
+        1: np.zeros(len(active), dtype=bool),
+    }
+    conflict = np.zeros(len(active), dtype=bool)
+    rows = AUDIT.slice_invariance_rows(
+        capture_id="test",
+        research_date="2026-08-28",
+        features=features,
+        active=active,
+        q=q,
+        component_conflict=conflict,
+        horizon_conflict=conflict,
+        conflict=conflict,
+        full_anchors=[],
+        variant=AUDIT.VARIANTS[-1],
+    )
+    assert len(rows) == 1
+    assert rows[0]["variant_id"] == "V8"
+    assert rows[0]["identity_exact"]
+    assert rows[0]["metrics_exact"]
+    assert rows[0]["exact_match"]
+
+
+def test_determinism_pair_requires_distinct_roots(tmp_path: Path) -> None:
+    with np.testing.assert_raises(AUDIT.AuditError):
+        AUDIT.finalize_existing_pair(tmp_path, tmp_path, tmp_path)

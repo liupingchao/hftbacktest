@@ -27,6 +27,12 @@
           "value": true
         },
         {
+          "condition": "source_commit_blob_closure",
+          "passed": true,
+          "threshold": "true",
+          "value": true
+        },
+        {
           "condition": "deterministic_build",
           "passed": true,
           "threshold": "true",
@@ -70,6 +76,12 @@
         },
         {
           "condition": "denominator_substitutions_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "cross_segment_or_quality_feature_windows_zero",
           "passed": true,
           "threshold": "0",
           "value": 0
@@ -477,10 +489,28 @@
           "value": 0
         },
         {
+          "condition": "slice_identity_mismatches_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "slice_metric_mismatches_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "slice_variants_complete",
+          "passed": true,
+          "threshold": "9",
+          "value": 9
+        },
+        {
           "condition": "artificial_starts_ge_10",
           "passed": true,
           "threshold": ">=10",
-          "value": 188
+          "value": 1692
         },
         {
           "condition": "unique_clusters_ge_150",

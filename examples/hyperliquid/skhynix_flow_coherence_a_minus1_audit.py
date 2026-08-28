@@ -10,6 +10,7 @@ import json
 import math
 import os
 import shutil
+import subprocess
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,7 +29,7 @@ PLAN_PATH = Path(
     "skhynix_binance_flow_coherence_transition_v1_a_minus1_"
     "primitive_support_audit_plan_20260828.md"
 )
-PLAN_SHA256 = "013539f10da4243663992bb91c6b7a1afe6975e16fb1d3c5fdafb9feb35394ee"
+PLAN_SHA256 = "ec299f44386b8fcbf5498c5a0099290be968a2bdfc6d6c4c4bb78fbb1b59fcf3"
 CACHE_AUTHORITY_PATH = Path(
     "docs/skhynix_flow_internal_directional_alpha_a0_"
     "cache_authority_20260828.csv"
@@ -74,6 +75,74 @@ ACTIVITY_Q60 = 44.0
 WINDOWS_MS = (100, 200, 500, 1_000, 2_000)
 WINDOW_COUNTS = {window: window // 20 for window in WINDOWS_MS}
 RAW_CHUNK_BYTES = 8 * 1024 * 1024
+ALLOWED_CACHE_FIELDS = frozenset(
+    {
+        "activity",
+        "ask_depletion",
+        "ask_depth",
+        "bid_depletion",
+        "bid_depth",
+        "bin_boundary_violations",
+        "cache_schema_version",
+        "event_seq",
+        "initial_bridge_failure_count",
+        "midpoint",
+        "non_admitted_message_contributions",
+        "obi",
+        "ofi",
+        "ofi_abs",
+        "quality_boundary_count",
+        "ready",
+        "reset_count",
+        "segment_end_ids",
+        "segment_end_ts",
+        "segment_id",
+        "sequence_gap_count",
+        "spread_ticks",
+        "tick_size",
+        "trade_signed",
+        "trade_total",
+        "ts_ns",
+        "valid_book",
+    }
+)
+CONSUMED_CACHE_FIELDS = frozenset(
+    {
+        "activity",
+        "ask_depletion",
+        "bid_depletion",
+        "event_seq",
+        "ofi",
+        "ofi_abs",
+        "ready",
+        "segment_id",
+        "trade_signed",
+        "trade_total",
+        "ts_ns",
+        "valid_book",
+    }
+)
+SLICE_FIELDS = (
+    "capture_id",
+    "research_date",
+    "segment_id",
+    "variant_id",
+    "artificial_start_ts_ns",
+    "comparison_guard_ts_ns",
+    "expected_anchor_count",
+    "actual_anchor_count",
+    "expected_negative_count",
+    "actual_negative_count",
+    "expected_positive_count",
+    "actual_positive_count",
+    "expected_median_dwell_ms",
+    "actual_median_dwell_ms",
+    "expected_identity_sha256",
+    "actual_identity_sha256",
+    "identity_exact",
+    "metrics_exact",
+    "exact_match",
+)
 
 
 class AuditError(RuntimeError):
@@ -137,6 +206,62 @@ def write_csv(path: Path, rows: Sequence[dict[str, Any]], fields: Sequence[str])
 def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
+
+
+def git_output(repo_root: Path, *args: str) -> bytes:
+    result = subprocess.run(
+        ("git", *args),
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise AuditError(f"git_command_failed:{args[0]}:{detail}")
+    return result.stdout
+
+
+def verify_source_binding(repo_root: Path) -> dict[str, Any]:
+    git_output(repo_root, "cat-file", "-e", f"{SOURCE_COMMIT}^{{commit}}")
+    ancestry = subprocess.run(
+        ("git", "merge-base", "--is-ancestor", SOURCE_COMMIT, "HEAD"),
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+    )
+    if ancestry.returncode != 0:
+        raise AuditError("source_commit_not_ancestor")
+    rows = []
+    for path in (SOURCE_INVENTORY_PATH, SOURCE_ROLE_PATH):
+        current = (repo_root / path).read_bytes()
+        frozen = git_output(repo_root, "show", f"{SOURCE_COMMIT}:{path.as_posix()}")
+        if current != frozen:
+            raise AuditError(f"source_blob_drift:{path.as_posix()}")
+        rows.append(
+            {
+                "path": path.as_posix(),
+                "sha256": hashlib.sha256(current).hexdigest(),
+                "matches_source_commit_blob": True,
+            }
+        )
+    return {
+        "source_commit_exists": True,
+        "source_commit_is_ancestor": True,
+        "source_blob_count": len(rows),
+        "source_blobs": rows,
+        "source_blob_closure": True,
+    }
+
+
+def validate_cache_field_names(names: Sequence[str], cache_name: str) -> None:
+    actual = frozenset(names)
+    if actual != ALLOWED_CACHE_FIELDS:
+        missing = sorted(ALLOWED_CACHE_FIELDS - actual)
+        unexpected = sorted(actual - ALLOWED_CACHE_FIELDS)
+        raise AuditError(
+            f"cache_field_schema:{cache_name}:"
+            f"missing={missing}:unexpected={unexpected}"
+        )
 
 
 def finite_quantile(values: Sequence[float], q: float) -> float:
@@ -204,7 +329,11 @@ def segment_start_array(ts_ns: np.ndarray, segments: np.ndarray) -> np.ndarray:
 
 def build_features(cache_path: Path) -> dict[str, np.ndarray]:
     with np.load(cache_path, allow_pickle=False) as raw:
-        values = {name: raw[name].copy() for name in raw.files}
+        validate_cache_field_names(raw.files, cache_path.name)
+        values = {
+            name: raw[name].copy()
+            for name in sorted(CONSUMED_CACHE_FIELDS)
+        }
     segments = values["segment_id"]
     features: dict[str, np.ndarray] = dict(values)
     for window_ms, count in WINDOW_COUNTS.items():
@@ -279,7 +408,35 @@ def feature_audit_counts(features: dict[str, np.ndarray]) -> dict[str, int]:
         "ratio_bound_violations": ratio_bounds,
         "denominator_substitutions": zero_denominator_finite,
         "positive_denominator_missing": positive_denominator_missing,
+        "cross_segment_or_quality_feature_window_violations": (
+            feature_window_boundary_violations(features)
+        ),
     }
+
+
+def feature_window_boundary_violations(
+    features: dict[str, np.ndarray],
+) -> int:
+    count = max(WINDOW_COUNTS.values())
+    ts_ns = features["ts_ns"]
+    segments = features["segment_id"]
+    ready = features["ready"].astype(bool)
+    if len(ts_ns) == 0:
+        return 0
+    bad_link = (np.diff(ts_ns) != CHECKPOINT_NS) | (
+        np.diff(segments) != 0
+    )
+    prefix = np.concatenate(
+        ([0], np.cumsum(bad_link.astype(np.int64), dtype=np.int64))
+    )
+    indices = np.flatnonzero(ready)
+    insufficient = indices < count - 1
+    violations = int(np.count_nonzero(insufficient))
+    eligible = indices[~insufficient]
+    if len(eligible):
+        bad_counts = prefix[eligible] - prefix[eligible - (count - 1)]
+        violations += int(np.count_nonzero(bad_counts))
+    return violations
 
 
 def base_masks(
@@ -1108,6 +1265,7 @@ def verify_cache_authority(
         if primary_sha != duplicate_sha or row["byte_identical"] != "true":
             raise AuditError(f"cache_pair_mismatch:{name}")
         with np.load(primary, allow_pickle=False) as values:
+            validate_cache_field_names(values.files, name)
             row_count = len(values["ts_ns"])
             schema = int(values["cache_schema_version"][0])
         if row_count != int(row["row_count"]):
@@ -1133,6 +1291,7 @@ def verify_cache_authority(
                 "cache_schema_version": schema,
                 "cache_sha256": expected,
                 "paired_determinism_verified": True,
+                "cache_field_schema_verified": True,
             }
         )
     return verified
@@ -1179,6 +1338,7 @@ def slice_invariance_rows(
     horizon_conflict: np.ndarray,
     conflict: np.ndarray,
     full_anchors: Sequence[dict[str, Any]],
+    variant: Variant,
 ) -> list[dict[str, Any]]:
     rows = []
     ts = features["ts_ns"]
@@ -1204,13 +1364,16 @@ def slice_invariance_rows(
                 component_conflict=component_conflict & slice_active,
                 horizon_conflict=horizon_conflict & slice_active,
                 conflict=conflict & slice_active,
-                variant=VARIANTS[0],
+                variant=variant,
             )
             guard = cut + 32_000_000_000
             expected = sorted(
                 (
                     int(anchor["confirmation_ts_ns"]),
+                    int(anchor["confirmation_event_seq"]),
                     int(anchor["direction"]),
+                    int(anchor["candidate_ts_ns"]),
+                    float(anchor["coherence_dwell_ms"]),
                     anchor["anchor_id"],
                 )
                 for anchor in full_anchors
@@ -1220,22 +1383,57 @@ def slice_invariance_rows(
             actual = sorted(
                 (
                     int(anchor["confirmation_ts_ns"]),
+                    int(anchor["confirmation_event_seq"]),
                     int(anchor["direction"]),
+                    int(anchor["candidate_ts_ns"]),
+                    float(anchor["coherence_dwell_ms"]),
                     anchor["anchor_id"],
                 )
                 for anchor in slice_anchors
                 if int(anchor["confirmation_ts_ns"]) >= guard
+            )
+            expected_direction = Counter(item[2] for item in expected)
+            actual_direction = Counter(item[2] for item in actual)
+            expected_dwell = finite_quantile(
+                [item[4] for item in expected], 0.50
+            )
+            actual_dwell = finite_quantile(
+                [item[4] for item in actual], 0.50
+            )
+            identity_exact = expected == actual
+            metrics_exact = (
+                len(expected) == len(actual)
+                and expected_direction == actual_direction
+                and (
+                    (math.isnan(expected_dwell) and math.isnan(actual_dwell))
+                    or expected_dwell == actual_dwell
+                )
             )
             rows.append(
                 {
                     "capture_id": capture_id,
                     "research_date": research_date,
                     "segment_id": int(segment),
+                    "variant_id": variant.variant_id,
                     "artificial_start_ts_ns": cut,
                     "comparison_guard_ts_ns": guard,
                     "expected_anchor_count": len(expected),
                     "actual_anchor_count": len(actual),
-                    "exact_match": expected == actual,
+                    "expected_negative_count": expected_direction[-1],
+                    "actual_negative_count": actual_direction[-1],
+                    "expected_positive_count": expected_direction[1],
+                    "actual_positive_count": actual_direction[1],
+                    "expected_median_dwell_ms": expected_dwell,
+                    "actual_median_dwell_ms": actual_dwell,
+                    "expected_identity_sha256": canonical_sha(
+                        {"anchors": expected}
+                    ),
+                    "actual_identity_sha256": canonical_sha(
+                        {"anchors": actual}
+                    ),
+                    "identity_exact": identity_exact,
+                    "metrics_exact": metrics_exact,
+                    "exact_match": identity_exact and metrics_exact,
                 }
             )
             cut += 600_000_000_000
@@ -1267,6 +1465,7 @@ def evaluate_gates(summary: dict[str, Any]) -> list[dict[str, Any]]:
                 gate("cache_authority_29", summary["cache_count"] == 29, summary["cache_count"], "29"),
                 gate("raw_size_sha_closure", summary["raw_closure"], summary["raw_closure"], "true"),
                 gate("cache_pair_closure", summary["cache_closure"], summary["cache_closure"], "true"),
+                gate("source_commit_blob_closure", summary["source_binding"]["source_blob_closure"], summary["source_binding"]["source_blob_closure"], "true"),
                 gate("deterministic_build", summary["deterministic_build"], summary["deterministic_build"], "true"),
             ],
         },
@@ -1283,6 +1482,7 @@ def evaluate_gates(summary: dict[str, Any]) -> list[dict[str, Any]]:
                 gate("cooldown_zone_share_le_0_10", nuisance["cooldown_zone_share"] <= 0.10, nuisance["cooldown_zone_share"], "<=0.10"),
                 gate("ratio_bound_violations_zero", feature["ratio_bound_violations"] == 0, feature["ratio_bound_violations"], "0"),
                 gate("denominator_substitutions_zero", feature["denominator_substitutions"] == 0, feature["denominator_substitutions"], "0"),
+                gate("cross_segment_or_quality_feature_windows_zero", feature["cross_segment_or_quality_feature_window_violations"] == 0, feature["cross_segment_or_quality_feature_window_violations"], "0"),
                 gate("overall_availability_ge_0_90", feature["overall_trade_plus_depth_availability"] >= 0.90, feature["overall_trade_plus_depth_availability"], ">=0.90"),
                 gate("minimum_date_availability_ge_0_80", feature["minimum_date_availability"] >= 0.80, feature["minimum_date_availability"], ">=0.80"),
             ],
@@ -1317,6 +1517,9 @@ def evaluate_gates(summary: dict[str, Any]) -> list[dict[str, Any]]:
             "gate_id": "A-1-6",
             "conditions": [
                 gate("slice_mismatches_zero", slices["mismatch_count"] == 0, slices["mismatch_count"], "0"),
+                gate("slice_identity_mismatches_zero", slices["identity_mismatch_count"] == 0, slices["identity_mismatch_count"], "0"),
+                gate("slice_metric_mismatches_zero", slices["metric_mismatch_count"] == 0, slices["metric_mismatch_count"], "0"),
+                gate("slice_variants_complete", slices["variant_count_tested"] == len(VARIANTS), slices["variant_count_tested"], str(len(VARIANTS))),
                 gate("artificial_starts_ge_10", slices["artificial_start_count"] >= 10, slices["artificial_start_count"], ">=10"),
                 gate("unique_clusters_ge_150", reference["unique_cluster_count"] >= 150, reference["unique_cluster_count"], ">=150"),
                 gate("max_cluster_share_le_0_05", reference["maximum_cluster_share"] <= 0.05, reference["maximum_cluster_share"], "<=0.05"),
@@ -1442,6 +1645,7 @@ def run_audit(
 ) -> dict[str, Any]:
     if sha256_file(repo_root / PLAN_PATH) != PLAN_SHA256:
         raise AuditError("plan_sha_mismatch")
+    source_binding = verify_source_binding(repo_root)
     output_root.mkdir(parents=True, exist_ok=True)
     cache_inventory = verify_cache_authority(
         repo_root, source_cache_root, output_root / "cache"
@@ -1551,6 +1755,20 @@ def run_audit(
                     for key, value in counts.items()
                 }
             )
+            slice_rows.extend(
+                slice_invariance_rows(
+                    capture_id=capture_id,
+                    research_date=research_date,
+                    features=features,
+                    active=variant_active,
+                    q=q,
+                    component_conflict=component,
+                    horizon_conflict=horizon,
+                    conflict=conflict,
+                    full_anchors=anchors,
+                    variant=variant,
+                )
+            )
             if variant.variant_id == "V0":
                 all_reference.extend(anchors)
                 raw_q_by_date[research_date] += int(
@@ -1569,19 +1787,6 @@ def run_audit(
                     refractory_ns=0,
                 )
                 all_shadow.extend(shadow)
-                slice_rows.extend(
-                    slice_invariance_rows(
-                        capture_id=capture_id,
-                        research_date=research_date,
-                        features=features,
-                        active=active,
-                        q=q,
-                        component_conflict=component,
-                        horizon_conflict=horizon,
-                        conflict=conflict,
-                        full_anchors=anchors,
-                    )
-                )
         pre_q = coherence_predicates(features, pre_active, VARIANTS[0])
         pre_anchors, _ = detect_provisional(
             capture_id=capture_id,
@@ -1993,8 +2198,11 @@ def run_audit(
         "cache_count": len(cache_inventory),
         "raw_closure": bool(verify_raw),
         "cache_closure": True,
-        "deterministic_build": True,
-        "zero_outcome_boundary": True,
+        "source_binding": source_binding,
+        "deterministic_build": False,
+        "zero_outcome_boundary": all(
+            row["cache_field_schema_verified"] for row in cache_inventory
+        ),
         "detector_ready_hours": detector_ready_hours,
         "active_flow_hours": active_flow_hours,
         "feature_support": {
@@ -2037,6 +2245,15 @@ def run_audit(
         "slice_invariance": {
             "artificial_start_count": len(slice_rows),
             "mismatch_count": sum(not row["exact_match"] for row in slice_rows),
+            "identity_mismatch_count": sum(
+                not row["identity_exact"] for row in slice_rows
+            ),
+            "metric_mismatch_count": sum(
+                not row["metrics_exact"] for row in slice_rows
+            ),
+            "variant_count_tested": len(
+                {row["variant_id"] for row in slice_rows}
+            ),
         },
         "claim_limit": "historical_support_only_pending_prospective",
         "prospective_validation_required": True,
@@ -2323,16 +2540,7 @@ def run_audit(
     write_csv(
         support / "slice_invariance.csv",
         slice_rows,
-        (
-            "capture_id",
-            "research_date",
-            "segment_id",
-            "artificial_start_ts_ns",
-            "comparison_guard_ts_ns",
-            "expected_anchor_count",
-            "actual_anchor_count",
-            "exact_match",
-        ),
+        SLICE_FIELDS,
     )
     write_json(reports / "A_minus1_summary.json", summary)
     classification_payload = {
@@ -2370,6 +2578,9 @@ def run_audit(
             "cache_authority_path": CACHE_AUTHORITY_PATH.as_posix(),
             "cache_authority_sha256": CACHE_AUTHORITY_SHA256,
             "cache_count": len(cache_inventory),
+            "source_binding": source_binding,
+            "cache_field_schema": sorted(ALLOWED_CACHE_FIELDS),
+            "consumed_cache_fields": sorted(CONSUMED_CACHE_FIELDS),
         },
     )
     write_json(
@@ -2419,6 +2630,10 @@ def run_audit(
             "artificial_start_stride_ms": 600_000,
             "comparison_guard_ms": 32_000,
             "required_mismatches": 0,
+            "variant_ids": [variant.variant_id for variant in VARIANTS],
+            "comparison": (
+                "anchor_identity_direction_counts_and_median_dwell_exact"
+            ),
         },
     )
     write_json(
@@ -2438,6 +2653,9 @@ def run_audit(
             "model_loss_inspected": False,
             "new_collection": False,
             "private_order_access": False,
+            "cache_field_schema_exact": summary["zero_outcome_boundary"],
+            "allowed_cache_fields": sorted(ALLOWED_CACHE_FIELDS),
+            "consumed_cache_fields": sorted(CONSUMED_CACHE_FIELDS),
         },
     )
     roles = [
@@ -2476,6 +2694,342 @@ def compare_outputs(left: Path, right: Path) -> list[str]:
     return differences
 
 
+def verify_existing_cache_closure(
+    repo_root: Path, output_root: Path
+) -> dict[str, Any]:
+    authority_path = repo_root / CACHE_AUTHORITY_PATH
+    if sha256_file(authority_path) != CACHE_AUTHORITY_SHA256:
+        raise AuditError("cache_authority_sha_mismatch")
+    authority = sorted(
+        read_csv(authority_path),
+        key=lambda row: row["cache_name"].encode("ascii"),
+    )
+    if len(authority) != 29:
+        raise AuditError("cache_authority_row_count")
+    inventory_rows = []
+    for row in authority:
+        name = row["cache_name"]
+        path = output_root / "cache" / name
+        if not path.is_file():
+            raise AuditError(f"task_cache_missing:{name}")
+        actual_sha = sha256_file(path)
+        if actual_sha != row["primary_sha256"]:
+            raise AuditError(f"task_cache_sha:{name}")
+        with np.load(path, allow_pickle=False) as values:
+            validate_cache_field_names(values.files, name)
+            row_count = len(values["ts_ns"])
+            schema = int(values["cache_schema_version"][0])
+        if row_count != int(row["row_count"]):
+            raise AuditError(f"task_cache_row_count:{name}")
+        if schema != int(row["cache_schema_version"]):
+            raise AuditError(f"task_cache_schema:{name}")
+        inventory_rows.append(
+            {
+                "cache_name": name,
+                "cache_sha256": actual_sha,
+                "row_count": row_count,
+                "cache_schema_version": schema,
+            }
+        )
+    return {
+        "cache_count": len(inventory_rows),
+        "cache_field_schema_exact": True,
+        "cache_inventory_sha256": canonical_sha(
+            {"caches": inventory_rows}
+        ),
+    }
+
+
+def recompute_supplemental_audits(
+    output_root: Path,
+) -> tuple[list[dict[str, Any]], int, dict[str, int]]:
+    inventory = sorted(
+        read_csv(output_root / "support" / "source_cache_inventory.csv"),
+        key=lambda row: row["cache_name"].encode("ascii"),
+    )
+    if len(inventory) != 29:
+        raise AuditError("supplemental_cache_inventory_count")
+    slice_rows: list[dict[str, Any]] = []
+    boundary_violations = 0
+    anchor_counts = Counter()
+    for row in inventory:
+        name = row["cache_name"]
+        capture_id = name[:-4]
+        research_date = date_from_cache_name(name)
+        features = build_features(output_root / "cache" / name)
+        boundary_violations += feature_window_boundary_violations(features)
+        _, _, reference_active = base_masks(
+            features, cooldown_ns=COOLDOWN_NS
+        )
+        component, horizon, conflict = conflict_primitives(
+            features, reference_active
+        )
+        for variant in VARIANTS:
+            _, _, variant_active = base_masks(
+                features,
+                cooldown_ns=COOLDOWN_NS,
+                fast_ms=variant.fast_ms,
+                medium_ms=variant.medium_ms,
+            )
+            q = coherence_predicates(features, variant_active, variant)
+            anchors, _ = detect_provisional(
+                capture_id=capture_id,
+                research_date=research_date,
+                features=features,
+                active=variant_active,
+                q=q,
+                component_conflict=component,
+                horizon_conflict=horizon,
+                conflict=conflict,
+                variant=variant,
+            )
+            anchor_counts[variant.variant_id] += len(anchors)
+            slice_rows.extend(
+                slice_invariance_rows(
+                    capture_id=capture_id,
+                    research_date=research_date,
+                    features=features,
+                    active=variant_active,
+                    q=q,
+                    component_conflict=component,
+                    horizon_conflict=horizon,
+                    conflict=conflict,
+                    full_anchors=anchors,
+                    variant=variant,
+                )
+            )
+    return slice_rows, boundary_violations, dict(anchor_counts)
+
+
+def write_remediated_output(
+    repo_root: Path,
+    output_root: Path,
+    *,
+    source_binding: dict[str, Any],
+    cache_evidence: dict[str, Any],
+    slice_rows: list[dict[str, Any]],
+    boundary_violations: int,
+    anchor_counts: dict[str, int],
+    deterministic_build: bool,
+    determinism_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    summary_path = output_root / "reports" / "A_minus1_summary.json"
+    summary = json.loads(summary_path.read_text(encoding="ascii"))
+    if summary["task_id"] != TASK_ID:
+        raise AuditError("remediation_task_id_mismatch")
+    for variant in VARIANTS:
+        expected = int(
+            summary["variant_metrics"][variant.variant_id]["anchor_count"]
+        )
+        actual = anchor_counts.get(variant.variant_id, 0)
+        if actual != expected:
+            raise AuditError(
+                f"supplemental_variant_anchor_count:"
+                f"{variant.variant_id}:{actual}:{expected}"
+            )
+    summary["source_binding"] = source_binding
+    summary["cache_closure"] = (
+        cache_evidence["cache_count"] == summary["cache_count"]
+    )
+    summary["deterministic_build"] = deterministic_build
+    summary["zero_outcome_boundary"] = bool(
+        cache_evidence["cache_field_schema_exact"]
+    )
+    summary["feature_support"][
+        "cross_segment_or_quality_feature_window_violations"
+    ] = boundary_violations
+    summary["slice_invariance"] = {
+        "artificial_start_count": len(slice_rows),
+        "mismatch_count": sum(not row["exact_match"] for row in slice_rows),
+        "identity_mismatch_count": sum(
+            not row["identity_exact"] for row in slice_rows
+        ),
+        "metric_mismatch_count": sum(
+            not row["metrics_exact"] for row in slice_rows
+        ),
+        "variant_count_tested": len(
+            {row["variant_id"] for row in slice_rows}
+        ),
+    }
+    gates = evaluate_gates(summary)
+    classification = classify(gates)
+    expected_classification = (
+        "Aminus1_feature_support_failed"
+        if deterministic_build
+        else "Aminus1_source_not_admissible"
+    )
+    if classification != expected_classification:
+        raise AuditError(f"remediation_changed_scientific_result:{classification}")
+    summary["gates"] = gates
+    summary["classification"] = classification
+    summary["draft_a0_contract"] = False
+    summary["a0_execution_authorized"] = False
+    summary["future_target_access_authorized"] = False
+
+    support = output_root / "support"
+    contracts = output_root / "contracts"
+    write_csv(support / "slice_invariance.csv", slice_rows, SLICE_FIELDS)
+    write_json(summary_path, summary)
+
+    classification_path = output_root / "classification.json"
+    classification_payload = json.loads(
+        classification_path.read_text(encoding="ascii")
+    )
+    classification_payload.update(
+        {
+            "classification": classification,
+            "status": "failed",
+            "draft_a0_contract": False,
+            "a0_execution_authorized": False,
+            "future_target_access_authorized": False,
+            "failed_gates": [
+                item["gate_id"] for item in gates if not item["passed"]
+            ],
+            "failed_conditions": [
+                f"{item['gate_id']}:{condition['condition']}"
+                for item in gates
+                for condition in item["conditions"]
+                if not condition["passed"]
+            ],
+            "slice_invariance": summary["slice_invariance"],
+        }
+    )
+    write_json(classification_path, classification_payload)
+    write_json(contracts / "gate_contract.json", {"gates": gates})
+    write_json(
+        contracts / "source_cache_contract.json",
+        {
+            "source_commit": SOURCE_COMMIT,
+            "plan_path": PLAN_PATH.as_posix(),
+            "plan_sha256": PLAN_SHA256,
+            "cache_authority_path": CACHE_AUTHORITY_PATH.as_posix(),
+            "cache_authority_sha256": CACHE_AUTHORITY_SHA256,
+            "cache_count": cache_evidence["cache_count"],
+            "source_binding": source_binding,
+            "cache_inventory_sha256": cache_evidence[
+                "cache_inventory_sha256"
+            ],
+            "cache_field_schema": sorted(ALLOWED_CACHE_FIELDS),
+            "consumed_cache_fields": sorted(CONSUMED_CACHE_FIELDS),
+        },
+    )
+    write_json(
+        contracts / "slice_invariance_contract.json",
+        {
+            "artificial_start_stride_ms": 600_000,
+            "comparison_guard_ms": 32_000,
+            "required_mismatches": 0,
+            "variant_ids": [variant.variant_id for variant in VARIANTS],
+            "comparison": (
+                "anchor_identity_direction_counts_and_median_dwell_exact"
+            ),
+        },
+    )
+    outcome_ledger = json.loads(
+        (contracts / "outcome_access_ledger.json").read_text(
+            encoding="ascii"
+        )
+    )
+    outcome_ledger.update(
+        {
+            "cache_field_schema_exact": summary["zero_outcome_boundary"],
+            "allowed_cache_fields": sorted(ALLOWED_CACHE_FIELDS),
+            "consumed_cache_fields": sorted(CONSUMED_CACHE_FIELDS),
+        }
+    )
+    write_json(contracts / "outcome_access_ledger.json", outcome_ledger)
+    write_json(
+        contracts / "execution_evidence_contract.json",
+        {
+            "source_binding": source_binding,
+            "cache_schema_evidence": cache_evidence,
+            "zero_outcome_boundary": summary["zero_outcome_boundary"],
+            "deterministic_build": deterministic_build,
+            "determinism_evidence": determinism_evidence,
+        },
+    )
+    write_json(output_root / "run_manifest.json", artifact_manifest(output_root))
+    return summary
+
+
+def finalize_existing_pair(
+    repo_root: Path, left: Path, right: Path
+) -> dict[str, Any]:
+    left = left.resolve()
+    right = right.resolve()
+    if left == right:
+        raise AuditError("determinism_pair_roots_not_distinct")
+    if sha256_file(repo_root / PLAN_PATH) != PLAN_SHA256:
+        raise AuditError("plan_sha_mismatch")
+    source_binding = verify_source_binding(repo_root)
+    preseal_differences = compare_outputs(left, right)
+    if preseal_differences:
+        raise AuditError(
+            f"preseal_output_mismatch:{preseal_differences[:5]}"
+        )
+    supplements = {}
+    for label, root in (("A", left), ("B", right)):
+        cache_evidence = verify_existing_cache_closure(repo_root, root)
+        slice_rows, boundary_violations, anchor_counts = (
+            recompute_supplemental_audits(root)
+        )
+        supplements[label] = {
+            "root": root,
+            "cache_evidence": cache_evidence,
+            "slice_rows": slice_rows,
+            "boundary_violations": boundary_violations,
+            "anchor_counts": anchor_counts,
+        }
+        write_remediated_output(
+            repo_root,
+            root,
+            source_binding=source_binding,
+            cache_evidence=cache_evidence,
+            slice_rows=slice_rows,
+            boundary_violations=boundary_violations,
+            anchor_counts=anchor_counts,
+            deterministic_build=False,
+            determinism_evidence={
+                "verification": "full_non_cache_sha256_pair",
+                "preseal_difference_count": 0,
+                "pending_difference_count": None,
+                "final_difference_count": None,
+            },
+        )
+    pending_differences = compare_outputs(left, right)
+    if pending_differences:
+        raise AuditError(
+            f"pending_output_mismatch:{pending_differences[:5]}"
+        )
+    final_summary: dict[str, Any] | None = None
+    for label in ("A", "B"):
+        item = supplements[label]
+        final_summary = write_remediated_output(
+            repo_root,
+            item["root"],
+            source_binding=source_binding,
+            cache_evidence=item["cache_evidence"],
+            slice_rows=item["slice_rows"],
+            boundary_violations=item["boundary_violations"],
+            anchor_counts=item["anchor_counts"],
+            deterministic_build=True,
+            determinism_evidence={
+                "verification": "full_non_cache_sha256_pair",
+                "preseal_difference_count": 0,
+                "pending_difference_count": 0,
+                "final_difference_count": 0,
+            },
+        )
+    final_differences = compare_outputs(left, right)
+    if final_differences:
+        raise AuditError(
+            f"final_output_mismatch:{final_differences[:5]}"
+        )
+    if final_summary is None:
+        raise AuditError("determinism_pair_not_finalized")
+    return final_summary
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
@@ -2487,12 +3041,37 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUT_DIR)
     parser.add_argument("--skip-raw-hash", action="store_true")
     parser.add_argument("--compare-root", type=Path)
+    parser.add_argument(
+        "--finalize-pair",
+        type=Path,
+        nargs=2,
+        metavar=("BUILD_A", "BUILD_B"),
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     repo_root = args.repo_root.resolve()
+    if args.finalize_pair:
+        left, right = (
+            path if path.is_absolute() else repo_root / path
+            for path in args.finalize_pair
+        )
+        summary = finalize_existing_pair(repo_root, left, right)
+        print(
+            json.dumps(
+                {
+                    "classification": summary["classification"],
+                    "deterministic_build": summary[
+                        "deterministic_build"
+                    ],
+                    "slice_invariance": summary["slice_invariance"],
+                },
+                sort_keys=True,
+            )
+        )
+        return
     output_root = (
         args.output_root
         if args.output_root.is_absolute()
@@ -2510,9 +3089,9 @@ def main() -> None:
             if args.compare_root.is_absolute()
             else repo_root / args.compare_root
         )
-        differences = compare_outputs(output_root, compare_root)
-        if differences:
-            raise AuditError(f"deterministic_output_mismatch:{differences[:5]}")
+        summary = finalize_existing_pair(
+            repo_root, output_root, compare_root
+        )
     print(
         json.dumps(
             {

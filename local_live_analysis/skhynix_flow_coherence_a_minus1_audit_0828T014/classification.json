@@ -81,8 +81,11 @@
   },
   "schema_version": "skhynix_flow_coherence_a_minus1_audit_v1",
   "slice_invariance": {
-    "artificial_start_count": 188,
-    "mismatch_count": 0
+    "artificial_start_count": 1692,
+    "identity_mismatch_count": 0,
+    "metric_mismatch_count": 0,
+    "mismatch_count": 0,
+    "variant_count_tested": 9
   },
   "status": "failed",
   "structural_null": {
