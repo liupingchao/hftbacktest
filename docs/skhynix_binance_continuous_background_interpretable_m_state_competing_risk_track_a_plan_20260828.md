@@ -1,10 +1,18 @@
-# SKHYNIX Binance Track A: Continuous Background, Interpretable M-State Filter, Competing-Risk Transition Hazard And H0/H1 Incremental Test - 2026-08-28
+# SKHYNIX Binance Track A: Continuous Background, OBI Reversal Alignment And Competing-Risk H0/H1 Test - 2026-08-28
 
 Date: 2026-08-28
 
+Revision: 2
+
 Status: review draft; design-only research contract; not execution authority
 
-Research identifier:
+Primary hypothesis identifier:
+
+```text
+OBI_REVERSAL_V1
+```
+
+Research family:
 
 ```text
 continuous_background_interpretable_m_state_competing_risk_transition
@@ -16,10 +24,15 @@ Methodology dependency:
 docs/conditional_risk_research_methodology_kernel_v1.md
 ```
 
-Supersedes:
+Revision history:
 
 ```text
-docs/skhynix_binance_continuous_background_recurrent_structural_excursions_track_a_plan_20260828.md
+revision 1:
+  generic withdrawal + flow persistence + replenishment deficit M-state
+
+revision 2:
+  OBI reversal becomes the first and only primary hypothesis
+  generic composite M-state becomes a separately versioned successor
 ```
 
 Authority boundary:
@@ -27,159 +40,178 @@ Authority boundary:
 - This document designs one Binance public-data structural transition study.
 - It grants no new collection, private endpoint, order, cancel, strategy,
   deployment, live-capital, maker economics, or Track B authority.
-- Each execution stage requires a formal workflow task and frozen inputs.
+- Every execution stage requires a formal workflow task and frozen inputs.
 
 ## 1. Decision
 
-Retain the broad alignment idea and the accepted continuous-background result,
-but change the primary research route from unsupervised motif discovery to a
-hypothesis-driven conditional transition test.
+Use the prior empirical experience:
 
-The superseded route was:
+> After a confirmed order-book-imbalance reversal, short-term price direction
+> appears to follow a stable conditional probability distribution.
 
-```text
-continuous background
-  -> generic segmentation
-  -> DTW / k-medoids / shapelet discovery
-  -> statistical filtering of discovered motifs
-```
+as the source of one interpretable and falsifiable hypothesis.
 
-That route contains excessive researcher degrees of freedom:
+The primary route is:
 
 ```text
-segment boundaries
-feature projection
-distance definition
-warping path
-cluster count
-assignment radius
-motif interpretation
+continuous market background
+  -> OBI enters one directional state
+  -> OBI reverses and confirms the opposite state
+  -> align at the causal confirmation timestamp
+  -> model first price-direction transition
+  -> compare H0 snapshot state with H1 snapshot + reversal path
 ```
 
-In high-dimensional dependent data, this pipeline can almost always produce
-retrospectively compact clusters. Cluster existence is therefore not accepted
-as primary evidence.
+The study does not begin by segmenting arbitrary time-series fragments,
+running DTW, or clustering high-dimensional paths.
 
-The new primary route is:
+## 2. Why OBI Reversal Is A Suitable Primary M-State
+
+OBI reversal has:
+
+- a direct order-book interpretation;
+- a deterministic causal state machine;
+- an observable alignment point;
+- a natural mirrored side orientation;
+- a specific future transition target;
+- a low-parameter H0/H1 comparison;
+- an online filter implementation if the hypothesis survives.
+
+The important claim is not:
 
 ```text
-continuous background
-  -> predeclared interpretable M-state
-  -> predeclared mutually exclusive N transitions
-  -> competing-risk transition hazard
-  -> H0 versus H1 out-of-sample incremental test
+current OBI predicts price
 ```
 
-DTW, k-medoids and shapelets are demoted to secondary diagnostics that may run
-only after the primary conditional-transition gate passes.
+It is:
 
-## 2. Research Question
+```text
+conditional on the same current OBI and market context,
+arriving there through an OBI reversal changes the future
+price-direction transition law
+```
+
+This is a path-dependence hypothesis.
+
+## 3. Prior Experience Contract
+
+The user's experience may determine:
+
+- the choice of `OBI_REVERSAL_V1`;
+- the expected effect direction;
+- the state-transition interpretation;
+- the initial low-capacity model family.
+
+It is not counted as statistical evidence.
+
+If that experience was formed from any date in the existing SKHYNIX dataset:
+
+- that date remains historically consumed;
+- it may be used for discovery or calibration only;
+- it cannot become a fresh validation or prospective holdout.
+
+No remembered threshold, horizon or favorable event rate is imported unless
+it is written into the A0 contract before target access.
+
+## 4. Primary Research Question
 
 Track A asks:
 
-> Conditional on the ordinary continuous market background and unavoidable
-> context, does an interpretable state composed of pressure-side depth
-> withdrawal, persistent aggressive flow and replenishment deficit change the
-> probability and timing of subsequent recovery, propagation or reversal
-> transitions across independent sessions?
-
-This is a probabilistic state-transition hypothesis:
-
-```text
-{m1, m2, m3}
-  ->
-{n_recovery, n_propagation, n_reversal}
-```
-
-It is not a rigid waveform, fixed phase cycle, fixed 500ms response window, or
-claim that every occurrence follows the same path.
-
-## 3. Primary Falsifiable Hypothesis
+> Among comparable directional OBI entries with the same current book state,
+> does a causally confirmed OBI reversal change the probability and timing of
+> the next pressure-oriented price move beyond a context-only snapshot model?
 
 Let:
 
 ```text
-C_t = unavoidable observable background context at landmark time t
-M_t = interpretable candidate state at t
-T   = elapsed time from t to the first admitted N transition
-J   = type of the first admitted N transition
+R_i = 1  when landmark i is a confirmed OBI reversal entry
+R_i = 0  when landmark i is a matched non-reversal OBI entry
+
+T_i = elapsed time to first admitted directional price transition
+J_i = follow-new-OBI direction or fail/opposite direction
 ```
 
-The nested models are:
+The primary claim concerns:
+
+```text
+P(T_i, J_i | current state, R_i)
+```
+
+## 5. H0/H1 Contract
+
+The frozen nested models are:
 
 ```text
 H0:
-  P(T, J | C_t, additive main effects of m1_t, m2_t, m3_t)
+  P(T, J | current OBI snapshot, ordinary observable context)
 
 H1:
-  P(T, J | C_t, additive main effects, joint M-state q_M(t))
+  P(T, J | current OBI snapshot, ordinary context,
+           OBI reversal path indicator)
 ```
 
-The primary hypothesis is:
+Primary hypothesis:
 
-> Adding the frozen joint M-state to an H0 that already controls for context
-> and the three component main effects produces a material,
+> Adding the frozen reversal-path indicator produces a material,
 > uncertainty-bounded and cross-session-stable improvement in held-out
-> competing-risk prediction.
+> competing-risk prediction after current OBI is controlled.
 
-The study is rejected when H1 does not improve H0 by the frozen effect
-threshold, even if individual coefficients, horizons or sessions appear
-favorable.
-
-## 4. Meaning Of Pattern
-
-In this contract, a pattern means:
+This distinguishes:
 
 ```text
-an interpretable conditional transition law
+state effect:
+  price responds to current OBI level
+
+path effect:
+  price responds differently because OBI arrived at that level
+  through a reversal
+```
+
+H1 fails when it does not materially improve H0, even if reversal events show
+an attractive unconditional win rate.
+
+## 6. Meaning Of Pattern
+
+The pattern is:
+
+```text
+interpretable conditional path-dependent transition law
 ```
 
 not:
 
 ```text
-a repeated geometric template
+rigid geometric template
 ```
 
-An accepted pattern may therefore have heterogeneous paths and durations. Its
-stable object is:
+An accepted result may have variable paths and durations. The stable object
+is the cause-specific cumulative incidence:
 
 ```text
-P(J = k, T <= u | C_t, M_t)
+F_follow(u | R, C)
+F_fail(u   | R, C)
 ```
 
-or the cause-specific hazard:
+where `C` contains the current OBI snapshot and frozen H0 context.
 
-```text
-lambda_k(u | C_t, M_t)
-```
+## 7. Inherited Evidence
 
-The pattern exists only if this conditional law transports out of sample and
-beats the context-only law.
-
-## 5. Inherited Evidence
-
-The following accepted historical result remains in force:
+The accepted earlier classification remains:
 
 ```text
 continuous_state_no_discrete_phase_support
 ```
 
-It means:
+It rejects a closed `N -> S -> P -> R -> N` phase-cycle interpretation. It
+does not reject a specific OBI path-dependence hypothesis.
 
-- a closed `N -> S -> P -> R -> N` finite-state grammar was not supported;
-- seconds-to-minutes HSMM duration extensions did not reverse the result;
-- a low-parameter continuous AR baseline remained stronger;
-- historical replay was not prospective evidence.
+The continuous background remains the baseline environment. Old HSMM states,
+phase labels, medoids, transition matrices and duration prototypes cannot
+initialize or tune `OBI_REVERSAL_V1`.
 
-This negative result supports retaining a continuous background. It does not
-prove that the M-to-N conditional transition proposed here exists.
+## 8. Research Tuple
 
-Old N/S/P/R labels, HSMM assignments, medoids, transition matrices, durations
-and prototypes may not initialize or tune this study.
-
-## 6. Research Tuple
-
-The execution supplement must freeze one tuple before target access:
+Before target access, freeze:
 
 ```text
 source:
@@ -188,20 +220,23 @@ source:
 instrument:
   SKHYNIX research symbol under the existing source contract
 
-decision time:
-  causal reconstructed grid timestamp
+decision timestamp:
+  reversal_detected_at or matched entry_detected_at
 
 information filtration:
-  public observations available by decision time
+  public observations available by decision timestamp
 
-landmark:
-  broad side-oriented pressure activation
+primary M-state:
+  confirmed OBI reversal path indicator
 
-candidate M-state:
-  withdrawal + flow persistence + replenishment deficit
+control:
+  current-OBI-matched non-reversal directional entry
 
 target:
-  first recovery, propagation or reversal transition
+  first pressure-oriented price move after decision time
+
+target causes:
+  n_follow, n_fail
 
 follow-up:
   support-selected elapsed-time range
@@ -210,56 +245,56 @@ censoring:
   horizon, capture, gap, reconnect, reset, quality and ambiguity
 
 model comparison:
-  additive-component H0 versus H0 plus frozen joint M-state H1
+  H0 snapshot versus H0 plus reversal path H1
 
 replication unit:
   session or research date
 
 claim boundary:
-  structural transition predictability only
+  short-horizon structural price-direction transition only
 ```
 
-Changing a load-bearing tuple member creates a new hypothesis version.
+Changing any load-bearing tuple member creates a new hypothesis version.
 
-## 7. Information And Target Boundary
+## 9. Information And Outcome Boundary
 
-### 7.1 Information available at landmark time
+### 9.1 Allowed decision-time information
 
-H0 and H1 inputs may use only values available by `t`:
+At decision time `t`, H0 and H1 may use:
 
 - current and trailing BBO;
 - current and trailing L1-L5 depth;
 - public depth updates and trades;
-- causal add, cancel, depletion and replenishment estimates;
-- spread, midpoint and microprice ending no later than `t`;
-- signed trade and book-flow variables ending no later than `t`;
-- trailing activity and realized movement ending no later than `t`;
+- causal OBI history ending by `t`;
+- spread, midpoint and microprice ending by `t`;
+- causal add, cancel, depletion and replenishment;
+- signed OFI and public-trade flow ending by `t`;
+- trailing movement, activity and volatility ending by `t`;
 - source age, sequence continuity, reconnect epoch and quality masks;
-- frozen calendar and session context.
+- frozen calendar context.
 
-All preprocessing must be fitted on prior or training-role data.
+All preprocessing is fitted on calibration or training-role data only.
 
-### 7.2 Future structural targets permitted
+### 9.2 Permitted future target
 
-After the support and hypothesis tuple are frozen, the target-construction
-stage may inspect future public structural states solely to determine:
+After A0 freezes the tuple, the target stage may inspect future public quotes
+only to determine:
 
 ```text
-transition type J
+first price-transition type J
 transition time T
 censoring status
 ```
 
-The future target is used for model fitting and scoring, never as a feature.
+Future target values never enter the feature vector.
 
-### 7.3 Forbidden outcomes
+### 9.3 Forbidden outcomes
 
 Track A may not use:
 
 ```text
 post-transition return magnitude
-future markout
-future adverse selection beyond the frozen structural target
+future markout beyond the first-passage target
 quote contact
 own-order fill
 spread capture
@@ -270,95 +305,90 @@ optimal quote distance or size
 maker action labels
 ```
 
-Track A is not outcome-blind in the literal sense because it has a future
-structural target. It is price-economics-blind beyond the exact frozen N-state
-contract.
+Track A tests structural directional transition, not economic value.
 
-## 8. Data Roles
+## 10. Data Roles
 
-Before target access, every session receives an immutable role.
-
-Recommended historical treatment:
+Recommended immutable historical roles:
 
 | Dates | Role | Permitted use |
 |---|---|---|
-| 2026-07-29 | reconstruction and normalization calibration | support only |
+| 2026-07-29 | reconstruction/normalization calibration | support only |
 | 2026-07-30, 2026-08-03, 2026-08-04 | historical development | state and estimator development |
 | 2026-08-07, 2026-08-24, 2026-08-25 | blocked historical validation | frozen model comparison |
 | 2026-08-26, 2026-08-27 | historical no-refit replay | final historical replay |
-| newly collected sessions | prospective validation/final holdout | required for final positive claim |
+| newly collected sessions | prospective validation/final holdout | required for final confirmation |
 
-All existing dates have already been inspected by earlier research. None may
-be relabeled as a fresh prospective final holdout.
+All existing dates have been inspected by prior research and are not fresh
+prospective evidence.
 
-The exact inventory, roles and hashes must be regenerated in Stage A0.
+The exact inventory and hashes must be regenerated in A0.
 
-## 9. Stage Chain
+## 11. Stage Chain
 
 ```text
-A0 support and hypothesis-tuple freeze
-  -> A1 continuous background and interpretable state construction
-  -> A2 landmark risk set and structural target materialization
-  -> A3 competing-risk H0/H1 incremental test
-  -> A4 dependence nulls, cross-session transport and robustness
+A0 support and OBI_REVERSAL_V1 tuple freeze
+  -> A1 OBI reconstruction and causal reversal state machine
+  -> A2 common risk set and first-passage target materialization
+  -> A3 competing-risk H0/H1 path-dependence test
+  -> A4 dependence nulls, transport and online actionability
   -> A5 prospective confirmation and primary classification
 ```
 
-No later stage may redefine an earlier surface after favorable targets become
-visible.
+No later stage may redefine OBI, reversal, controls, target barriers or
+follow-up after favorable outcomes become visible.
 
-## 10. A0: Support And Hypothesis-Tuple Freeze
+## 12. A0: Zero-Target Support Stage
 
 A0 has zero target access and fits no transition model.
 
 It must publish:
 
 - exact source inventory and SHA identities;
-- deterministic reconstruction and timestamp contract;
+- timestamp and deterministic reconstruction contract;
 - accepted causal grid;
-- L1-L5 availability and freshness;
+- L1-L5 depth availability and freshness;
 - gap, reconnect, reset and censoring geometry;
-- eligible calendar exposure;
-- complete follow-up support at a predeclared log-spaced duration grid;
-- session-role ledger;
-- continuous-background candidates and parameter budgets;
-- H0 context plus additive M-component family;
-- M-state formulas and orientation;
-- broad landmark and hysteresis rules;
-- N-state formulas, precedence and ambiguity rules;
+- standard OBI formula and level weights;
+- OBI numerical support and missing-level rules;
+- reversal state-machine thresholds, dwell and hysteresis;
+- `cross_at` and `detected_at` timestamp semantics;
+- non-reversal control-entry rules;
+- H0 context family;
+- first-passage quote convention and barrier;
 - maximum follow-up selection rule;
-- hazard time basis and parameter budget;
-- proper scoring metrics;
-- effect-size and uncertainty gates;
+- hazard elapsed-time basis and parameter budget;
+- proper-score and materiality gates;
 - dependence-preserving null family;
-- outcome-access ledger.
+- session-role and outcome-access ledgers.
 
 A0 may inspect:
 
-- cadence;
-- complete future coverage geometry;
-- quality and censoring support;
-- feature marginal support;
-- independent calendar-block counts.
+- cadence and freshness;
+- depth support;
+- OBI marginal distribution;
+- complete future-coverage geometry;
+- calendar blocks and censoring geometry;
+- numerical state-machine behavior without target joins.
 
 A0 may not inspect:
 
-- N-state event rates;
-- M-conditioned transition rates;
-- favorable elapsed-time regions;
-- H0 or H1 loss;
+- follow/fail event rates;
+- reversal-conditioned price direction;
+- favorable horizons;
+- H0/H1 loss;
 - model coefficients;
-- effect sizes.
+- price-transition plots aligned to reversal.
 
-## 11. Causal Reconstruction And Continuous Background
+## 13. Causal Reconstruction And Continuous Background
 
-Primary reconstruction remains:
+Primary reconstruction:
 
 ```text
 100ms causal grid
 ```
 
-Coarser causal views may be used only under A0-frozen aggregation:
+Coarser views may be used only under A0-frozen causal aggregation:
 
 ```text
 200ms
@@ -370,11 +400,10 @@ Coarser causal views may be used only under A0-frozen aggregation:
 
 These are feature scales, not target horizons.
 
-Let `Z_t` be the robustly normalized observable feature vector. Define:
+The continuous background model describes ordinary evolution:
 
 ```text
 B_t = E[Z_t | Z_(<=t-1), quality_(<=t)]
-R_t = Z_t - B_t
 ```
 
 Primary background:
@@ -383,297 +412,312 @@ Primary background:
 low-parameter diagonal robust AR or grouped AR
 ```
 
-Secondary robustness:
+It supplies:
 
-- low-rank ridge VAR;
-- robust local-level state-space model;
-- slower causal scale variant.
+- ordinary persistence control;
+- causal scale normalization;
+- current context for H0;
+- OOD and quality diagnostics.
 
-The background is accepted only if it beats persistence/unconditional
-baselines on blocked held-out data and remains stable on no-refit replay.
+It does not create event boundaries or unsupervised motifs.
 
-The purpose of `R_t` is to express candidate M variables relative to ordinary
-continuous market evolution. It is not used to generate unsupervised
-segments.
+## 14. Standard OBI Definition
 
-## 12. Pressure-Side Orientation
-
-Each landmark receives a pressure side:
+For accepted levels `l = 1..L`, with primary `L=5`:
 
 ```text
-s_t in {bid_pressure, ask_pressure}
+OBI_t =
+  sum_l w_l * (Q_bid,t,l - Q_ask,t,l)
+  /
+  sum_l w_l * (Q_bid,t,l + Q_ask,t,l)
 ```
 
-All candidate variables are transformed into pressure-relative coordinates so
-that positive values have the same interpretation:
+where:
+
+- `Q_bid,t,l` and `Q_ask,t,l` are causally reconstructed displayed quantities;
+- `w_l` is frozen before target access;
+- the denominator must exceed the frozen minimum support;
+- missing required levels produce unavailable/OOD, not silent zero fill.
+
+Primary weights:
 
 ```text
-positive withdrawal:
-  liquidity removed from the pressure-facing side
-
-positive flow persistence:
-  aggressive flow continues toward that side
-
-positive refill deficit:
-  depletion exceeds replenishment on that side
+equal level weights
 ```
 
-The side-orientation rule must be frozen before N targets are visible.
+Permitted A0-frozen robustness:
 
-When side orientation is ambiguous:
+- L1-only OBI;
+- L1-L3 aggregate;
+- distance-decayed L1-L5;
+- per-level log-depth difference vector already present in the repository.
 
-- the landmark is excluded under a frozen reason; or
-- both orientations are retained only under a predeclared dependence rule.
+Robustness variants cannot rescue a failed primary equal-weight L1-L5 result.
 
-The primary route may not choose the orientation that later produces the more
-favorable transition.
+## 15. OBI Reversal State Machine
 
-## 13. Broad Landmark
+The reversal is a causal transition between interpretable OBI bands.
 
-The broad landmark defines the risk-set entry opportunity. It is intentionally
-less specific than the candidate M-state.
+For an old direction `s_old in {-1,+1}`:
 
-Recommended landmark:
+### 15.1 Pre-state
+
+Require:
 
 ```text
-causal activation of directional public flow or book pressure
+s_old * OBI_t >= h_pre
 ```
 
-The landmark:
+for at least frozen dwell `d_pre`.
 
-- establishes side orientation;
-- requires quality admissibility;
-- uses a low threshold calibrated without N targets;
-- uses entry/exit hysteresis;
-- applies a frozen minimum separation or refractory rule;
-- does not require all three M components.
+This establishes that the book occupied a meaningful old directional state,
+not merely crossed zero because of noise.
 
-This produces both:
+### 15.2 Crossing
+
+`reversal_cross_at` is the first timestamp after the accepted pre-state where:
 
 ```text
-M-positive pressure landmarks
-M-negative or weak-M pressure landmarks
+s_old * OBI_t <= h_neutral_exit
 ```
 
-H0 and H1 are therefore compared on a common pressure-activation risk set,
-not on hand-matched episodes selected after outcomes are known.
+and the path proceeds toward the opposite band.
 
-## 14. Interpretable M-State
+Crossing is a retrospective structural anchor, not the online decision time.
 
-At each broad landmark `t_i`, define three pressure-oriented candidate
-components.
+### 15.3 New-state confirmation
 
-### 14.1 m1: pressure-side depth withdrawal
-
-`m1` measures whether displayed L1-L5 liquidity on the pressure-facing side
-has fallen below its causal background while opposite-side and total-depth
-context are controlled.
-
-It must preserve:
-
-- level identity;
-- depth concentration;
-- migration toward or away from the touch;
-- causal trailing reference.
-
-Positive `m1` means greater pressure-side withdrawal.
-
-### 14.2 m2: aggressive-flow persistence
-
-`m2` measures sustained pressure-oriented public trade and book-flow activity,
-not a single trade or depletion crossing.
-
-It may use a small A0-frozen bank of causal exponential summaries. The bank is
-selected from cadence and support, not from transition outcomes.
-
-Positive `m2` means stronger and more persistent directional pressure.
-
-### 14.3 m3: replenishment deficit
-
-`m3` compares pressure-side replenishment with depletion and cancellation over
-the same causal information set.
-
-Positive `m3` means:
+Let:
 
 ```text
-depletion and cancellation
-  >
-new displayed replenishment
+s_new = -s_old
 ```
 
-### 14.4 M-state score
-
-Robust standardized components are oriented so that larger values all mean
-stronger candidate mechanism.
-
-Primary continuous score:
+Require:
 
 ```text
-q_M(t) = min(
-  clip(m1_t),
-  clip(m2_t),
-  clip(m3_t)
-)
+s_new * OBI_t >= h_post
 ```
 
-The minimum implements an interpretable soft conjunction: the joint state is
-only as strong as its weakest required component.
+for frozen confirmation dwell `d_confirm`.
 
-Primary filter:
+The timestamp at which confirmation becomes causally available is:
 
 ```text
-M_positive(t) =
-  q_M(t) >= h_M_entry
-  under the frozen dwell and hysteresis rule
+reversal_detected_at
 ```
 
-`q_M` is the primary model input. `M_positive` is used for reporting,
-opportunity counts and online filter diagnostics.
+### 15.4 Quality and ambiguity
 
-No M threshold may be selected using N outcomes.
+Reject or censor reversal candidates with:
 
-## 15. H0 Context
+- gap or reconnect inside the pre-state/cross/confirmation path;
+- stale or missing required levels;
+- ambiguous side orientation;
+- denominator below OBI support;
+- repeated neutral chatter exceeding the frozen state-machine rule;
+- target transition already making the causal interpretation unsupported.
 
-H0 represents context and component-wise persistence that any honest joint
-pattern must beat.
+Thresholds and dwell values are frozen without price-target access.
 
-The frozen low-parameter context includes the additive main effects:
+## 16. Alignment Contract
+
+Primary alignment:
 
 ```text
-m1
-m2
-m3
+t0 = reversal_detected_at
 ```
 
-and may include:
+Diagnostic timestamp:
 
+```text
+reversal_cross_at
+```
+
+The system may report:
+
+```text
+detection_delay =
+  reversal_detected_at - reversal_cross_at
+```
+
+It may not backdate the online decision to `reversal_cross_at`.
+
+Price movement between `cross_at` and `detected_at` is:
+
+- recorded as `pre_detection_transition`;
+- included in structural/actionability diagnostics;
+- excluded from claims that the signal was causally capturable before that
+  movement.
+
+The primary competing-risk clock starts at `detected_at`.
+
+## 17. Common Risk Set And Controls
+
+To distinguish reversal history from current OBI level, construct a common
+directional-entry risk set.
+
+Every admitted landmark enters a frozen new-direction OBI band and has:
+
+```text
+entry_detected_at
+new direction s_new
+current OBI
+spread/depth/activity context
+```
+
+Classify the history:
+
+```text
+R_i = 1:
+  the entry was preceded by an accepted opposite OBI pre-state
+  and completed the frozen reversal path
+
+R_i = 0:
+  the entry reached the same current OBI band without an accepted
+  opposite pre-state in the frozen lookback
+```
+
+Controls must share:
+
+- the same primary OBI formula;
+- the same new-direction band;
+- the same confirmation semantics;
+- the same quality and censoring rules;
+- comparable current OBI support.
+
+H0 controls remaining snapshot differences statistically. Optional matching
+is diagnostic and must use only decision-time context.
+
+This comparison asks:
+
+```text
+same current OBI region
+different arrival path
+```
+
+## 18. Primary M-State
+
+The primary interpretable M-state is:
+
+```text
+M_i = OBI reversal history indicator R_i
+```
+
+No high-dimensional embedding is required.
+
+Primary H1 adds only:
+
+```text
+R_i
+```
+
+Secondary path descriptors may be reported after the primary model is frozen:
+
+- old-state OBI strength;
+- old-state dwell;
+- reversal amplitude;
+- crossing speed;
+- L1-L5 sign coherence;
+- confirmation strength;
+- confirmation dwell;
+- pre-detection price transition.
+
+These descriptors cannot rescue a failed primary reversal-indicator test.
+
+## 19. H0 Snapshot Model
+
+H0 must make current-state OBI prediction difficult to confuse with reversal
+path dependence.
+
+The frozen low-parameter H0 may include:
+
+- current aggregate OBI;
+- current per-level imbalance summary;
 - spread;
-- total and opposite-side depth;
-- unsigned public activity;
-- generic directional pressure used to define the landmark;
-- causal trailing volatility/activity;
+- total bid/ask depth and concentration;
+- contemporaneous OFI/book-flow pressure;
+- contemporaneous signed trade flow;
+- trailing price movement ending by decision time;
+- trailing activity and volatility;
 - time-of-day basis;
-- source age and quality state;
-- prior accepted landmark/transition history.
+- source age and quality state.
 
-H0 may not include interactions or deterministic transforms that reconstruct
-`q_M`.
+H0 must include current OBI.
 
-H0 must be strong enough to prevent the candidate from receiving credit for
-ordinary high-activity or wide-spread regimes, or for ordinary autocorrelation
-in any individual M component.
+H0 must not include a deterministic reconstruction of the accepted reversal
+state machine. Otherwise it would absorb the exact H1 candidate.
 
-## 16. Mutually Exclusive N Transitions
+Secondary robustness may add generic OBI slope or lag summaries to test
+whether the path effect reduces to simple momentum. That stronger H0 cannot
+create a positive result if the primary H1 fails.
 
-After a landmark, follow the oriented public state until the first admitted
-transition.
+## 20. First-Passage Competing-Risk Target
 
-### 16.1 n_recovery
+Orient every landmark so:
 
-Recovery occurs when:
+```text
+new OBI direction = +1
+old OBI direction = -1
+```
 
-- pressure-side depth and replenishment return to the frozen background band;
-- the M-state exits through hysteresis;
-- no pressure-direction propagation transition has occurred;
-- no opposite-side reversal transition has occurred.
+Freeze reference quote `P_i,0` at decision time using one quote convention.
 
-This includes absorption or normalization without pressure-direction price
-relocation.
+### 20.1 n_follow
 
-### 16.2 n_propagation
+The first admitted reference-price barrier is reached in the new OBI
+direction:
 
-Propagation occurs when the pressure moves through the local structure before
-recovery:
+```text
+s_new * (P_t - P_i,0) >= k_ticks
+```
 
-- pressure-side touch is exhausted or relocated;
-- the public reference price moves in the pressure direction under the frozen
-  quote convention;
-- and the frozen spatial confirmation rule is satisfied, such as continued
-  deeper-level depletion or migration.
+### 20.2 n_fail
 
-The target is the first structural transition. Post-transition return
-magnitude and markout are forbidden.
+The first admitted barrier is reached in the old OBI direction:
 
-### 16.3 n_reversal
+```text
+s_new * (P_t - P_i,0) <= -k_ticks
+```
 
-Reversal occurs when:
+### 20.3 No transition
 
-- the original directional pressure loses dominance;
-- an opposite-side pressure state satisfying the frozen minimum conditions
-  begins;
-- recovery or propagation has not already occurred.
-
-### 16.4 Persistence and no event
-
-Persistence is not forced into a fourth event type.
-
-If none of the three transitions occurs before maximum supported follow-up:
+If neither barrier is reached before maximum follow-up:
 
 ```text
 right_censored_at_tau_max
 ```
 
-Capture end, gap, reconnect, reset or quality failure also right-censors the
-risk interval.
+Capture end, gap, reconnect, reset or quality failure also censors the
+interval.
 
-### 16.5 Precedence and ties
+### 20.4 Quote convention and barrier
 
-N-state definitions must be mutually exclusive.
+A0 freezes:
 
-When two candidates occur inside one grid interval:
+- midpoint, touch or another explicit public quote convention;
+- tick rounding;
+- barrier `k_ticks`;
+- simultaneous-hit and interval ambiguity rules.
 
-- use exchange-event ordering only if the source contract identifies it;
-- otherwise classify the interval as ambiguous and censor it;
-- never apply a favorable semantic precedence after outcome inspection.
+One-tick first passage is the recommended primary target when supported by the
+quote/tick contract. Other barriers are predeclared robustness only.
 
-The exact precedence and ambiguity rules are frozen in A0.
+The model does not use post-barrier return magnitude or markout.
 
-## 17. Start And End Anchors
+## 21. Risk-Set Construction
 
-This route does not search for segment boundaries that maximize shape
-similarity.
-
-```text
-start_anchor:
-  first causal broad-landmark entry timestamp
-
-M_entry_at:
-  equal to start_anchor when M_positive is already true at the landmark;
-  otherwise absent for that risk interval
-
-end_anchor:
-  first admitted N-transition timestamp
-
-end_type:
-  recovery, propagation or reversal
-```
-
-If no N transition occurs:
+For directional entry `i`:
 
 ```text
-end_anchor:
-  absent
-
-status:
-  right-censored
+t_i   = entry/reversal detected time
+R_i   = reversal history indicator
+C_i   = frozen H0 snapshot
+T_i   = time to first follow/fail barrier or censor
+J_i   = n_follow or n_fail when observed
 ```
 
-Anchors are outputs of predeclared state predicates. DTW, clustering and
-future economic outcomes cannot move them.
-
-## 18. Risk-Set Construction
-
-For landmark `i`:
-
-```text
-t_i     = landmark time
-C_i     = frozen H0 context at t_i
-q_M,i   = frozen M-state score at t_i
-T_i     = time to first N event or censor
-J_i     = event type, if observed
-```
-
-At elapsed-time bin `u`, a row remains at risk only when:
+At elapsed time `u`, the row remains at risk only when:
 
 ```text
 T_i >= u
@@ -681,23 +725,23 @@ T_i >= u
 
 Dependence controls:
 
-- one active primary risk interval per pressure side;
-- no duplicate landmark while the same interval remains active;
-- frozen refractory rule after terminal transition;
-- opposite-side entry treated according to the reversal contract;
+- one active interval per directional OBI state;
+- no duplicate entry while that interval remains active;
+- frozen refractory and hysteresis rules;
 - no interval crosses capture, reconnect or quality boundaries;
-- calendar/session blocks remain the uncertainty unit.
+- same-session rows remain in the same split;
+- uncertainty is aggregated by session/date, not hazard row.
 
-Raw hazard rows are not treated as IID observations.
+## 22. Data-Determined Time Scale
 
-## 19. Data-Determined Time Scale
+No single favorable horizon is chosen after outcomes are visible.
 
-The study does not choose one favorable fixed horizon.
-
-A0 inspects only complete follow-up geometry on a log-spaced support grid, for
-example:
+A0 examines complete follow-up geometry only on a log-spaced support grid:
 
 ```text
+100ms
+200ms
+500ms
 1s
 2s
 5s
@@ -706,56 +750,40 @@ example:
 60s
 120s
 300s
-600s
-900s
 ```
 
-The primary `tau_max` is the largest predeclared support point satisfying
-frozen complete-block and independent-session requirements before N-state
-event rates are inspected.
+The primary `tau_max` is selected mechanically from:
 
-The hazard baseline uses a small elapsed-time basis:
+- complete future coverage;
+- independent-date support;
+- censoring geometry;
+- parameter budget.
 
-```text
-alpha_k(u)
-```
+It is selected before follow/fail event rates are inspected.
 
-Recommended choices:
+The elapsed-time baseline uses:
 
 - 4-6 piecewise log-time bins; or
-- a 3-5 degree-of-freedom monotone/restricted spline.
+- a 3-5 degree-of-freedom restricted spline.
 
-Parameter count is controlled against independent landmark and session
-support. A visually favorable horizon cannot rescue a failed integrated
-primary score.
+Primary scoring integrates over the complete frozen follow-up range. A
+favorable individual horizon is diagnostic only.
 
-## 20. Primary Competing-Risk Model
+## 23. Primary Competing-Risk Model
 
-Use a discrete-time multinomial hazard because it:
+Use a discrete-time multinomial hazard.
 
-- handles multiple first-event types;
-- supports interval and right censoring;
-- permits a flexible but low-parameter elapsed-time baseline;
-- produces calibrated cumulative incidence;
-- remains auditable and causally deployable.
-
-For event `k` at elapsed time `u`:
+For cause `k in {follow, fail}` at elapsed time `u`:
 
 ```text
 eta_H0,k(i,u)
   = alpha_k(u)
   + gamma_k' C_i
-  + rho_k1*m1_i
-  + rho_k2*m2_i
-  + rho_k3*m3_i
 
 eta_H1,k(i,u)
   = alpha_k(u)
   + gamma_k' C_i
-  + rho_k1*m1_i
-  + rho_k2*m2_i
-  + rho_k3*m3_i
-  + beta_k * q_M,i
+  + beta_k * R_i
 ```
 
 Conditional event probability:
@@ -767,301 +795,300 @@ P(J_i = k at u | T_i >= u)
     (1 + sum_j exp(eta_j(i,u)))
 ```
 
-The denominator's `1` is no transition in the current elapsed-time bin.
+The denominator's `1` is no price transition in the current elapsed-time bin.
 
-H1 adds one primary degree of freedom per event cause beyond the additive
-component model. This keeps the candidate test focused on whether the
-predeclared conjunction matters beyond ordinary persistence of `m1`, `m2`
-and `m3`.
+H1 adds one degree of freedom per cause. The added information is exactly the
+reversal path indicator.
 
-## 21. Attribution And Robustness Models
+## 24. Directional Expectations
 
-For diagnostic decomposition, the study may also report:
+The frozen experience-derived expectation is:
 
 ```text
-H_base:
-  context only
-
-H0:
-  H_base + additive m1 + m2 + m3
-
-H1:
-  H0 + joint q_M
+beta_follow > 0
+beta_fail   < 0
 ```
 
-`H_base` shows whether the component family contains information at all.
-Only `H0` versus `H1` tests the claimed interpretable joint pattern. A
-favorable `H_base` versus `H0` result may not rescue a failed primary
-`q_M` increment.
-
-Additional robustness estimators:
-
-- cause-specific logistic hazard;
-- cause-specific regularized Cox model;
-- Aalen additive hazard;
-- grouped background variant;
-- alternative A0-frozen M threshold;
-- L1-L3 versus L1-L5 spatial projection.
-
-No deep sequence model, unconstrained neural hazard or broad feature search is
-part of the primary study.
-
-## 22. Directional Expectations
-
-The primary mechanism predicts:
+Equivalent cumulative-incidence expectation:
 
 ```text
-larger q_M
-  -> higher propagation cumulative incidence
-  -> lower or delayed recovery cumulative incidence
+F_follow(u | R=1, C)
+  >
+F_follow(u | R=0, C)
+
+F_fail(u | R=1, C)
+  <
+F_fail(u | R=0, C)
 ```
 
-The reversal direction is exploratory unless a separate directional
-hypothesis is frozen before target access.
+over the predeclared early elapsed-time region or integrated primary range.
 
-Passing proper-score improvement with coefficients opposite to the frozen
-mechanism does not authorize the original interpretation. It requires a new
-versioned hypothesis or a negative/misspecified classification.
+If H1 improves proper scores but coefficient directions contradict the frozen
+expectation, the original interpretation fails and requires a new version.
 
-## 23. H0/H1 Model Fitting
+## 25. Model Fitting
 
 Requirements:
 
-- train periods strictly precede validation/replay periods where practical;
-- preprocessing and normalization fit on training data only;
+- preprocessing fitted on calibration/training roles only;
+- train periods precede validation/replay where practical;
 - purge and embargo around capture/session boundaries;
-- regularization selected within development roles;
-- H0 and H1 share the same risk rows, censoring and elapsed-time basis;
-- H1 may differ from H0 only through the frozen M-state term;
-- no-refit replay uses frozen coefficients and thresholds;
-- session/date remains the replication and uncertainty unit.
+- H0 and H1 use identical risk rows, targets, censoring and elapsed-time basis;
+- H1 differs from H0 only through `R_i`;
+- regularization selected within development data;
+- no-refit replay freezes OBI, reversal, controls, coefficients and thresholds;
+- session/date is the replication and uncertainty unit.
 
-Primary scoring uses all admitted elapsed-time bins up to `tau_max`, not the
-best post-hoc horizon.
+Secondary models:
 
-## 24. Primary Metrics
+- H1 plus frozen reversal-strength descriptors;
+- stronger H0 plus generic OBI slope/lag summaries;
+- cause-specific logistic or Cox hazards;
+- Aalen additive hazard;
+- L1-only and L1-L3 OBI robustness.
 
-### 24.1 Proper scoring
+Secondary models cannot rescue a failed primary H0/H1 result.
+
+## 26. Primary Metrics
+
+### 26.1 Proper scores
 
 - held-out competing-risk negative log loss;
 - integrated Brier score;
-- cause-specific Brier score;
+- cause-specific Brier scores;
 - cumulative-incidence calibration;
 - calibration slope/intercept;
-- OOD and unsupported-row rate.
+- OOD and unsupported-entry rates.
 
-Primary increment:
+Primary increments:
 
 ```text
 Delta_log_loss = loss_H0 - loss_H1
-
-Delta_IBS = IBS_H0 - IBS_H1
+Delta_IBS      = IBS_H0  - IBS_H1
 ```
 
 Positive values favor H1.
 
-### 24.2 Effect and transition metrics
+### 26.2 Effect metrics
 
-- cause-specific `beta_k`;
-- cause-specific cumulative incidence by frozen M-score groups;
-- restricted mean transition time;
-- recovery/propagation/reversal probability within `tau_max`;
-- M-positive opportunity rate per eligible hour;
+- `beta_follow` and `beta_fail`;
+- reversal versus control cumulative incidence;
+- probability of follow before fail within `tau_max`;
+- restricted mean time to follow/fail;
+- reversal/control entry rate per eligible hour;
 - event and censor counts by date;
 - maximum single-date contribution.
 
-### 24.3 Online filter metrics
+### 26.3 Alignment and online metrics
 
-- M-entry detection delay;
-- M-state dwell before N transition;
-- residual dwell after a declared online decision budget;
-- false M-entry rate on low-pressure exposure;
-- M-state revision/chatter rate;
-- fraction censored before any actionable dwell.
+- pre-state dwell;
+- cross-to-detection delay;
+- fraction with pre-detection price transition;
+- residual time from detection to first barrier;
+- OBI reversal chatter/revision rate;
+- reversal detector opportunity rate;
+- fraction censored before useful elapsed time.
 
-Track A reports structural actionability only. It does not select a maker
-action.
+## 27. Statistical Uncertainty
 
-## 25. Uncertainty
-
-Row-IID standard errors are forbidden.
+Row-IID uncertainty is forbidden.
 
 Use:
 
 - date/session-block bootstrap;
 - dependence-preserving calendar blocks;
 - leave-one-date-out influence analysis;
-- confidence intervals over session-aggregated proper-score increments;
+- session-aggregated proper-score increments;
 - event-count and effective-sample diagnostics.
 
-The primary confidence interval and effect threshold are frozen before target
-access.
+The materiality threshold and confidence rule are frozen before target access.
 
-A single favorable day or one large event cannot carry the claim.
+P-values alone do not establish the pattern.
 
-## 26. Dependence-Preserving Nulls
+## 28. Dependence-Preserving Nulls
 
-Required nulls preserve simpler market structure while breaking the candidate
-M-to-N relationship:
+Required nulls:
 
 ```text
-within_session_block_shift:
-  shift q_M relative to future N transitions by admissible calendar blocks
+history_block_shift:
+  shift reversal-history labels within session while preserving
+  current OBI entry times and target paths
 
-pressure_side_disruption:
-  preserve activity and marginals, break correct directional orientation
+current_OBI_stratified_permutation:
+  permute R only within frozen current-OBI/context strata
 
-M_component_desynchronization:
-  preserve each m component, break their contemporaneous conjunction
+prehistory_time_reversal:
+  reverse the pre-entry OBI path while preserving current OBI
 
-matched_context_permutation:
-  permute q_M only within frozen H0 context strata
+side_orientation_disruption:
+  preserve event rates and current state, break correct new-direction mapping
 
-time_reversal_diagnostic:
-  test whether the proposed transition direction is asymmetric
+pseudo_reversal_controls:
+  create matched entries with similar current OBI and activity
+  but no accepted opposite pre-state
+
+cross_detection_delay_null:
+  test whether apparent effect occurred before causal confirmation
 ```
 
-For every null:
+Each null:
 
-- reconstruct the same risk set and censoring;
-- refit both H0 and H1 under the same procedure;
-- evaluate the same best frozen primary metric;
-- preserve session and quality boundaries.
+- preserves session and quality boundaries;
+- uses the same risk set and censoring;
+- refits H0/H1 under the same procedure;
+- is evaluated with the same primary score;
+- participates in frozen multiplicity control.
 
-Multiplicity covers the complete predeclared hypothesis family. Nulls may not
-be selected after seeing which one is easiest to beat.
+## 29. Gate Chain
 
-## 27. Gate Chain
+Exact numeric thresholds are frozen in A0 before target access.
 
-Numeric thresholds must be frozen in the A0 execution supplement before
-N-target access.
+### Gate A0: support and tuple admissibility
 
-### Gate A0: data and support admissibility
-
-- source and reconstruction identity close;
-- session roles are immutable;
-- complete follow-up geometry supports `tau_max`;
-- parameter budget is supported by independent sessions and landmarks;
-- gaps, ambiguity and censoring are auditable;
+- source and reconstruction identities close;
+- OBI has adequate L1-L5 support;
+- reversal and control definitions are immutable;
+- complete follow-up supports `tau_max`;
+- session roles and access ledger close;
 - target surfaces remain inaccessible.
 
-### Gate A1: state-construction validity
+### Gate A1: OBI state-machine validity
 
-- continuous background beats simple baselines;
-- M components are causal and numerically stable;
-- M score is not primarily a quality/session fingerprint;
-- broad landmark and M filter have finite, auditable opportunity rates;
-- orientation and hysteresis are deterministic.
+- reversal detection is causal and deterministic;
+- current-OBI control support overlaps reversal support;
+- reversal/control entries are not primarily session or quality fingerprints;
+- opportunity and chatter rates are finite;
+- cross-to-detection delay is auditable.
 
-This gate inspects M marginals, not M-conditioned N outcomes.
+A1 inspects no future price direction.
 
 ### Gate A2: target variation and identification
 
-- each primary N state has adequate identified event support;
-- censoring does not dominate the primary follow-up range;
-- ties and ambiguous events remain below the frozen cap;
-- no single date supplies the effective target variation.
+- both follow and fail causes have adequate independent-date support;
+- censoring and simultaneous-hit ambiguity remain below frozen caps;
+- no single date supplies the target variation;
+- pre-detection transitions are separately identified.
 
-If any primary cause fails the frozen support requirement, the three-cause
-primary family is ineligible and yields an inconclusive classification.
-Reduced-cause models are diagnostic only and require a new version before
-they can become primary.
+Insufficient support yields an inconclusive classification. It does not
+authorize a different barrier or horizon under the same version.
 
-### Gate A3: H0/H1 incremental predictability
+### Gate A3: H0/H1 path-dependence increment
 
 - H1 improves H0 on the frozen primary proper score;
-- the blocked confidence lower bound exceeds the frozen materiality threshold;
-- integrated Brier/calibration do not contradict the primary result;
-- propagation/recovery directions are consistent with the frozen mechanism;
-- no single date or elapsed-time bin carries the result.
+- blocked confidence lower bound exceeds materiality;
+- integrated Brier/calibration do not contradict the result;
+- `beta_follow` and `beta_fail` follow frozen directions;
+- no single date or elapsed-time bin carries the claim.
 
 ### Gate A4: null separation and historical transport
 
-- observed H1 increment beats all required dependence-preserving nulls after
-  multiplicity control;
-- frozen coefficients and state definitions transport to no-refit replay;
-- session identity and quality artifacts do not explain the increment;
-- sensitivity models do not reveal a load-bearing arbitrary threshold.
+- observed increment beats all required dependence nulls;
+- frozen model transports to historical no-refit replay;
+- stronger-H0 diagnostics do not reduce the effect to simple OBI slope;
+- session identity and quality artifacts do not explain the result.
 
-### Gate A5: prospective confirmation
+### Gate A5: causal actionability and prospective confirmation
 
-- protocol-frozen prospective sessions reproduce the proper-score increment;
-- effect direction, calibration and opportunity rate remain within tolerance;
-- the final holdout is not used to revise the same hypothesis version.
+- a material fraction of transitions remains after `reversal_detected_at`;
+- protocol-frozen prospective sessions reproduce the increment;
+- calibration, opportunity rate and direction remain within tolerance;
+- final holdout does not revise the same hypothesis version.
 
 Only Gate A5 can produce the strongest positive classification.
 
-## 28. Pass Semantics
+## 30. Pass Semantics
 
-An accepted conditional transition pattern means:
+An accepted result means:
 
 ```text
-the frozen joint M-state changes the probability/timing distribution
-of the frozen N transitions beyond context and additive component effects
+after controlling current OBI and ordinary context,
+the path of arriving through a confirmed OBI reversal
+changes the future first-passage price-direction distribution
 on independent sessions
 ```
 
 It does not mean:
 
-- all M occurrences reach the same N state;
-- the path between M and N is geometrically similar;
-- transition probability is deterministic;
-- the pattern predicts post-transition return magnitude;
-- the pattern is economically tradable;
-- maker intervention has positive value.
+- every reversal is followed by price in the new direction;
+- OBI reversal produces deterministic alpha;
+- post-transition return magnitude is positive;
+- the signal survives execution latency;
+- maker intervention is profitable;
+- one threshold works on another venue or instrument.
 
-## 29. Failure Classifications
+## 31. Failure Classifications
 
 Track A ends with exactly one primary classification:
 
 ```text
-insufficient_transition_support
+insufficient_OBI_support
 
-continuous_background_m_state_not_stable
+OBI_reversal_state_machine_unstable
 
-target_transition_not_identified
+current_OBI_control_overlap_insufficient
+
+price_transition_target_not_identified
 
 target_variation_insufficient
 
-H1_no_increment_over_H0
+OBI_reversal_no_increment_over_current_OBI_H0
+
+increment_explained_by_generic_OBI_slope
+
+increment_occurs_before_causal_detection
 
 increment_driven_by_single_session_or_horizon
 
 increment_not_dependence_null_distinct
 
-historical_transition_increment_not_transportable
-
-structural_increment_not_online_actionable
+historical_OBI_reversal_increment_not_transportable
 
 historical_support_only_pending_prospective
 
-stable_interpretable_conditional_transition_confirmed
+stable_OBI_reversal_path_dependence_confirmed
 ```
 
-The last classification requires prospective confirmation.
+The final classification requires prospective confirmation.
 
-## 30. Secondary Pattern Diagnostics
+## 32. Generic Composite M-State Status
 
-Only after Gate A3 passes may the study examine residual heterogeneity within
-the accepted M-to-N family.
+The revision-1 candidate:
 
-Permitted secondary diagnostics:
+```text
+pressure-side withdrawal
+  + aggressive-flow persistence
+  + replenishment deficit
+```
 
-- aligned residual plots by N event;
-- variable-length medoids;
+is not part of the `OBI_REVERSAL_V1` primary family.
+
+It may become a separately versioned successor only after:
+
+- OBI_REVERSAL_V1 closes; or
+- an independent controller explicitly authorizes parallel multiplicity.
+
+It cannot:
+
+- rescue a failed OBI reversal result;
+- alter OBI thresholds or targets;
+- enter H0/H1 feature selection;
+- be combined post hoc with favorable OBI cases.
+
+## 33. Secondary Motif Diagnostics
+
+Only after Gate A3 passes may the study inspect:
+
+- aligned OBI paths;
+- reversal-strength subgroups;
 - bounded soft-DTW;
+- k-medoids;
 - interpretable shapelets;
-- conditional subgroups;
-- anchor-perturbation robustness.
+- follow/fail path heterogeneity.
 
-These diagnostics:
+These diagnostics cannot modify OBI, reversal/control membership, targets or
+the primary classification.
 
-- cannot change M or N definitions;
-- cannot rescue a failed H0/H1 test;
-- cannot create a stronger primary classification;
-- may generate a separately versioned successor hypothesis.
-
-## 31. Track B Unlock Contract
+## 34. Track B Unlock Contract
 
 Track B remains locked unless Track A reaches at least:
 
@@ -1069,70 +1096,64 @@ Track B remains locked unless Track A reaches at least:
 historical_support_only_pending_prospective
 ```
 
-and the controller separately decides whether prospective evidence is
-sufficient.
+and a separate review authorizes outcome expansion.
 
-The frozen handoff contains:
+The Track A handoff contains:
 
-- background model;
-- broad landmark and orientation rule;
-- M component formulas and score;
-- N state definitions;
-- hazard model and coefficients;
-- causal decision timestamps;
-- transition/censoring ledger;
+- OBI formula and weights;
+- reversal/control state machine;
+- decision and cross timestamps;
+- H0/H1 models;
+- causal entry predictions;
+- follow/fail/censoring ledger;
 - calibration and OOD state;
 - source, config, model and code hashes.
 
-Track B may then define a new tuple for markout, contact, fill, maker risk or
-economics. Those outcomes do not retroactively tune Track A.
+Track B may separately define markout, maker risk, fill or economics. Those
+outcomes cannot retroactively tune `OBI_REVERSAL_V1`.
 
-## 32. Required Artifact Layout
+## 35. Required Artifacts
 
 ```text
-artifacts/skhynix_interpretable_transition_track_a/
+artifacts/skhynix_obi_reversal_track_a/
   contracts/
     source_manifest.json
     session_role_ledger.csv
     research_tuple.json
-    information_contract.json
-    M_state_contract.json
-    N_state_contract.json
+    OBI_contract.json
+    reversal_state_machine.json
+    control_entry_contract.json
+    target_contract.json
     censoring_contract.json
+    H0_H1_contract.json
     gate_contract.json
     outcome_access_ledger.json
   support/
     admitted_intervals.csv
-    quality_summary.csv
+    OBI_support.csv
     followup_support.csv
     effective_sample_support.csv
-  background/
-    model_spec.json
-    coefficients.parquet
-    validation_metrics.csv
-    residual_diagnostics.csv
   states/
-    landmark_ledger.parquet
-    M_state_ledger.parquet
-    M_marginal_summary.csv
-    orientation_diagnostics.csv
+    directional_entry_ledger.parquet
+    reversal_ledger.parquet
+    control_overlap.csv
+    detection_delay.csv
   targets/
-    transition_ledger.parquet
+    first_passage_ledger.parquet
     censoring_summary.csv
     target_variation.csv
-    ambiguity_summary.csv
+    predetection_transition.csv
   models/
     H0_spec.json
     H1_spec.json
-    H0_coefficients.parquet
-    H1_coefficients.parquet
+    coefficients.parquet
     validation_predictions.parquet
   metrics/
     proper_scores.csv
     cumulative_incidence.csv
     calibration.csv
     session_influence.csv
-    online_filter_metrics.csv
+    online_actionability.csv
   nulls/
     null_manifest.json
     null_scores.csv
@@ -1147,117 +1168,110 @@ artifacts/skhynix_interpretable_transition_track_a/
   run_manifest.json
 ```
 
-Every artifact must carry source hashes, code commit, config hash, model hash,
+Every artifact carries source hashes, code commit, config hash, model hash,
 timestamp semantics and session role.
 
-## 33. Parameter And Sample Discipline
+## 36. Parameter And Sample Discipline
 
-The effective sample is measured by independent landmarks, events and
+Primary model capacity is intentionally small:
+
+- one aggregate OBI;
+- one reversal indicator;
+- one low-parameter H0 context;
+- two competing causes;
+- one H1 coefficient per cause;
+- one frozen elapsed-time basis;
+- date-blocked validation;
+- explicit censoring.
+
+Effective support is measured by independent entries, transitions and
 sessions, not 100ms hazard rows.
 
-Required controls:
+When support is insufficient, the valid result is inconclusive. Model
+capacity, target horizon or barrier cannot be expanded to manufacture support.
 
-- one primary M score;
-- one primary H0 context plus additive-component family;
-- one primary elapsed-time basis;
-- three mutually exclusive causes;
-- one added H1 coefficient per cause;
-- grouped or diagonal background before high-dimensional alternatives;
-- date-blocked validation;
-- explicit censoring;
-- minimum event-per-parameter and session-support ratios;
-- parameter count reported for every model.
+## 37. Design Risks
 
-When support is insufficient, the valid result is
-`insufficient_transition_support`, not a more flexible model.
+### Current OBI masquerades as reversal effect
 
-## 34. Design Risks
+Require current OBI in H0 and current-OBI overlap diagnostics.
 
-### M-state chosen after seeing N
+### Price moves before confirmation
 
-Prevent with support-before-target access, immutable formulas and access
-ledger.
+Record `pre_detection_transition`; start the primary clock at
+`reversal_detected_at`.
 
-### H0 intentionally weak
+### Reversal threshold is outcome-tuned
 
-Prevent with a predeclared context family containing generic activity,
-spread, depth and trailing movement.
+Freeze OBI bands, dwell and hysteresis under zero-target A0.
+
+### OBI slope explains everything
+
+Run a stronger-H0 robustness with generic slope/lag features. Classify
+`increment_explained_by_generic_OBI_slope` when appropriate.
+
+### Threshold entry creates dense dependent samples
+
+Use one active interval, hysteresis, refractory rules and session-block
+uncertainty.
+
+### One date supplies the result
+
+Use date influence caps, blocked intervals and no-refit replay.
+
+### Experience is mistaken for evidence
+
+Treat experience only as hypothesis provenance and expected direction.
 
 ### Favorable horizon selection
 
-Use support-selected `tau_max`, integrated proper scores and a frozen
-elapsed-time basis.
+Use support-selected `tau_max` and integrated proper scoring.
 
-### Dense overlapping landmarks
+### Historical replay is called prospective
 
-Use one active interval per side, refractory rules and session-block
-uncertainty.
+Require new protocol-frozen sessions for final confirmation.
 
-### Transition labels overlap
-
-Freeze mutually exclusive predicates, precedence and ambiguity censoring.
-
-### State threshold creates the result
-
-Use continuous `q_M` as the primary model input; threshold is a filter and
-diagnostic. Run only A0-frozen threshold sensitivity.
-
-### Price relocation leaks economics
-
-Use relocation only as the exact `n_propagation` structural endpoint. Forbid
-post-transition magnitude, markout and strategy labels.
-
-### Rare events create large coefficients
-
-Require event support, regularization, blocked confidence intervals and
-proper-score improvement.
-
-### Historical data appear prospective
-
-Cap all existing dates at historical replay and require newly collected
-protocol-frozen sessions for final confirmation.
-
-## 35. First Execution Task
+## 38. First Execution Task
 
 The next formal task should be:
 
 ```text
-SKHYNIX-BINANCE-INTERPRETABLE-TRANSITION-TRACK-A0-SUPPORT-AND-TUPLE-FREEZE
+SKHYNIX-BINANCE-OBI-REVERSAL-TRACK-A0-SUPPORT-AND-TUPLE-FREEZE
 ```
 
-It must have zero N-target access.
+It must have zero future price-target access.
 
 It should:
 
 1. close source and reconstructed-cache identities;
-2. freeze session roles and admitted intervals;
-3. freeze causal grid, background and normalization;
-4. freeze broad landmark and pressure-side orientation;
-5. freeze exact `m1`, `m2`, `m3`, `q_M` and hysteresis formulas;
-6. freeze mutually exclusive N predicates, tie and censoring rules without
-   materializing their event rates;
-7. measure complete follow-up geometry and select `tau_max` mechanically;
-8. freeze H0 context plus additive M-component main effects, H1 joint `q_M`
-   increment and elapsed-time basis;
-9. freeze proper-score, uncertainty, null and materiality gates;
-10. verify zero access to target rates, transition-conditioned plots and
-    economics outcomes.
+2. freeze data roles and admitted intervals;
+3. freeze equal-weight L1-L5 OBI and missing-level semantics;
+4. freeze old/new bands, neutral band, pre-dwell, confirmation dwell and
+   hysteresis;
+5. freeze `cross_at`, `detected_at` and pre-detection handling;
+6. freeze reversal and same-current-OBI non-reversal entry rules;
+7. freeze current-state H0 context;
+8. freeze first-passage quote convention, tick barrier and censoring;
+9. select `tau_max` from complete support without event-rate access;
+10. freeze proper-score, uncertainty, null and materiality gates;
+11. verify zero access to follow/fail outcomes and aligned price plots.
 
-Only after A0 QA acceptance may target materialization begin.
+Only after A0 QA acceptance may the first-passage targets be materialized.
 
-## 36. Final Nonclaims
+## 39. Final Nonclaims
 
 This plan does not claim:
 
-- that the proposed M-state is stable;
-- that M changes any N transition;
-- that the joint effect survives H0 context and component main effects;
-- that the transition time scale is already known;
+- that OBI reversal occurs frequently enough;
+- that current-OBI-matched controls have adequate support;
+- that reversal history improves H0;
+- that the expected direction is correct;
+- that the effect survives causal confirmation delay;
 - that historical data provide prospective confirmation;
-- that a structural transition predicts post-transition return;
-- that a maker can act before the state exits;
-- that any quoting response is profitable;
-- that the result transfers to another venue or instrument.
+- that first-passage direction implies positive markout;
+- that the signal is actionable for a maker;
+- that any quoting strategy is profitable;
+- that the result transfers to another venue or symbol.
 
-Its purpose is to test one interpretable conditional transition family with
-fewer researcher degrees of freedom and a clear nested baseline.
+Its purpose is to turn one interpretable empirical experience into a sharply
+defined path-dependence hypothesis that can fail.
