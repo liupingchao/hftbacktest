@@ -1,0 +1,12 @@
+{
+  "H0_H1_H2_fitted": false,
+  "barrier_scans": false,
+  "cost_fill_pnl_fields_read": [],
+  "future_bbo_fields_read": [],
+  "future_midpoint_fields_read": [],
+  "future_return_or_markout_fields_read": [],
+  "model_loss_inspected": false,
+  "new_collection": false,
+  "private_order_access": false,
+  "targets_materialized": false
+}

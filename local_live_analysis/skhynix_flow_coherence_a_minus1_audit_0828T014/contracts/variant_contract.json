@@ -1,0 +1,74 @@
+[
+  {
+    "component_level": 0.5,
+    "fast_ms": 100,
+    "medium_level": 0.25,
+    "medium_ms": 500,
+    "persistence_ms": 120,
+    "variant_id": "V0"
+  },
+  {
+    "component_level": 0.5,
+    "fast_ms": 200,
+    "medium_level": 0.25,
+    "medium_ms": 500,
+    "persistence_ms": 120,
+    "variant_id": "V1"
+  },
+  {
+    "component_level": 0.5,
+    "fast_ms": 100,
+    "medium_level": 0.25,
+    "medium_ms": 1000,
+    "persistence_ms": 120,
+    "variant_id": "V2"
+  },
+  {
+    "component_level": 0.4,
+    "fast_ms": 100,
+    "medium_level": 0.25,
+    "medium_ms": 500,
+    "persistence_ms": 120,
+    "variant_id": "V3"
+  },
+  {
+    "component_level": 0.6,
+    "fast_ms": 100,
+    "medium_level": 0.25,
+    "medium_ms": 500,
+    "persistence_ms": 120,
+    "variant_id": "V4"
+  },
+  {
+    "component_level": 0.5,
+    "fast_ms": 100,
+    "medium_level": 0.15,
+    "medium_ms": 500,
+    "persistence_ms": 120,
+    "variant_id": "V5"
+  },
+  {
+    "component_level": 0.5,
+    "fast_ms": 100,
+    "medium_level": 0.35,
+    "medium_ms": 500,
+    "persistence_ms": 120,
+    "variant_id": "V6"
+  },
+  {
+    "component_level": 0.5,
+    "fast_ms": 100,
+    "medium_level": 0.25,
+    "medium_ms": 500,
+    "persistence_ms": 80,
+    "variant_id": "V7"
+  },
+  {
+    "component_level": 0.5,
+    "fast_ms": 100,
+    "medium_level": 0.25,
+    "medium_ms": 500,
+    "persistence_ms": 200,
+    "variant_id": "V8"
+  }
+]

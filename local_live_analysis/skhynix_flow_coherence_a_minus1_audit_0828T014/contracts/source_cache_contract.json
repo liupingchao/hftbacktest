@@ -1,0 +1,8 @@
+{
+  "cache_authority_path": "docs/skhynix_flow_internal_directional_alpha_a0_cache_authority_20260828.csv",
+  "cache_authority_sha256": "49bd38bb974e6bbda28db84e5116b850c1d75e234408d41fb429e08cc3b2300f",
+  "cache_count": 29,
+  "plan_path": "docs/skhynix_binance_flow_coherence_transition_v1_a_minus1_primitive_support_audit_plan_20260828.md",
+  "plan_sha256": "013539f10da4243663992bb91c6b7a1afe6975e16fb1d3c5fdafb9feb35394ee",
+  "source_commit": "5603a670e617636b9994d605faef833164d3add4"
+}

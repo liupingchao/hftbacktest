@@ -1,0 +1,5 @@
+{
+  "artificial_start_stride_ms": 600000,
+  "comparison_guard_ms": 32000,
+  "required_mismatches": 0
+}

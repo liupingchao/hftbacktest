@@ -1,0 +1,16 @@
+{
+  "activity_unchanged": true,
+  "depth_bundle_unchanged": true,
+  "family": "within_parent_matched_opposite_orientation_pair_swap",
+  "microblock_ms": [
+    10000,
+    30000,
+    60000
+  ],
+  "pairing": "exact_bitmask_max_cardinality_min_distance_lexicographic",
+  "prng": "numpy.PCG64",
+  "replicates_per_duration": 199,
+  "seed_root": 20260828,
+  "stream": "SeedSequence(root,duration,replicate,capture_ordinal)",
+  "trade_magnitude_zero_missingness_denominator_unchanged": true
+}

@@ -1,0 +1,1045 @@
+{
+  "a0_execution_authorized": false,
+  "active_flow_hours": 10.175555555555556,
+  "admitted_to_shadow_ratio": 0.9893617021276596,
+  "audit_id": "FLOW_COHERENCE_TRANSITION_V1_A_MINUS1",
+  "cache_closure": true,
+  "cache_count": 29,
+  "claim_limit": "historical_support_only_pending_prospective",
+  "classification": "Aminus1_feature_support_failed",
+  "detector_ready_hours": 33.64847777777778,
+  "deterministic_build": true,
+  "draft_a0_contract": false,
+  "feature_support": {
+    "denominator_substitutions": 0,
+    "minimum_date_availability": 0.5920817324636786,
+    "overall_trade_plus_depth_availability": 0.7201477411635836,
+    "positive_denominator_missing": 0,
+    "ratio_bound_violations": 0
+  },
+  "future_target_access_authorized": false,
+  "gates": [
+    {
+      "conditions": [
+        {
+          "condition": "source_inventory_29",
+          "passed": true,
+          "threshold": "29",
+          "value": 29
+        },
+        {
+          "condition": "cache_authority_29",
+          "passed": true,
+          "threshold": "29",
+          "value": 29
+        },
+        {
+          "condition": "raw_size_sha_closure",
+          "passed": true,
+          "threshold": "true",
+          "value": true
+        },
+        {
+          "condition": "cache_pair_closure",
+          "passed": true,
+          "threshold": "true",
+          "value": true
+        },
+        {
+          "condition": "deterministic_build",
+          "passed": true,
+          "threshold": "true",
+          "value": true
+        }
+      ],
+      "gate_id": "A-1-0",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "condition": "zero_outcome_boundary",
+          "passed": true,
+          "threshold": "true",
+          "value": true
+        }
+      ],
+      "gate_id": "A-1-1",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "condition": "cooldown_anchor_violations_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "cooldown_zone_share_le_0_10",
+          "passed": true,
+          "threshold": "<=0.10",
+          "value": 0.021052631578947368
+        },
+        {
+          "condition": "ratio_bound_violations_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "denominator_substitutions_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "overall_availability_ge_0_90",
+          "passed": false,
+          "threshold": ">=0.90",
+          "value": 0.7201477411635836
+        },
+        {
+          "condition": "minimum_date_availability_ge_0_80",
+          "passed": false,
+          "threshold": ">=0.80",
+          "value": 0.5920817324636786
+        }
+      ],
+      "gate_id": "A-1-2",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "anchor_count_ge_500",
+          "passed": false,
+          "threshold": ">=500",
+          "value": 93
+        },
+        {
+          "condition": "represented_dates_ge_7",
+          "passed": true,
+          "threshold": ">=7",
+          "value": 8
+        },
+        {
+          "condition": "minimum_per_date_ge_20",
+          "passed": false,
+          "threshold": ">=20",
+          "value": 1
+        },
+        {
+          "condition": "rate_ge_5",
+          "passed": false,
+          "threshold": ">=5",
+          "value": 2.7638694568649793
+        },
+        {
+          "condition": "rate_le_150",
+          "passed": true,
+          "threshold": "<=150",
+          "value": 2.7638694568649793
+        },
+        {
+          "condition": "single_date_share_le_0_30",
+          "passed": false,
+          "threshold": "<=0.30",
+          "value": 0.5268817204301075
+        },
+        {
+          "condition": "minority_direction_ge_0_25",
+          "passed": true,
+          "threshold": ">=0.25",
+          "value": 0.3870967741935484
+        },
+        {
+          "condition": "unique_clusters_ge_150",
+          "passed": false,
+          "threshold": ">=150",
+          "value": 89
+        },
+        {
+          "condition": "max_cluster_share_le_0_05",
+          "passed": true,
+          "threshold": "<=0.05",
+          "value": 0.021505376344086023
+        },
+        {
+          "condition": "shadow_median_gap_ge_2000",
+          "passed": true,
+          "threshold": ">=2000ms",
+          "value": 188980.0
+        },
+        {
+          "condition": "shadow_max_5s_burst_le_4",
+          "passed": true,
+          "threshold": "<=4",
+          "value": 2
+        },
+        {
+          "condition": "admitted_shadow_ratio_ge_0_70",
+          "passed": true,
+          "threshold": ">=0.70",
+          "value": 0.9893617021276596
+        }
+      ],
+      "gate_id": "A-1-3",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "stable_variants_ge_6",
+          "passed": false,
+          "threshold": ">=6",
+          "value": 0
+        },
+        {
+          "condition": "max_adjacent_ratio_le_5",
+          "passed": true,
+          "threshold": "<=5",
+          "value": 4.2272727272727275
+        },
+        {
+          "condition": "min_adjacent_ratio_ge_0_20",
+          "passed": true,
+          "threshold": ">=0.20",
+          "value": 0.23655913978494625
+        }
+      ],
+      "gate_id": "A-1-4",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "d10000_support_overall_coverage",
+          "passed": true,
+          "threshold": ">=0.35",
+          "value": 0.4077970080803669
+        },
+        {
+          "condition": "d10000_support_min_date_coverage",
+          "passed": true,
+          "threshold": ">=0.25",
+          "value": 0.35915865596613455
+        },
+        {
+          "condition": "d10000_support_pairs_ge_50",
+          "passed": true,
+          "threshold": ">=50",
+          "value": 4424
+        },
+        {
+          "condition": "d10000_support_min_date_pairs_ge_3",
+          "passed": true,
+          "threshold": ">=3",
+          "value": 55
+        },
+        {
+          "condition": "d10000_support_observed_anchors_ge_200",
+          "passed": false,
+          "threshold": ">=200",
+          "value": 34
+        },
+        {
+          "condition": "d10000_support_observed_dates_ge_7",
+          "passed": false,
+          "threshold": ">=7",
+          "value": 6
+        },
+        {
+          "condition": "d10000_support_distinct_fingerprints_ge_190",
+          "passed": true,
+          "threshold": ">=190",
+          "value": 199
+        },
+        {
+          "condition": "d10000_balance_p95_joint_le_0_60",
+          "passed": true,
+          "threshold": "<=0.60",
+          "value": 0.5247417619798858
+        },
+        {
+          "condition": "d10000_balance_caliper_violations_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d10000_conservation_pair_labels",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d10000_conservation_target_invariants",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d10000_conservation_boundary_censor",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d10000_separation_count_gt_p95",
+          "passed": false,
+          "threshold": ">41.099999999999994",
+          "value": 34
+        },
+        {
+          "condition": "d10000_separation_dwell_gt_p95",
+          "passed": true,
+          "threshold": ">40.0",
+          "value": 50.0
+        },
+        {
+          "condition": "d10000_separation_dates_ge_6",
+          "passed": false,
+          "threshold": ">=6",
+          "value": 0
+        },
+        {
+          "condition": "d30000_support_overall_coverage",
+          "passed": false,
+          "threshold": ">=0.6",
+          "value": 0.4131109412535488
+        },
+        {
+          "condition": "d30000_support_min_date_coverage",
+          "passed": false,
+          "threshold": ">=0.5",
+          "value": 0.35038973976665094
+        },
+        {
+          "condition": "d30000_support_pairs_ge_50",
+          "passed": true,
+          "threshold": ">=50",
+          "value": 1056
+        },
+        {
+          "condition": "d30000_support_min_date_pairs_ge_3",
+          "passed": true,
+          "threshold": ">=3",
+          "value": 13
+        },
+        {
+          "condition": "d30000_support_observed_anchors_ge_200",
+          "passed": false,
+          "threshold": ">=200",
+          "value": 40
+        },
+        {
+          "condition": "d30000_support_observed_dates_ge_7",
+          "passed": false,
+          "threshold": ">=7",
+          "value": 5
+        },
+        {
+          "condition": "d30000_support_distinct_fingerprints_ge_190",
+          "passed": true,
+          "threshold": ">=190",
+          "value": 199
+        },
+        {
+          "condition": "d30000_balance_p95_joint_le_0_60",
+          "passed": true,
+          "threshold": "<=0.60",
+          "value": 0.5824535376532933
+        },
+        {
+          "condition": "d30000_balance_caliper_violations_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d30000_conservation_pair_labels",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d30000_conservation_target_invariants",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d30000_conservation_boundary_censor",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d30000_separation_count_gt_p95",
+          "passed": false,
+          "threshold": ">46.0",
+          "value": 40
+        },
+        {
+          "condition": "d30000_separation_dwell_gt_p95",
+          "passed": true,
+          "threshold": ">40.0",
+          "value": 60.0
+        },
+        {
+          "condition": "d30000_separation_dates_ge_6",
+          "passed": false,
+          "threshold": ">=6",
+          "value": 1
+        },
+        {
+          "condition": "d60000_support_overall_coverage",
+          "passed": false,
+          "threshold": ">=0.7",
+          "value": 0.21548536798427603
+        },
+        {
+          "condition": "d60000_support_min_date_coverage",
+          "passed": false,
+          "threshold": ">=0.6",
+          "value": 0.16880959737668846
+        },
+        {
+          "condition": "d60000_support_pairs_ge_50",
+          "passed": true,
+          "threshold": ">=50",
+          "value": 282
+        },
+        {
+          "condition": "d60000_support_min_date_pairs_ge_3",
+          "passed": true,
+          "threshold": ">=3",
+          "value": 6
+        },
+        {
+          "condition": "d60000_support_observed_anchors_ge_200",
+          "passed": false,
+          "threshold": ">=200",
+          "value": 25
+        },
+        {
+          "condition": "d60000_support_observed_dates_ge_7",
+          "passed": true,
+          "threshold": ">=7",
+          "value": 7
+        },
+        {
+          "condition": "d60000_support_distinct_fingerprints_ge_190",
+          "passed": true,
+          "threshold": ">=190",
+          "value": 199
+        },
+        {
+          "condition": "d60000_balance_p95_joint_le_0_60",
+          "passed": true,
+          "threshold": "<=0.60",
+          "value": 0.5737233170977155
+        },
+        {
+          "condition": "d60000_balance_caliper_violations_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d60000_conservation_pair_labels",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d60000_conservation_target_invariants",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d60000_conservation_boundary_censor",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "d60000_separation_count_gt_p95",
+          "passed": false,
+          "threshold": ">26.0",
+          "value": 25
+        },
+        {
+          "condition": "d60000_separation_dwell_gt_p95",
+          "passed": false,
+          "threshold": ">60.0",
+          "value": 60.0
+        },
+        {
+          "condition": "d60000_separation_dates_ge_6",
+          "passed": false,
+          "threshold": ">=6",
+          "value": 0
+        }
+      ],
+      "gate_id": "A-1-5",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "slice_mismatches_zero",
+          "passed": true,
+          "threshold": "0",
+          "value": 0
+        },
+        {
+          "condition": "artificial_starts_ge_10",
+          "passed": true,
+          "threshold": ">=10",
+          "value": 188
+        },
+        {
+          "condition": "unique_clusters_ge_150",
+          "passed": false,
+          "threshold": ">=150",
+          "value": 89
+        },
+        {
+          "condition": "max_cluster_share_le_0_05",
+          "passed": true,
+          "threshold": "<=0.05",
+          "value": 0.021505376344086023
+        }
+      ],
+      "gate_id": "A-1-6",
+      "passed": false
+    }
+  ],
+  "hypothesis_id": "FLOW_COHERENCE_TRANSITION_V1",
+  "nuisance": {
+    "cooldown_anchor_violations": 0,
+    "cooldown_zone_anchor_count": 2,
+    "cooldown_zone_share": 0.021052631578947368,
+    "pre_exclusion_anchor_count": 95
+  },
+  "parameter_stability": {
+    "maximum_adjacent_count_ratio": 4.2272727272727275,
+    "minimum_adjacent_count_ratio": 0.23655913978494625,
+    "stable_variant_count": 0
+  },
+  "pre_refractory_metrics": {
+    "anchor_count": 94,
+    "anchor_count_by_date": {
+      "2026-07-30": 50,
+      "2026-08-03": 13,
+      "2026-08-04": 15,
+      "2026-08-07": 7,
+      "2026-08-24": 4,
+      "2026-08-25": 1,
+      "2026-08-26": 1,
+      "2026-08-27": 3
+    },
+    "anchor_count_by_direction": {
+      "-1": 37,
+      "1": 57
+    },
+    "anchor_count_by_family": {
+      "depletion_and_ofi": 34,
+      "depletion_only": 39,
+      "ofi_only": 21
+    },
+    "anchor_rate_per_detector_ready_hour": 2.7935884832828823,
+    "exclusive_family_count": 3,
+    "maximum_cluster_share": 0.02127659574468085,
+    "maximum_exclusive_family_share": 0.4148936170212766,
+    "maximum_same_capture_5s_burst": 2,
+    "maximum_single_date_share": 0.5319148936170213,
+    "median_coherence_dwell_ms": 60.0,
+    "median_inter_anchor_ms": 188980.0,
+    "minimum_anchors_per_represented_date": 1,
+    "minority_direction_share": 0.39361702127659576,
+    "represented_date_count": 8,
+    "unique_cluster_count": 89
+  },
+  "prospective_validation_required": true,
+  "raw_closure": true,
+  "reference_metrics": {
+    "anchor_count": 93,
+    "anchor_count_by_date": {
+      "2026-07-30": 49,
+      "2026-08-03": 13,
+      "2026-08-04": 15,
+      "2026-08-07": 7,
+      "2026-08-24": 4,
+      "2026-08-25": 1,
+      "2026-08-26": 1,
+      "2026-08-27": 3
+    },
+    "anchor_count_by_direction": {
+      "-1": 36,
+      "1": 57
+    },
+    "anchor_count_by_family": {
+      "depletion_and_ofi": 34,
+      "depletion_only": 38,
+      "ofi_only": 21
+    },
+    "anchor_rate_per_detector_ready_hour": 2.7638694568649793,
+    "exclusive_family_count": 3,
+    "maximum_cluster_share": 0.021505376344086023,
+    "maximum_exclusive_family_share": 0.40860215053763443,
+    "maximum_same_capture_5s_burst": 2,
+    "maximum_single_date_share": 0.5268817204301075,
+    "median_coherence_dwell_ms": 60.0,
+    "median_inter_anchor_ms": 193730.0,
+    "minimum_anchors_per_represented_date": 1,
+    "minority_direction_share": 0.3870967741935484,
+    "represented_date_count": 8,
+    "unique_cluster_count": 89
+  },
+  "schema_version": "skhynix_flow_coherence_a_minus1_audit_v1",
+  "slice_invariance": {
+    "artificial_start_count": 188,
+    "mismatch_count": 0
+  },
+  "source_commit": "5603a670e617636b9994d605faef833164d3add4",
+  "source_count": 29,
+  "structural_null": {
+    "10000": {
+      "boundary_censor_violations": 0,
+      "caliper_violations": 0,
+      "date_null_p90": {
+        "2026-07-29": 0.0,
+        "2026-07-30": 23.200000000000017,
+        "2026-08-03": 7.0,
+        "2026-08-04": 8.0,
+        "2026-08-07": 4.0,
+        "2026-08-24": 2.0,
+        "2026-08-25": 1.0,
+        "2026-08-26": 1.0,
+        "2026-08-27": 0.0
+      },
+      "dates_above_null_p90": 0,
+      "distinct_swap_fingerprints": 199,
+      "matched_pair_count": 4424,
+      "maximum_date_p95_joint_distance": 0.5247417619798858,
+      "microblock_ms": 10000,
+      "minimum_date_comparable_active_coverage": 0.35915865596613455,
+      "minimum_date_pair_count": 55,
+      "null_anchor_count_p95": 41.099999999999994,
+      "null_median_dwell_p95_ms": 40.0,
+      "observed_anchor_count": 34,
+      "observed_count_by_date": {
+        "2026-07-30": 20,
+        "2026-08-03": 3,
+        "2026-08-04": 8,
+        "2026-08-07": 1,
+        "2026-08-24": 1,
+        "2026-08-26": 1
+      },
+      "observed_median_dwell_ms": 50.0,
+      "observed_represented_dates": 6,
+      "overall_comparable_active_coverage": 0.4077970080803669,
+      "pair_label_count_mismatches": 0,
+      "replicate_count": 199,
+      "target_invariant_mismatches": 0
+    },
+    "30000": {
+      "boundary_censor_violations": 0,
+      "caliper_violations": 0,
+      "date_null_p90": {
+        "2026-07-29": 0.0,
+        "2026-07-30": 25.0,
+        "2026-08-03": 7.0,
+        "2026-08-04": 6.0,
+        "2026-08-07": 6.200000000000017,
+        "2026-08-24": 4.0,
+        "2026-08-25": 1.0,
+        "2026-08-26": 1.0,
+        "2026-08-27": 1.0
+      },
+      "dates_above_null_p90": 1,
+      "distinct_swap_fingerprints": 199,
+      "matched_pair_count": 1056,
+      "maximum_date_p95_joint_distance": 0.5824535376532933,
+      "microblock_ms": 30000,
+      "minimum_date_comparable_active_coverage": 0.35038973976665094,
+      "minimum_date_pair_count": 13,
+      "null_anchor_count_p95": 46.0,
+      "null_median_dwell_p95_ms": 40.0,
+      "observed_anchor_count": 40,
+      "observed_count_by_date": {
+        "2026-07-30": 21,
+        "2026-08-03": 6,
+        "2026-08-04": 8,
+        "2026-08-07": 3,
+        "2026-08-24": 2
+      },
+      "observed_median_dwell_ms": 60.0,
+      "observed_represented_dates": 5,
+      "overall_comparable_active_coverage": 0.4131109412535488,
+      "pair_label_count_mismatches": 0,
+      "replicate_count": 199,
+      "target_invariant_mismatches": 0
+    },
+    "60000": {
+      "boundary_censor_violations": 0,
+      "caliper_violations": 0,
+      "date_null_p90": {
+        "2026-07-29": 0.0,
+        "2026-07-30": 15.0,
+        "2026-08-03": 4.0,
+        "2026-08-04": 3.0,
+        "2026-08-07": 4.0,
+        "2026-08-24": 1.0,
+        "2026-08-25": 1.0,
+        "2026-08-26": 0.0,
+        "2026-08-27": 2.0
+      },
+      "dates_above_null_p90": 0,
+      "distinct_swap_fingerprints": 199,
+      "matched_pair_count": 282,
+      "maximum_date_p95_joint_distance": 0.5737233170977155,
+      "microblock_ms": 60000,
+      "minimum_date_comparable_active_coverage": 0.16880959737668846,
+      "minimum_date_pair_count": 6,
+      "null_anchor_count_p95": 26.0,
+      "null_median_dwell_p95_ms": 60.0,
+      "observed_anchor_count": 25,
+      "observed_count_by_date": {
+        "2026-07-30": 15,
+        "2026-08-03": 2,
+        "2026-08-04": 3,
+        "2026-08-07": 2,
+        "2026-08-24": 1,
+        "2026-08-25": 1,
+        "2026-08-27": 1
+      },
+      "observed_median_dwell_ms": 60.0,
+      "observed_represented_dates": 7,
+      "overall_comparable_active_coverage": 0.21548536798427603,
+      "pair_label_count_mismatches": 0,
+      "replicate_count": 199,
+      "target_invariant_mismatches": 0
+    }
+  },
+  "task_id": "0828T014",
+  "variant_metrics": {
+    "V0": {
+      "anchor_count": 93,
+      "anchor_count_by_date": {
+        "2026-07-30": 49,
+        "2026-08-03": 13,
+        "2026-08-04": 15,
+        "2026-08-07": 7,
+        "2026-08-24": 4,
+        "2026-08-25": 1,
+        "2026-08-26": 1,
+        "2026-08-27": 3
+      },
+      "anchor_count_by_direction": {
+        "-1": 36,
+        "1": 57
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 34,
+        "depletion_only": 38,
+        "ofi_only": 21
+      },
+      "anchor_rate_per_detector_ready_hour": 2.7638694568649793,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.021505376344086023,
+      "maximum_exclusive_family_share": 0.40860215053763443,
+      "maximum_same_capture_5s_burst": 2,
+      "maximum_single_date_share": 0.5268817204301075,
+      "median_coherence_dwell_ms": 60.0,
+      "median_inter_anchor_ms": 193730.0,
+      "minimum_anchors_per_represented_date": 1,
+      "minority_direction_share": 0.3870967741935484,
+      "represented_date_count": 8,
+      "stable_support": false,
+      "unique_cluster_count": 89
+    },
+    "V1": {
+      "anchor_count": 99,
+      "anchor_count_by_date": {
+        "2026-07-29": 1,
+        "2026-07-30": 41,
+        "2026-08-03": 17,
+        "2026-08-04": 12,
+        "2026-08-07": 19,
+        "2026-08-24": 3,
+        "2026-08-25": 2,
+        "2026-08-26": 3,
+        "2026-08-27": 1
+      },
+      "anchor_count_by_direction": {
+        "-1": 24,
+        "1": 75
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 25,
+        "depletion_only": 44,
+        "ofi_only": 30
+      },
+      "anchor_rate_per_detector_ready_hour": 2.9421836153723975,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.020202020202020204,
+      "maximum_exclusive_family_share": 0.4444444444444444,
+      "maximum_same_capture_5s_burst": 1,
+      "maximum_single_date_share": 0.41414141414141414,
+      "median_coherence_dwell_ms": 80.0,
+      "median_inter_anchor_ms": 274040.0,
+      "minimum_anchors_per_represented_date": 1,
+      "minority_direction_share": 0.24242424242424243,
+      "represented_date_count": 9,
+      "stable_support": false,
+      "unique_cluster_count": 97
+    },
+    "V2": {
+      "anchor_count": 81,
+      "anchor_count_by_date": {
+        "2026-07-30": 47,
+        "2026-08-03": 13,
+        "2026-08-04": 5,
+        "2026-08-07": 11,
+        "2026-08-24": 1,
+        "2026-08-25": 2,
+        "2026-08-27": 2
+      },
+      "anchor_count_by_direction": {
+        "-1": 21,
+        "1": 60
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 31,
+        "depletion_only": 32,
+        "ofi_only": 18
+      },
+      "anchor_rate_per_detector_ready_hour": 2.4072411398501434,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.024691358024691357,
+      "maximum_exclusive_family_share": 0.3950617283950617,
+      "maximum_same_capture_5s_burst": 2,
+      "maximum_single_date_share": 0.5802469135802469,
+      "median_coherence_dwell_ms": 60.0,
+      "median_inter_anchor_ms": 210080.0,
+      "minimum_anchors_per_represented_date": 1,
+      "minority_direction_share": 0.25925925925925924,
+      "represented_date_count": 7,
+      "stable_support": false,
+      "unique_cluster_count": 78
+    },
+    "V3": {
+      "anchor_count": 110,
+      "anchor_count_by_date": {
+        "2026-07-30": 59,
+        "2026-08-03": 15,
+        "2026-08-04": 16,
+        "2026-08-07": 9,
+        "2026-08-24": 4,
+        "2026-08-25": 3,
+        "2026-08-26": 1,
+        "2026-08-27": 3
+      },
+      "anchor_count_by_direction": {
+        "-1": 40,
+        "1": 70
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 41,
+        "depletion_only": 46,
+        "ofi_only": 23
+      },
+      "anchor_rate_per_detector_ready_hour": 3.2690929059693308,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.01818181818181818,
+      "maximum_exclusive_family_share": 0.41818181818181815,
+      "maximum_same_capture_5s_burst": 2,
+      "maximum_single_date_share": 0.5363636363636364,
+      "median_coherence_dwell_ms": 50.0,
+      "median_inter_anchor_ms": 179220.0,
+      "minimum_anchors_per_represented_date": 1,
+      "minority_direction_share": 0.36363636363636365,
+      "represented_date_count": 8,
+      "stable_support": false,
+      "unique_cluster_count": 104
+    },
+    "V4": {
+      "anchor_count": 87,
+      "anchor_count_by_date": {
+        "2026-07-30": 40,
+        "2026-08-03": 14,
+        "2026-08-04": 16,
+        "2026-08-07": 8,
+        "2026-08-24": 4,
+        "2026-08-26": 1,
+        "2026-08-27": 4
+      },
+      "anchor_count_by_direction": {
+        "-1": 34,
+        "1": 53
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 31,
+        "depletion_only": 33,
+        "ofi_only": 23
+      },
+      "anchor_rate_per_detector_ready_hour": 2.5855552983575616,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.034482758620689655,
+      "maximum_exclusive_family_share": 0.3793103448275862,
+      "maximum_same_capture_5s_burst": 2,
+      "maximum_single_date_share": 0.45977011494252873,
+      "median_coherence_dwell_ms": 40.0,
+      "median_inter_anchor_ms": 229940.0,
+      "minimum_anchors_per_represented_date": 1,
+      "minority_direction_share": 0.39080459770114945,
+      "represented_date_count": 7,
+      "stable_support": false,
+      "unique_cluster_count": 81
+    },
+    "V5": {
+      "anchor_count": 116,
+      "anchor_count_by_date": {
+        "2026-07-30": 66,
+        "2026-08-03": 14,
+        "2026-08-04": 16,
+        "2026-08-07": 8,
+        "2026-08-24": 4,
+        "2026-08-25": 2,
+        "2026-08-26": 2,
+        "2026-08-27": 4
+      },
+      "anchor_count_by_direction": {
+        "-1": 47,
+        "1": 69
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 45,
+        "depletion_only": 43,
+        "ofi_only": 28
+      },
+      "anchor_rate_per_detector_ready_hour": 3.4474070644767485,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.017241379310344827,
+      "maximum_exclusive_family_share": 0.3879310344827586,
+      "maximum_same_capture_5s_burst": 2,
+      "maximum_single_date_share": 0.5689655172413793,
+      "median_coherence_dwell_ms": 60.0,
+      "median_inter_anchor_ms": 176960.0,
+      "minimum_anchors_per_represented_date": 2,
+      "minority_direction_share": 0.4051724137931034,
+      "represented_date_count": 8,
+      "stable_support": false,
+      "unique_cluster_count": 114
+    },
+    "V6": {
+      "anchor_count": 77,
+      "anchor_count_by_date": {
+        "2026-07-30": 41,
+        "2026-08-03": 11,
+        "2026-08-04": 13,
+        "2026-08-07": 5,
+        "2026-08-24": 3,
+        "2026-08-26": 2,
+        "2026-08-27": 2
+      },
+      "anchor_count_by_direction": {
+        "-1": 27,
+        "1": 50
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 28,
+        "depletion_only": 31,
+        "ofi_only": 18
+      },
+      "anchor_rate_per_detector_ready_hour": 2.2883650341785313,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.03896103896103896,
+      "maximum_exclusive_family_share": 0.4025974025974026,
+      "maximum_same_capture_5s_burst": 2,
+      "maximum_single_date_share": 0.5324675324675324,
+      "median_coherence_dwell_ms": 40.0,
+      "median_inter_anchor_ms": 188980.0,
+      "minimum_anchors_per_represented_date": 2,
+      "minority_direction_share": 0.35064935064935066,
+      "represented_date_count": 7,
+      "stable_support": false,
+      "unique_cluster_count": 72
+    },
+    "V7": {
+      "anchor_count": 194,
+      "anchor_count_by_date": {
+        "2026-07-29": 1,
+        "2026-07-30": 91,
+        "2026-08-03": 37,
+        "2026-08-04": 24,
+        "2026-08-07": 21,
+        "2026-08-24": 5,
+        "2026-08-25": 4,
+        "2026-08-26": 4,
+        "2026-08-27": 7
+      },
+      "anchor_count_by_direction": {
+        "-1": 69,
+        "1": 125
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 78,
+        "depletion_only": 76,
+        "ofi_only": 40
+      },
+      "anchor_rate_per_detector_ready_hour": 5.765491125073183,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.010309278350515464,
+      "maximum_exclusive_family_share": 0.4020618556701031,
+      "maximum_same_capture_5s_burst": 2,
+      "maximum_single_date_share": 0.4690721649484536,
+      "median_coherence_dwell_ms": 20.0,
+      "median_inter_anchor_ms": 131310.0,
+      "minimum_anchors_per_represented_date": 1,
+      "minority_direction_share": 0.3556701030927835,
+      "represented_date_count": 9,
+      "stable_support": false,
+      "unique_cluster_count": 183
+    },
+    "V8": {
+      "anchor_count": 22,
+      "anchor_count_by_date": {
+        "2026-07-30": 8,
+        "2026-08-03": 3,
+        "2026-08-04": 7,
+        "2026-08-07": 2,
+        "2026-08-24": 1,
+        "2026-08-26": 1
+      },
+      "anchor_count_by_direction": {
+        "-1": 7,
+        "1": 15
+      },
+      "anchor_count_by_family": {
+        "depletion_and_ofi": 5,
+        "depletion_only": 11,
+        "ofi_only": 6
+      },
+      "anchor_rate_per_detector_ready_hour": 0.6538185811938662,
+      "exclusive_family_count": 3,
+      "maximum_cluster_share": 0.045454545454545456,
+      "maximum_exclusive_family_share": 0.5,
+      "maximum_same_capture_5s_burst": 1,
+      "maximum_single_date_share": 0.36363636363636365,
+      "median_coherence_dwell_ms": 40.0,
+      "median_inter_anchor_ms": 392280.0,
+      "minimum_anchors_per_represented_date": 1,
+      "minority_direction_share": 0.3181818181818182,
+      "represented_date_count": 6,
+      "stable_support": false,
+      "unique_cluster_count": 22
+    }
+  },
+  "zero_outcome_boundary": true
+}

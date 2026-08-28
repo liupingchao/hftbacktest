@@ -1,0 +1,6 @@
+{
+  "cooldown_ms": 30000,
+  "minimum_history_ms": 2000,
+  "null_block_ms": 300000,
+  "null_guard_ms": 2000
+}

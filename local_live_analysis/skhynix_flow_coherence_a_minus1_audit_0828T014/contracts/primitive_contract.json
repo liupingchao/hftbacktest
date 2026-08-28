@@ -1,0 +1,16 @@
+{
+  "activity_q60": 44.0,
+  "prestate": {
+    "component_conflict_level": 0.25,
+    "horizon_conflict_medium_level": 0.1,
+    "horizon_conflict_trade_level": 0.25
+  },
+  "primary": "trade_depth_conflict_to_coherence",
+  "windows_ms": [
+    100,
+    200,
+    500,
+    1000,
+    2000
+  ]
+}

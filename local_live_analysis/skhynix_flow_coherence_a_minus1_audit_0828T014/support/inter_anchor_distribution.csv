@@ -1,0 +1,9 @@
+ledger,quantile,inter_confirmation_ms
+admitted,0.1,20814.0
+admitted,0.5,193730.0
+admitted,0.9,705654.0
+admitted,0.99,3104580.0000000033
+pre_refractory,0.1,15720.0
+pre_refractory,0.5,188980.0
+pre_refractory,0.9,705240.0
+pre_refractory,0.99,3090599.9999999963

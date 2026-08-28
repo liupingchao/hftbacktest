@@ -1,0 +1,148 @@
+{
+  "artifact_count": 28,
+  "artifacts": [
+    {
+      "path": "classification.json",
+      "sha256": "3851001a69d63a703b03bc86064c3cc90eb409fe020338d74fcaa919a5404fad",
+      "size_bytes": 6664
+    },
+    {
+      "path": "contracts/gate_contract.json",
+      "sha256": "358893d84a5e5a9e97a64a9cb1729d0f66c5162f03c7e5494097829dd64de569",
+      "size_bytes": 12888
+    },
+    {
+      "path": "contracts/nuisance_contract.json",
+      "sha256": "e8268c9ff2d9d30e915963663750229b64996c188cae72215327427543d0752b",
+      "size_bytes": 109
+    },
+    {
+      "path": "contracts/outcome_access_ledger.json",
+      "sha256": "60e684a3aa9c668a6c2d25d0a523fa58d58fcd559a3644e06b25299752c72293",
+      "size_bytes": 333
+    },
+    {
+      "path": "contracts/primitive_contract.json",
+      "sha256": "5bcaa22590e4aac9686e111785e1ea773e952629d36040fd970f19af30d515c8",
+      "size_bytes": 288
+    },
+    {
+      "path": "contracts/session_role_ledger.csv",
+      "sha256": "a2a90633e019749970e9254c34c83ebc5cd3e9e7e964959c0cdf227f97a78432",
+      "size_bytes": 539
+    },
+    {
+      "path": "contracts/slice_invariance_contract.json",
+      "sha256": "1f67fe83e25822b48547a6da87678a33f182c9fc267cd16f4550ba69741df762",
+      "size_bytes": 103
+    },
+    {
+      "path": "contracts/source_cache_contract.json",
+      "sha256": "3afdeb1a77d500720f5e7f8df029abd7fc920086eef266e07eb900c987277a96",
+      "size_bytes": 492
+    },
+    {
+      "path": "contracts/structural_null_contract.json",
+      "sha256": "a337e14ef103a4b29cd5736c795fc7e1e10118921bc78776c20627e3e33370ee",
+      "size_bytes": 485
+    },
+    {
+      "path": "contracts/variant_contract.json",
+      "sha256": "b2fd6b12b01534f828cd8c53b68cdcb260ce79730a131c41491c5ea142f0e53e",
+      "size_bytes": 1398
+    },
+    {
+      "path": "reports/A_minus1_summary.json",
+      "sha256": "237ea1bdf4816b9be56519741ed1ea2d2e62ce889767dd654de41c3d7c683d31",
+      "size_bytes": 29968
+    },
+    {
+      "path": "support/compression_by_date.csv",
+      "sha256": "9601c0301809e273c549355bed330dea1419f6a511bc2978bddaf97e861df8e8",
+      "size_bytes": 460
+    },
+    {
+      "path": "support/dependence_cluster_support.csv",
+      "sha256": "8cf660f6c304b16289932fd8b0e51638d0f5457eee8e29b8d6db4788000d76b7",
+      "size_bytes": 3150
+    },
+    {
+      "path": "support/direction_balance_by_date.csv",
+      "sha256": "60c8f20ef669a200dc5f5124253a577a2082a110504d49e72cf82c30f26cf06a",
+      "size_bytes": 318
+    },
+    {
+      "path": "support/feature_support_by_date.csv",
+      "sha256": "ebeeacf2a084cebc6aa3b9d4a18e5a3eebc7c5e2771987469adff5cd5d1bf432",
+      "size_bytes": 570
+    },
+    {
+      "path": "support/inter_anchor_distribution.csv",
+      "sha256": "dbe3b623c058e1703ba2e3e859c5de3b36015675389aa87902dbb465e3c45dd6",
+      "size_bytes": 258
+    },
+    {
+      "path": "support/parameter_stability.csv",
+      "sha256": "34378eda9ac58f6bae1f81d123d688245a47bab1930c46d8c7fdd0519ccf09c1",
+      "size_bytes": 798
+    },
+    {
+      "path": "support/pre_refractory_confirmation_support.csv",
+      "sha256": "454f32847aa7c919026dbe7a1b908f31f9eeb475f8fb6084dc7a2469d1ca8969",
+      "size_bytes": 153
+    },
+    {
+      "path": "support/primitive_exposure_by_date.csv",
+      "sha256": "bc4ccbb5611cfb3cf38198376d395ea3cffcd960439d024ccfc480f108efbe20",
+      "size_bytes": 396
+    },
+    {
+      "path": "support/primitive_family_composition.csv",
+      "sha256": "1345bb5dd103b7228c8b6c9c31e0f736f7d872b4d557ca44cf486836f0ac1591",
+      "size_bytes": 90
+    },
+    {
+      "path": "support/provisional_anchor_ledger.csv",
+      "sha256": "00cc802e4998cfa0487913d6a45af64f3c747dd3de64e48f384d7bfb3a424c30",
+      "size_bytes": 26943
+    },
+    {
+      "path": "support/provisional_anchor_support_by_date.csv",
+      "sha256": "a9a613f133cf23dde952a3553010ab8924fcfb1a126449db07c1370cd79fca11",
+      "size_bytes": 147
+    },
+    {
+      "path": "support/slice_invariance.csv",
+      "sha256": "7dbfa074fdfcde1cb2f6a35f1f8e71bc85d55159dae1e22a3954336c028d5689",
+      "size_bytes": 16310
+    },
+    {
+      "path": "support/source_cache_inventory.csv",
+      "sha256": "adc555c3fc236f45379f54da9989590054f03554a56375437be9575671cdd331",
+      "size_bytes": 3413
+    },
+    {
+      "path": "support/structural_null_balance_by_date_replicate.csv",
+      "sha256": "d1ffba62f86ccbc9cb140e38ccc948f8d006163996bbc37f22a849482893e06d",
+      "size_bytes": 840516
+    },
+    {
+      "path": "support/structural_null_by_date.csv",
+      "sha256": "d4317c4a5ec6ae51c4c4a2d921f43ea63ce17a391d33be2804adda212c57f421",
+      "size_bytes": 121251
+    },
+    {
+      "path": "support/structural_null_summary.csv",
+      "sha256": "05ea4d14d1abab98325350cc6258bb6e63db03d111e804aa4f8ddd493831c265",
+      "size_bytes": 49302
+    },
+    {
+      "path": "support/structural_null_support_by_duration_date.csv",
+      "sha256": "d6dad62dfd3be730db8f29a496386ac0665fcde8d402baa213fe4406f6013755",
+      "size_bytes": 1628
+    }
+  ],
+  "hypothesis_id": "FLOW_COHERENCE_TRANSITION_V1",
+  "schema_version": "skhynix_flow_coherence_a_minus1_audit_v1",
+  "task_id": "0828T014"
+}
