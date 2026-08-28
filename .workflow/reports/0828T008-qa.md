@@ -105,4 +105,4 @@
    threshold crossing。
 
 提交信息：
-- commit：待 QA 事实源提交
+- commit：`ae3048a3`
