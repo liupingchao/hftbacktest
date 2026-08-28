@@ -49,7 +49,7 @@ blockers：
 - 当前 hypothesis/version 的 A1 target materialization 不获授权。
 
 commit：
-- 待提交
+- 322b7cff
 
 提交信息：
 - docs: freeze blocked liquidity onset A1 audit
