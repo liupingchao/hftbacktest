@@ -1,0 +1,238 @@
+{
+  "artifact_count": 46,
+  "artifacts": [
+    {
+      "path": "classification.json",
+      "sha256": "1e84db9ea434c6f49b7f9d13ca2691dc8e58e198a2ef750aa3422b546c8ae06e",
+      "size_bytes": 8916
+    },
+    {
+      "path": "contracts/H0_H1_H2_contract.json",
+      "sha256": "406e757b575b09f75e777aa15c0f588ae34592bfc8bddf2542964a1c9a87f25d",
+      "size_bytes": 502
+    },
+    {
+      "path": "contracts/activity_support_contract.json",
+      "sha256": "96e53b0751a149f573db38a02862184852a6c357ce7eed46efa5cbf949e0f263",
+      "size_bytes": 1173
+    },
+    {
+      "path": "contracts/control_support_contract.json",
+      "sha256": "b83bb5a2c3158cf5dfec379a1a9f0ae01c5dbc69eb2b01461f126d9fdc9c429f",
+      "size_bytes": 536
+    },
+    {
+      "path": "contracts/dependence_contract.json",
+      "sha256": "3ef7f16ef4db9bab5203cbb69e1ac4e06d75c229caea5fb0fbf4d89462adf3fb",
+      "size_bytes": 435
+    },
+    {
+      "path": "contracts/directional_ratio_contract.json",
+      "sha256": "3b3c45c5c0cee2f2fa995d78895c71057eed485b9755f13700835ac45f732445",
+      "size_bytes": 576
+    },
+    {
+      "path": "contracts/dominance_state_machine.json",
+      "sha256": "ee4a16bea16979a541ea6395dd39d95f45ab558567615932526fca54b419cbc2",
+      "size_bytes": 640
+    },
+    {
+      "path": "contracts/downstream_target_stub.json",
+      "sha256": "c1369c5786a27371071c0a59643bb8a6751b2ef792be7ade3b86b0014d163f5c",
+      "size_bytes": 547
+    },
+    {
+      "path": "contracts/event_ordering_contract.json",
+      "sha256": "5a61a0c54a363a8025875dfd7ee2439c2c253778fac27a9bc2a7bf4f3a704ff9",
+      "size_bytes": 592
+    },
+    {
+      "path": "contracts/flow_bin_contract.json",
+      "sha256": "b3a3e705b12885ebef89af72200623baef461d18f081a776a015ce462185e0ca",
+      "size_bytes": 597
+    },
+    {
+      "path": "contracts/gate_contract.json",
+      "sha256": "f3f4799b7e7e504358b303c179e275f6414a9585321ffe2ae9f5ab5787384afb",
+      "size_bytes": 8264
+    },
+    {
+      "path": "contracts/local_refractory_contract.json",
+      "sha256": "debd4c7adfc690fe760bc5898342e661dba4b33daf97ecdc1aef450b09cecba5",
+      "size_bytes": 405
+    },
+    {
+      "path": "contracts/outcome_access_ledger.json",
+      "sha256": "7dc0ef7fef797ff6c9bb72c49d54aa328c34efd9d5b5b4832224e505bbc98662",
+      "size_bytes": 616
+    },
+    {
+      "path": "contracts/persistence_contract.json",
+      "sha256": "28fddbe4641848f8e955b09639d58b22422cd59f1e62dd48eb43d8de62d63eda",
+      "size_bytes": 533
+    },
+    {
+      "path": "contracts/session_role_ledger.csv",
+      "sha256": "5910288825e89dd37c1db3ef98c8025ede0d593cf404c7b8038c45e851c4da3e",
+      "size_bytes": 1287
+    },
+    {
+      "path": "contracts/source_manifest.json",
+      "sha256": "0f11e8bbec36cf12ba1101e6e1a2b6a956b7fa40eb048f4b104de63aa074f915",
+      "size_bytes": 2432
+    },
+    {
+      "path": "contracts/transition_precedence_contract.json",
+      "sha256": "044dd65366c0676ed8a2323c0be6d8db32747a0ca5137687bc1495d64201e582",
+      "size_bytes": 578
+    },
+    {
+      "path": "reports/A0_summary.json",
+      "sha256": "941f6e43eae42e5d5cf74ff49b60e7a2510a5a5656d0309c83101bb9880a695e",
+      "size_bytes": 4285
+    },
+    {
+      "path": "support/active_flow_burst_density.csv",
+      "sha256": "56ed6f93877464c964b68fc7030f3142be42af7b215d9cc907525e16948361ff",
+      "size_bytes": 274
+    },
+    {
+      "path": "support/activity_support_by_date.csv",
+      "sha256": "c0561945b7bccedab578bf0ead00b28a3cf6008ebd3a575c9dac3188f61580f8",
+      "size_bytes": 424
+    },
+    {
+      "path": "support/anchor_type_composition.csv",
+      "sha256": "0ca408464d880d04f90c317c59ddd699752733935dbc702db693139451465629",
+      "size_bytes": 86
+    },
+    {
+      "path": "support/candidate_rejection_composition.csv",
+      "sha256": "e65d9540aa9007bb2be98ab668be76872726f8b69b968686d55ee935e56e8576",
+      "size_bytes": 257
+    },
+    {
+      "path": "support/candidate_support_by_date.csv",
+      "sha256": "610b8fed2ec97459a5eb1fa892132fddbc6eb800b9f3c484ef41c8a5779ac0f5",
+      "size_bytes": 182
+    },
+    {
+      "path": "support/control_candidates.csv",
+      "sha256": "383f6c6f3c2809932aac9a673e0b295eafb50b0991025c57a68c59ec3f99f9d4",
+      "size_bytes": 141267385
+    },
+    {
+      "path": "support/control_dependence_support.csv",
+      "sha256": "b9311266a109fe09e434dda79f942252fc184fa7bcb638fcad45a231a6a4af43",
+      "size_bytes": 426611
+    },
+    {
+      "path": "support/control_overlap_by_date.csv",
+      "sha256": "bd38ab2185b9936fe009ba4f0f45894ddd9af701cb52edc07c6339eb54528128",
+      "size_bytes": 223
+    },
+    {
+      "path": "support/crossing_to_anchor_compression.csv",
+      "sha256": "379b581a96c543e3b68cc28bc7ab172ad8071c1ea7c6c3e4c63059255ea77abe",
+      "size_bytes": 282
+    },
+    {
+      "path": "support/current_spread_distribution.csv",
+      "sha256": "35bf9d3ada8b470a962c3650772cf96d8feb5f3c68aa00eabc9c317c6bac6ea6",
+      "size_bytes": 54
+    },
+    {
+      "path": "support/dependence_cluster_support.csv",
+      "sha256": "c7e5e6f519bf845db7effb0012535fc16513209e5a0fd5823a49dea63ba28fa7",
+      "size_bytes": 201
+    },
+    {
+      "path": "support/direction_balance_by_date.csv",
+      "sha256": "08e2ea020cd39bb92a5acc1f9b271182f623912b4af53dfffe0d500309cf4ff4",
+      "size_bytes": 211
+    },
+    {
+      "path": "support/directional_anchor_ledger.csv",
+      "sha256": "cb90e5a264dd46d501b2be5b58b162c39440f683faea64ad36882c743b53b25a",
+      "size_bytes": 3020
+    },
+    {
+      "path": "support/directional_anchor_support_by_date.csv",
+      "sha256": "0060de49f756dd84b3430c30a3b24fffd3a00002999ef561fbc3dbd8e88d7de3",
+      "size_bytes": 411
+    },
+    {
+      "path": "support/dominant_state_duration_distribution.csv",
+      "sha256": "90799517c63debca19030f9e7383e626a7f00a9efd740323fd38bb9686a0fc6c",
+      "size_bytes": 65
+    },
+    {
+      "path": "support/dominant_state_ledger.csv",
+      "sha256": "c925f7ca100f7f699db4529118dcb1e3258f079b4ea3416c99867cd169ad96d2",
+      "size_bytes": 664
+    },
+    {
+      "path": "support/feature_availability_by_date.csv",
+      "sha256": "7407114783ade8b7da3d89d7b60779b80d89ce11ee5c04ec102dc1b8aa60ac86",
+      "size_bytes": 454
+    },
+    {
+      "path": "support/flip_transition_composition.csv",
+      "sha256": "d6b068414a21341cd08cb103d7845f4232e65fa6bd977206004d8afb47bb3750",
+      "size_bytes": 123
+    },
+    {
+      "path": "support/followup_geometry.csv",
+      "sha256": "fb09ae33907c1cfd1abee3ae46298ca2a023efc3685736d5639c95083a6f4492",
+      "size_bytes": 487
+    },
+    {
+      "path": "support/followup_overlap_components.csv",
+      "sha256": "a7833e82665aadee3848a25067f512498f33bdbe43b09927e441219067bebe28",
+      "size_bytes": 1395
+    },
+    {
+      "path": "support/inter_anchor_distribution.csv",
+      "sha256": "a5437eb23b16daf16c760293a9d45759c808669168a27a21a1a121c9929298a7",
+      "size_bytes": 69
+    },
+    {
+      "path": "support/matched_control_pairs.csv",
+      "sha256": "236d6788ccf03336a6e36b2b33a19d47f13017a52ad3e8cdf46063baac7691c2",
+      "size_bytes": 737
+    },
+    {
+      "path": "support/mixed_state_support_by_date.csv",
+      "sha256": "0e5ff2f95c546dc312cedcedf8c9618e5f809cc0cbff1721eb303de42994c1d0",
+      "size_bytes": 159
+    },
+    {
+      "path": "support/pair_dependence_components.csv",
+      "sha256": "a1fadb6d4e74af4fd42a5225ed99817dc16d15f88ba4563b4e0743fc8905db21",
+      "size_bytes": 575
+    },
+    {
+      "path": "support/pair_dependence_support.csv",
+      "sha256": "215fa0e90b99f2e62b39728d6e3a367abb01878488c21924164ad3f835dcbc43",
+      "size_bytes": 276
+    },
+    {
+      "path": "support/release_transition_composition.csv",
+      "sha256": "1cd3baaa99a33cffe9bd2a393163bd26659b677750b443a6dfe39b1d5614bc29",
+      "size_bytes": 37
+    },
+    {
+      "path": "support/replay_quality_by_capture.csv",
+      "sha256": "9a53fe3e9a69878a3461db1b04424727e0369ed5cdb8f190f551c372243c98cf",
+      "size_bytes": 2067
+    },
+    {
+      "path": "support/source_inventory.csv",
+      "sha256": "5c44f5f6888170a71178d82c1cbf700d5cff5d19b19bd49a2b2404d2361db011",
+      "size_bytes": 12026
+    }
+  ],
+  "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
+  "task_id": "0828T013"
+}

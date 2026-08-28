@@ -1,0 +1,18 @@
+{
+  "candidate_taus_ms": [
+    100,
+    250,
+    500,
+    1000,
+    2000,
+    5000
+  ],
+  "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "plan_path": "docs/skhynix_binance_flow_internal_directional_alpha_v1_a0_plan_20260828.md",
+  "plan_sha256": "6278d6b5f0d0dfd855b2d2ee121fa4fbebf6b3a864acecc4a0f5368e558aeeed",
+  "primary_tau_ms": null,
+  "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
+  "selection_information": "timestamps_and_quality_boundaries_only",
+  "targets_materialized": false,
+  "task_id": "0828T013"
+}

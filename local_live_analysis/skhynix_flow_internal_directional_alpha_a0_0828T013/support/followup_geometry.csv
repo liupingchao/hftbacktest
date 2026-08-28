@@ -1,0 +1,7 @@
+tau_ms,overall_complete_coverage,minimum_date_complete_coverage,overlap_component_count,max_overlap_component_entry_share,max_date_overlap_component_share,pair_dependence_component_count,max_pair_dependence_pair_share,max_date_pair_dependence_share,passed
+100,1.0,1.0,2,0.5,0.5,1,1.0,1.0,false
+250,1.0,1.0,2,0.5,0.5,1,1.0,1.0,false
+500,1.0,1.0,2,0.5,0.5,1,1.0,1.0,false
+1000,1.0,1.0,2,0.5,0.5,1,1.0,1.0,false
+2000,1.0,1.0,2,0.5,0.5,1,1.0,1.0,false
+5000,1.0,1.0,2,0.5,0.5,1,1.0,1.0,false

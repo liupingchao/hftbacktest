@@ -6087,3 +6087,14 @@ require a new formal task or risk decision.
 - [x] Validate all artifacts and prove all four stages reuse on resume.
 - [x] Preserve the 39-file raw archives and sync compact evidence locally.
 - [x] Independent QA validates the 0807T002 evidence with P0-P3 all zero.
+
+## 2026-08-28 0828T013 Flow Internal Directional Alpha A0
+
+- [x] Create an isolated clean worktree and branch.
+- [x] Bind execution to frozen plan SHA and predecessor source authority.
+- [x] Implement causal 20ms replay, bounded path ratios and total state machine.
+- [x] Fail closed on unbridgeable snapshot-depth initialization.
+- [x] Execute all 29 captures with full raw size/SHA closure.
+- [x] Build outcome-blind controls, dependence geometry and A0 gates.
+- [x] Complete focused tests and deterministic fresh-output rebuild.
+- [ ] Independent QA accepts implementation and evidence.

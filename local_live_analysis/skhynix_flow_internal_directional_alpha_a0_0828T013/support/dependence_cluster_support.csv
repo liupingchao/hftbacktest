@@ -1,0 +1,2 @@
+cluster_id,capture_id,research_date,bucket_30s,start_ts_ns,end_ts_ns,member_count
+2026-08-24_aeee94c4bfe5:59584499,2026-08-24_aeee94c4bfe5,2026-08-24,59584499,1787534976160000000,1787534984400000000,3

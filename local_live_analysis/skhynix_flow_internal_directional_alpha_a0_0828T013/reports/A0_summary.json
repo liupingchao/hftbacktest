@@ -1,0 +1,145 @@
+{
+  "A1_authorized": false,
+  "active_flow_anchor_rate_per_hour": 0.23783202892742156,
+  "active_flow_hours": 12.613944444444446,
+  "activity_calibration": {
+    "active_tie_rule": ">=",
+    "activity_q60": 44.0,
+    "activity_quintile_edges": [
+      19.0,
+      29.0,
+      44.0,
+      72.0
+    ],
+    "activity_zero_share": 0.0,
+    "ask_depth_quintile_edges": [
+      0.9200000166893005,
+      1.6803333759307861,
+      2.6633334159851074,
+      4.714000225067139
+    ],
+    "bid_depth_quintile_edges": [
+      1.062166690826416,
+      1.9539999961853027,
+      3.124666690826416,
+      5.238500118255615
+    ],
+    "checkpoint_count": 89891,
+    "per_date_refits": 0,
+    "quantile_method": "numpy_linear_type7",
+    "return_500_quintile_edges": [
+      -10.998535402086423,
+      0.0,
+      1.00097658487357,
+      13.000488571833564
+    ],
+    "roles_used": [
+      "historical_normalization_calibration"
+    ],
+    "vol_2000_quintile_edges": [
+      0.00019395444571738838,
+      0.00026638295826770175,
+      0.0003466425029075661,
+      0.0004524424441255502
+    ]
+  },
+  "anchor_count": 3,
+  "anchor_count_by_date": {
+    "2026-08-24": 3
+  },
+  "anchor_dependence_cluster_count": 1,
+  "anchor_rate_per_hour": 0.10102610720404075,
+  "anchor_type_counts": {
+    "mixed_onset": 1,
+    "persistent_flip": 2
+  },
+  "candidate_status_counts": {
+    "confirmed": 3,
+    "flip_rejected_original_reasserted": 2,
+    "flip_released_before_confirmation": 1,
+    "release_interrupted": 15,
+    "transient_flip_rejected": 2
+  },
+  "capture_count": 29,
+  "captures_with_initial_bridge_failure": [
+    "2026-07-29_c092d6b4402c",
+    "2026-07-30_1b18a29f3daf",
+    "2026-08-03_098332acc16a",
+    "2026-08-03_b7b76aed76b8",
+    "2026-08-03_d8e3322d6f2c",
+    "2026-08-07_46d1e1a74698",
+    "2026-08-26_a055aa6c7a87"
+  ],
+  "classification": "A0_directional_anchor_date_concentrated",
+  "component_pair_families": [
+    "dep_ofi",
+    "dep_trade",
+    "trade_ofi"
+  ],
+  "control_dependence_cluster_count": 3553,
+  "control_pseudo_candidate_count": 363536,
+  "detector_ready_hours": 29.695294444444443,
+  "direction_counts": {
+    "-1": 2,
+    "1": 1
+  },
+  "failed_conditions": [
+    "A0-3:anchor_count_ge_500",
+    "A0-3:represented_dates_ge_8",
+    "A0-3:minimum_anchors_per_represented_date_ge_30",
+    "A0-3:anchor_rate_ge_5_per_hour",
+    "A0-3:max_single_date_anchor_share_le_0_35",
+    "A0-5:unique_anchor_clusters_ge_100",
+    "A0-5:unique_pair_clusters_ge_100",
+    "A0-5:cluster_dates_ge_8",
+    "A0-5:max_single_date_cluster_share_le_0_35",
+    "A0-5:max_cluster_anchor_share_le_0_05",
+    "A0-5:max_pair_cluster_share_le_0_05",
+    "A0-6:unique_matched_pairs_ge_500",
+    "A0-6:overall_common_support_ge_0_90",
+    "A0-6:minimum_date_common_support_ge_0_75",
+    "A0-6:max_single_date_pair_share_le_0_35",
+    "A0-7:at_least_one_geometry_horizon_passes"
+  ],
+  "failed_gates": [
+    "A0-3",
+    "A0-5",
+    "A0-6",
+    "A0-7"
+  ],
+  "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "initial_bridge_failure_count": 7,
+  "matched_pair_count": 1,
+  "maximum_same_capture_5s_burst": 2,
+  "median_inter_anchor_ms": 4120.0,
+  "minimum_date_active_two_component_availability": 1.0,
+  "minimum_date_common_support": 0.3333333333333333,
+  "minority_direction_share": 0.3333333333333333,
+  "mixed_onset_share": 0.3333333333333333,
+  "overall_active_two_component_availability": 1.0,
+  "overall_common_support": 0.3333333333333333,
+  "pair_dependence_cluster_count": 1,
+  "primary_tau_ms": null,
+  "quality_boundary_count": 7,
+  "raw_qualifying_checkpoint_direction_count": 798594,
+  "raw_qualifying_to_anchor_ratio": 266198.0,
+  "replay_sequence_gap_count": 0,
+  "research_date_count": 9,
+  "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
+  "single_date_anchor_share": 1.0,
+  "status": "failed",
+  "task_id": "0828T013",
+  "unmatched_anchor_count": 2,
+  "zero_invariants": {
+    "backdated_confirmations": 0,
+    "counter_survived_reset_or_support_loss": 0,
+    "mixed_history_violations": 0,
+    "multiple_anchor_violations": 0,
+    "multiple_transition_violations": 0,
+    "overlapping_dominant_state_ids": 0,
+    "persistence_violations": 0,
+    "raw_sign_flip_anchors": 0,
+    "refractory_anchor_violations": 0,
+    "same_direction_renewal_anchors": 0
+  }
+}

@@ -1,0 +1,7 @@
+candidate_type,status,count
+mixed_onset,confirmed,1
+persistent_flip,confirmed,2
+persistent_flip,flip_rejected_original_reasserted,2
+persistent_flip,flip_released_before_confirmation,1
+persistent_flip,transient_flip_rejected,2
+release,release_interrupted,15

@@ -8609,3 +8609,24 @@ Drift guard:
 - Full 2.5GB artifacts are best retained on amdserver for downstream compute.
   Compact local evidence is sufficient for manifest, quality and provenance
   review without duplicating bulk gzip state over a constrained link.
+
+## 2026-08-28 Flow Internal Directional Alpha A0 Findings
+
+- A snapshot file and a zero declared `depth_gap_count` do not prove that the
+  first websocket depth event bridges the snapshot update ID. Seven captures
+  contain an initial bridge failure; replay must mark those intervals invalid.
+- Letting trades advance against an unbridged static snapshot creates
+  artificial constant depth, midpoint and volatility calibration support.
+  Fail-closed sequence readiness is therefore part of the causal feature
+  contract, not a diagnostics-only concern.
+- After valid-segment filtering, the frozen Jul 29 activity threshold is
+  `44 messages/500ms`.
+- The V1 mixed-history requirement is the dominant compression bottleneck:
+  798,594 raw qualifying checkpoint-direction pairs compress to only three
+  anchors across 29.695 detector-ready hours.
+- All three anchors occur in one 2026-08-24 active-flow episode. The detector
+  satisfies its state invariants but lacks cross-date support, dependence
+  support, control common support and usable follow-up geometry.
+- This is a hypothesis-support failure, not evidence against directional
+  response conditional on a looser event. V1 cannot be rescued by changing
+  mixed history, activity, persistence or refractory after observing A0.

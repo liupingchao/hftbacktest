@@ -1,0 +1,16 @@
+{
+  "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "max_anchors_per_checkpoint": 1,
+  "max_transitions_per_checkpoint": 1,
+  "plan_path": "docs/skhynix_binance_flow_internal_directional_alpha_v1_a0_plan_20260828.md",
+  "plan_sha256": "6278d6b5f0d0dfd855b2d2ee121fa4fbebf6b3a864acecc4a0f5368e558aeeed",
+  "precedence": [
+    "reset_or_quality_boundary",
+    "active_support_false",
+    "direction_ambiguity_normalization",
+    "first_matching_state_rule",
+    "remain"
+  ],
+  "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
+  "task_id": "0828T013"
+}

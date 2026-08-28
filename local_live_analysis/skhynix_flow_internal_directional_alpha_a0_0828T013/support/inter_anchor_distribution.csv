@@ -1,0 +1,5 @@
+quantile,inter_anchor_ms
+p10,3656.0
+p50,4120.0
+p90,4584.0
+p99,4688.4

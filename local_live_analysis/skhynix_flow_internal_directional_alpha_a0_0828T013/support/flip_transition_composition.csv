@@ -1,0 +1,5 @@
+status,count
+confirmed,2
+flip_rejected_original_reasserted,2
+flip_released_before_confirmation,1
+transient_flip_rejected,2

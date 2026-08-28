@@ -1,0 +1,46 @@
+{
+  "active_tie_rule": ">=",
+  "activity_q60": 44.0,
+  "activity_quintile_edges": [
+    19.0,
+    29.0,
+    44.0,
+    72.0
+  ],
+  "activity_zero_share": 0.0,
+  "ask_depth_quintile_edges": [
+    0.9200000166893005,
+    1.6803333759307861,
+    2.6633334159851074,
+    4.714000225067139
+  ],
+  "bid_depth_quintile_edges": [
+    1.062166690826416,
+    1.9539999961853027,
+    3.124666690826416,
+    5.238500118255615
+  ],
+  "checkpoint_count": 89891,
+  "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "per_date_refits": 0,
+  "plan_path": "docs/skhynix_binance_flow_internal_directional_alpha_v1_a0_plan_20260828.md",
+  "plan_sha256": "6278d6b5f0d0dfd855b2d2ee121fa4fbebf6b3a864acecc4a0f5368e558aeeed",
+  "quantile_method": "numpy_linear_type7",
+  "return_500_quintile_edges": [
+    -10.998535402086423,
+    0.0,
+    1.00097658487357,
+    13.000488571833564
+  ],
+  "roles_used": [
+    "historical_normalization_calibration"
+  ],
+  "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
+  "task_id": "0828T013",
+  "vol_2000_quintile_edges": [
+    0.00019395444571738838,
+    0.00026638295826770175,
+    0.0003466425029075661,
+    0.0004524424441255502
+  ]
+}

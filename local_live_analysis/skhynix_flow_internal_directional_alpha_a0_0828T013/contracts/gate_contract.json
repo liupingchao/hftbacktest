@@ -1,0 +1,343 @@
+{
+  "gate_order": [
+    "A0-0",
+    "A0-1",
+    "A0-2",
+    "A0-3",
+    "A0-4",
+    "A0-5",
+    "A0-6",
+    "A0-7"
+  ],
+  "gate_results": [
+    {
+      "conditions": [
+        {
+          "condition": "predecessor_execution_commit_exact",
+          "passed": true
+        },
+        {
+          "condition": "authority_blob_sha256_match",
+          "passed": true
+        },
+        {
+          "condition": "exact_29_row_inventory",
+          "passed": true
+        },
+        {
+          "condition": "raw_size_and_sha_closure",
+          "passed": true
+        },
+        {
+          "condition": "zero_unhandled_depth_gaps",
+          "passed": true
+        },
+        {
+          "condition": "deterministic_replay_contract",
+          "passed": true
+        },
+        {
+          "condition": "reset_quality_boundaries_represented",
+          "passed": true
+        }
+      ],
+      "gate_id": "A0-0",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "condition": "future_midpoint_fields_read_empty",
+          "passed": true
+        },
+        {
+          "condition": "future_bbo_fields_read_empty",
+          "passed": true
+        },
+        {
+          "condition": "targets_not_materialized",
+          "passed": true
+        },
+        {
+          "condition": "future_markout_fields_read_empty",
+          "passed": true
+        },
+        {
+          "condition": "cost_fill_pnl_fields_read_empty",
+          "passed": true
+        },
+        {
+          "condition": "H0_H1_H2_not_fitted",
+          "passed": true
+        },
+        {
+          "condition": "new_collection_false",
+          "passed": true
+        },
+        {
+          "condition": "private_order_access_false",
+          "passed": true
+        }
+      ],
+      "gate_id": "A0-1",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "condition": "anchor_ratio_availability_ge_2",
+          "passed": true
+        },
+        {
+          "condition": "all_valid_ratios_bounded",
+          "passed": true
+        },
+        {
+          "condition": "zero_denominator_is_unavailable",
+          "passed": true
+        },
+        {
+          "condition": "epsilon_floor_substitutions_zero",
+          "passed": true
+        },
+        {
+          "condition": "all_anchors_complete_2000ms",
+          "passed": true
+        },
+        {
+          "condition": "right_open_bin_violations_zero",
+          "passed": true
+        },
+        {
+          "condition": "non_admitted_contributions_zero",
+          "passed": true
+        },
+        {
+          "condition": "u_below_abs_o_violations_zero",
+          "passed": true
+        },
+        {
+          "condition": "calibration_role_only",
+          "passed": true
+        },
+        {
+          "condition": "quantile_type7_tie_rule_exact",
+          "passed": true
+        },
+        {
+          "condition": "per_date_refits_zero",
+          "passed": true
+        },
+        {
+          "condition": "overall_active_two_component_availability_ge_0_90",
+          "passed": true
+        },
+        {
+          "condition": "minimum_date_availability_ge_0_80",
+          "passed": true
+        }
+      ],
+      "gate_id": "A0-2",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "condition": "anchor_count_ge_500",
+          "passed": false
+        },
+        {
+          "condition": "represented_dates_ge_8",
+          "passed": false
+        },
+        {
+          "condition": "minimum_anchors_per_represented_date_ge_30",
+          "passed": false
+        },
+        {
+          "condition": "anchor_rate_ge_5_per_hour",
+          "passed": false
+        },
+        {
+          "condition": "anchor_rate_le_150_per_hour",
+          "passed": true
+        },
+        {
+          "condition": "max_single_date_anchor_share_le_0_35",
+          "passed": false
+        },
+        {
+          "condition": "minority_direction_share_ge_0_25",
+          "passed": true
+        },
+        {
+          "condition": "mixed_onset_share_ge_0_20",
+          "passed": true
+        }
+      ],
+      "gate_id": "A0-3",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "mixed_history_violations_zero",
+          "passed": true
+        },
+        {
+          "condition": "persistence_violations_zero",
+          "passed": true
+        },
+        {
+          "condition": "backdated_confirmations_zero",
+          "passed": true
+        },
+        {
+          "condition": "same_direction_renewal_anchors_zero",
+          "passed": true
+        },
+        {
+          "condition": "refractory_anchor_violations_zero",
+          "passed": true
+        },
+        {
+          "condition": "raw_sign_flip_anchors_zero",
+          "passed": true
+        },
+        {
+          "condition": "overlapping_dominant_state_ids_zero",
+          "passed": true
+        },
+        {
+          "condition": "multiple_transition_violations_zero",
+          "passed": true
+        },
+        {
+          "condition": "multiple_anchor_violations_zero",
+          "passed": true
+        },
+        {
+          "condition": "counter_survived_reset_or_support_loss_zero",
+          "passed": true
+        },
+        {
+          "condition": "raw_qualifying_to_anchor_ratio_ge_3",
+          "passed": true
+        },
+        {
+          "condition": "median_inter_anchor_ms_ge_1000",
+          "passed": true
+        },
+        {
+          "condition": "max_same_capture_5s_burst_le_6",
+          "passed": true
+        },
+        {
+          "condition": "active_flow_anchor_rate_le_300",
+          "passed": true
+        },
+        {
+          "condition": "both_directions_present",
+          "passed": true
+        },
+        {
+          "condition": "component_pair_families_ge_2",
+          "passed": true
+        }
+      ],
+      "gate_id": "A0-4",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "condition": "unique_anchor_clusters_ge_100",
+          "passed": false
+        },
+        {
+          "condition": "unique_control_clusters_ge_100",
+          "passed": true
+        },
+        {
+          "condition": "unique_pair_clusters_ge_100",
+          "passed": false
+        },
+        {
+          "condition": "cluster_dates_ge_8",
+          "passed": false
+        },
+        {
+          "condition": "max_single_date_cluster_share_le_0_35",
+          "passed": false
+        },
+        {
+          "condition": "max_cluster_anchor_share_le_0_05",
+          "passed": false
+        },
+        {
+          "condition": "max_cluster_control_share_le_0_05",
+          "passed": true
+        },
+        {
+          "condition": "max_pair_cluster_share_le_0_05",
+          "passed": false
+        },
+        {
+          "condition": "median_anchors_per_cluster_le_5",
+          "passed": true
+        }
+      ],
+      "gate_id": "A0-5",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "unique_matched_pairs_ge_500",
+          "passed": false
+        },
+        {
+          "condition": "overall_common_support_ge_0_90",
+          "passed": false
+        },
+        {
+          "condition": "minimum_date_common_support_ge_0_75",
+          "passed": false
+        },
+        {
+          "condition": "max_single_date_pair_share_le_0_35",
+          "passed": false
+        },
+        {
+          "condition": "control_reuse_zero",
+          "passed": true
+        },
+        {
+          "condition": "opposite_label_checkpoint_reuse_zero",
+          "passed": true
+        },
+        {
+          "condition": "missing_m0_zero",
+          "passed": true
+        }
+      ],
+      "gate_id": "A0-6",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "at_least_one_geometry_horizon_passes",
+          "passed": false
+        }
+      ],
+      "gate_id": "A0-7",
+      "passed": false
+    }
+  ],
+  "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "plan_path": "docs/skhynix_binance_flow_internal_directional_alpha_v1_a0_plan_20260828.md",
+  "plan_sha256": "6278d6b5f0d0dfd855b2d2ee121fa4fbebf6b3a864acecc4a0f5368e558aeeed",
+  "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
+  "task_id": "0828T013"
+}

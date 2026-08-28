@@ -1,0 +1,20 @@
+{
+  "candidate_window_ms": 300,
+  "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "mixed_history_ms": 500,
+  "persistence_ms": 120,
+  "plan_path": "docs/skhynix_binance_flow_internal_directional_alpha_v1_a0_plan_20260828.md",
+  "plan_sha256": "6278d6b5f0d0dfd855b2d2ee121fa4fbebf6b3a864acecc4a0f5368e558aeeed",
+  "release_dwell_ms": 200,
+  "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
+  "states": [
+    "INACTIVE_FLOW",
+    "MIXED_ACTIVE_BUILDING",
+    "MIXED_ACTIVE_READY",
+    "DOMINANCE_CANDIDATE_d",
+    "DOMINANT_ACTIVE_d",
+    "FLIP_CANDIDATE_-d",
+    "RELEASE_CANDIDATE"
+  ],
+  "task_id": "0828T013"
+}

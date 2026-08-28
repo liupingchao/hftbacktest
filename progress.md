@@ -9345,3 +9345,21 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   and all 23 stage artifacts. P0-P3 findings are all zero and task status is
   `已通过`.
 - No lead-lag, maker-fill, PnL or live-readiness claim is made.
+
+## 2026-08-28 0828T013 FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1 A0 Ready For QA
+
+- Created clean worktree
+  `/Users/liu/Documents/hftbacktest-0828t013-flow-internal-directional-alpha-a0`
+  on branch `codex/flow-internal-directional-alpha-a0`.
+- Implemented the frozen outcome-blind 20ms flow-path detector and complete
+  dominance/flip/release state machine.
+- Verified all 29 raw captures by exact size and SHA256.
+- Detected seven initial snapshot-depth bridge failures and excluded invalid
+  reconstruction intervals instead of carrying static book state.
+- Frozen calibration output is `Q_activity_60=44 messages/500ms`.
+- A0 produced only three anchors, all on 2026-08-24, and one matched control.
+- Classification is `A0_directional_anchor_date_concentrated`; A1 is not
+  authorized and `primary_tau` is null.
+- Focused tests passed `14/14`; canonical and fresh build B are byte-identical
+  across all 47 non-cache files.
+- Task `0828T013` is ready for independent QA.

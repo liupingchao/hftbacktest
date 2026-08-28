@@ -1,0 +1,15 @@
+{
+  "global_assignment": "chronological_greedy_no_reuse",
+  "hypothesis_id": "FLOW_INTERNAL_DIRECTIONAL_ALPHA_V1",
+  "only_relaxation": "adjacent_spread_tick",
+  "plan_path": "docs/skhynix_binance_flow_internal_directional_alpha_v1_a0_plan_20260828.md",
+  "plan_sha256": "6278d6b5f0d0dfd855b2d2ee121fa4fbebf6b3a864acecc4a0f5368e558aeeed",
+  "pseudo_directions": [
+    -1,
+    1
+  ],
+  "recent_anchor_exclusion_ms": 1000,
+  "schema_version": "skhynix_flow_internal_directional_alpha_a0_v1",
+  "stride_ms": 250,
+  "task_id": "0828T013"
+}
