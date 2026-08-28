@@ -45,7 +45,10 @@ action：
 verify：
 - `python -m pytest
   examples/hyperliquid/test_skhynix_liquidity_break_onset_a0.py -q`：
-  7 passed。
+  15 passed。
+- Synthetic tests 覆盖 equal-timestamp ordering、depth sequence
+  fail-closed、active lock/release、opposite switch、reset censoring、
+  future-anchor control boundary、no-reuse matching 和 zero-target ledger。
 - `ruff check`：通过。
 - `python -m py_compile`：通过。
 - `git diff --check`：通过。
@@ -105,6 +108,7 @@ blockers：
 
 commit：
 - c30cad90
+- cfd9ef54
 
 提交信息：
 - research: execute liquidity break onset A0
