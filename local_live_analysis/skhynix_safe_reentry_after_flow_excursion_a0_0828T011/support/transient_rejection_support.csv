@@ -1,0 +1,15 @@
+research_date,candidate_status,count
+2026-07-29,pre_confirmation_direction_switch,2
+2026-08-03,pre_confirmation_direction_switch,6
+2026-08-03,transient_rejected,6
+2026-08-04,pre_confirmation_direction_switch,1
+2026-08-07,pre_confirmation_direction_switch,3
+2026-08-07,transient_rejected,1
+2026-08-24,pre_confirmation_direction_switch,3
+2026-08-24,transient_rejected,2
+2026-08-25,pre_confirmation_direction_switch,2
+2026-08-25,transient_rejected,6
+2026-08-26,pre_confirmation_direction_switch,60
+2026-08-26,transient_rejected,110
+2026-08-27,pre_confirmation_direction_switch,5
+2026-08-27,transient_rejected,4

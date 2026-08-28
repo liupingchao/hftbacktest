@@ -1,0 +1,25 @@
+{
+  "capture_count": 29,
+  "contract_sha256": "05c082e38bfbc5c7292fa1c36bb8886888e1aecb0430a20d374688de9cae079a",
+  "duration_hours": 35.91720081416666,
+  "future_target_fields_read": [],
+  "hypothesis_id": "SAFE_REENTRY_AFTER_FLOW_EXCURSION_V1",
+  "raw_hashes_verified_now": true,
+  "research_dates": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-03",
+    "2026-08-04",
+    "2026-08-07",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27"
+  ],
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "task_id": "0828T011",
+  "upstream_normalization_contract_sha256": "ce21bd913fd236431b97f89dc6d707b4fd08a9b92027a3a5fbd87d6b8ffd3b89",
+  "upstream_pressure_contract_sha256": "982bbadae02b92808047970a3bb1c6adf23792135f6a3147260ad54bbfac4435",
+  "upstream_qa_commit": "ae3048a3",
+  "upstream_task_id": "0828T008"
+}

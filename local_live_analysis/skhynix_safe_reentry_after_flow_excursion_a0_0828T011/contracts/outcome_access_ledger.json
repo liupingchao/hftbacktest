@@ -1,0 +1,11 @@
+{
+  "H0_H1_fitted": false,
+  "future_best_price_fields_read": [],
+  "future_contact_fields_read": [],
+  "future_midpoint_fields_read": [],
+  "markout_PnL_fields_read": [],
+  "new_collection": false,
+  "private_order_access": false,
+  "queue_fill_targets_materialized": false,
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1"
+}

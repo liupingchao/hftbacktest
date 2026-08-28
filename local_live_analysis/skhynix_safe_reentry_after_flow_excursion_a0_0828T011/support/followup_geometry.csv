@@ -1,0 +1,6 @@
+tau_ms,overall_complete_fraction,minimum_date_complete_fraction,selected
+500,1.0,1.0,false
+1000,1.0,1.0,false
+2000,1.0,1.0,false
+5000,1.0,1.0,false
+10000,1.0,1.0,true

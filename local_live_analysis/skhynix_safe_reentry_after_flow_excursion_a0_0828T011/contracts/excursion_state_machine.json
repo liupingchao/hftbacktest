@@ -1,0 +1,16 @@
+{
+  "baseline_aggregation": "componentwise_median",
+  "baseline_window": "[candidate-1000ms,candidate-100ms)",
+  "new_episode_while_active": false,
+  "opposite_crossing_while_active": "same_episode_direction_switch",
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "states": [
+    "BACKGROUND_BUILDING",
+    "BACKGROUND_READY",
+    "EXCURSION_CANDIDATE",
+    "EXCURSION_ACTIVE",
+    "RECOVERY_CANDIDATE",
+    "REFRACTORY",
+    "TERMINAL"
+  ]
+}

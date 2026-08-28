@@ -1,0 +1,207 @@
+{
+  "artifact_count": 40,
+  "artifacts": [
+    {
+      "path": "classification.json",
+      "sha256": "723b897b3b859a4ac49ae03b79662a20ac907779afb57c35f12cd6d8181b3b56",
+      "size_bytes": 573
+    },
+    {
+      "path": "contracts/H0_H1_contract.json",
+      "sha256": "51b2e5ff4a311d52bf52b3fe97e82b61c8438970777f84fe0791ac30f27cd143",
+      "size_bytes": 184
+    },
+    {
+      "path": "contracts/control_support_contract.json",
+      "sha256": "a338405401348ef227f54f5ee5756731e29fc3a4cfaf016d04db9373685f25e3",
+      "size_bytes": 530
+    },
+    {
+      "path": "contracts/downstream_target_stub.json",
+      "sha256": "8f7c14d09336e72e9253e13e919193e3ea42b79ee32b72246ffd1f826638d0e2",
+      "size_bytes": 354
+    },
+    {
+      "path": "contracts/event_ordering_contract.json",
+      "sha256": "46691976027044820e6152f24ad41ea8323d38f1c4b4e9c7e40ca32bdfeaed6e",
+      "size_bytes": 319
+    },
+    {
+      "path": "contracts/excursion_state_machine.json",
+      "sha256": "a7661199353225b15f7545829e8f72f2e43d6159b40edc315fd07da5e80db94a",
+      "size_bytes": 469
+    },
+    {
+      "path": "contracts/gate_contract.json",
+      "sha256": "5eb5a88b53880c919887a65b5b5038958266d824e4ab76e1fb5c750cc0c4cc51",
+      "size_bytes": 1080
+    },
+    {
+      "path": "contracts/micro_pressure_contract.json",
+      "sha256": "ae7a39b335f785c7a801c9becc2cf3b80cacc20c6c6fd312a5f6276fcc2e78d4",
+      "size_bytes": 483
+    },
+    {
+      "path": "contracts/normalization_contract.json",
+      "sha256": "6ad3faf01c290137ba12f76b92a8db49940ed9fe0890b77f675aee668282eeb4",
+      "size_bytes": 642
+    },
+    {
+      "path": "contracts/novelty_contract.json",
+      "sha256": "c56b73982ffec464788362072aeae8b4c3b84fb9b96dff9c64fa3a5b8fac73a5",
+      "size_bytes": 255
+    },
+    {
+      "path": "contracts/outcome_access_ledger.json",
+      "sha256": "6d74e27694fac661509e98b7fc15d6d4df593ac3bae3641a465f1c16d9a18248",
+      "size_bytes": 348
+    },
+    {
+      "path": "contracts/persistence_contract.json",
+      "sha256": "e790adccf74ebe428a55491a9f0de3ecebc741d488a297c6e44020e7f5f3075a",
+      "size_bytes": 283
+    },
+    {
+      "path": "contracts/recovery_refractory_contract.json",
+      "sha256": "9322dbac3f227aa1c1a3fa301c128ba8b8b9073a646b30d787f4e14035d3983b",
+      "size_bytes": 291
+    },
+    {
+      "path": "contracts/safe_reentry_contract.json",
+      "sha256": "4c2d13c8b0859ba9d4d1f594b15b332482373db18b2f3da7ad737c72f1798655",
+      "size_bytes": 262
+    },
+    {
+      "path": "contracts/session_role_ledger.csv",
+      "sha256": "5910288825e89dd37c1db3ef98c8025ede0d593cf404c7b8038c45e851c4da3e",
+      "size_bytes": 1287
+    },
+    {
+      "path": "contracts/source_manifest.json",
+      "sha256": "63cc8eb6cbe4db17b61ab0ce782104d8a6984471180edc5add7b91e812e5f15f",
+      "size_bytes": 856
+    },
+    {
+      "path": "contracts/upstream_cache_manifest.csv",
+      "sha256": "7234bf6acd5bc20864cd396e43e1ea09b1e6affbb3cd4c9db2684876483dd3a2",
+      "size_bytes": 11436
+    },
+    {
+      "path": "reports/A0_summary.json",
+      "sha256": "c6ffa5609adb2861de00c81308ee0776cc1dcbeab44d8d0efb8eb169402485d6",
+      "size_bytes": 2516
+    },
+    {
+      "path": "support/candidate_ledger.csv",
+      "sha256": "c41ce2bcb2e4852b8bf5d58307cc802131ab1b41699512dab40b3f643eb2f8d2",
+      "size_bytes": 74044
+    },
+    {
+      "path": "support/candidate_support_by_date.csv",
+      "sha256": "786b7e6f89160a128c793e3d4fa50538f068bc4e0c17ae9faebcf187dc667b70",
+      "size_bytes": 315
+    },
+    {
+      "path": "support/capture_diagnostics.csv",
+      "sha256": "2f59319b3e01b3340764b932584612e8b9691e46602713ac1341f9b740165dc7",
+      "size_bytes": 2250
+    },
+    {
+      "path": "support/control_candidates.csv",
+      "sha256": "46db7b6760af6f968db854668029fb3e7404761bd0786eb672872f8b960c0214",
+      "size_bytes": 6485020
+    },
+    {
+      "path": "support/control_overlap_by_date.csv",
+      "sha256": "21f248cb698aa03556f8e9a64e9c4c98e77145c4b28fffae932d403158f5a4d9",
+      "size_bytes": 227
+    },
+    {
+      "path": "support/crossing_to_episode_compression.csv",
+      "sha256": "19bc97d25ce18b65a583b69c1375cfb8777f7addbd7a3a725ba6eaa3c12f9d85",
+      "size_bytes": 367
+    },
+    {
+      "path": "support/direction_switch_composition.csv",
+      "sha256": "02c9dfe0f6b603fc078f57e0eddc5fbe9ada56fc6bd2751229199744446f56fc",
+      "size_bytes": 1097
+    },
+    {
+      "path": "support/excursion_duration_distribution.csv",
+      "sha256": "954072ce6893c9675efb351ab4b87f675d479d69edf667cd123f9750085fa421",
+      "size_bytes": 175
+    },
+    {
+      "path": "support/excursion_ledger.csv",
+      "sha256": "36adf45f04fd8a3798920ea5bf06d3c873ff706a9f0cb49c7c77416dae77f514",
+      "size_bytes": 28516
+    },
+    {
+      "path": "support/excursion_support_by_date.csv",
+      "sha256": "e4a4af9c410f2b2e5a674378c61e161c59f29f67df387b137ce18f1160eab0f9",
+      "size_bytes": 463
+    },
+    {
+      "path": "support/followup_geometry.csv",
+      "sha256": "545ef0db6ce299c229484409f3def3667e7c86f8ca19ee7d6a529e06084291ae",
+      "size_bytes": 167
+    },
+    {
+      "path": "support/matched_control_pairs.csv",
+      "sha256": "f74f6c953adae262b3c8ef3b9856ba6c42106b6cc24904b37e68601ff638d884",
+      "size_bytes": 340
+    },
+    {
+      "path": "support/micro_crossing_support_by_date.csv",
+      "sha256": "314dcd8a70e0e59beeb314d8465738cfe51c51df874c3d16df1238e370cd986f",
+      "size_bytes": 646
+    },
+    {
+      "path": "support/recovery_reset_composition.csv",
+      "sha256": "b44d66abad83a74ff6630bb777accd2d5325924d7c38dbb42f9214b00ce72b1b",
+      "size_bytes": 1340
+    },
+    {
+      "path": "support/refractory_completion_support.csv",
+      "sha256": "e2f7f632702c429c796520a82a968d9eae1368a98e705b33db1dd4fbf52249f4",
+      "size_bytes": 301
+    },
+    {
+      "path": "support/safe_reentry_anchor_ledger.csv",
+      "sha256": "0af0a680526d1f3224c29a0360b52344778aa0f3878f03502ea325cd6eaa49e9",
+      "size_bytes": 633
+    },
+    {
+      "path": "support/safe_reentry_spread_distribution.csv",
+      "sha256": "1b3378938b2516ab82bbf70153df8805d658764d76dc22e075a3cf2857da8ecb",
+      "size_bytes": 54
+    },
+    {
+      "path": "support/safe_reentry_support_by_date.csv",
+      "sha256": "0ed07e88202613a745e0b622ff896100ebc8de9fa847cf677e9b631376553188",
+      "size_bytes": 483
+    },
+    {
+      "path": "support/source_inventory.csv",
+      "sha256": "62baf3b498ecafcda901cbea1f61f52489cc01e8c3da95427fdf8294ec27d235",
+      "size_bytes": 11540
+    },
+    {
+      "path": "support/terminal_episode_composition.csv",
+      "sha256": "be08ac72f5a34d48477e8d7bfd26b83de0415a708535118ddc98ce9c97b71f8b",
+      "size_bytes": 228
+    },
+    {
+      "path": "support/transient_rejection_support.csv",
+      "sha256": "18f67f0cc669522c50b85c1a4a2b26c72aac014765d27c929a3f2007d8989bc8",
+      "size_bytes": 608
+    },
+    {
+      "path": "support/unmatched_safe_reentry_anchors.csv",
+      "sha256": "08541b0a45bf5c95f461aefb3ad5acd58d424bed5b030f2db132f5ce285d786e",
+      "size_bytes": 24
+    }
+  ],
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "task_id": "0828T011"
+}

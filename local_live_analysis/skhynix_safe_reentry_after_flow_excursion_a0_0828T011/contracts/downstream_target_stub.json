@@ -1,0 +1,19 @@
+{
+  "causes": [
+    "n_contact",
+    "n_adverse",
+    "n_spread_collapse",
+    "n_timeout"
+  ],
+  "materialized": false,
+  "public_contact_is_real_fill": false,
+  "queue_fill_bound_materialized": false,
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "tau_candidates_ms": [
+    500,
+    1000,
+    2000,
+    5000,
+    10000
+  ]
+}

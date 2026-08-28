@@ -1,0 +1,8 @@
+{
+  "bilateral_depth_recovery_fraction": 0.8,
+  "depth_lapse": "return_same_episode_to_recovery_candidate",
+  "pressure_score_below": 1.5,
+  "refractory_ms": 1000,
+  "renewed_pressure": "return_same_episode_to_active",
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1"
+}

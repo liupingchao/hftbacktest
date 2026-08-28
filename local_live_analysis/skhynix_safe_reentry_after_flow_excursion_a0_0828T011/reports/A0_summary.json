@@ -1,0 +1,83 @@
+{
+  "A1_authorized": false,
+  "anchor_count": 1,
+  "anchor_rate_per_hour": 0.02784181331874767,
+  "anchor_state_invalid": false,
+  "candidate_count": 253,
+  "candidate_status_counts": {
+    "confirmed": 42,
+    "pre_confirmation_direction_switch": 82,
+    "transient_rejected": 129
+  },
+  "capture_count": 29,
+  "classification": "A0_normalization_support_failed",
+  "common_support": 1.0,
+  "control_candidate_count": 30286,
+  "crossing_to_excursion_ratio": 11673.97619047619,
+  "denominator_floors": {
+    "depth_scale_floor": 0.4906666576862335,
+    "trade_scale_floor": 0.029999999329447746
+  },
+  "direction_counts": {
+    "-1": 19,
+    "1": 23
+  },
+  "direction_switch_count_p50": 410.5,
+  "direction_switch_count_p90": 3170.5999999999995,
+  "duration_hours": 35.91720081416666,
+  "episode_duration_ms_p50": 172060.0,
+  "episode_duration_ms_p90": 962582.0,
+  "excursion_count": 42,
+  "excursion_nonfloor_ge2_share": 0.11904761904761904,
+  "excursion_rate_per_hour": 1.169356159387402,
+  "future_target_fields_read": [],
+  "gates": {
+    "A0_0_source_closure": true,
+    "A0_1_zero_outcome_boundary": true,
+    "A0_2_normalization_support": false,
+    "A0_3_excursion_support": false,
+    "A0_4_novelty_persistence_compression": true,
+    "A0_5_safe_reentry_support": false,
+    "A0_6_control_common_support": false,
+    "A0_7_followup_geometry": true
+  },
+  "global_scale_floors": {
+    "dep_down": 0.008699308812971731,
+    "dep_up": 0.002066016503042915,
+    "ofi_down": 0.012274969470135738,
+    "ofi_up": 0.012274969470135738,
+    "trade_down": 0.5162554061665655,
+    "trade_up": 0.5162554061665655
+  },
+  "hypothesis_id": "SAFE_REENTRY_AFTER_FLOW_EXCURSION_V1",
+  "matched_pair_count": 1,
+  "median_inter_excursion_ms": 464140.0,
+  "minimum_date_common_support": 1.0,
+  "pair_presence": {
+    "dep_ofi": true,
+    "dep_trade": true,
+    "trade_ofi": true
+  },
+  "raw_micro_crossing_count": 490307,
+  "recovery_reset_count_p50": 510.5,
+  "refractory_reset_count_p50": 61.5,
+  "research_date_count": 9,
+  "safe_reentry_nonfloor_ge2_share": 0.0,
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "selected_tau_max_ms": 10000,
+  "status": "failed",
+  "task_id": "0828T011",
+  "terminal_status_counts": {
+    "never_recovered": 5,
+    "recovered_but_imbalanced": 2,
+    "recovered_without_wide_spread": 34,
+    "safe_reentry_available": 1
+  },
+  "violation_counts": {
+    "backdated": 0,
+    "new_episode_while_active": 0,
+    "novelty": 0,
+    "overlap": 0,
+    "persistence": 0
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "A1_authorized": false,
+  "classification": "A0_normalization_support_failed",
+  "future_target_fields_read": [],
+  "gates": {
+    "A0_0_source_closure": true,
+    "A0_1_zero_outcome_boundary": true,
+    "A0_2_normalization_support": false,
+    "A0_3_excursion_support": false,
+    "A0_4_novelty_persistence_compression": true,
+    "A0_5_safe_reentry_support": false,
+    "A0_6_control_common_support": false,
+    "A0_7_followup_geometry": true
+  },
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "status": "failed",
+  "task_id": "0828T011"
+}

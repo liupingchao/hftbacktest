@@ -1,0 +1,6 @@
+{
+  "H0": "current_static_safe_state",
+  "H1_adds": "recent_completed_excursion_path",
+  "fitted_in_A0": false,
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1"
+}

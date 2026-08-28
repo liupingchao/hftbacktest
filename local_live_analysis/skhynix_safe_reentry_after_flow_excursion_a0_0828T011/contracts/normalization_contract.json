@@ -1,0 +1,22 @@
+{
+  "calibration_only": true,
+  "center": "rolling_median",
+  "checkpoint_ms": 20,
+  "denominator_floors": {
+    "depth_scale_floor": 0.4906666576862335,
+    "trade_scale_floor": 0.029999999329447746
+  },
+  "global_scale_floors": {
+    "dep_down": 0.008699308812971731,
+    "dep_up": 0.002066016503042915,
+    "ofi_down": 0.012274969470135738,
+    "ofi_up": 0.012274969470135738,
+    "trade_down": 0.5162554061665655,
+    "trade_up": 0.5162554061665655
+  },
+  "guard_ms": 500,
+  "history_ms": 60000,
+  "scale": "rolling_IQR_div_1.349",
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "upstream_task_id": "0828T008"
+}

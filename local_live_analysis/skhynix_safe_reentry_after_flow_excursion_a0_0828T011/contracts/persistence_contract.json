@@ -1,0 +1,9 @@
+{
+  "backdating": false,
+  "candidate_checkpoint_counts": true,
+  "checkpoint_ms": 20,
+  "opposite_dominant_preconfirmation": "reject_candidate",
+  "qualification_window_ms": 250,
+  "required_exposure_ms": 100,
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1"
+}

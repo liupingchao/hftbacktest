@@ -1,0 +1,8 @@
+{
+  "anchor": "refractory_completed_at",
+  "bilateral_depth_recovery_fraction": 0.8,
+  "current_abs_obi_max": 0.5,
+  "current_spread_ticks_min": 2.0,
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "wait_for_future_opportunity": false
+}

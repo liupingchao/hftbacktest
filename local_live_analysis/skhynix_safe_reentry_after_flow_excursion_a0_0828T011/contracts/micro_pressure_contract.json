@@ -1,0 +1,22 @@
+{
+  "coherence": "at_least_two_of_three",
+  "components": [
+    "vulnerable_net_depletion",
+    "aggressive_trade_pressure",
+    "whole_book_flow_pressure"
+  ],
+  "levels": 5,
+  "pressure_star": 6.0,
+  "role": "micro_observation_not_anchor",
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "upstream_hypothesis": "LIQUIDITY_BREAK_ONSET_V1",
+  "weights": [
+    1.0,
+    0.5,
+    0.3333333333333333,
+    0.25,
+    0.2
+  ],
+  "window_ms": 50,
+  "z_star": 3.0
+}

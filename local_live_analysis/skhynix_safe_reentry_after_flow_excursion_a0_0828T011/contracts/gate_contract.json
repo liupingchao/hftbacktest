@@ -1,0 +1,36 @@
+{
+  "gates": {
+    "A0_0_source_closure": true,
+    "A0_1_zero_outcome_boundary": true,
+    "A0_2_normalization_support": false,
+    "A0_3_excursion_support": false,
+    "A0_4_novelty_persistence_compression": true,
+    "A0_5_safe_reentry_support": false,
+    "A0_6_control_common_support": false,
+    "A0_7_followup_geometry": true
+  },
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "thresholds": {
+    "excursion_rate_per_hour": [
+      2,
+      100
+    ],
+    "maximum_excursion_date_share": 0.35,
+    "minimum_anchors_per_represented_date": 10,
+    "minimum_common_support": 0.9,
+    "minimum_crossing_to_excursion_ratio": 5,
+    "minimum_excursion_dates": 8,
+    "minimum_excursions": 300,
+    "minimum_excursions_per_represented_date": 15,
+    "minimum_matched_pairs": 200,
+    "minimum_median_inter_excursion_ms": 2000,
+    "minimum_per_date_common_support": 0.75,
+    "minimum_safe_reentry_anchors": 200,
+    "minimum_safe_reentry_dates": 8,
+    "minority_direction_share": 0.2,
+    "safe_reentry_rate_per_hour": [
+      1,
+      50
+    ]
+  }
+}

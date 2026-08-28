@@ -1,0 +1,5 @@
+terminal_status,episode_count,episode_share
+never_recovered,5,0.11904761904761904
+recovered_but_imbalanced,2,0.047619047619047616
+recovered_without_wide_spread,34,0.8095238095238095
+safe_reentry_available,1,0.023809523809523808

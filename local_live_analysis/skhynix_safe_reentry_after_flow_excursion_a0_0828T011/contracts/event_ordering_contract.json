@@ -1,0 +1,10 @@
+{
+  "checkpoint_before_same_timestamp_message": true,
+  "confirmation_backdating": false,
+  "event_key": [
+    "checkpoint_local_receive_ts_ns",
+    "event_seq_in_file"
+  ],
+  "event_seq_meaning": "last_file_event_causally_visible_at_checkpoint",
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1"
+}

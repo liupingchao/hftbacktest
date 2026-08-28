@@ -1,0 +1,20 @@
+{
+  "current_abs_obi_max": 0.5,
+  "current_spread_ticks_min": 2.0,
+  "future_outcome_exclusion": false,
+  "match": [
+    "same_date",
+    "same_direction",
+    "same_spread_ticks",
+    "same_abs_obi_bin_0.10",
+    "same_bid_depth_quintile",
+    "same_ask_depth_quintile",
+    "same_activity_quintile",
+    "same_30_minute_block"
+  ],
+  "only_relaxation": "adjacent_spread_tick",
+  "recent_excursion_exclusion_ms": 5000,
+  "reuse": false,
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1",
+  "stride_ms": 250
+}

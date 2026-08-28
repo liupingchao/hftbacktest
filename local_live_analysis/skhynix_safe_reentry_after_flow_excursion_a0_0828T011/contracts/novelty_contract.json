@@ -1,0 +1,9 @@
+{
+  "bilateral": true,
+  "both_pressure_scores_below": 1.5,
+  "micro_predicate_false": true,
+  "prequiet_ms": 1000,
+  "required_checkpoints": 50,
+  "reset_invalidates_history": true,
+  "schema_version": "skhynix_safe_reentry_after_flow_excursion_a0_v1"
+}
