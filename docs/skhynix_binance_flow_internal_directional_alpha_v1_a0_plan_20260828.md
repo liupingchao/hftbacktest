@@ -825,6 +825,21 @@ At confirmation, enter:
 DOMINANT_ACTIVE_d
 ```
 
+Anchor identity:
+
+```text
+anchor_id =
+  SHA256(
+    hypothesis_id
+    | capture_id
+    | segment_id
+    | confirmation_ts_ns
+    | confirmation_event_seq
+    | direction
+    | anchor_type
+  )
+```
+
 Record:
 
 - anchor type;
@@ -1193,6 +1208,27 @@ Matching relaxation is deterministic:
 No other covariate, date-specific edge or future-price criterion may relax the
 match.
 
+Global no-reuse assignment is a deterministic chronological greedy pass:
+
+```text
+anchor processing key =
+  (
+    research_date,
+    anchor_ts_ns,
+    anchor_event_seq,
+    anchor_id
+  )
+```
+
+Sort anchors ascending by this key. For each anchor, apply the frozen exact
+then one-tick-relaxed candidate ordering above against controls not previously
+used. Assign the first eligible control. If no control remains, mark the
+anchor unmatched. Once a checkpoint is assigned, remove both direction
+pseudo-labels before processing the next anchor.
+
+No parallel matching, randomized ordering, maximum-cardinality rematching or
+post-hoc swap is permitted under V1.
+
 Control meaning:
 
 ```text
@@ -1217,6 +1253,14 @@ for both:
   m0 = midpoint causally visible at entry_at
   target clock origin = entry_at
   target orientation = d
+
+pair_id =
+  SHA256(
+    anchor_id
+    | control_checkpoint_ts_ns
+    | control_checkpoint_event_seq
+    | control_direction
+  )
 ```
 
 The primary later population is the union of the two entries from every
@@ -1240,13 +1284,15 @@ state matters beyond a comparable snapshot:
 ```text
 H0:
   current spread ticks
-  current weighted L1-L5 OBI
-  current bid and ask weighted depth
-  activity_500ms
-  trailing return 100ms
-  trailing return 500ms
-  trailing return 2000ms
+  direction-adjusted weighted L1-L5 OBI
+  log supporting-side weighted depth
+  log vulnerable-side weighted depth
+  log activity_500ms
+  direction-adjusted trailing return 100ms
+  direction-adjusted trailing return 500ms
+  direction-adjusted trailing return 2000ms
   trailing realized volatility 2000ms
+  direction sign main effect
   30-minute time block
 ```
 
@@ -1269,6 +1315,31 @@ trailing_return_W =
 trailing_realized_volatility_2000ms =
   sqrt(sum of squared 20ms log-midpoint changes over [t-2000ms,t))
 ```
+
+Frozen orientation map:
+
+```text
+oriented_OBI = d*OBI
+oriented_return_W = d*trailing_return_W
+
+if d=+1:
+  supporting_depth = weighted_bid_depth
+  vulnerable_depth = weighted_ask_depth
+
+if d=-1:
+  supporting_depth = weighted_ask_depth
+  vulnerable_depth = weighted_bid_depth
+
+H0 depth fields = log1p(supporting_depth), log1p(vulnerable_depth)
+H0 activity field = log1p(activity_500ms)
+H0 volatility = unchanged
+H0 spread = unchanged
+H0 direction main effect = d
+H0 time block = UTC floor(entry_at / 30 minutes)
+```
+
+Raw bid/ask depth, raw un-oriented OBI and raw un-oriented returns do not enter
+the primary H0 in addition to these oriented fields.
 
 All lag endpoints must exist inside the same valid segment. H0 fields are
 measured at `entry_at` before any same-timestamp later message.
@@ -1362,10 +1433,13 @@ n_ambiguous:
 Frozen barrier candidates:
 
 ```text
-1 tick
-2 ticks
-3 ticks
+primary: 1 tick
+diagnostic only: 2 ticks
+diagnostic only: 3 ticks
 ```
+
+The one-tick symmetric first-passage target is the only primary V1 target.
+The two- and three-tick targets cannot select, replace or rescue the primary.
 
 Frozen horizon candidates:
 
@@ -1381,6 +1455,33 @@ Frozen horizon candidates:
 A0 may inspect only boundary/quality coverage for these horizons.
 
 It may not inspect barrier outcomes.
+
+Primary target event ordering scans causally reconstructed event-level BBO
+states after `entry_at`, preserving `(local_receive_ts_ns,event_seq_in_file)`.
+Checkpoint coarsening is not used for barrier order.
+
+`n_ambiguous` means the event order cannot be distinguished because both
+barrier labels would be assigned to the same event key or the first observable
+post-entry state appears beyond a reset/quality discontinuity.
+
+Frozen primary disposition:
+
+```text
+n_ambiguous:
+  administratively censor immediately before the ambiguous event key
+  do not assign continuation or reversal
+  retain the entry in denominator and ambiguity diagnostics
+```
+
+A1 target support requires:
+
+```text
+overall ambiguous share <= 0.01
+per-date ambiguous share <= 0.05
+```
+
+If either ambiguity gate fails, V1 stops at A1. No tie-breaking by future
+return, later quote or favorable direction is allowed.
 
 ## 23. Incremental Directional Test
 
@@ -1434,7 +1535,17 @@ Preprocessing:
   development dates only;
 - categorical fields: frozen levels plus explicit unknown level;
 - no feature selection after target access;
-- direction orientation is applied before fitting.
+- direction orientation uses the exact Section 21 map before fitting.
+
+Preprocessing statistics use each unique development entry once, without
+hazard-row expansion and without pair/date weights:
+
+```text
+impute continuous field with unweighted development-entry median
+standardize with unweighted development-entry mean and population std
+if population std=0, standardized value is fixed to 0 and field is retained
+categorical reference = lexicographically first frozen level
+```
 
 Use ridge penalties:
 
@@ -1444,6 +1555,42 @@ lambda grid = [0.01,0.1,1,10,100]
 
 Select one lambda using H0-only, leave-one-development-date-out,
 date-equal entry negative log loss. Freeze the same lambda for H0 and H1.
+
+Exact weighted fitting objective:
+
+```text
+objective =
+  mean over development dates(
+    mean over matched pairs on date(
+      0.5*entry_NLL(anchor)
+      +
+      0.5*entry_NLL(control)
+    )
+  )
+  +
+  lambda/2 * sum(theta_j^2 for j in penalized coefficients)
+```
+
+`entry_NLL` is the sum of multinomial hazard-row negative log likelihood over
+that entry's at-risk elapsed bins.
+
+Penalty mask:
+
+```text
+unpenalized:
+  all cause-specific elapsed-bin baselines alpha_k(u)
+
+penalized with the same selected lambda:
+  all continuous H0 coefficients
+  all non-reference categorical dummy coefficients
+  direction main-effect coefficient
+  all explicit unknown-level coefficients
+  beta_continuation and beta_reversal in H1
+```
+
+There is no additional global intercept outside `alpha_k(u)`. H0 and H1 use
+the identical preprocessing statistics and penalty mask; only the two
+`Z_transition` cause coefficients are added in H1.
 
 Frozen role chain:
 
@@ -1485,9 +1632,18 @@ beta_reversal < 0
 at least 4 of 5 blocked/replay dates have Delta_NLL > 0
 ```
 
-The bootstrap resamples 30s dependence clusters within date, preserves matched
-pairs, and reports date-equal aggregate scores. Use 2000 deterministic
-resamples with a seed frozen in the A3 task before target access.
+Bootstrap unit is the frozen pair-dependence connected component defined in
+Section 24. Within each date:
+
+1. sample the date's pair components with replacement, using the original
+   number of components;
+2. include every matched pair and both entries from each sampled component;
+3. recompute pair-weighted, date-equal `Delta_NLL`;
+4. aggregate dates with equal weight.
+
+This preserves matched pairs, shared 30s clusters and overlapping follow-up
+intervals simultaneously. Use 2000 deterministic resamples with a seed frozen
+in the A3 task before target access.
 
 Frozen evaluation families:
 
@@ -1553,6 +1709,33 @@ A0 reports:
 - p50/p90/p99 component size;
 - fraction of entries in components larger than 10;
 - the same metrics by date.
+
+For the mechanically selected primary horizon, create the unique inference
+graph used by the bootstrap:
+
+```text
+node = one complete matched pair
+
+edge between pair a and pair b if either:
+  any entry from a and any entry from b share the same 30s
+  dependence_cluster_id;
+
+  or any same-capture primary follow-up intervals from a and b overlap.
+
+pair_dependence_component_id =
+  lexicographically smallest pair_id in the connected component
+```
+
+Because matching is same-date, every component is date-contained. The graph
+is deterministic, undirected and uses timestamp geometry only.
+
+A0/A1 report:
+
+- unique pair-dependence components overall and by date;
+- pair and entry counts per component;
+- maximum component share overall and by date;
+- component p50/p90/p99 sizes;
+- exact component membership SHA.
 
 Later inference clusters at least by capture and 30s block. Row-level iid
 standard errors are forbidden.
@@ -1631,6 +1814,7 @@ support/
   control_dependence_support.csv
   pair_dependence_support.csv
   followup_overlap_components.csv
+  pair_dependence_components.csv
   active_flow_burst_density.csv
   crossing_to_anchor_compression.csv
   current_spread_distribution.csv
@@ -1777,9 +1961,12 @@ minimum per-date complete coverage >= 0.80
 minimum overlap components:                100
 maximum overlap-component entry share:     0.05
 maximum per-date overlap-component share:  0.10
+minimum pair-dependence components:         100
+maximum pair-dependence pair share:         0.05
+maximum per-date pair-dependence share:     0.10
 ```
 
-Select the largest predeclared horizon satisfying all five geometry conditions.
+Select the largest predeclared horizon satisfying all eight geometry conditions.
 This selection reads timestamps and quality boundaries only.
 
 ## 28. A0 Classifications
@@ -1851,11 +2038,17 @@ Formal implementation must include focused tests for:
 - no raw sign-flip anchor;
 - static book and recent-price fields excluded from anchor decisions;
 - deterministic dual-direction control labels;
+- chronological global no-reuse matching assignment;
 - no future-anchor control exclusion;
 - no control reuse;
 - matched-pair risk-origin and weight identity;
 - anchor/control/pair dependence cluster construction;
 - geometry-only overlap-component construction;
+- pair-dependence component construction preserving complete pairs;
+- unique primary one-tick target;
+- ambiguous-target administrative censoring;
+- exact H0 direction-orientation map;
+- exact primary penalty mask and weighted objective;
 - zero-target outcome ledger;
 - deterministic double-build identity.
 

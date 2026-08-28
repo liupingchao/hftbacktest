@@ -15,7 +15,9 @@
 QA说明：
 - 首次独立只读 QA 建议 `未通过`，缺陷统计
   `P0/P1/P2/P3 = 0/4/2/0`。
-- 已完成 plan-only remediation，等待第二次独立 QA。
+- 第二次独立只读 QA 仍建议 `未通过`，缺陷统计
+  `P0/P1/P2/P3 = 0/4/1/0`。
+- 已完成第二轮 plan-only remediation，等待第三次独立 QA。
 
 files：
 - `.workflow/tasks/0828T012.md`
@@ -46,6 +48,12 @@ action：
 - 首次 QA 后补齐 exact bin/message formulas、calibration universe、
   total transition table、matched-pair H0/H1 estimand、primary hazard
   estimator、source authority、dependence/overlap 和 burst-density gates。
+- 第二次 QA 后补齐：
+  - chronological global no-reuse matching assignment；
+  - unique primary one-tick barrier 和 ambiguous administrative censoring；
+  - exact H0 direction-orientation map；
+  - exact weighted ridge objective、preprocessing weights 和 penalty mask；
+  - pair-dependence connected-component bootstrap unit。
 
 verify：
 - Hypothesis/version boundary 人工核对通过。
@@ -62,7 +70,7 @@ verify：
 - Sparse、near-continuous、date concentration 和 dependence support gates
   均已冻结。
 - A0 zero-outcome boundary 与 downstream target stub 分离。
-- Markdown 共 `248` 个 fence，奇偶配对检查通过。
+- Markdown 共 `266` 个 fence，奇偶配对检查通过。
 - 必需 hypothesis、anchor、failure transitions、control labels、gates 和
   classifications 静态存在性检查通过。
 - Frozen predecessor authority blobs 从 commit `91cc0770` 重算 SHA，与
@@ -70,7 +78,7 @@ verify：
 - Total transition table 覆盖全部 7 个状态。
 - `git diff --check` 通过。
 - Plan SHA256:
-  `f8a6683769e9340351fb0291c2aa9b2bcb4a9e9b2395ca3e627524ca09f76ebd`。
+  `637f14dd48cda1a3a57a6ab2c18cef900daad6f64904071f90f370a47100ae49`。
 
 done：
 - A0 design contract 已起草。
@@ -86,7 +94,10 @@ commit：
 - initial plan：`1b339d05`
 - initial commit record：`05829a24`
 - QA remediation：`3a55c448`
+- first remediation record：`fdb099c3`
+- second QA remediation：待提交
 
 提交信息：
 - initial：docs: freeze flow internal directional alpha A0 plan
 - remediation：docs: close directional alpha A0 contract gaps
+- second remediation：docs: freeze directional alpha primary estimand
