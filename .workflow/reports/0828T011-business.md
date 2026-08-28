@@ -127,7 +127,7 @@ blockers：
 - 研究链路阻塞于 A0；不是实现阻塞。
 
 commit：
-- 待提交
+- `91cc0770`
 
 提交信息：
 - research: execute safe reentry excursion A0
