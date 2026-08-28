@@ -1,0 +1,147 @@
+{
+  "artifact_count": 28,
+  "artifacts": [
+    {
+      "path": "classification.json",
+      "sha256": "17c5c798f9f64bb6d3d333ef0fe81bb756350624b8f6c7495e2d8d2f0d782936",
+      "size_bytes": 497
+    },
+    {
+      "path": "contracts/H0_H1_contract.json",
+      "sha256": "c1644e369f9f8b480b0383606428c517ac811b93587bfad68fba6a14779bf8ad",
+      "size_bytes": 238
+    },
+    {
+      "path": "contracts/control_support_contract.json",
+      "sha256": "60187b9a2954a26d2767432671963fdd8c1201d61e322f300641d13fa993fdc4",
+      "size_bytes": 276
+    },
+    {
+      "path": "contracts/downstream_target_stub.json",
+      "sha256": "c6f8eb2eec5926ec809d4278992cc10ab99d6d072077beed7dbc00bacaf866c6",
+      "size_bytes": 367
+    },
+    {
+      "path": "contracts/event_ordering_contract.json",
+      "sha256": "b314686ce622cf8b3177137d29669e1712bb0921ea711b3f525d9383171b6cac",
+      "size_bytes": 256
+    },
+    {
+      "path": "contracts/gate_contract.json",
+      "sha256": "0dcccdaef712f99d8ace72136d9613c29b594f6974bf792148814b4427143eb9",
+      "size_bytes": 790
+    },
+    {
+      "path": "contracts/normalization_contract.json",
+      "sha256": "ce21bd913fd236431b97f89dc6d707b4fd08a9b92027a3a5fbd87d6b8ffd3b89",
+      "size_bytes": 534
+    },
+    {
+      "path": "contracts/onset_state_machine.json",
+      "sha256": "be592961c1adb3db0962ded910d71f9d709313461689de14ca4006c1099f40df",
+      "size_bytes": 336
+    },
+    {
+      "path": "contracts/outcome_access_ledger.json",
+      "sha256": "c33577bc5141f6693676f3715a9db8932d4d9e470ee87d78f276a432417dce95",
+      "size_bytes": 269
+    },
+    {
+      "path": "contracts/pressure_component_contract.json",
+      "sha256": "982bbadae02b92808047970a3bb1c6adf23792135f6a3147260ad54bbfac4435",
+      "size_bytes": 498
+    },
+    {
+      "path": "contracts/session_role_ledger.csv",
+      "sha256": "5910288825e89dd37c1db3ef98c8025ede0d593cf404c7b8038c45e851c4da3e",
+      "size_bytes": 1287
+    },
+    {
+      "path": "contracts/source_manifest.json",
+      "sha256": "2a6cc79acd1582525509916b0cb4f0a3739c3ad4ef081e342e70fac4d15958d9",
+      "size_bytes": 543
+    },
+    {
+      "path": "reports/A0_summary.json",
+      "sha256": "d934525d357842c44e399dcdad9a66185367ea86ace4dbdff51012305a2cc95d",
+      "size_bytes": 2099
+    },
+    {
+      "path": "support/active_interval_ledger.csv",
+      "sha256": "a6094ccf727aa6c67ef7b142d7d02bbf8b9f1e3a3c9f93943bf6de4627ba4c38",
+      "size_bytes": 47758892
+    },
+    {
+      "path": "support/anchor_support_by_date.csv",
+      "sha256": "eca361061584d0ce766a8bbef565dee442ea55d39f6c3b917f37b519693f4f02",
+      "size_bytes": 786
+    },
+    {
+      "path": "support/capture_diagnostics.csv",
+      "sha256": "30d71def76b654e2e709a949b558de60405da7aa12983deec6e02136055f7c32",
+      "size_bytes": 1675
+    },
+    {
+      "path": "support/component_pair_composition.csv",
+      "sha256": "fec994bfe5b21cdf64108ecb4f4d48b2cc71af33d2233d04f3b4a6985e114d96",
+      "size_bytes": 202
+    },
+    {
+      "path": "support/component_support_by_date.csv",
+      "sha256": "bf1fbc7a02dcc77d22aa752e2f141c0dce6b5739ebb22eeadab0ef5c181752ff",
+      "size_bytes": 1815
+    },
+    {
+      "path": "support/control_candidates.csv",
+      "sha256": "cd4f0c44bb106d9119efe18afe6f2571d2b1887f2a9fdcd1d18d0e5cc3176fca",
+      "size_bytes": 68173191
+    },
+    {
+      "path": "support/control_overlap_by_date.csv",
+      "sha256": "def7fba8d7da2c405b48ee2f46179111a02c9b08393cc33c845fdbb4f2077434",
+      "size_bytes": 432
+    },
+    {
+      "path": "support/followup_geometry.csv",
+      "sha256": "03e06cf9fae5b867f1b5467a6491833a954bc0817bd6168e3482c55db7460431",
+      "size_bytes": 317
+    },
+    {
+      "path": "support/inter_anchor_distribution.csv",
+      "sha256": "07a48d0a4dfb76f3ecf87d0cd0acb4278435b786751b38ab41c35c0390bc438b",
+      "size_bytes": 102
+    },
+    {
+      "path": "support/matched_control_pairs.csv",
+      "sha256": "2150f39dadd34b72294c3e9ada1e48c31b550310679f86288740f8c13be65d81",
+      "size_bytes": 32977501
+    },
+    {
+      "path": "support/normalization_scale_support.csv",
+      "sha256": "40adba7e33bcd61961f8fdf048874f4c6cca0cf4dc74b416880ca4021cce9dd6",
+      "size_bytes": 30992
+    },
+    {
+      "path": "support/onset_anchor_ledger.csv",
+      "sha256": "4dbe30f11cae4191134b1f8847d926eff3f61996b5a03cf784a90bd2a6abdada",
+      "size_bytes": 128713080
+    },
+    {
+      "path": "support/precursor_detection_delay.csv",
+      "sha256": "f89dfbc5eb59abf83305d1bc6ec6842c368308b19f56f8e4cf91be19ba8de953",
+      "size_bytes": 1195
+    },
+    {
+      "path": "support/source_inventory.csv",
+      "sha256": "62baf3b498ecafcda901cbea1f61f52489cc01e8c3da95427fdf8294ec27d235",
+      "size_bytes": 11540
+    },
+    {
+      "path": "support/unmatched_anchors.csv",
+      "sha256": "bfc8cc9ceb7bd639e8759ad8b6501c19f74a1838fc78964c456fc548e7d35f1b",
+      "size_bytes": 5746567
+    }
+  ],
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "task_id": "0828T008"
+}

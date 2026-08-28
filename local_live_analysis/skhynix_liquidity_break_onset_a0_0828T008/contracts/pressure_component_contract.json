@@ -1,0 +1,24 @@
+{
+  "coherence": "at_least_two_of_three",
+  "components": [
+    "vulnerable_net_depletion",
+    "aggressive_trade_pressure",
+    "whole_book_flow_pressure"
+  ],
+  "denominator_floors": {
+    "depth_scale_floor": 0.4906666576862335,
+    "trade_scale_floor": 0.029999999329447746
+  },
+  "levels": 5,
+  "pressure_star": 6.0,
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "weights": [
+    1.0,
+    0.5,
+    0.3333333333333333,
+    0.25,
+    0.2
+  ],
+  "window_ms": 50,
+  "z_star": 3.0
+}

@@ -1,0 +1,13 @@
+{
+  "future_anchor_exclusion": false,
+  "obi_bin_width": 0.1,
+  "relaxation_order": [
+    "time_block",
+    "activity_quintile",
+    "depth_quintile",
+    "adjacent_spread"
+  ],
+  "reuse": false,
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "stride_ms": 250
+}

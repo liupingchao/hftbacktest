@@ -1,0 +1,10 @@
+{
+  "H0_H1_fitted": false,
+  "future_best_quote_fields_read": [],
+  "future_midpoint_fields_read": [],
+  "new_collection": false,
+  "orders": 0,
+  "private_API_access": false,
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "targets_materialized": false
+}

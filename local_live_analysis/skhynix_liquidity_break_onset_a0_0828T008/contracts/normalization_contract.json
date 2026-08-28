@@ -1,0 +1,19 @@
+{
+  "center": "rolling_median",
+  "checkpoint_ms": 20,
+  "global_scale_floors": {
+    "dep_down": 0.008699308812971731,
+    "dep_up": 0.002066016503042915,
+    "ofi_down": 0.012274969470135738,
+    "ofi_up": 0.012274969470135738,
+    "trade_down": 0.5162554061665655,
+    "trade_up": 0.5162554061665655
+  },
+  "guard_ms": 500,
+  "history_ms": 60000,
+  "minimum_checkpoints": 1500,
+  "scale": "rolling_IQR_div_1.349",
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "shift_checkpoints": 26,
+  "window_checkpoints": 2975
+}

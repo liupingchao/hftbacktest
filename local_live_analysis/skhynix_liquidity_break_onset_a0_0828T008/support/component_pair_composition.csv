@@ -1,0 +1,7 @@
+direction,pair,anchor_count,direction_anchor_count
+1,dep_trade,90162,178717
+1,dep_ofi,156774,178717
+1,trade_ofi,81443,178717
+-1,dep_trade,72014,161351
+-1,dep_ofi,131582,161351
+-1,trade_ofi,75905,161351

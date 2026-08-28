@@ -1,0 +1,14 @@
+{
+  "backdating": false,
+  "conflict_gap": 0.5,
+  "opposite_onset_switch": true,
+  "release_dwell_ms": 100,
+  "release_score": 1.5,
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "start_anchor": "first_current_message_satisfying_structural_predicate",
+  "states": [
+    "NEUTRAL",
+    "ACTIVE_UP",
+    "ACTIVE_DOWN"
+  ]
+}

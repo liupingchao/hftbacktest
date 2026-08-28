@@ -1,0 +1,29 @@
+{
+  "gates": {
+    "A0_0_source_closure": true,
+    "A0_1_zero_outcome_boundary": true,
+    "A0_2_anchor_support": false,
+    "A0_3_detection_geometry": true,
+    "A0_4_component_diversity": false,
+    "A0_5_control_common_support": false,
+    "A0_6_followup_geometry": true
+  },
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "thresholds": {
+    "anchor_rate_per_hour": [
+      5,
+      300
+    ],
+    "maximum_active_occupancy": 0.6,
+    "maximum_ambiguous_fraction": 0.1,
+    "maximum_date_share": 0.35,
+    "median_inter_anchor_ms": 250,
+    "minimum_anchors": 800,
+    "minimum_anchors_per_date": 25,
+    "minimum_common_support": 0.9,
+    "minimum_dates": 8,
+    "minimum_matched_pairs": 500,
+    "minority_direction_share": 0.2,
+    "p90_precursor_delay_ms": 100
+  }
+}

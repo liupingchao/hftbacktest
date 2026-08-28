@@ -1,0 +1,21 @@
+{
+  "capture_count": 29,
+  "contract_sha256": "b69146b92411a425e9d78d9deb88ac5347ccc0b2ad5b6f2ac32167b9eecb1141",
+  "duration_hours": 35.91720081416666,
+  "future_target_fields_read": [],
+  "hypothesis_id": "LIQUIDITY_BREAK_ONSET_V1",
+  "raw_hashes_verified_now": true,
+  "research_dates": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-03",
+    "2026-08-04",
+    "2026-08-07",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27"
+  ],
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "task_id": "0828T008"
+}

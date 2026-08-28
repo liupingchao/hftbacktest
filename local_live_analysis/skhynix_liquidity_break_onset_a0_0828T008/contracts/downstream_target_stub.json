@@ -1,0 +1,19 @@
+{
+  "adverse_barrier_ticks": 1,
+  "causes": [
+    "n_adverse_continuation",
+    "n_liquidity_recovery"
+  ],
+  "materialized": false,
+  "recovery_depth_fraction": 0.8,
+  "recovery_dwell_ms": 100,
+  "recovery_release_score": 1.5,
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "tau_candidates_ms": [
+    500,
+    1000,
+    2000,
+    5000,
+    10000
+  ]
+}

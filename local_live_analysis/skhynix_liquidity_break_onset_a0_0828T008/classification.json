@@ -1,0 +1,17 @@
+{
+  "A1_authorized": false,
+  "classification": "A0_anchor_near_continuous",
+  "future_target_fields_read": [],
+  "gates": {
+    "A0_0_source_closure": true,
+    "A0_1_zero_outcome_boundary": true,
+    "A0_2_anchor_support": false,
+    "A0_3_detection_geometry": true,
+    "A0_4_component_diversity": false,
+    "A0_5_control_common_support": false,
+    "A0_6_followup_geometry": true
+  },
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "status": "failed",
+  "task_id": "0828T008"
+}

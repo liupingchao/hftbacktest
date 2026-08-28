@@ -1,0 +1,10 @@
+{
+  "apply_then_detect": true,
+  "checkpoint_before_same_timestamp_message": true,
+  "event_key": [
+    "local_receive_ts_ns",
+    "event_seq_in_file"
+  ],
+  "same_timestamp_order": "file_order",
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1"
+}

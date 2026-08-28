@@ -1,0 +1,67 @@
+{
+  "A1_authorized": false,
+  "active_duration_ms_p50": 176.3133005,
+  "active_duration_ms_p90": 405.82086569999996,
+  "active_exit_reason_counts": {
+    "causal_release": 135134,
+    "opposite_onset": 204918,
+    "reset_or_capture_end": 16
+  },
+  "active_occupancy": 0.556564041317088,
+  "anchor_count": 340068,
+  "anchor_rate_per_hour": 9468.109771679883,
+  "capture_count": 29,
+  "classification": "A0_anchor_near_continuous",
+  "common_support": 0.7367820553536352,
+  "component_pair_presence": {
+    "dep_ofi": 0.8479362950939224,
+    "dep_trade": 0.4768928567227731,
+    "trade_ofi": 0.46269569615488665
+  },
+  "component_presence": {
+    "dep": 0.9310667278309044,
+    "ofi": 0.9168695672630179,
+    "trade": 0.5458261288918687
+  },
+  "control_candidate_count": 443298,
+  "denominator_floors": {
+    "depth_scale_floor": 0.4906666576862335,
+    "trade_scale_floor": 0.029999999329447746
+  },
+  "direction_ambiguous_fraction": 1.3308547951556886e-05,
+  "direction_counts": {
+    "-1": 161351,
+    "1": 178717
+  },
+  "duration_hours": 35.91720081416666,
+  "future_target_fields_read": [],
+  "gates": {
+    "A0_0_source_closure": true,
+    "A0_1_zero_outcome_boundary": true,
+    "A0_2_anchor_support": false,
+    "A0_3_detection_geometry": true,
+    "A0_4_component_diversity": false,
+    "A0_5_control_common_support": false,
+    "A0_6_followup_geometry": true
+  },
+  "global_scale_floors": {
+    "dep_down": 0.008699308812971731,
+    "dep_up": 0.002066016503042915,
+    "ofi_down": 0.012274969470135738,
+    "ofi_up": 0.012274969470135738,
+    "trade_down": 0.5162554061665655,
+    "trade_up": 0.5162554061665655
+  },
+  "hypothesis_id": "LIQUIDITY_BREAK_ONSET_V1",
+  "matched_pair_count": 250556,
+  "minimum_date_common_support": 0.5902680801683614,
+  "nonfloor_ge2_share": 0.642980227483915,
+  "precursor_delay_ms_p50": 6.6765135,
+  "precursor_delay_ms_p90": 28.2847233,
+  "research_date_count": 9,
+  "same_direction_inter_anchor_ms_p50": 474.8195035,
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1",
+  "selected_tau_max_ms": 10000,
+  "status": "failed",
+  "task_id": "0828T008"
+}

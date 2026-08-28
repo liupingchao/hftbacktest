@@ -1,0 +1,12 @@
+{
+  "H0": "current_static_book_and_context",
+  "H1_adds": [
+    "onset_indicator_R",
+    "Z_dep",
+    "Z_trade",
+    "Z_ofi",
+    "coherence_count"
+  ],
+  "fitted_in_A0": false,
+  "schema_version": "skhynix_liquidity_break_onset_a0_v1"
+}
