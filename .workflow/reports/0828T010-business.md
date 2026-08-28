@@ -70,7 +70,7 @@ blockers：
 - A0 execution 尚未授权。
 
 commit：
-- 待提交
+- `b0f629b2`
 
 提交信息：
 - docs: freeze safe reentry excursion A0 plan
