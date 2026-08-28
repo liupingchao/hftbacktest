@@ -85,7 +85,7 @@ blockers：
 commit：
 - initial plan：`1b339d05`
 - initial commit record：`05829a24`
-- QA remediation：待提交
+- QA remediation：`3a55c448`
 
 提交信息：
 - initial：docs: freeze flow internal directional alpha A0 plan
