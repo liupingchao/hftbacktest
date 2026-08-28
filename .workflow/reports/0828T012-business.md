@@ -13,7 +13,9 @@
 - 是
 
 QA说明：
-- 无
+- 首次独立只读 QA 建议 `未通过`，缺陷统计
+  `P0/P1/P2/P3 = 0/4/2/0`。
+- 已完成 plan-only remediation，等待第二次独立 QA。
 
 files：
 - `.workflow/tasks/0828T012.md`
@@ -41,6 +43,9 @@ action：
   risks，以及 H0/H1/H2 信息边界。
 - 明确 directional predictability、taker tradeability 和 passive fill
   是三个不同 claims。
+- 首次 QA 后补齐 exact bin/message formulas、calibration universe、
+  total transition table、matched-pair H0/H1 estimand、primary hazard
+  estimator、source authority、dependence/overlap 和 burst-density gates。
 
 verify：
 - Hypothesis/version boundary 人工核对通过。
@@ -57,12 +62,15 @@ verify：
 - Sparse、near-continuous、date concentration 和 dependence support gates
   均已冻结。
 - A0 zero-outcome boundary 与 downstream target stub 分离。
-- Markdown 共 `188` 个 fence，奇偶配对检查通过。
+- Markdown 共 `248` 个 fence，奇偶配对检查通过。
 - 必需 hypothesis、anchor、failure transitions、control labels、gates 和
   classifications 静态存在性检查通过。
+- Frozen predecessor authority blobs 从 commit `91cc0770` 重算 SHA，与
+  plan 中四个值逐一一致。
+- Total transition table 覆盖全部 7 个状态。
 - `git diff --check` 通过。
 - Plan SHA256:
-  `e39db262975a475037648eac5c30e7c7edc4fedc56fd64852a59effd9dc65ce5`。
+  `f8a6683769e9340351fb0291c2aa9b2bcb4a9e9b2395ca3e627524ca09f76ebd`。
 
 done：
 - A0 design contract 已起草。
@@ -75,7 +83,10 @@ blockers：
 - A0 execution 尚未授权。
 
 commit：
-- `1b339d05`
+- initial plan：`1b339d05`
+- initial commit record：`05829a24`
+- QA remediation：待提交
 
 提交信息：
-- docs: freeze flow internal directional alpha A0 plan
+- initial：docs: freeze flow internal directional alpha A0 plan
+- remediation：docs: close directional alpha A0 contract gaps

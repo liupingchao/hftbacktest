@@ -24,11 +24,19 @@ continuous active flow
   -> incremental alpha beyond current book state
 ```
 
-Methodology dependency:
+Methodology lineage:
 
 ```text
 docs/conditional_risk_research_methodology_kernel_v1.md
+current workspace SHA256:
+dd1adee720f613a51393ff97ae3fd026a79d9b553eaa984e629ab5ddbcab7505
 ```
+
+This lineage document is informative, not normative. It is currently outside
+the tracked predecessor evidence set. The present plan is self-contained:
+implementation authority comes only from the formulas, transitions, gates and
+hash bindings frozen below. A later edit or absence of the lineage document
+cannot change this V1 contract.
 
 ## 1. Decision
 
@@ -254,6 +262,60 @@ Existing admitted source:
 
 All dates precede 2026-08-28 and have already been inspected.
 
+Frozen tracked source authority:
+
+```text
+predecessor execution commit:
+91cc0770c4de3c41c6a27c1980c23414b1f21dbd
+
+predecessor QA record commit:
+f7d10df93688c9ce1a6b66c0b751f806494e955d
+
+source manifest:
+local_live_analysis/skhynix_safe_reentry_after_flow_excursion_a0_0828T011/
+  contracts/source_manifest.json
+SHA256:
+63cc8eb6cbe4db17b61ab0ce782104d8a6984471180edc5add7b91e812e5f15f
+
+capture inventory:
+local_live_analysis/skhynix_safe_reentry_after_flow_excursion_a0_0828T011/
+  support/source_inventory.csv
+SHA256:
+62baf3b498ecafcda901cbea1f61f52489cc01e8c3da95427fdf8294ec27d235
+
+session roles:
+local_live_analysis/skhynix_safe_reentry_after_flow_excursion_a0_0828T011/
+  contracts/session_role_ledger.csv
+SHA256:
+5910288825e89dd37c1db3ef98c8025ede0d593cf404c7b8038c45e851c4da3e
+
+predecessor run manifest:
+local_live_analysis/skhynix_safe_reentry_after_flow_excursion_a0_0828T011/
+  run_manifest.json
+SHA256:
+c1564f84e793253a39c5d6cccdab2559638bd485b3a9ecf02e9d0d3eb692423b
+```
+
+The implementation must load these four blobs from the exact predecessor
+commit and verify their hashes before discovering raw files. The admitted
+source set is the exact 29-row inventory keyed by:
+
+```text
+capture_id
+research_date
+role
+start_utc
+end_utc
+duration_seconds
+raw_size_bytes
+raw_sha256
+depth_gap_count
+```
+
+`raw_path` may be relocated, but every other identity field must match. No
+additional capture, replacement hash or role reassignment is allowed under
+V1.
+
 Session roles remain:
 
 | Dates | Role |
@@ -291,47 +353,150 @@ Rules:
 5. Do not carry bins, windows, candidates or states across a reset.
 6. Bind every transition and anchor to exact checkpoint event key.
 
-## 8. Causal 20ms Flow Bins
-
-The primary measurement unit is a non-overlapping 20ms bin.
-
-For every bin `b`, record:
+Checkpoint grid:
 
 ```text
-T_b:
-  signed aggressive trade quantity
-  buyer-initiated positive
-  seller-initiated negative
+segment first checkpoint =
+  smallest Unix-epoch multiple of 20ms strictly greater than snapshot receive ts
 
-V_b:
-  total aggressive trade quantity
+later checkpoints =
+  first checkpoint + n*20ms
+```
 
-A_b:
-  positive weighted ask-side net depletion
+No checkpoint is emitted before a valid snapshot initializes the segment.
 
-B_b:
-  positive weighted bid-side net depletion
+## 8. Causal 20ms Flow Bins
 
-O_b:
-  signed weighted L1-L5 order-flow imbalance contribution
-  upward positive
-  downward negative
+The primary measurement unit is a non-overlapping, right-open 20ms bin ending
+at checkpoint `c`:
 
-U_b:
-  sum of absolute weighted order-flow contributions
+```text
+B_c = [c-20ms,c)
+```
 
-C_b:
-  admitted public-message activity count
+An event whose local receive time equals `c` is not visible at checkpoint `c`
+and belongs to the next bin. Equal-timestamp rows retain file order. Bins never
+cross snapshot, reconnect, sequence-gap, capture or quality-reset boundaries.
+
+### 8.1 Admitted Message Universe
+
+Only:
+
+```text
+valid sequence-admitted depthUpdate
+valid public trade
+```
+
+contribute to flow bins.
+
+Initial or reconnect snapshots establish book state and reset all windows, but
+contribute zero flow and zero activity. `bookTicker`, wrappers, subscription
+acks and unknown messages contribute zero and cannot modify the reconstructed
+L1-L5 state used by this detector.
+
+Activity is message count, not atomic-level count:
+
+```text
+C_e = 1 for each admitted depthUpdate message
+C_e = 1 for each admitted trade message
+C_e = 0 otherwise
 ```
 
 L1-L5 weights remain:
 
 ```text
-[1,1/2,1/3,1/4,1/5]
+w_0..w_4 = [1,1/2,1/3,1/4,1/5]
 ```
 
-The bins are event-additive. The implementation must not sum overlapping 50ms
-windows as if they were independent observations.
+### 8.2 Atomic Depth Contribution
+
+Apply each level row inside a `depthUpdate` sequentially in received array
+order.
+
+For an updated side `s`, price `p`, old quantity `q_pre` and new quantity
+`q_post`:
+
+```text
+delta_q = q_post - q_pre
+```
+
+Rank is frozen as:
+
+```text
+r(p) =
+  pre-update top-five rank, if p is in the pre-update top five;
+  otherwise post-update top-five rank, if p enters the post-update top five;
+  otherwise unavailable.
+```
+
+An unavailable rank contributes zero. Rank is zero-based.
+
+For every ranked atomic level update `j`:
+
+```text
+ask_depletion_j =
+  w_r * max(-delta_q,0) if side=ask else 0
+
+bid_depletion_j =
+  w_r * max(-delta_q,0) if side=bid else 0
+
+ofi_j =
+  +w_r * delta_q if side=bid
+  -w_r * delta_q if side=ask
+
+ofi_abs_j = abs(ofi_j)
+```
+
+Thus bid addition and ask removal are upward-positive; bid removal and ask
+addition are downward-negative.
+
+Price-level deletion, insertion and top-five migration use the same atomic
+rule. There is no separate synthetic contribution for a best-price move. A
+snapshot replacement starts a new segment and contributes nothing.
+
+### 8.3 Atomic Trade Contribution
+
+For an admitted Binance public `trade` with quantity `q` and
+`buyer_is_maker=m`:
+
+```text
+trade_signed_e = -q if m=true
+trade_signed_e = +q if m=false
+trade_total_e  = q
+```
+
+Seller-aggressive flow is negative; buyer-aggressive flow is positive.
+
+### 8.4 Bin Aggregation
+
+For every bin `B_c`, sum atomic contributions:
+
+```text
+T_c = sum(trade_signed_e)
+V_c = sum(trade_total_e)
+A_c = sum(ask_depletion_j)
+B_c_dep = sum(bid_depletion_j)
+O_c = sum(ofi_j)
+U_c = sum(ofi_abs_j)
+C_c = sum(C_e)
+```
+
+`U_c` is the sum of absolute atomic level contributions, not the absolute
+value of net bin OFI.
+
+The bins are event-additive. The implementation must not sum overlapping
+upstream 50ms windows as if they were independent observations.
+
+Required identity tests:
+
+```text
+V_c >= abs(T_c)
+A_c >= 0
+B_c_dep >= 0
+U_c >= abs(O_c)
+sum over adjacent bins == sum over their atomic events
+mirrored bid/ask and buy/sell input negates T and O and swaps A/B_dep
+```
 
 ## 9. Bounded Directional Ratios
 
@@ -347,15 +512,15 @@ For each trailing window `W`, define:
 
 ```text
 D_trade(W) =
-  sum(T_b) / sum(V_b)
+  sum(T_c) / sum(V_c)
 
 D_dep(W) =
-  (sum(A_b)-sum(B_b))
+  (sum(A_c)-sum(B_c_dep))
   /
-  (sum(A_b)+sum(B_b))
+  (sum(A_c)+sum(B_c_dep))
 
 D_ofi(W) =
-  sum(O_b) / sum(U_b)
+  sum(O_c) / sum(U_c)
 ```
 
 Each valid component lies in:
@@ -409,14 +574,33 @@ Define trailing medium activity:
 
 ```text
 activity_500ms =
-  sum(C_b over previous 500ms)
+  sum(C_c for atomic events in [checkpoint-500ms,checkpoint))
 ```
 
-Using only the frozen calibration role, calculate:
+The calibration checkpoint universe contains every 20ms checkpoint on the
+frozen calibration role that:
+
+- is at least `2000ms` after the current segment start;
+- has a complete contiguous 2000ms bin history;
+- has a valid uncrossed reconstructed L1-L5 book;
+- is not at or across a reset/quality boundary.
+
+Zero-activity checkpoints remain in the universe.
+
+Using only this frozen universe, calculate:
 
 ```text
 Q_activity_60 =
   60th percentile of valid activity_500ms
+```
+
+Quantile rule:
+
+```text
+sort n values ascending
+h = (n-1)*0.60
+linearly interpolate between floor(h) and ceil(h)
+active tie rule: activity_500ms >= Q_activity_60
 ```
 
 Active flow requires:
@@ -425,12 +609,18 @@ Active flow requires:
 activity_500ms >= Q_activity_60
 at least two directional component denominators are positive
 valid uncrossed L1-L5 book
+complete contiguous 2000ms history inside the current segment
 ```
 
 The quantile level `60%` is frozen. Its numeric value is an A0 calibration
 output.
 
 No per-date or per-role refit is allowed.
+
+All primary anchors therefore have a complete 2000ms causal slow window.
+For any component/window whose denominator is zero, the ratio remains
+unavailable. Model encoding is frozen later in Section 21; missing values are
+never silently converted into observed neutral flow.
 
 Current spread, OBI, bilateral depth, trailing return and trailing volatility
 do not participate in active-flow, candidate, persistence, confirmation,
@@ -485,6 +675,33 @@ local refractory 600ms
 
 Diagnostics cannot replace or rescue the primary after outcomes are visible.
 
+Frozen checkpoint predicates:
+
+```text
+Q_d:
+  A_d(100ms,0.50) >= 2
+  and d * D(500ms) >= 0.25
+
+Q_both:
+  Q_+1 and Q_-1
+
+Q_release:
+  abs(D(500ms)) < 0.10
+  and A_+1(100ms,0.50) < 2
+  and A_-1(100ms,0.50) < 2
+
+Q_mixed:
+  abs(D(500ms)) < 0.25
+  and A_+1(100ms,0.50) < 2
+  and A_-1(100ms,0.50) < 2
+```
+
+Whenever `Q_both` is true, the checkpoint is direction-ambiguous:
+
+- it contributes no directional persistence;
+- it cannot confirm, renew, reject or flip a direction;
+- it may not emit an anchor.
+
 ## 12. Active Mixed State
 
 Canonical background is not quiet.
@@ -517,12 +734,12 @@ After a valid 500ms mixed-active history, direction `d` becomes a candidate
 when the current checkpoint satisfies:
 
 ```text
-A_d(100ms,0.50) >= 2
-d * D(500ms) >= 0.25
+Q_d is true
+Q_both is false
 active-flow support is valid
 ```
 
-If both directions satisfy the fast rule:
+If `Q_both` is true:
 
 ```text
 candidate_status = direction_ambiguous
@@ -545,12 +762,16 @@ For candidate direction `d`, a complete 20ms interval contributes only when
 its ending checkpoint satisfies:
 
 ```text
-A_d(100ms,0.50) >= 2
-d * D(500ms) >= 0.25
+Q_d is true
+Q_both is false
 active-flow support remains valid
 ```
 
 The candidate checkpoint itself contributes zero elapsed exposure.
+Qualifying exposure is cumulative complete 20ms exposure inside the frozen
+300ms window; a nonqualifying checkpoint contributes zero but does not erase
+earlier qualifying exposure unless one of the explicit rejection transitions
+below fires.
 
 Confirmation requires:
 
@@ -572,6 +793,9 @@ If support is insufficient:
 
 ```text
 candidate_status = transient_rejected
+at candidate_at + 300ms
+reset candidate exposure to zero
+enter MIXED_ACTIVE_BUILDING with mixed_elapsed_ms=0
 ```
 
 If active-flow support disappears before confirmation:
@@ -586,6 +810,9 @@ If opposite direction becomes dominant before confirmation:
 
 ```text
 candidate_status = pre_confirmation_direction_switch
+Q_-d is true
+Q_both is false
+reset candidate exposure to zero
 ```
 
 The detector then returns to active mixed-state building.
@@ -622,6 +849,16 @@ While active:
 - a direction change requires a separately persistent flip;
 - no future price participates in state maintenance.
 
+`same_direction_renewal_count` increments on a rising edge:
+
+```text
+Q_d is true and Q_both is false
+after at least one preceding active checkpoint where Q_d was false
+```
+
+The confirmation checkpoint is not a renewal. Renewals during local
+refractory are counted but never emit anchors.
+
 ## 16. Local Refractory
 
 After every confirmed directional anchor:
@@ -646,8 +883,8 @@ After local refractory expires, an active state in direction `d` opens an
 opposite flip candidate when:
 
 ```text
-A_-d(100ms,0.50) >= 2
-(-d) * D(500ms) >= 0.25
+Q_-d is true
+Q_both is false
 active-flow support remains valid
 ```
 
@@ -673,7 +910,20 @@ If the original direction `d` reasserts before flip confirmation:
 
 ```text
 flip_status = flip_rejected_original_reasserted
+Q_d is true
+Q_both is false
 return to DOMINANT_ACTIVE_d
+reset flip exposure to zero
+emit no anchor
+```
+
+If the 300ms qualification window expires with less than 120ms opposite
+exposure:
+
+```text
+flip_status = transient_flip_rejected
+return to DOMINANT_ACTIVE_d
+reset flip exposure to zero
 emit no anchor
 ```
 
@@ -690,8 +940,7 @@ enter INACTIVE_FLOW
 An active directional state begins release when:
 
 ```text
-abs(D(500ms)) < 0.10
-both directions have agreement count <2 at fast threshold
+Q_release is true
 active-flow support remains valid
 ```
 
@@ -714,13 +963,24 @@ If direction `d` reasserts before the release dwell completes:
 
 ```text
 release_status = release_rejected_same_direction_reasserted
+Q_d is true
+Q_both is false
 return to DOMINANT_ACTIVE_d
 reset release exposure
 ```
 
-If the opposite direction qualifies, release does not emit an anchor. After
-local refractory has expired, the detector opens the separately defined
-opposite flip candidate.
+If the release predicate breaks without either direction qualifying:
+
+```text
+release_status = release_interrupted
+return to DOMINANT_ACTIVE_d
+reset release exposure
+```
+
+If `Q_-d` becomes true and `Q_both` is false, release does not emit an anchor.
+After local refractory has expired, the detector closes the release candidate
+with `release_status=superseded_by_flip` and opens the separately defined
+opposite flip candidate at the current checkpoint.
 
 If active-flow support disappears:
 
@@ -744,6 +1004,65 @@ DOMINANT_ACTIVE_d
 FLIP_CANDIDATE_-d
 RELEASE_CANDIDATE
 ```
+
+### 19.1 Global Transition Precedence
+
+At each checkpoint, apply this precedence:
+
+1. **Reset/quality boundary.** Censor every open candidate/state, clear all
+   elapsed counters and enter `INACTIVE_FLOW`.
+2. **Active support false.** Close any open candidate with
+   `flow_support_lost`; close any confirmed dominant state with
+   `flow_became_inactive`; clear all counters and enter `INACTIVE_FLOW`.
+3. **Direction ambiguity normalization.** If `Q_both`, record ambiguity and
+   treat both directional predicates as false for this checkpoint.
+   Qualification exposure does not increase, but candidate age still advances
+   and a qualification timeout may still fire.
+4. **State-specific rule.** Apply exactly the first matching row in the table
+   below.
+5. **No predicate matched.** Remain in the current state and apply the row's
+   explicit counter behavior.
+
+Reset and active-support rules therefore dominate every state-specific
+predicate. One checkpoint can produce at most one transition and at most one
+anchor.
+
+### 19.2 Total State Transition Table
+
+| Current state | First matching predicate after global rules | Action | Next state |
+| --- | --- | --- | --- |
+| `INACTIVE_FLOW` | active support true | set `mixed_elapsed=0`; the opening checkpoint contributes no prior active exposure | `MIXED_ACTIVE_BUILDING` |
+| `MIXED_ACTIVE_BUILDING` | `Q_mixed` and cumulative contiguous mixed exposure reaches `500ms` | freeze complete mixed history | `MIXED_ACTIVE_READY` |
+| `MIXED_ACTIVE_BUILDING` | not `Q_mixed` | reset `mixed_elapsed=0` | same |
+| `MIXED_ACTIVE_BUILDING` | otherwise | add one contiguous 20ms mixed interval | same |
+| `MIXED_ACTIVE_READY` | `Q_d` for exactly one direction | open `mixed_onset`; candidate checkpoint exposure `0` | `DOMINANCE_CANDIDATE_d` |
+| `MIXED_ACTIVE_READY` | `Q_mixed` | retain ready history | same |
+| `MIXED_ACTIVE_READY` | otherwise | reset mixed history | `MIXED_ACTIVE_BUILDING` |
+| `DOMINANCE_CANDIDATE_d` | `Q_-d` | reject `pre_confirmation_direction_switch`, clear exposure and mixed history | `MIXED_ACTIVE_BUILDING` |
+| `DOMINANCE_CANDIDATE_d` | `Q_d` and exposure reaches `120ms` | confirm at current checkpoint, emit one anchor, start refractory | `DOMINANT_ACTIVE_d` |
+| `DOMINANCE_CANDIDATE_d` | candidate age reaches `300ms` before confirmation | reject `transient_rejected`, clear exposure and mixed history | `MIXED_ACTIVE_BUILDING` |
+| `DOMINANCE_CANDIDATE_d` | `Q_d` | add 20ms qualifying exposure | same |
+| `DOMINANCE_CANDIDATE_d` | otherwise | exposure unchanged | same |
+| `DOMINANT_ACTIVE_d` | local refractory expired and `Q_-d` | open opposite candidate with exposure `0` | `FLIP_CANDIDATE_-d` |
+| `DOMINANT_ACTIVE_d` | `Q_release` | open release candidate with exposure `0` | `RELEASE_CANDIDATE` |
+| `DOMINANT_ACTIVE_d` | rising edge of `Q_d` | increment renewal count, emit no anchor | same |
+| `DOMINANT_ACTIVE_d` | otherwise | maintain state | same |
+| `FLIP_CANDIDATE_-d` | `Q_d` | reject `flip_rejected_original_reasserted`, clear flip exposure | `DOMINANT_ACTIVE_d` |
+| `FLIP_CANDIDATE_-d` | `Q_release` | reject `flip_released_before_confirmation`, start release exposure `0` | `RELEASE_CANDIDATE` |
+| `FLIP_CANDIDATE_-d` | `Q_-d` and exposure reaches `120ms` | close old state, confirm flip at current checkpoint, emit one anchor, restart refractory | `DOMINANT_ACTIVE_-d` |
+| `FLIP_CANDIDATE_-d` | candidate age reaches `300ms` before confirmation | reject `transient_flip_rejected`, clear flip exposure | `DOMINANT_ACTIVE_d` |
+| `FLIP_CANDIDATE_-d` | `Q_-d` | add 20ms qualifying exposure | same |
+| `FLIP_CANDIDATE_-d` | otherwise | exposure unchanged | same |
+| `RELEASE_CANDIDATE` | local refractory expired and `Q_-d` | close release as `superseded_by_flip`, open flip exposure `0` | `FLIP_CANDIDATE_-d` |
+| `RELEASE_CANDIDATE` | `Q_d` | reject `release_rejected_same_direction_reasserted`, clear release exposure | `DOMINANT_ACTIVE_d` |
+| `RELEASE_CANDIDATE` | `Q_release` and continuous exposure reaches `200ms` | close dominant state `release_to_mixed`; set mixed exposure `0` | `MIXED_ACTIVE_BUILDING` |
+| `RELEASE_CANDIDATE` | `Q_release` | add 20ms continuous release exposure | same |
+| `RELEASE_CANDIDATE` | otherwise | close `release_interrupted`, clear release exposure | `DOMINANT_ACTIVE_d` |
+
+For `RELEASE_CANDIDATE`, `d` always refers to the still-open parent dominant
+direction. For all candidate ages and refractory clocks, elapsed time is
+checkpoint time minus the causal opening/confirmation checkpoint; no opening
+checkpoint contributes elapsed exposure.
 
 Canonical mixed-onset path:
 
@@ -808,6 +1127,11 @@ Generate candidates on a:
 250ms calendar stride
 ```
 
+Control calendar grid is Unix-epoch aligned at multiples of `250ms`. For each
+grid time, choose the first valid 20ms checkpoint at or after that grid time
+inside the same segment. If two grid times map to the same checkpoint, keep
+only the earlier grid identity.
+
 A control candidate must:
 
 - have active-flow support;
@@ -835,7 +1159,7 @@ Match anchors without reuse on:
 1. same research date;
 2. same direction;
 3. same spread-tick value, adjacent value only as final relaxation;
-4. same absolute OBI bin of width `0.10`;
+4. same direction-adjusted OBI bin `d*OBI` of width `0.10`;
 5. same bid-depth quintile;
 6. same ask-depth quintile;
 7. same activity quintile;
@@ -844,6 +1168,31 @@ Match anchors without reuse on:
 10. same 30-minute time block;
 11. nearest timestamp.
 
+All matching strata are frozen from the Section 10 calibration checkpoint
+universe:
+
+```text
+OBI:
+  fixed direction-adjusted bins [-1.0,-0.9),...,[0.9,1.0]
+
+bid depth, ask depth, activity, trailing 500ms return,
+trailing 2s volatility:
+  calibration empirical quintile edges using the same linear interpolation
+
+edge tie:
+  searchsorted(edges,value,side="right"), clipped to bins 0..4
+```
+
+Matching relaxation is deterministic:
+
+1. exact frozen strata;
+2. only if no exact candidate exists, allow spread difference of one tick;
+3. select minimum absolute time distance;
+4. break ties by control checkpoint event key.
+
+No other covariate, date-specific edge or future-price criterion may relax the
+match.
+
 Control meaning:
 
 ```text
@@ -851,12 +1200,47 @@ similar current observable context
 without a recently confirmed directional dominance path
 ```
 
+For every matched pair:
+
+```text
+anchor entry:
+  entry_at = directional_dominance_confirmed_at
+  d = confirmed direction
+  Z_transition = 1
+
+control entry:
+  entry_at = control checkpoint
+  d = control_direction
+  Z_transition = 0
+
+for both:
+  m0 = midpoint causally visible at entry_at
+  target clock origin = entry_at
+  target orientation = d
+```
+
+The primary later population is the union of the two entries from every
+no-reuse matched pair. Unmatched anchors and unmatched controls are support
+diagnostics only and do not enter the primary H0/H1 estimand.
+
+Pair weighting is frozen:
+
+```text
+each pair has total weight 1
+anchor row weight 0.5
+control row weight 0.5
+dates receive equal total score weight
+```
+
 ## 21. Frozen H0, H1 And H2 Information Sets
+
+The primary scientific question is whether the causally confirmed transition
+state matters beyond a comparable snapshot:
 
 ```text
 H0:
   current spread ticks
-  current equal-weight L1-L5 OBI
+  current weighted L1-L5 OBI
   current bid and ask weighted depth
   activity_500ms
   trailing return 100ms
@@ -864,12 +1248,43 @@ H0:
   trailing return 2000ms
   trailing realized volatility 2000ms
   30-minute time block
-  source-quality state
 ```
 
+Frozen causal definitions:
+
 ```text
-H1 adds:
-  anchor type
+weighted_bid_depth = sum_r w_r*bid_qty_r
+weighted_ask_depth = sum_r w_r*ask_qty_r
+
+OBI =
+  (weighted_bid_depth-weighted_ask_depth)
+  /
+  (weighted_bid_depth+weighted_ask_depth)
+
+mid_t = (best_bid_t+best_ask_t)/2
+
+trailing_return_W =
+  (mid_t-mid_(t-W))/tick_size
+
+trailing_realized_volatility_2000ms =
+  sqrt(sum of squared 20ms log-midpoint changes over [t-2000ms,t))
+```
+
+All lag endpoints must exist inside the same valid segment. H0 fields are
+measured at `entry_at` before any same-timestamp later message.
+
+```text
+H1 primary adds:
+  Z_transition
+```
+
+`H1` therefore adds one coefficient per competing cause. It does not add a
+large flexible path vector that could rediscover the detector in sample.
+
+A secondary descriptor model `H1b` may add:
+
+```text
+  mixed_onset versus persistent_flip indicator
   D_trade at 100/500/2000ms
   D_dep at 100/500/2000ms
   D_ofi at 100/500/2000ms
@@ -882,6 +1297,27 @@ H1 adds:
   flip precursor count
 ```
 
+`H1b` uses confirmed anchor entries only. It is a separate within-anchor
+strength estimand, not part of the primary matched anchor-versus-control
+comparison.
+
+For each unavailable component ratio in `H1b`:
+
+```text
+model value = 0
+availability indicator = 0
+```
+
+For an available ratio:
+
+```text
+model value = observed bounded ratio
+availability indicator = 1
+```
+
+Availability indicators are frozen before target access. `H1b` is secondary
+and cannot rescue a failed primary `H1`.
+
 ```text
 H2 adds:
   intended quote side
@@ -891,15 +1327,19 @@ H2 adds:
   H1 x local-recovery interactions
 ```
 
+`H2` is fitted only on entries where the corresponding execution-side local
+state is causally observable at or after entry under a separately frozen
+landmark. It cannot change the primary entry time.
+
 A0 fits none of these models.
 
 ## 22. Frozen Downstream Directional Targets
 
-At later stages, let:
+At later stages, for either anchor or matched control entry let:
 
 ```text
-m0 = current midpoint at anchor
-d  = confirmed direction
+m0 = current midpoint at entry_at
+d  = confirmed direction or frozen control_direction
 k  = barrier in ticks
 ```
 
@@ -957,6 +1397,98 @@ H1 improves direction-adjusted competing-risk prediction over H0
 out of sample and across dates
 ```
 
+### 23.1 Primary Estimator
+
+Use one discrete-time multinomial competing-risk hazard on the matched-pair
+population.
+
+Frozen elapsed bins:
+
+```text
+[0,100ms)
+[100ms,250ms)
+[250ms,500ms)
+[500ms,1000ms)
+[1000ms,2000ms)
+[2000ms,5000ms]
+```
+
+If A1 boundary geometry rejects `5000ms`, truncate this list mechanically at
+the largest horizon that passes A1. No event rate or return magnitude may
+participate in truncation.
+
+For cause `k in {continuation,reversal}`:
+
+```text
+eta_H0,k(i,u) = alpha_k(u) + gamma_k' C_i
+eta_H1,k(i,u) = alpha_k(u) + gamma_k' C_i + beta_k*Z_transition_i
+```
+
+The no-event state is the multinomial reference. H0 and H1 use identical
+entries, risk rows, targets, censoring, weights, preprocessing and elapsed
+bins.
+
+Preprocessing:
+
+- continuous H0 fields: median imputation and standardization fitted on
+  development dates only;
+- categorical fields: frozen levels plus explicit unknown level;
+- no feature selection after target access;
+- direction orientation is applied before fitting.
+
+Use ridge penalties:
+
+```text
+lambda grid = [0.01,0.1,1,10,100]
+```
+
+Select one lambda using H0-only, leave-one-development-date-out,
+date-equal entry negative log loss. Freeze the same lambda for H0 and H1.
+
+Frozen role chain:
+
+```text
+calibration:
+  2026-07-29
+
+model development and ridge selection:
+  2026-07-30, 2026-08-03, 2026-08-04
+
+blocked validation:
+  2026-08-07, 2026-08-24, 2026-08-25
+
+historical no-refit replay:
+  2026-08-26, 2026-08-27
+```
+
+No blocked-validation or no-refit-replay target may influence preprocessing,
+lambda, coefficients, thresholds or model structure.
+
+### 23.2 Primary Evaluation And Materiality
+
+Primary score:
+
+```text
+Delta_NLL =
+  date-equal entry NLL_H0
+  -
+  date-equal entry NLL_H1
+```
+
+Passing directional increment requires all:
+
+```text
+Delta_NLL >= 0.002 nats per entry
+95% dependence-preserving bootstrap lower bound > 0
+beta_continuation > 0
+beta_reversal < 0
+at least 4 of 5 blocked/replay dates have Delta_NLL > 0
+```
+
+The bootstrap resamples 30s dependence clusters within date, preserves matched
+pairs, and reports date-equal aggregate scores. Use 2000 deterministic
+resamples with a seed frozen in the A3 task before target access.
+
 Frozen evaluation families:
 
 - blocked-date out-of-sample log score;
@@ -970,28 +1502,57 @@ Frozen evaluation families:
 An apparent signal that disappears after current OBI, recent return or
 volatility enters H0 is not incremental flow alpha.
 
+The secondary `H1b` descriptor model, alternative barrier, alternative
+horizon, stronger H0 and H2 execution interaction cannot rescue a failed
+primary H1.
+
 ## 24. Dependence And Effective Sample Size
 
 Directional anchors may cluster inside long active-flow periods.
 
-Every anchor receives:
+Every anchor and underlying control checkpoint receives:
 
 ```text
 dependence_cluster_id =
-  (capture_id,floor(anchor_ts/30s))
+  (capture_id,floor(entry_at/30s))
+
+pair_cluster_id =
+  (
+    anchor_dependence_cluster_id,
+    control_dependence_cluster_id
+  )
 ```
 
 A0 reports:
 
 - anchor count;
-- unique 30s clusters;
-- anchors per cluster;
-- maximum cluster share;
+- unique anchor, control and pair clusters;
+- anchors, controls and matched pairs per cluster;
+- maximum anchor, control and pair cluster share;
 - maximum date share;
 - mixed-onset versus flip share;
 - direction balance;
 - same-state duration;
 - inter-anchor distribution.
+
+For each predeclared follow-up horizon `tau`, create a geometry-only overlap
+graph:
+
+```text
+node = one matched anchor or control entry
+edge = same capture and [entry_at,entry_at+tau] intervals overlap
+```
+
+The graph uses timestamps and quality boundaries only. It does not inspect
+midpoint or barrier outcomes.
+
+A0 reports:
+
+- unique overlap components;
+- maximum component share;
+- p50/p90/p99 component size;
+- fraction of entries in components larger than 10;
+- the same metrics by date.
 
 Later inference clusters at least by capture and 30s block. Row-level iid
 standard errors are forbidden.
@@ -1046,6 +1607,7 @@ contracts/
   downstream_target_stub.json
   H0_H1_H2_contract.json
   dependence_contract.json
+  transition_precedence_contract.json
   gate_contract.json
   session_role_ledger.csv
   outcome_access_ledger.json
@@ -1066,6 +1628,10 @@ support/
   release_transition_composition.csv
   inter_anchor_distribution.csv
   dependence_cluster_support.csv
+  control_dependence_support.csv
+  pair_dependence_support.csv
+  followup_overlap_components.csv
+  active_flow_burst_density.csv
   crossing_to_anchor_compression.csv
   current_spread_distribution.csv
   control_candidates.csv
@@ -1089,7 +1655,9 @@ summaries, support tables and exact hashes.
 
 Require:
 
-- 29 admitted captures;
+- predecessor execution commit exactly `91cc0770`;
+- all four frozen authority blob SHA256 values match Section 6;
+- exact 29-row admitted inventory identity;
 - exact size and SHA closure;
 - zero unhandled depth gaps;
 - deterministic replay;
@@ -1119,7 +1687,12 @@ valid bounded ratios at every anchor: at least 2 of 3
 all valid ratios inside [-1,1]: true
 zero denominator represented as unavailable: true
 epsilon/floor denominator substitutions: 0
+all anchors have complete contiguous 2000ms segment history: true
+20ms right-open bin boundary violations: 0
+non-admitted message contributions: 0
+U below abs(O) violations: 0
 calibration role only for Q_activity_60: true
+calibration quantile interpolation and tie rule exact: true
 per-date refits: 0
 overall active-checkpoint two-component availability >= 0.90
 minimum per-date availability >= 0.80
@@ -1153,8 +1726,13 @@ same-direction renewal anchors: 0
 anchors inside 300ms local refractory: 0
 raw sign flip directly creating anchor: 0
 overlapping dominant-state IDs: 0
+checkpoints with multiple transitions: 0
+checkpoints with multiple anchors: 0
+candidate/flip/release counters surviving reset or support loss: 0
 raw qualifying checkpoints / anchors >= 3
-median inter-anchor interval >= 300ms
+median inter-anchor interval >= 1000ms
+maximum anchors in any same-capture 5s window <= 6
+active-flow anchor rate <= 300 per active-flow hour
 ```
 
 Both directions and at least two component-pair families must appear.
@@ -1165,9 +1743,13 @@ Require:
 
 ```text
 minimum unique 30s dependence clusters: 100
+minimum unique control 30s clusters:     100
+minimum unique pair clusters:            100
 minimum represented dates:               8
 maximum single-date cluster share:        0.35
 maximum single-cluster anchor share:      0.05
+maximum single-cluster control share:     0.05
+maximum single-pair-cluster share:        0.05
 median anchors per cluster <=             5
 ```
 
@@ -1181,6 +1763,8 @@ overall anchor-to-control support:         0.90
 minimum per-date common support:           0.75
 maximum single-date matched-pair share:    0.35
 control reuse:                             0
+underlying checkpoint reuse through opposite pseudo-label: 0
+matched entries with missing target-origin midpoint: 0
 ```
 
 ### Gate A0-7: Follow-Up Geometry
@@ -1190,7 +1774,13 @@ Require at least one horizon with:
 ```text
 overall complete boundary/quality coverage >= 0.95
 minimum per-date complete coverage >= 0.80
+minimum overlap components:                100
+maximum overlap-component entry share:     0.05
+maximum per-date overlap-component share:  0.10
 ```
+
+Select the largest predeclared horizon satisfying all five geometry conditions.
+This selection reads timestamps and quality boundaries only.
 
 ## 28. A0 Classifications
 
@@ -1228,11 +1818,18 @@ may authorize A1 target-support work.
 Formal implementation must include focused tests for:
 
 - exact event ordering and checkpoint event key;
+- exact `[c-20ms,c)` bin membership, including same-timestamp events;
+- admitted message-type activity count;
+- pre-rank/post-rank fallback for atomic depth updates;
+- no synthetic snapshot or best-price-move contribution;
 - non-overlapping 20ms bin additivity;
 - mirrored trade, depletion and OFI signs;
+- atomic `U=sum(abs(ofi_j))` identity;
 - bounded-ratio identities;
 - zero-denominator unavailable semantics;
+- complete 2000ms segment warm-up;
 - calibration-only activity threshold;
+- exact quantile interpolation and active tie rule;
 - no per-date refit;
 - complete 500ms mixed-active history;
 - candidate checkpoint contributes zero persistence exposure;
@@ -1247,13 +1844,18 @@ Formal implementation must include focused tests for:
 - rejected flip returning to the original dominant state;
 - release dwell;
 - rejected release returning to the original dominant state;
+- interrupted release and release-to-flip precedence;
+- exhaustive state/predicate transition precedence;
+- at most one transition and one anchor per checkpoint;
 - reset censoring;
 - no raw sign-flip anchor;
 - static book and recent-price fields excluded from anchor decisions;
 - deterministic dual-direction control labels;
 - no future-anchor control exclusion;
 - no control reuse;
-- dependence cluster construction;
+- matched-pair risk-origin and weight identity;
+- anchor/control/pair dependence cluster construction;
+- geometry-only overlap-component construction;
 - zero-target outcome ledger;
 - deterministic double-build identity.
 
