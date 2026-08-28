@@ -2,7 +2,9 @@
 
 Date: 2026-08-28
 
-Status: review draft; design-only research contract; not execution authority
+Status: superseded on 2026-08-28 by
+`docs/skhynix_binance_continuous_background_interpretable_m_state_competing_risk_track_a_plan_20260828.md`;
+retained as research history; not execution authority
 
 Research identifier:
 
