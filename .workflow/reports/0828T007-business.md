@@ -32,6 +32,12 @@ action：
   grid。
 - 冻结 50ms primary window、L1-L5 `1/l` weights、60s causal robust
   baseline、500ms guard 和 20ms normalization checkpoints。
+- 执行可行性审查后将 normalization 明确为：
+  - detector 仍在每条 eligible raw message 后执行；
+  - 使用不晚于当前消息的最近完成 20ms checkpoint；
+  - rolling center 为 median；
+  - rolling scale 为 `IQR/1.349`；
+  - 相同 timestamp 的未来消息不能进入 checkpoint。
 - 冻结三个可解释 pressure components：
   - vulnerable-side net depletion；
   - aggressive trade pressure；
@@ -59,14 +65,17 @@ verify：
 - Markdown fence count 为 `132`，配对完整。
 - contract constants presence 检查通过。
 - `git diff --check` 通过。
-- contract line count 为 `1,118`。
-- contract SHA256：
+- Revision 2 contract line count 为 `1,142`。
+- Revision 1 contract SHA256：
   `feea2f2b83361fe0fcb6d52ed60182af4c700db46b22d2e5f9a22db52673a8bc`。
+- Revision 2 final contract SHA256：
+  `b69146b92411a425e9d78d9deb88ac5347ccc0b2ad5b6f2ac32167b9eecb1141`。
 - 使用 exact-path commit，未提交工作树已有无关 staged/untracked
   files。
 
 done：
-- A0 causal-anchor design contract 已在 Git commit `9d941862` 冻结。
+- A0 causal-anchor design contract Revision 1 已在 Git commit `9d941862`
+  冻结；Revision 2 在 QA 前补充可执行 normalization operator。
 - 当前冻结的是 design/authority boundary，不是 A0 detector execution
   result。
 - 未实现或执行 detector，未产生 anchor ledger，未读取任何未来价格

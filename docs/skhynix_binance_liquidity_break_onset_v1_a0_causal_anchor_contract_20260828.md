@@ -2,7 +2,7 @@
 
 Date: 2026-08-28
 
-Revision: 1
+Revision: 2
 
 Status: frozen A0 design contract; execution not authorized by this document
 
@@ -29,6 +29,19 @@ Predecessor result:
 ```text
 OBI_REVERSAL_V1
   -> A3_no_increment_over_H0
+```
+
+Revision history:
+
+```text
+revision 1:
+  initial event-driven causal-anchor contract
+
+revision 2:
+  freeze an executable robust-normalization operator
+  detector remains message-event driven
+  normalization state is updated on completed 20ms checkpoints
+  rolling scale changes from exact MAD to median/IQR
 ```
 
 ## 1. Decision
@@ -407,6 +420,11 @@ the A0 primary anchor.
 
 Each component uses a trailing calendar-time robust baseline.
 
+The detector is evaluated after every eligible raw message. Its normalization
+state is the most recent completed 20ms checkpoint whose timestamp is no
+later than the current message. A checkpoint never includes a later message
+with the same timestamp.
+
 Frozen baseline window:
 
 ```text
@@ -419,18 +437,20 @@ Frozen guard interval:
 500ms immediately before the current event
 ```
 
-For component `k` and direction `d`:
+For completed checkpoint `c`, component `k` and direction `d`:
 
 ```text
-history(t) = [t-60s, t-500ms)
+history(c) = [c-60s, c-500ms)
 
-center_k,d(t) = median of 20ms calendar checkpoints in history(t)
-scale_k,d(t)  = 1.4826 * MAD of the same checkpoints
+center_k,d(c) = median of 20ms calendar checkpoints in history(c)
+
+scale_k,d(c) =
+  (q75_k,d(c) - q25_k,d(c)) / 1.349
 
 Z_k,d(t) =
-  (X_k,d(t) - center_k,d(t))
+  (X_k,d(t) - center_k,d(c))
   --------------------------------------
-  max(scale_k,d(t), global_scale_floor_k)
+  max(scale_k,d(c), global_scale_floor_k)
 ```
 
 The 20ms checkpoints are a normalization sampling device, not detector
@@ -438,13 +458,14 @@ decision times.
 
 `global_scale_floor_k` is fitted only on the frozen historical normalization
 role and then reused unchanged for all later dates. It is the 10th percentile
-of positive rolling MAD values for that component.
+of positive rolling IQR scales for that component.
 
 Requirements:
 
 - at least 30 seconds of valid baseline exposure after every reset;
 - no current-window value in its own baseline;
 - no future or same-event value in center or scale;
+- checkpoint-to-message normalization age is in `[0ms,20ms]`;
 - no per-date refit on blocked validation or replay roles;
 - zero or nonfinite scale fails closed.
 
@@ -900,7 +921,8 @@ Require:
 - no single component pair accounts for more than 85% of anchors;
 - both directions contain all three possible component pairs;
 - global scale floors are finite and positive;
-- at least 95% of anchors use non-floor local MAD on at least two components.
+- at least 95% of anchors use non-floor local IQR scale on at least two
+  components.
 
 This gate prevents a nominal three-channel detector from collapsing into one
 unacknowledged trigger.
@@ -1031,6 +1053,8 @@ Formal A0 implementation must include focused tests for:
 - left-open/right-closed rolling windows;
 - baseline guard interval;
 - no current value in its own robust normalization;
+- latest-completed-checkpoint lookup and equal-timestamp exclusion;
+- rolling median/IQR against a direct fixture;
 - onset at the second coherent channel without dwell;
 - no anchor backdating;
 - simultaneous-direction ambiguity;
@@ -1084,6 +1108,7 @@ only A0. It may not read downstream outcomes.
 | Robust baseline | trailing `60s` |
 | Baseline guard | `500ms` |
 | Normalization checkpoints | `20ms` calendar time |
+| Normalization scale | rolling median and IQR/1.349 |
 | Component threshold | `z_star=3.0` |
 | Coherence | at least 2 of 3 components |
 | Aggregate pressure threshold | `6.0` |
