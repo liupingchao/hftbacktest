@@ -1,0 +1,33 @@
+{
+  "H0_parameter_count": 50,
+  "H1_parameter_count": 52,
+  "beta_fail": -0.15805601925745297,
+  "beta_follow": 0.16496278154264005,
+  "blocked_validation_Delta_IBS": -0.0006745417572363022,
+  "blocked_validation_Delta_NLL": -0.001603397647689686,
+  "bootstrap_lower_95": -0.00300665577711845,
+  "classification": "A3_no_increment_over_H0",
+  "gates": {
+    "H0_converged": true,
+    "H1_converged": true,
+    "H1_is_H0_plus_R_only": true,
+    "at_least_three_positive_elapsed_bins": false,
+    "at_least_two_positive_validation_dates": false,
+    "beta_fail_negative": true,
+    "beta_follow_positive": true,
+    "date_block_lower_bound_exceeds_materiality": false,
+    "fail_Brier_not_contradictory": true,
+    "follow_Brier_not_contradictory": true,
+    "maximum_positive_date_contribution": false,
+    "maximum_positive_elapsed_bin_contribution": true,
+    "positive_without_first_100ms_entries": false,
+    "validation_Delta_IBS_nonnegative": false,
+    "validation_Delta_NLL_exceeds_materiality": false
+  },
+  "replay_entry_count": 2681,
+  "schema_version": "skhynix_obi_reversal_track_a3_v1",
+  "selected_ridge": 0.001,
+  "status": "failed",
+  "train_entry_count": 1296,
+  "validation_entry_count": 3187
+}

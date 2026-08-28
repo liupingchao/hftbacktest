@@ -1,0 +1,10 @@
+{
+  "date_count": 3,
+  "lower_95": -0.00300665577711845,
+  "median": -0.001603397647689242,
+  "observed_date_equal_delta": -0.001603397647689242,
+  "replicates": 5000,
+  "replication_unit": "research_date",
+  "seed": 20260828,
+  "upper_95": -0.0002452367866943028
+}

@@ -1,0 +1,107 @@
+{
+  "artifact_count": 20,
+  "artifacts": [
+    {
+      "path": "classification.json",
+      "sha256": "808bf74789ff835c7d8fd208016e7f4399fe8fb41abd04503d3cd73952f2186b",
+      "size_bytes": 1146
+    },
+    {
+      "path": "contracts/model_contract.json",
+      "sha256": "faeb0f7f231e4e9852d1f2435ab6103366a858c84b53a54fbf977ebb83033f67",
+      "size_bytes": 1260
+    },
+    {
+      "path": "contracts/outcome_access_ledger.json",
+      "sha256": "b28a80b9abd37ed439a9ecf464d7954829c809d3b90348a61502ca9c471d434a",
+      "size_bytes": 501
+    },
+    {
+      "path": "contracts/role_split_contract.json",
+      "sha256": "f35e25f53c6d9535b34578b8a0ea6c11f0dfe67a10b6ac6cc258153f89a295dd",
+      "size_bytes": 441
+    },
+    {
+      "path": "contracts/score_gate_contract.json",
+      "sha256": "ecbf2305b7cbf548fdc0cd7bfd8a8a19e1b52944895b129cd42492fdc150c50b",
+      "size_bytes": 969
+    },
+    {
+      "path": "contracts/upstream_closure.json",
+      "sha256": "7a6a69db16dff99f9b51fd2409d14b53947b58775c629072fea69b8d20526037",
+      "size_bytes": 446
+    },
+    {
+      "path": "metrics/calibration.csv",
+      "sha256": "509996eeede7b2c30d730f6dee66f841bf1243656ac22d2c7f64c722219ba9ab",
+      "size_bytes": 1936
+    },
+    {
+      "path": "metrics/elapsed_time_influence.csv",
+      "sha256": "6141578a02c64548269bf7e3818f8b953f561a7f2860199aa3d2066e7b66f6cc",
+      "size_bytes": 1155
+    },
+    {
+      "path": "metrics/ood_support.csv",
+      "sha256": "bd2c91e212e782105ad80521bd58e6c8fd1cbf2fa7c907eec36a314c2fe3af60",
+      "size_bytes": 2823
+    },
+    {
+      "path": "metrics/primary_scores.json",
+      "sha256": "fb7241787e6ab371f1becec4e12eb0dbad4881b7860fb0bc4d485937c6d3df36",
+      "size_bytes": 2007
+    },
+    {
+      "path": "metrics/scores_by_date.csv",
+      "sha256": "22d00c6f299193d57a2bb3a4384878020e86423d3e6278172b529a0778033610",
+      "size_bytes": 530
+    },
+    {
+      "path": "metrics/validation_and_replay_predictions.csv",
+      "sha256": "a2c6c6279e8a299795e67653066870fada204d5e253cbdc8081bf13ad1ddf634",
+      "size_bytes": 4945818
+    },
+    {
+      "path": "models/H0_spec.json",
+      "sha256": "86ed4db79357b9030ac74d066b84093d0eb7a4a6ace9e2f6df8ebffdc309ba2b",
+      "size_bytes": 1131
+    },
+    {
+      "path": "models/H1_spec.json",
+      "sha256": "47c29d4525b0050b9af5c04ff41a1a4929e6e6bf73f66e26136c0fd346391b6d",
+      "size_bytes": 1157
+    },
+    {
+      "path": "models/coefficients.csv",
+      "sha256": "3e76c4d7b4a3380a6900285b5e4d563c26092745e590f284d5ba6902036bded4",
+      "size_bytes": 3760
+    },
+    {
+      "path": "models/regularization_cv.csv",
+      "sha256": "436f1bf475c517e0cc1b2a6759e5f0ff41115739868942bcd27c9ee5c4a9ebc2",
+      "size_bytes": 804
+    },
+    {
+      "path": "models/ridge_sensitivity.csv",
+      "sha256": "a7aa301f7a365715799da416b494e0c76bd67486594718a1910a9a1ecd4ea8af",
+      "size_bytes": 639
+    },
+    {
+      "path": "models/scaler.json",
+      "sha256": "3ed16f860ec151a02026e2fc25a8ab1a308c9a71deb3c8327df985c2b292f6f2",
+      "size_bytes": 1665
+    },
+    {
+      "path": "reports/A3_summary.json",
+      "sha256": "ac785623900958c7413cc04eac692b691ac3360ec41c17fd75992478bcf2ffc2",
+      "size_bytes": 1213
+    },
+    {
+      "path": "uncertainty/date_block_bootstrap.json",
+      "sha256": "83a838ea3a5e1280a174fdfae2c3d705be9a2114607282057819fe7bad9c22c9",
+      "size_bytes": 266
+    }
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a3_v1",
+  "task_id": "0828T006"
+}

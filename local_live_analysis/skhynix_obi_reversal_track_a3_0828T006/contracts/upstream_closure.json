@@ -1,0 +1,8 @@
+{
+  "schema_version": "skhynix_obi_reversal_track_a3_v1",
+  "state_ledger_sha256": "7b3f8496b050e89f46996c1371a42cb62458c75a114aa025f81f86e19fc12b01",
+  "target_ledger_sha256": "ef6029f66ecb1259ccb0912a433f2a2186ef00b9eb7e430a547a4057e763fab7",
+  "upstream_artifact_count": 15,
+  "upstream_classification": "A1_A2_state_and_targets_materialized",
+  "upstream_manifest_sha256": "2737f2452d85039a1dcb55d55cb9673aed6056eb0f4838d389395fb6e9514f6b"
+}

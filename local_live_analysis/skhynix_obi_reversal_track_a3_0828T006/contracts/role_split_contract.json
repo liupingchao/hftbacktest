@@ -1,0 +1,24 @@
+{
+  "A3_classification_uses_replay": false,
+  "blocked_validation_dates": [
+    "2026-08-07",
+    "2026-08-24",
+    "2026-08-25"
+  ],
+  "development_CV_dates": [
+    "2026-07-30",
+    "2026-08-03",
+    "2026-08-04"
+  ],
+  "no_refit_replay_dates": [
+    "2026-08-26",
+    "2026-08-27"
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a3_v1",
+  "train_dates": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-03",
+    "2026-08-04"
+  ]
+}

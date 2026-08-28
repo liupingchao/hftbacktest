@@ -1,0 +1,14 @@
+{
+  "H0_H1_fitted": true,
+  "consumed_state_surface": "0828T005_primary_directional_entry_ledger",
+  "consumed_target_surface": "first_transition_type_time_and_censoring_only",
+  "dependence_nulls_run": false,
+  "fill_PnL_or_maker_economics_read": false,
+  "new_collection": false,
+  "orders": 0,
+  "post_first_passage_return_or_markout_read": false,
+  "private_API_access": false,
+  "prospective_data_used": false,
+  "schema_version": "skhynix_obi_reversal_track_a3_v1",
+  "stronger_H0_run": false
+}

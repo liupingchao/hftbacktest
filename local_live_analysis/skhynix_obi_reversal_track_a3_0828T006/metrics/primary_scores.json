@@ -1,0 +1,57 @@
+{
+  "blocked_validation": {
+    "Delta_IBS": -0.0006745417572363022,
+    "Delta_NLL": -0.001603397647689686,
+    "Delta_NLL_excluding_first_100ms_entries": -0.002711168045565516,
+    "Delta_NLL_excluding_first_500ms_entries": -0.008775467256695027,
+    "Delta_fail_integrated_Brier": -0.00022131698902128072,
+    "Delta_follow_integrated_Brier": -0.00045322476821496593,
+    "H0_date_equal_entry_nll": 3.0786722617674003,
+    "H0_pooled_entry_nll": 3.0791422699360766,
+    "H1_date_equal_entry_nll": 3.08027565941509,
+    "H1_pooled_entry_nll": 3.0807926221342155,
+    "entry_count": 3187
+  },
+  "date_block_bootstrap": {
+    "date_count": 3,
+    "lower_95": -0.00300665577711845,
+    "median": -0.001603397647689242,
+    "observed_date_equal_delta": -0.001603397647689242,
+    "replicates": 5000,
+    "replication_unit": "research_date",
+    "seed": 20260828,
+    "upper_95": -0.0002452367866943028
+  },
+  "diagnostic_warnings_carried_forward": [
+    "one_tick_barrier_near_100ms_grid_resolution",
+    "high_pre_detection_transition_fraction"
+  ],
+  "effects": {
+    "beta_fail": -0.15805601925745297,
+    "beta_follow": 0.16496278154264005
+  },
+  "historical_train": {
+    "Delta_IBS": 0.0026904470754650633,
+    "Delta_NLL": 0.0030150835199536097,
+    "H0_date_equal_entry_nll": 2.436172098684231,
+    "H1_date_equal_entry_nll": 2.4331570151642774,
+    "entry_count": 1296
+  },
+  "influence": {
+    "maximum_positive_date_contribution": 1.0,
+    "maximum_positive_elapsed_bin_contribution": 0.6015364222808791,
+    "positive_elapsed_bin_count": 2,
+    "positive_validation_date_count": 0
+  },
+  "no_refit_replay": {
+    "Delta_IBS": -0.0017491633979890286,
+    "Delta_NLL": -0.008676301391061791,
+    "H0_date_equal_entry_nll": 3.6183074771249317,
+    "H0_pooled_entry_nll": 4.042996551147837,
+    "H1_date_equal_entry_nll": 3.6269837785159935,
+    "H1_pooled_entry_nll": 4.057159579666364,
+    "entry_count": 2681
+  },
+  "schema_version": "skhynix_obi_reversal_track_a3_v1",
+  "selected_ridge": 0.001
+}

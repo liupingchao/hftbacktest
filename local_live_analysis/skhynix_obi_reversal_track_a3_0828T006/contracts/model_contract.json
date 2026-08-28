@@ -1,0 +1,48 @@
+{
+  "H0_feature_count": 25,
+  "H1_feature_count": 26,
+  "H1_increment_only": "reversal_indicator_R",
+  "coefficient_expectation": {
+    "beta_fail": "<0",
+    "beta_follow": ">0"
+  },
+  "estimator": "baseline_category_multinomial_discrete_time_hazard",
+  "ridge_grid": [
+    0.0001,
+    0.001,
+    0.01,
+    0.1
+  ],
+  "ridge_selection": "development_date_LODO_H0_entry_NLL_only",
+  "ridge_sensitivity_after_primary": "diagnostic_only_and_cannot_rescue_primary",
+  "schema_version": "skhynix_obi_reversal_track_a3_v1",
+  "static_features": [
+    "obi_strength",
+    "l1_obi_strength",
+    "l1_l3_obi_strength",
+    "level_imbalance_dispersion",
+    "log_total_depth",
+    "same_side_depth_concentration",
+    "opposite_side_depth_concentration",
+    "log1p_spread_ticks",
+    "aligned_book_flow",
+    "aligned_trade_flow",
+    "aligned_trailing_midpoint_1s",
+    "aligned_trailing_midpoint_5s",
+    "log1p_trailing_abs_midpoint_5s",
+    "log1p_source_age_ms",
+    "no_new_information",
+    "log1p_depth_update_count",
+    "side_positive",
+    "utc_time_sin",
+    "utc_time_cos"
+  ],
+  "time_bins": [
+    "elapsed_100ms",
+    "elapsed_200_500ms",
+    "elapsed_600_1000ms",
+    "elapsed_1100_2000ms",
+    "elapsed_2100_5000ms",
+    "elapsed_5100_120000ms"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "Delta_NLL": "NLL_H0_minus_NLL_H1",
+  "bootstrap_replicates": 5000,
+  "bootstrap_seed": 20260828,
+  "cause_Brier_tolerance": -0.001,
+  "gates": {
+    "H0_converged": true,
+    "H1_converged": true,
+    "H1_is_H0_plus_R_only": true,
+    "at_least_three_positive_elapsed_bins": false,
+    "at_least_two_positive_validation_dates": false,
+    "beta_fail_negative": true,
+    "beta_follow_positive": true,
+    "date_block_lower_bound_exceeds_materiality": false,
+    "fail_Brier_not_contradictory": true,
+    "follow_Brier_not_contradictory": true,
+    "maximum_positive_date_contribution": false,
+    "maximum_positive_elapsed_bin_contribution": true,
+    "positive_without_first_100ms_entries": false,
+    "validation_Delta_IBS_nonnegative": false,
+    "validation_Delta_NLL_exceeds_materiality": false
+  },
+  "materiality_nats_per_entry": 0.002,
+  "primary_score": "date_equal_mean_entry_competing_risk_NLL",
+  "schema_version": "skhynix_obi_reversal_track_a3_v1"
+}

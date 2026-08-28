@@ -1640,3 +1640,258 @@ The target is identifiable but temporally short.
 Confirmation delay is a major actionability risk.
 OBI reversal path-dependence remains untested until A3.
 ```
+
+## 42. A3 Execution Result - 2026-08-28
+
+Formal task `0828T006` fitted the frozen H0/H1 discrete-time multinomial
+competing-risk models.
+
+The primary result is:
+
+```text
+status: failed
+classification: A3_no_increment_over_H0
+selected ridge: 0.001
+```
+
+This is a scientific primary-hypothesis failure, not an execution failure. The
+models converged, the H1 design differed from H0 only by `R`, the validation
+split remained untouched, and the result reproduced deterministically.
+
+### 42.1 Frozen Model
+
+The role split was:
+
+| Role | Dates | Entries |
+| --- | --- | ---: |
+| Train/preprocess | Jul29, Jul30, Aug03, Aug04 | 1,296 |
+| Blocked validation | Aug07, Aug24, Aug25 | 3,187 |
+| No-refit replay | Aug26, Aug27 | 2,681 |
+
+H0 used:
+
+- six frozen elapsed-time baseline bins;
+- nineteen side-oriented and train-standardized decision-time features;
+- 50 parameters across the two causes.
+
+H1 used the identical risk rows, target, scaler, elapsed-time basis and ridge,
+and added only:
+
+```text
+beta_follow * R
+beta_fail   * R
+```
+
+H1 therefore had 52 parameters. Both models converged with maximum absolute
+gradients below `1e-7`.
+
+The ridge grid was:
+
+```text
+0.0001, 0.001, 0.01, 0.1
+```
+
+It was selected using H0-only leave-one-development-date-out entry NLL. The
+blocked validation and replay outcomes did not participate in selection.
+
+### 42.2 Primary Proper Scores
+
+Positive deltas favor H1:
+
+```text
+Delta_NLL = NLL_H0 - NLL_H1
+Delta_IBS = IBS_H0 - IBS_H1
+```
+
+Results:
+
+| Dataset | Delta NLL | Delta IBS |
+| --- | ---: | ---: |
+| Historical train | +0.003015 | +0.002690 |
+| Blocked validation | -0.001603 | -0.000675 |
+| No-refit replay | -0.008676 | -0.001749 |
+
+H1 learned a small in-sample increment, but the increment reversed sign on
+every untouched historical stage. On blocked validation:
+
+```text
+H0 date-equal entry NLL: 3.078672
+H1 date-equal entry NLL: 3.080276
+```
+
+The frozen materiality threshold was `+0.002 nats/entry`. H1 did not merely
+miss materiality; it made the primary proper score worse.
+
+Both cause-specific integrated Brier deltas were also negative:
+
+```text
+follow Brier delta: -0.000453
+fail Brier delta:   -0.000221
+```
+
+Thus the NLL result is not contradicted by a favorable Brier result.
+
+### 42.3 Coefficient Direction Is Not Enough
+
+The fitted H1 coefficients followed the experience-derived direction:
+
+```text
+beta_follow = +0.164963
+beta_fail   = -0.158056
+```
+
+This means that inside the training fit, `R=1` shifted hazard toward follow
+and away from fail after ordinary context was controlled.
+
+However, correct coefficient signs do not establish a stable conditional
+pattern. The out-of-sample proper scores show that applying those shifts to
+new dates worsened prediction.
+
+The result therefore distinguishes:
+
+```text
+training-period directional association: present
+cross-date incremental predictive law:   not supported
+```
+
+### 42.4 Date-Block Evidence
+
+Every blocked-validation date had negative NLL increment:
+
+| Date | Entries | Delta NLL |
+| --- | ---: | ---: |
+| 2026-08-07 | 948 | -0.000245 |
+| 2026-08-24 | 1,062 | -0.003007 |
+| 2026-08-25 | 1,177 | -0.001558 |
+
+The 5,000-replicate date-block bootstrap was:
+
+```text
+lower 95%: -0.003007
+median:    -0.001603
+upper 95%: -0.000245
+```
+
+Even the upper bound remained negative. The result is not carried by one
+adverse validation date.
+
+The no-refit replay dates were also negative:
+
+| Date | Entries | Delta NLL |
+| --- | ---: | ---: |
+| 2026-08-26 | 2,257 | -0.016701 |
+| 2026-08-27 | 424 | -0.000651 |
+
+Replay cannot determine the A3 classification and is not needed to establish
+the failure, but it supplies additional non-rescue evidence.
+
+### 42.5 Elapsed-Time Influence
+
+Blocked-validation increments by the event-time bin were:
+
+| Event-time bin | Entries | Delta NLL |
+| --- | ---: | ---: |
+| 100ms | 844 | +0.001295 |
+| 200-500ms | 1,475 | +0.000858 |
+| 600-1,000ms | 570 | -0.007745 |
+| 1,100-2,000ms | 255 | -0.011495 |
+| 2,100-5,000ms | 43 | -0.006310 |
+
+The only positive increments were in the first two, sub-500ms bins, and both
+were below materiality.
+
+Removing first-100ms entries produced:
+
+```text
+Delta_NLL = -0.002711
+```
+
+Removing all entries completed by 500ms produced:
+
+```text
+Delta_NLL = -0.008775
+```
+
+Thus the weak favorable component is concentrated exactly where the frozen
+one-tick target is closest to the 100ms grid resolution. It does not persist
+into the slower residual transition process.
+
+### 42.6 Ridge Sensitivity
+
+Ridge sensitivity was run after the primary fit and was diagnostic only:
+
+| Ridge | Delta NLL | Delta IBS | beta follow | beta fail |
+| ---: | ---: | ---: | ---: | ---: |
+| 0.0001 | -0.001747 | -0.000759 | +0.1692 | -0.1639 |
+| 0.001 primary | -0.001603 | -0.000675 | +0.1650 | -0.1581 |
+| 0.01 | -0.000725 | -0.000163 | +0.1322 | -0.1158 |
+| 0.1 | +0.000118 | +0.000195 | +0.0472 | -0.0267 |
+
+Heavy shrinkage reduces H1 toward H0 and produces a negligible positive
+increment at ridge `0.1`. It remains far below the frozen `0.002`
+materiality threshold and cannot rescue the primary model.
+
+### 42.7 Interpretation
+
+The current evidence supports:
+
+```text
+current OBI and ordinary context contain short-horizon price information
+```
+
+but does not support:
+
+```text
+after current OBI and ordinary context are controlled,
+binary accepted-opposite-state ancestry R
+adds a stable cross-date competing-risk increment
+```
+
+Likely contributors, which are interpretations rather than separately tested
+causes, include:
+
+- the binary indicator compresses heterogeneous reversal paths into one bit;
+- H0 already absorbs current OBI, flow and trailing price movement;
+- 92.43% of reversals had a one-tick transition before causal confirmation;
+- the frozen one-tick target is concentrated near the 100ms grid;
+- the training relationship changes across market dates.
+
+These observations do not authorize post-hoc path descriptors, interactions,
+different barriers, faster alignment or stronger/weaker ridge to rescue
+`OBI_REVERSAL_V1`.
+
+### 42.8 Gate Result And Research Boundary
+
+Passed:
+
+- H0 and H1 convergence;
+- H1 equals H0 plus `R` only;
+- `beta_follow > 0`;
+- `beta_fail < 0`;
+- cause-specific Brier contradiction tolerances.
+
+Failed:
+
+- validation NLL improvement and materiality;
+- date-block confidence lower bound;
+- integrated Brier improvement;
+- positive-date support;
+- elapsed-bin breadth;
+- positive increment after excluding first 100ms.
+
+The canonical classification is:
+
+```text
+A3_no_increment_over_H0
+```
+
+Therefore:
+
+- A4 nulls and stronger-H0 diagnostics are not required to reject the primary;
+- no historical path-dependence candidate is declared;
+- no predictive-value, maker-actionability or prospective claim is allowed;
+- `OBI_REVERSAL_V1` must stop as the primary version.
+
+A future study may register a new interpretable hypothesis, but it must be a
+new version with new provenance and frozen contracts. It cannot be described
+as a robustness rescue of this result.
