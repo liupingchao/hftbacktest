@@ -1,0 +1,24 @@
+{
+  "confirmation_dwell_ms": 1000,
+  "cross_to_confirmation_timeout_ms": 10000,
+  "diagnostic_alignment": "reversal_cross_at",
+  "neutral_abs_OBI": 0.1,
+  "new_band_abs_OBI": 0.5,
+  "old_band_abs_OBI": 0.5,
+  "pre_detection_price_transition": "not_read_in_A0",
+  "pre_dwell_ms": 1000,
+  "primary_alignment": "reversal_detected_at",
+  "reset_boundaries": [
+    "invalid_row",
+    "capture_start",
+    "capture_end",
+    "sequence_or_quality_failure"
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "threshold_candidates": [
+    0.4,
+    0.5,
+    0.6
+  ],
+  "threshold_selection_rule": "smallest threshold with >=1000 reversals, all 9 dates, 10-150 entries/hour, and max date share <=0.35"
+}

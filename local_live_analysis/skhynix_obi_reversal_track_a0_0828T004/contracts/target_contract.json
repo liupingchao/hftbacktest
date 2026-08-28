@@ -1,0 +1,14 @@
+{
+  "barrier_ticks": 1.0,
+  "causes": [
+    "n_follow_new_OBI_direction",
+    "n_fail_old_OBI_direction"
+  ],
+  "clock_start": "decision_timestamp",
+  "materialized": false,
+  "post_barrier_return_or_markout_allowed": false,
+  "quote_convention": "midpoint",
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "simultaneous_hit": "interval_ambiguous_censor",
+  "tau_max_ms": 120000
+}

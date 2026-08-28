@@ -1,0 +1,22 @@
+{
+  "cache_hashes_verified_now": true,
+  "capture_count": 29,
+  "depth_gap_count": 0,
+  "duration_hours": 35.91720081416666,
+  "has_true_prospective_session": false,
+  "raw_hashes_previously_verified": true,
+  "raw_hashes_reverified_now": true,
+  "research_dates": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-03",
+    "2026-08-04",
+    "2026-08-07",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27"
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "task_id": "0828T004"
+}

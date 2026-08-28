@@ -1,0 +1,28 @@
+{
+  "aligned_future_price_plots_created": false,
+  "consumed_feature_fields": [
+    "bid_qty_log_l1",
+    "bid_qty_log_l2",
+    "bid_qty_log_l3",
+    "bid_qty_log_l4",
+    "bid_qty_log_l5",
+    "ask_qty_log_l1",
+    "ask_qty_log_l2",
+    "ask_qty_log_l3",
+    "ask_qty_log_l4",
+    "ask_qty_log_l5"
+  ],
+  "consumed_metadata_fields": [
+    "ts_ns",
+    "valid",
+    "capture_id",
+    "research_date",
+    "role"
+  ],
+  "follow_fail_labels_materialized": false,
+  "future_price_fields_read": [],
+  "new_collection": false,
+  "orders": 0,
+  "private_API_access": false,
+  "schema_version": "skhynix_obi_reversal_track_a0_v1"
+}

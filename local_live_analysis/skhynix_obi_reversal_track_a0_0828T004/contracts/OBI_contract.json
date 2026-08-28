@@ -1,0 +1,34 @@
+{
+  "formula": "sum_l(Q_bid_l-Q_ask_l)/sum_l(Q_bid_l+Q_ask_l)",
+  "grid_ms": 100,
+  "informative_capture_min_std": 0.02,
+  "informative_capture_min_unique_rounded_6dp": 20,
+  "levels": 5,
+  "missing_level_semantics": "unavailable_not_zero",
+  "quantity_source_fields": [
+    "bid_qty_log_l1",
+    "bid_qty_log_l2",
+    "bid_qty_log_l3",
+    "bid_qty_log_l4",
+    "bid_qty_log_l5",
+    "ask_qty_log_l1",
+    "ask_qty_log_l2",
+    "ask_qty_log_l3",
+    "ask_qty_log_l4",
+    "ask_qty_log_l5"
+  ],
+  "robustness_only": [
+    "L1_only",
+    "L1_L3_equal_weight",
+    "distance_weighted_L1_L5",
+    "per_level_log_depth_difference"
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "weights": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ]
+}

@@ -1275,3 +1275,164 @@ This plan does not claim:
 
 Its purpose is to turn one interpretable empirical experience into a sharply
 defined path-dependence hypothesis that can fail.
+
+## 40. A0 Execution Result - 2026-08-28
+
+Formal task `0828T004` executed the zero-target
+`OBI_REVERSAL_V1` support and tuple-freeze stage against the closed historical
+dataset.
+
+The result is:
+
+```text
+status: passed
+classification: A0_support_and_tuple_frozen
+future_price_target_access: false
+next_stage_authorized:
+  A1 OBI state-machine materialization
+  A2 first-passage target materialization under a new formal task
+```
+
+This pass means that the data, support and frozen contracts are sufficient to
+run the next historical hypothesis test. It does not mean that OBI reversal
+has predictive value.
+
+### 40.1 Source And Outcome-Access Closure
+
+A0 verified:
+
+- 29 public Binance captures across 9 research dates;
+- 35.9172 hours of reconstructed 100ms top-5 book state;
+- raw size and SHA closure, including a fresh raw-hash verification;
+- reconstructed-cache size and SHA closure;
+- zero declared depth gaps;
+- no private API access, orders or new collection.
+
+The A0 loader read only:
+
+- `bid_qty_log_l1` through `bid_qty_log_l5`;
+- `ask_qty_log_l1` through `ask_qty_log_l5`;
+- `ts_ns`, `valid`, capture identity, date and role.
+
+It did not read future price fields, materialize follow/fail labels or create
+reversal-aligned future-price plots.
+
+### 40.2 OBI Support
+
+Equal-weight L1-L5 standard OBI was reconstructed as:
+
+```text
+OBI =
+  sum_l(Q_bid_l - Q_ask_l)
+  /
+  sum_l(Q_bid_l + Q_ask_l)
+```
+
+Twenty-three captures were informative. Six captures had constant or
+near-constant reconstructed OBI and were excluded from state/control support
+while remaining in the source-provenance ledger:
+
+```text
+2026-07-29_c092d6b4402c
+2026-07-30_1b18a29f3daf
+2026-08-03_098332acc16a
+2026-08-03_b7b76aed76b8
+2026-08-03_d8e3322d6f2c
+2026-08-26_a055aa6c7a87
+```
+
+All 9 research dates retained at least one informative capture.
+
+### 40.3 State-Machine Freeze
+
+The support-only threshold trace used 1 second old-state dwell and 1 second
+opposite-state confirmation:
+
+| Absolute OBI threshold | Reversals | Rate/hour | Maximum date share | Qualified | Selected |
+| ---: | ---: | ---: | ---: | :---: | :---: |
+| 0.40 | 5,830 | 162.318 | 0.2506 | no | no |
+| 0.50 | 4,021 | 111.952 | 0.2502 | yes | yes |
+| 0.60 | 2,537 | 70.635 | 0.2495 | yes | no |
+
+The primary absolute OBI threshold is frozen at `0.50`. It is the smallest
+candidate passing the predeclared support-only event-rate, date-count and
+date-concentration gates. No future outcome was used for selection.
+
+The frozen primary alignment remains `reversal_detected_at`, after the full
+confirmation dwell. `reversal_cross_at` remains diagnostic only.
+
+### 40.4 Common Risk-Set Support
+
+A0 found:
+
+```text
+reversal entries:                  4,021
+non-reversal control candidates:   3,162
+reversals inside common support:   4,005
+overall common-support coverage:   0.9960
+minimum per-date coverage:         0.8764
+```
+
+The primary H0/H1 comparison uses the full reusable common risk set defined by
+date, direction and current-OBI bin. A single eligible non-reversal state may
+therefore support multiple risk-set comparisons in the hazard model.
+
+A no-reuse one-to-one matching diagnostic produced 2,801 pairs and 0.6966
+matched coverage. That lower number is a matching-allocation constraint, not
+a lack of covariate overlap, and is not the primary support gate.
+
+The first implementation incorrectly used no-reuse matched coverage as the
+control-overlap gate. This was corrected before any future-price target access:
+
+- primary support gate: reusable common risk-set coverage;
+- secondary diagnostic: unique no-reuse matched pairs;
+- H0/H1 estimand: full risk-set path-dependence increment.
+
+This distinction is now protected by a focused regression test.
+
+### 40.5 Follow-Up Geometry And Frozen Horizon
+
+Follow-up support was selected only from capture boundaries and completeness,
+without event direction or price outcomes.
+
+The largest qualifying horizon is:
+
+```text
+tau_max:                         120 seconds
+complete reversals:             3,910
+complete diagnostic pairs:      2,680
+overall reversal completeness:  0.9724
+minimum per-date completeness:  0.8276
+dates with complete pairs:      9
+```
+
+The next candidate, 300 seconds, failed support with 0.9363 overall and 0.6897
+minimum per-date completeness. The primary competing-risk analysis therefore
+freezes `tau_max = 120 seconds`; shorter elapsed-time structure remains inside
+the integrated hazard model rather than becoming separately selected
+horizons.
+
+### 40.6 Gate Result And Next Boundary
+
+All A0 gates passed:
+
+- source closure;
+- cache closure;
+- OBI support;
+- state-machine support;
+- common risk-set overlap;
+- follow-up support;
+- zero future-target access.
+
+The next stage may materialize the frozen reversal/control ledgers and
+symmetric one-tick first-passage outcomes under a new formal task. It must not
+change the OBI formula, threshold, dwell, alignment time, H0/H1 increment,
+barrier, censoring or `tau_max` after viewing the targets.
+
+The strongest current claim is:
+
+```text
+A0 support and tuple freeze completed.
+OBI reversal predictive value remains untested.
+Historical results cannot be called prospective.
+```

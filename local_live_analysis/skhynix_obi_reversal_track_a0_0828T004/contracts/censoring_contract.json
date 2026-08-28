@@ -1,0 +1,13 @@
+{
+  "future_target_read_in_A0": false,
+  "pre_detection_transition": "separate_actionability_diagnostic",
+  "right_censoring": [
+    "tau_max",
+    "capture_end",
+    "gap",
+    "reconnect",
+    "reset",
+    "quality_failure"
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a0_v1"
+}

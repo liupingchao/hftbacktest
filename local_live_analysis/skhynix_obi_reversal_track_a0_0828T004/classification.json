@@ -1,0 +1,20 @@
+{
+  "classification": "A0_support_and_tuple_frozen",
+  "future_price_target_access": false,
+  "gates": {
+    "cache_closure": true,
+    "control_overlap": true,
+    "followup_support": true,
+    "obi_support": true,
+    "source_closure": true,
+    "state_machine_support": true,
+    "zero_target_access": true
+  },
+  "next_stage": "A1_OBI_state_machine_and_A2_target_materialization_under_new_task",
+  "next_stage_authorized": true,
+  "prospective_claim_prohibited": true,
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "stage": "A0_support_and_tuple_freeze",
+  "status": "passed",
+  "task_id": "0828T004"
+}

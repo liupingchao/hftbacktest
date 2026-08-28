@@ -1,0 +1,18 @@
+{
+  "H0_required": [
+    "current_equal_weight_L1_L5_OBI",
+    "current_per_level_imbalance_summary",
+    "spread",
+    "total_depth_and_concentration",
+    "contemporaneous_OFI_and_trade_flow",
+    "trailing_price_movement_ending_by_decision_time",
+    "activity_volatility_time_of_day_quality"
+  ],
+  "H1_added_parameters_per_cause": 1,
+  "H1_increment_only": "reversal_history_indicator_R",
+  "estimator": "discrete_time_multinomial_competing_risk_hazard",
+  "future_target_fields_used_in_A0": [],
+  "primary_causes": 2,
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "stronger_H0_diagnostic": "generic_OBI_slope_and_lags"
+}

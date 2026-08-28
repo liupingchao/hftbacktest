@@ -1,0 +1,20 @@
+{
+  "capture_count": 29,
+  "common_support_coverage": 0.9960208903257896,
+  "common_support_reversal_count": 4005,
+  "control_candidate_count": 3162,
+  "duration_hours": 35.91720081416666,
+  "informative_capture_count": 23,
+  "informative_date_count": 9,
+  "low_variation_capture_count": 6,
+  "matched_coverage": 0.6965928873414573,
+  "matched_pair_count": 2801,
+  "maximum_single_date_reversal_share": 0.25018652076597864,
+  "minimum_date_common_support_coverage": 0.8764044943820225,
+  "research_date_count": 9,
+  "reversal_count": 4021,
+  "reversal_rate_per_hour": 111.95193135468438,
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "selected_tau_max_ms": 120000,
+  "unmatched_reversal_count": 1220
+}

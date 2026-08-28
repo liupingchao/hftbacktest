@@ -1,0 +1,15 @@
+{
+  "capture_count": 29,
+  "classification": "A0_support_and_tuple_frozen",
+  "common_support_coverage": 0.9960208903257896,
+  "future_price_target_fields_read": [],
+  "informative_capture_count": 23,
+  "low_variation_capture_count": 6,
+  "matched_coverage": 0.6965928873414573,
+  "matched_pair_count": 2801,
+  "minimum_date_common_support_coverage": 0.8764044943820225,
+  "reversal_count": 4021,
+  "reversal_rate_per_hour": 111.95193135468438,
+  "selected_tau_max_ms": 120000,
+  "status": "passed"
+}

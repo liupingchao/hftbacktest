@@ -1,0 +1,112 @@
+{
+  "artifact_count": 21,
+  "artifacts": [
+    {
+      "path": "classification.json",
+      "sha256": "131108ae3d18e4791ab2f928558dc3a4dfa6dc8ce7a3410e56faf0b6acdb27d3",
+      "size_bytes": 619
+    },
+    {
+      "path": "contracts/H0_H1_contract.json",
+      "sha256": "baab47410a5fbeeff6f28e05084e8ad6516be4e2db967ca1e4b0d9ffe831b4ba",
+      "size_bytes": 639
+    },
+    {
+      "path": "contracts/OBI_contract.json",
+      "sha256": "984044c7f2d841c78babecbfe6c4f33ec47cc1f87977b5666f65b777194cb752",
+      "size_bytes": 753
+    },
+    {
+      "path": "contracts/censoring_contract.json",
+      "sha256": "652a9fc7ccc089517f68772a2f47f0feb8caf23f2345555da89ccb556cca05a6",
+      "size_bytes": 288
+    },
+    {
+      "path": "contracts/control_entry_contract.json",
+      "sha256": "b33ff9a3cb7f505f3e847150817eb186cd948f09880a162d1c497cca9d291893",
+      "size_bytes": 569
+    },
+    {
+      "path": "contracts/gate_contract.json",
+      "sha256": "c86e5af9619c55c9a3166d412d616d9267ad802e7bd205a07da07d457134edcb",
+      "size_bytes": 1248
+    },
+    {
+      "path": "contracts/outcome_access_ledger.json",
+      "sha256": "f9b15549cd33a705b494c6f9146012cf4f7843e89295ea6f7125985ec01d9bb9",
+      "size_bytes": 625
+    },
+    {
+      "path": "contracts/research_tuple.json",
+      "sha256": "da8fed46d658820ed164c5e16d492ee1edced46c5c1e58da08eb7e71b81927bb",
+      "size_bytes": 551
+    },
+    {
+      "path": "contracts/reversal_state_machine.json",
+      "sha256": "8464654dc4b8163216bef93936aef446a440cc8cc6ae26696bee1b49a2dd63af",
+      "size_bytes": 705
+    },
+    {
+      "path": "contracts/session_role_ledger.csv",
+      "sha256": "0352d5e59182368f1693b439bc1582d73bc5af95f085c7b6b857845f12417f82",
+      "size_bytes": 16367
+    },
+    {
+      "path": "contracts/source_manifest.json",
+      "sha256": "1bd563bb9d0748f68f257cf05c1a7f792ad1305daebe5c3e56ab7420e5990bb2",
+      "size_bytes": 515
+    },
+    {
+      "path": "contracts/target_contract.json",
+      "sha256": "082716cd3b01c1cc51e68f21e34ebd89be8919542459fb17db78e6aa6797fe8c",
+      "size_bytes": 391
+    },
+    {
+      "path": "reports/A0_summary.json",
+      "sha256": "42f05965b416ba4c9aeacfbc967c4e05707319dc05ab1efdb4c3f8287ebb4be9",
+      "size_bytes": 501
+    },
+    {
+      "path": "states/control_candidates.csv",
+      "sha256": "b2c58dbc78b51581fba40cb1a6cacd5072bb2d7623e4450478ea5039905a7327",
+      "size_bytes": 365197
+    },
+    {
+      "path": "states/matched_control_pairs.csv",
+      "sha256": "cb75d6fcf7a67c287a4e8f6edda01dbb337fabc333b1330cbb1fcad0f9a16e9b",
+      "size_bytes": 626588
+    },
+    {
+      "path": "states/reversal_entries.csv",
+      "sha256": "63c1e7ff9444f645ca548dc0c5923f758cab4cf6741ee811c98ea3526636df70",
+      "size_bytes": 557813
+    },
+    {
+      "path": "support/OBI_support_by_capture.csv",
+      "sha256": "508c4d0d78a45cd96a19062472529e3afa028ccad7b13e84daab9a93b56f6107",
+      "size_bytes": 8107
+    },
+    {
+      "path": "support/control_overlap_by_date.csv",
+      "sha256": "3162bc43986527febb08c05303150c6f8e7babffbbd328d6b3d06939bf784dfc",
+      "size_bytes": 921
+    },
+    {
+      "path": "support/effective_sample_support.json",
+      "sha256": "0bc184e99314c9735135de3fd6c5bc5070a23fe42fff728d0d9ec26b91fbf5f9",
+      "size_bytes": 714
+    },
+    {
+      "path": "support/followup_support.csv",
+      "sha256": "9a273d139597410d05c0e03d3af3986300592fab38c441e087cbd3200e49e101",
+      "size_bytes": 730
+    },
+    {
+      "path": "support/state_machine_threshold_trace.csv",
+      "sha256": "3582a1df259e3d77db37c54b22dca27f658b7a7f42fb2c4455a9cd40c4743444",
+      "size_bytes": 357
+    }
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "task_id": "0828T004"
+}

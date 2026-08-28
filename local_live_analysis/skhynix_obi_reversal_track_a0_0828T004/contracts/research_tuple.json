@@ -1,0 +1,12 @@
+{
+  "candidate_increment": "confirmed_OBI_reversal_history_indicator",
+  "decision_timestamp": "reversal_detected_at_or_matched_control_detected_at",
+  "hypothesis_id": "OBI_REVERSAL_V1",
+  "primary_information": "equal_weight_L1_L5_OBI_and_frozen_H0_context",
+  "prospective_claim_prohibited": true,
+  "replication_unit": "research_date_or_session",
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "symbol": "SKHYNIXUSDT",
+  "target_contract": "future_midpoint_one_tick_first_passage_follow_vs_fail",
+  "target_materialized_in_A0": false
+}

@@ -1,0 +1,4 @@
+abs_OBI_threshold,pre_dwell_ms,confirmation_dwell_ms,reversal_count,reversal_rate_per_hour,date_count,maximum_single_date_share,qualifies,selected
+0.4,1000,1000,5830,162.3177716482989,9,0.25060034305317325,false,false
+0.5,1000,1000,4021,111.95193135468438,9,0.25018652076597864,true,true
+0.6,1000,1000,2537,70.63468038966283,9,0.2495072920772566,true,false

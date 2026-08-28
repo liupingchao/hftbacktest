@@ -1,0 +1,22 @@
+{
+  "OBI_bin_width": 0.05,
+  "candidate_stride_ms": 1000,
+  "control_reuse": false,
+  "matching_keys": [
+    "research_date",
+    "side",
+    "absolute_OBI_bin"
+  ],
+  "matching_priority": [
+    "same_capture",
+    "nearest_absolute_OBI",
+    "nearest_timestamp"
+  ],
+  "no_opposite_pre_state_lookback_ms": 10000,
+  "outcome_fields_used": [],
+  "primary_model_uses_full_common_risk_set": true,
+  "reversal_exclusion_ms": 5000,
+  "same_current_OBI_band": true,
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "unique_matched_pairs_are_diagnostic_only": true
+}

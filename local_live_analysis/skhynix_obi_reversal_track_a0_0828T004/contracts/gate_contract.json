@@ -1,0 +1,43 @@
+{
+  "gates": {
+    "cache_closure": true,
+    "control_overlap": true,
+    "followup_support": true,
+    "obi_support": true,
+    "source_closure": true,
+    "state_machine_support": true,
+    "zero_target_access": true
+  },
+  "nulls": [
+    "history_block_shift",
+    "current_OBI_stratified_permutation",
+    "prehistory_time_reversal",
+    "side_orientation_disruption",
+    "pseudo_reversal_controls",
+    "cross_detection_delay_null"
+  ],
+  "proper_scores": [
+    "heldout_competing_risk_negative_log_loss",
+    "integrated_Brier_score",
+    "cause_specific_Brier_score",
+    "cumulative_incidence_calibration"
+  ],
+  "schema_version": "skhynix_obi_reversal_track_a0_v1",
+  "thresholds": {
+    "followup_minimum_date_complete_fraction": 0.8,
+    "followup_overall_complete_fraction": 0.95,
+    "maximum_single_date_reversal_share": 0.35,
+    "minimum_common_support_coverage": 0.95,
+    "minimum_complete_pairs": 500,
+    "minimum_control_date_count": 8,
+    "minimum_date_common_support_coverage": 0.85,
+    "minimum_informative_captures": 20,
+    "minimum_informative_dates": 9,
+    "minimum_reversals": 1000,
+    "reversal_rate_per_hour_range": [
+      10,
+      150
+    ]
+  },
+  "uncertainty": "research_date_or_session_block_bootstrap"
+}
