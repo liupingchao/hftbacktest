@@ -829,14 +829,16 @@ Anchor identity:
 
 ```text
 anchor_id =
-  SHA256(
-    hypothesis_id
-    | capture_id
-    | segment_id
-    | confirmation_ts_ns
-    | confirmation_event_seq
-    | direction
-    | anchor_type
+  SHA256(canonical JSON bytes of:
+    {
+      "anchor_type": string,
+      "capture_id": string,
+      "confirmation_event_seq": integer,
+      "confirmation_ts_ns": integer,
+      "direction": integer,
+      "hypothesis_id": string,
+      "segment_id": integer
+    }
   )
 ```
 
@@ -1203,7 +1205,17 @@ Matching relaxation is deterministic:
 1. exact frozen strata;
 2. only if no exact candidate exists, allow spread difference of one tick;
 3. select minimum absolute time distance;
-4. break ties by control checkpoint event key.
+4. break ties by:
+
+```text
+(
+  control_capture_id,
+  control_segment_id,
+  control_checkpoint_ts_ns,
+  control_checkpoint_event_seq,
+  control_direction
+)
+```
 
 No other covariate, date-specific edge or future-price criterion may relax the
 match.
@@ -1255,12 +1267,30 @@ for both:
   target orientation = d
 
 pair_id =
-  SHA256(
-    anchor_id
-    | control_checkpoint_ts_ns
-    | control_checkpoint_event_seq
-    | control_direction
+  SHA256(canonical JSON bytes of:
+    {
+      "anchor_id": lowercase hex string,
+      "control_capture_id": string,
+      "control_checkpoint_event_seq": integer,
+      "control_checkpoint_ts_ns": integer,
+      "control_direction": integer,
+      "control_segment_id": integer,
+      "hypothesis_id": string
+    }
   )
+```
+
+Canonical identity serialization for every V1 SHA:
+
+```text
+UTF-8 encoded JSON
+object keys sorted lexicographically
+separators exactly "," and ":"
+ensure_ascii=true
+integers encoded in base-10 with no quotes
+strings encoded as JSON strings
+no whitespace or trailing newline
+SHA256 output as lowercase hexadecimal
 ```
 
 The primary later population is the union of the two entries from every
@@ -1424,7 +1454,7 @@ n_reversal:
   midpoint first reaches m0 - d*k*tick
 
 n_timeout:
-  neither barrier is reached before tau
+  neither barrier is reached at or before entry_at + tau
 
 n_ambiguous:
   both barriers occur at indistinguishable event order
@@ -1460,6 +1490,17 @@ Primary target event ordering scans causally reconstructed event-level BBO
 states after `entry_at`, preserving `(local_receive_ts_ns,event_seq_in_file)`.
 Checkpoint coarsening is not used for barrier order.
 
+The primary observation window is:
+
+```text
+event_key > entry_event_key
+and local_receive_ts_ns <= entry_ts_ns + tau_ns
+```
+
+A barrier first reached exactly at `entry_at + tau` is an observed cause, not
+a timeout. Timeout is assigned only after the complete right-closed endpoint
+has been observed with neither barrier hit.
+
 `n_ambiguous` means the event order cannot be distinguished because both
 barrier labels would be assigned to the same event key or the first observable
 post-entry state appears beyond a reset/quality discontinuity.
@@ -1472,6 +1513,20 @@ n_ambiguous:
   do not assign continuation or reversal
   retain the entry in denominator and ambiguity diagnostics
 ```
+
+Discrete risk-row disposition for any administrative censor inside elapsed
+bin `j`:
+
+```text
+retain all fully completed prior bins
+omit the partially observed current bin j
+omit all later bins
+do not add a no-event row for the partial bin
+```
+
+The same partial-bin rule applies to reset, quality and capture-end censoring.
+An observed continuation or reversal inside bin `j` retains bin `j` with the
+cause label.
 
 A1 target support requires:
 
@@ -1506,12 +1561,12 @@ population.
 Frozen elapsed bins:
 
 ```text
-[0,100ms)
-[100ms,250ms)
-[250ms,500ms)
-[500ms,1000ms)
-[1000ms,2000ms)
-[2000ms,5000ms]
+event_key > entry_event_key and 0ms <= elapsed <= 100ms
+100ms < elapsed <= 250ms
+250ms < elapsed <= 500ms
+500ms < elapsed <= 1000ms
+1000ms < elapsed <= 2000ms
+2000ms < elapsed <= 5000ms
 ```
 
 If A1 boundary geometry rejects `5000ms`, truncate this list mechanically at
@@ -1555,6 +1610,39 @@ lambda grid = [0.01,0.1,1,10,100]
 
 Select one lambda using H0-only, leave-one-development-date-out,
 date-equal entry negative log loss. Freeze the same lambda for H0 and H1.
+
+Lambda selection tie rule:
+
+```text
+compute OOF NLL in float64
+minimum = smallest finite OOF NLL
+tied = lambdas with abs(OOF_NLL-minimum) <= 1e-12
+select max(tied)
+```
+
+Primary optimizer contract:
+
+```text
+algorithm: deterministic float64 L-BFGS-B
+initial coefficients: all zeros
+maximum iterations: 2000
+gradient tolerance: 1e-8
+function tolerance: 1e-12
+parameter bounds: none
+warm start across lambdas or H0/H1: forbidden
+```
+
+Convergence requires:
+
+```text
+optimizer success=true
+all coefficients finite
+objective finite
+maximum absolute analytic gradient <= 1e-6
+```
+
+Any failed fold, lambda fit, final H0 or final H1 fit fails A3. No solver,
+initialization or tolerance switch is allowed as rescue.
 
 Exact weighted fitting objective:
 
@@ -1642,8 +1730,32 @@ Section 24. Within each date:
 4. aggregate dates with equal weight.
 
 This preserves matched pairs, shared 30s clusters and overlapping follow-up
-intervals simultaneously. Use 2000 deterministic resamples with a seed frozen
-in the A3 task before target access.
+intervals simultaneously.
+
+Frozen bootstrap details:
+
+```text
+replicates: 2000
+seed: 20260828
+model handling: fixed-model score bootstrap
+refit inside replicate: false
+lower bound: one-sided 5th percentile of Delta_NLL replicates
+```
+
+H0/H1 preprocessing, coefficients and entry predictions are fitted once under
+the frozen development procedure. Bootstrap replicates resample only the
+blocked/replay evaluation pair components and recompute the fixed-prediction
+score difference.
+
+Percentile rule:
+
+```text
+sort B=2000 finite replicate values ascending
+h = (B-1)*0.05
+linearly interpolate between floor(h) and ceil(h)
+ties remain repeated observations
+non-finite replicate values cause A3 failure
+```
 
 Frozen evaluation families:
 
@@ -2046,9 +2158,14 @@ Formal implementation must include focused tests for:
 - geometry-only overlap-component construction;
 - pair-dependence component construction preserving complete pairs;
 - unique primary one-tick target;
+- right-closed `tau` endpoint barrier handling;
 - ambiguous-target administrative censoring;
+- partial-bin censor omission and observed-cause bin retention;
 - exact H0 direction-orientation map;
 - exact primary penalty mask and weighted objective;
+- canonical anchor/control/pair SHA serialization;
+- deterministic lambda tie rule and optimizer convergence;
+- fixed-model component bootstrap and one-sided percentile interpolation;
 - zero-target outcome ledger;
 - deterministic double-build identity.
 
