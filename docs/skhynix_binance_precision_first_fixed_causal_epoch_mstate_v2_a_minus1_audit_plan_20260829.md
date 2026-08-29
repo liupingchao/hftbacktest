@@ -9,7 +9,7 @@ Hypothesis ID: `FIXED_CAUSAL_EPOCH_MSTATE_V2`
 
 Audit ID: `FIXED_CAUSAL_EPOCH_MSTATE_V2_A_MINUS1`
 
-Status: candidate contract Revision 4; data execution locked
+Status: candidate contract Revision 5; data execution locked
 
 ## 1. Decision Context
 
@@ -170,6 +170,17 @@ predecessor summary SHA256 =
 Allowed and consumed cache fields remain exactly those frozen in `0829T002`.
 Midpoint, OBI, spread, depth snapshots and future/economic fields remain
 unconsumed.
+
+Before epoch enumeration or any `searchsorted`, raw `ts_ns` must satisfy:
+
+```text
+len(ts_ns) > 0
+ts_ns[0] < ts_ns[1] < ... < ts_ns[n-1]
+```
+
+Any duplicate, non-increasing or cross-epoch boundary inversion is an A-1-0
+source-authority failure. Detector/null execution stops and every later gate
+is `NOT_EVALUATED`.
 
 ## 4. Inherited M-State
 
@@ -426,14 +437,21 @@ sequence_gap_count, tick_size
 6. Direct-call the bound `build_features(sliced_cache_path)`.
 7. Run source preflight and the full M-state/epoch pipeline again.
 
-The slice-source identity is canonical JSON over sorted tuples:
+The slice-source identity is canonical JSON over two separately sorted
+collections:
 
 ```text
-(field_name, dtype.str, shape_as_integer_list,
- SHA256(C-contiguous raw bytes))
+consumed_value_fields:
+  (field_name, dtype.str, shape_as_integer_list,
+   SHA256(C-contiguous raw bytes))
+
+unconsumed_schema_fields:
+  (field_name, dtype.str, shape_as_integer_list)
 ```
 
 using `sort_keys=True,separators=(",",":"),ensure_ascii=True`.
+`consumed_value_fields` is exactly the bound `CONSUMED_CACHE_FIELDS`;
+unconsumed value bytes never enter this hash or any other output identity.
 Reusing or slicing full-run rolling features is prohibited.
 Full and sliced capture endpoints are always the corresponding preflighted
 `ts_ns[0]` and `ts_ns[-1]`; copied metadata may not supply an endpoint.
@@ -666,6 +684,7 @@ Gate A-1-0, authority and determinism:
 - direct null-authority binding exact;
 - 29-cache size/SHA/schema and typed inventory closure exact;
 - invalid raw source contribution count zero;
+- raw timestamp array nonempty and globally strictly increasing;
 - Build A/B roots distinct;
 - preseal, pending and final difference counts zero;
 - exact 25-output set and manifest closure.
@@ -721,6 +740,15 @@ Gate A-1-4, selection and numeric integrity:
 - occupied-supported-epoch share is null iff raw-supported epoch count is
   exactly zero, and is `0.0` when its denominator is positive and occupied
   count is zero;
+- occupied subset violation count equals zero;
+- raw-supported and occupied counts equal reconstructed identity-set
+  cardinalities;
+- stored raw-supported and occupied SHA256 values equal reconstructed
+  canonical hashes;
+- occupied count is at most raw-supported count;
+- structural occupied subset violation count equals zero;
+- structural counts and identity hash equal reconstructed eligible/occupied
+  sets;
 - legitimate zero support is not numeric corruption;
 - NaN, infinity, negative values, invalid types or unit mismatch fail.
 
@@ -904,6 +932,8 @@ raw:
   structurally_eligible_epoch_count: int
   structurally_occupied_epoch_count: int
   structurally_occupied_epoch_share: finite float or null
+  structurally_eligible_epoch_identity_sha256: ASCII SHA256
+  structurally_occupied_subset_violation_count: int
 
 integrity:
   common_cluster_maximum_5s_burst: int
@@ -919,9 +949,30 @@ integrity:
 Epoch identity hashes use sorted `(capture_id, epoch_id)` tuples. Occupied
 identities must be an exact subset of raw-supported identities. Structural
 market-time occupancy uses all structurally eligible epochs as denominator
-and selected occupied epochs as numerator; it is diagnostic only. The gate
-contract repeats each gate condition with exact `actual`, `required`,
-`passed` and `status` (`PASS`, `FAIL`, `NOT_EVALUATED`).
+and selected occupied epochs as numerator; it is diagnostic only.
+
+Structural optional semantics are:
+
+```text
+structurally_eligible_epoch_count = 0
+  -> structurally_occupied_epoch_share = null
+
+positive structural denominator and zero occupied
+  -> structurally_occupied_epoch_share = 0.0
+```
+
+Structural occupied identities must be a subset of structural eligible
+identities, and the structural eligible identity hash is independently
+reconstructed.
+
+The gate contract contains every frozen condition row in fixed gate/condition
+order. Each row has exact `actual`, `required`, `passed` and `status`:
+
+```text
+PASS:          passed=true,  actual=evidence value, required=frozen rule
+FAIL:          passed=false, actual=evidence value, required=frozen rule
+NOT_EVALUATED: passed=null,  actual=null,           required=frozen rule
+```
 
 Candidate/support hashes use canonical JSON over lexicographically sorted
 identity tuples. `mismatch_reason` is exactly one of:
@@ -962,6 +1013,7 @@ At minimum:
 - disposition overlap/precedence, empty intermediate epoch, duplicate and
   off-grid timestamp mutations;
 - complete timestamp set with permuted/non-monotonic raw row order;
+- adjacent cross-epoch timestamp swap fails A-1-0 before epoch enumeration;
 - reset inside core with same-direction onsets on both sides yields no anchor;
 - reset inside core with opposite-direction onsets on both sides yields no
   cluster;
@@ -972,6 +1024,8 @@ At minimum:
 - decisions in later complete epochs are identical after reset;
 - slice is rebuilt from sliced raw cache; derived-feature reuse mutation
   fails;
+- poisoning every unconsumed value leaves `slice_source_sha256` and all 25
+  artifacts unchanged;
 - exact row-aligned field-set and stale full-capture endpoint mutations;
 - multi-segment slice comparison excludes later segments;
 - finite `K_segment`, last nominal boundary and no early-stop behavior;
@@ -995,12 +1049,16 @@ At minimum:
 - positive raw-supported epochs with zero occupied epochs produce `0.0`, not
   null;
 - raw support/occupied hashes, subset relation and summary field mutation;
+- structural occupancy denominator-zero, positive-denominator-zero, hash and
+  subset semantics;
 - selection/evaluation banks are disjoint;
 - A-1-2/A-1-3/A-1-4 zero, nonfinite and `NOT_EVALUATED` precedence;
 - non-source A-1-0 and A-1-1 failure force all later gates to
   `NOT_EVALUATED`;
 - corrupt selection/null cannot create an earlier A-1-2 burst failure;
 - A-1-5 or A-1-6 failure forces A-1-7 to `NOT_EVALUATED`;
+- every `NOT_EVALUATED` condition row remains present with
+  `passed=null,actual=null` and frozen `required`;
 - segment-boundary epoch schema and empty N/A sentinels round-trip;
 - numeric epoch ordering cannot be replaced by ASCII ordering;
 - exact new evidence schemas, row grains and field types;
