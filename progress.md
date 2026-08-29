@@ -15,6 +15,23 @@
 - Revision 1 is candidate-only. The 29-cache execution lock remains active
   pending independent review.
 
+## 2026-08-29 0829T002 Plan Review Round 1 Failed
+
+- Independent review returned `P0/P1/P2/P3 = 0/4/2/0`.
+- Revision 1 incorrectly treated every finite rolling ratio checkpoint as new
+  channel evidence, which could refresh TTL without a new underlying event.
+- Revision 2 uses channel-specific contribution masks:
+  `trade_total>0`, total depletion `>0` and `ofi_abs>0`.
+- The conditional trade-orientation H0 now has a bounded claim and requires
+  complete null pipeline recomputation.
+- Legitimate primary/sensitivity/raw zero semantics are separated from
+  numeric corruption.
+- Source/cache Git identities and all inherited callable AST hashes are
+  frozen.
+- Common-anchor monotonicity is now explicitly delete-only; independently
+  occurring strict onsets are orphan diagnostics only.
+- Data execution remains locked pending Round 2.
+
 ## 2026-08-29 0829T001 Precision-First Flow Coherence V2 Contract Drafted
 
 - Created a clean worktree and branch from accepted commit `45544ecc`.

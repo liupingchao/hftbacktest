@@ -16,6 +16,17 @@
   false negatives while preserving candidate and cluster monotonicity.
 - Structural support can improve without implying recall or alpha. The task
   still needs enough observed clusters to estimate false-fire burden.
+- A rolling feature timestamp is not an information-arrival timestamp.
+  Freshness must be refreshed only by a new underlying trade, depletion or
+  OFI contribution, otherwise a 500ms rolling window can silently extend a
+  nominal 40-100ms TTL.
+- The accepted path-swap null is conditional on the fixed depth/activity
+  path. Its false-cluster burden cannot be described as an unconditional
+  market-background false-positive rate.
+- Delete-only common anchors deliberately omit some natural stricter-model
+  onsets. Under precision-first loss this is acceptable, but the omitted
+  onsets must be reported as false-negative diagnostics and excluded from
+  selection/inference.
 
 ## 2026-08-29 Precision-First Detector Objective
 

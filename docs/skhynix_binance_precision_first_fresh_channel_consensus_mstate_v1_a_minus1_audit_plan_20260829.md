@@ -9,9 +9,19 @@ Hypothesis ID: `FRESH_CHANNEL_CONSENSUS_MSTATE_V1`
 
 Audit ID: `FRESH_CHANNEL_CONSENSUS_MSTATE_V1_A_MINUS1`
 
-Status: candidate contract; data execution locked
+Status: candidate contract Revision 2; data execution locked
 
-Revision: 1
+Revision: 2
+
+Review history:
+
+```text
+Round 1:
+  reviewed commit = 2dc0ada6
+  P0/P1/P2/P3 = 0/4/2/0
+  recommendation = FAIL
+  data execution lock = retained
+```
 
 ## 1. Decision Context
 
@@ -91,8 +101,8 @@ Primary question:
 ```text
 Can an interpretable causal M-state built from fresh asynchronous trade,
 depletion and OFI channel memories produce recurrent, sparse consensus-onset
-landmarks whose structural-null false-cluster burden is below the frozen
-precision-first ceiling?
+landmarks whose conditional trade-orientation-null false-cluster burden is
+below the frozen precision-first ceiling?
 ```
 
 The task is not a recall study.
@@ -173,10 +183,91 @@ Inputs:
 cache schema v4
 ```
 
-The exact cache authority, source inventory, session-role ledger, schema and
-consumed-field whitelist are inherited from accepted task `0829T001`.
+Frozen source cache root:
 
-Allowed cache fields remain exactly those frozen by `0829T001`.
+```text
+/Users/liu/Documents/
+hftbacktest-0829t001-precision-first-flow-coherence-audit/
+local_live_analysis/
+skhynix_precision_first_flow_coherence_a_minus1_0829T001/cache
+```
+
+The execution runner copies/verifies those 29 cache files into its own output
+root. It may not discover or substitute additional caches.
+
+Accepted predecessor/controller authority:
+
+```text
+accepted controller commit =
+  af0d38f432a343ec3fb5d89c7567f93745565f91
+
+accepted evidence parent =
+  f1ad26a6e891f5580e4d335a93c21eac1746f739
+```
+
+Frozen cache/source authority artifacts at that commit:
+
+```text
+source cache inventory path =
+  local_live_analysis/
+  skhynix_precision_first_flow_coherence_a_minus1_0829T001/
+  support/source_cache_inventory.csv
+
+Git blob OID =
+  c1c877b65a25e8976f972883b311c5a086ed4536
+
+file SHA256 =
+  e6f8f3fedb76eeed6d99cb8cb5306732af54f20bcb0882b56983dc61273a39e1
+
+inventory payload SHA256 =
+  e554793e98d9a000b1b8c0049897ed42a14167d07f16b1602acfcbb2f048b12c
+
+source cache contract path =
+  local_live_analysis/
+  skhynix_precision_first_flow_coherence_a_minus1_0829T001/
+  contracts/source_cache_contract.json
+
+Git blob OID =
+  e72e34b2f9fe78eb4fed6515f7dcac8e14fc2c59
+
+file SHA256 =
+  4b6b2c570093725a2f83a356d453b0c022bb3c47c23e8daf441c51ded55de494
+```
+
+The runner must verify controller ancestry, both Git blobs, both file hashes,
+the internal inventory payload hash and all 29 cache size/SHA/schema rows.
+
+Allowed cache fields are exactly:
+
+```text
+activity
+ask_depletion
+ask_depth
+bid_depletion
+bid_depth
+bin_boundary_violations
+cache_schema_version
+event_seq
+initial_bridge_failure_count
+midpoint
+non_admitted_message_contributions
+obi
+ofi
+ofi_abs
+quality_boundary_count
+ready
+reset_count
+segment_end_ids
+segment_end_ts
+segment_id
+sequence_gap_count
+spread_ticks
+tick_size
+trade_signed
+trade_total
+ts_ns
+valid_book
+```
 
 Values may be loaded only from:
 
@@ -210,20 +301,28 @@ blob SHA256 =
   f7dc1565bf0a45363dadf3204d827e0d13687f6cc3307c2e7c5e77aeb321400c
 ```
 
-The runner must verify and directly call the accepted implementations for:
+The runner must verify and directly call the accepted implementations with
+these normalized AST SHA256 values:
 
 ```text
-base_masks
-build_features
-fixed_opposite_orientation_pairs
-null_layout
-permute_trade_direction_paths
-prior_count
-run_length
+symbol                            normalized AST SHA256
+base_masks                        bc2155a38bd1707fcdb77bdebea611da3889934a47d415bdfd0d5a95842d7114
+build_features                    e5cca6c2b7627ef8e3719e4fdecb5a540a42a2028e2fb141ea9fff4f7c246933
+fixed_opposite_orientation_pairs  04cef064fdaf5cba94421d6d3250760ccf623b2d0531a883154d2a3bdb4b293d
+null_layout                       2def320606fa9caf45e5878845e91026b1284b57b1dd3ff8265038de92c8dcf5
+permute_trade_direction_paths     b870945f3a079f34337912776001c8bbe8af41c2644e2c0b4acf76277e7637ce
+prior_count                       abbd39099a876c70713b05871152fdfa56d1ee8d142611debe849f1afcc018a8
+run_length                        074d37d93e2b66de5d94c9112494fd3f615a5f24aa3ce77a2f5da64a5b37e37d
 ```
 
-Normalized AST SHA256 values must be frozen before execution. Reimplementation
-or callable rebinding is a hard authority failure.
+Normalization is:
+
+```text
+ast.dump(function_node, annotate_fields=True, include_attributes=False)
+SHA256 over ASCII bytes
+```
+
+Reimplementation or callable rebinding is a hard authority failure.
 
 ## 7. Primitive Channel Observations
 
@@ -241,6 +340,30 @@ r500_c(t)
 ```
 
 No cross-channel imputation is allowed.
+
+The rolling ratios are feature values, not channel-arrival timestamps.
+Therefore a finite ratio alone may not refresh channel memory.
+
+Freeze channel-specific new-evidence indicators from the underlying 20ms
+causal contribution bins:
+
+```text
+new_trade_evidence(t) =
+  trade_total(t) > 0
+
+new_depletion_evidence(t) =
+  bid_depletion(t) + ask_depletion(t) > 0
+
+new_ofi_evidence(t) =
+  ofi_abs(t) > 0
+```
+
+All four contribution magnitudes must be finite and non-negative. A negative
+or non-finite value is a source/numeric integrity failure, not `NO_UPDATE`.
+
+The indicators are invariant under the registered null because trade
+magnitude, depth magnitude, OFI magnitude, zero masks and missingness are
+preserved exactly.
 
 Define:
 
@@ -262,28 +385,50 @@ This prevents bounded memory from carrying a favorable sign through startup,
 reconnect, invalid-book or inactive-flow intervals.
 
 For filter margin `m` and direction `d in {-1,+1}`, define a current strong
-observation:
+observation only at a checkpoint with new evidence for that channel:
 
 ```text
 strong_{c,d,m}(t) =
-  finite(r100_c(t))
+  new_channel_evidence_c(t)
+  and finite(r100_c(t))
   and finite(r500_c(t))
   and d * r100_c(t) >= 0.50 + m
   and d * r500_c(t) >= 0.25 + m
 ```
 
-The channel observation is:
+The channel input action is:
 
 ```text
-O_{c,m}(t) =
-  +1       if strong_{c,+1,m}(t)
-  -1       if strong_{c,-1,m}(t)
-   0       if both ratios are finite but neither direction is strong
-  UNKNOWN  otherwise
+A_{c,m}(t) =
+  GLOBAL_INVALID
+    if base_eligible(t) = false
+
+  NEW_INVALID
+    if new_channel_evidence_c(t)
+    and either required ratio is non-finite
+
+  NEW_POS
+    if strong_{c,+1,m}(t)
+
+  NEW_NEG
+    if strong_{c,-1,m}(t)
+
+  NEW_NEUTRAL
+    if new_channel_evidence_c(t)
+    and both ratios are finite
+    and neither direction is strong
+
+  NO_UPDATE
+    if base_eligible(t)
+    and not new_channel_evidence_c(t)
 ```
 
-The positive and negative conditions must be mutually exclusive. Any overlap
-is an integrity failure.
+The positive and negative conditions must be mutually exclusive. Every
+channel/checkpoint must have exactly one action. Any overlap or gap is an
+integrity failure.
+
+`NO_UPDATE` never changes `last_observed_at_c`. Repeated finite rolling ratios
+without a new underlying contribution cannot refresh TTL.
 
 The amplitude thresholds are not lower than V2:
 
@@ -304,23 +449,25 @@ Update rules, in chronological order:
 
 1. Every segment/reset boundary or `base_eligible=false` checkpoint clears
    all channel memories.
-2. A finite `+1`, `-1` or `0` observation overwrites that channel memory and
-   stores its observation timestamp and event sequence.
-3. `UNKNOWN` does not overwrite the memory.
-4. A stored memory is usable only while:
+2. `NEW_POS`, `NEW_NEG` or `NEW_NEUTRAL` overwrites that channel memory and
+   stores the current checkpoint timestamp and event sequence.
+3. `NEW_INVALID` clears that channel memory immediately.
+4. `NO_UPDATE` does not overwrite the memory or refresh its timestamp.
+5. A stored memory is usable only while:
 
 ```text
 0 <= t - last_observed_at_c <= tau
 ```
 
-5. Once its age exceeds `tau`, the channel state is `UNKNOWN`.
-6. A neutral `0` observation invalidates an older directional state
+6. Once its age exceeds `tau`, the channel state is `UNKNOWN`.
+7. A neutral `0` observation invalidates an older directional state
    immediately. It may not be skipped in favor of an older sign.
-7. An opposite observation invalidates the previous direction immediately.
-8. No memory may cross capture, segment, reconnect or quality boundaries.
+8. An opposite observation invalidates the previous direction immediately.
+9. No memory may cross capture, segment, reconnect or quality boundaries.
 
-This is bounded causal carry, not forward filling. The TTL is part of the
-registered state model and is never inferred from later data.
+This is bounded event-evidence memory, not rolling-feature timestamp carry and
+not unrestricted forward filling. The TTL is measured from the checkpoint of
+the most recent new valid underlying channel contribution.
 
 ## 9. Aggregate M-State
 
@@ -476,6 +623,33 @@ larger margin is stricter
 Every stricter admitted candidate set and fixed cluster set must be a subset
 of every directly comparable looser set.
 
+This is a:
+
+```text
+common-anchor-conditioned delete-only confirmation family
+```
+
+It is not a claim that the natural onset timestamps of 27 independently run
+M-state detectors are nested.
+
+For diagnosis only, independently compute each `(tau,m)` natural onset ledger
+using its own 120ms background prestate before common-anchor restriction.
+Report:
+
+```text
+orphan_strict_onset =
+  natural onset under a stricter (tau,m)
+  that has no exact common-anchor identity
+```
+
+Orphan onsets:
+
+- are false negatives accepted by the registered common-anchor family;
+- may not enter filter selection;
+- may not enter observed or null estimators;
+- may not rescue any gate;
+- must be reported by date and filter.
+
 ## 12. Refractory And Dependence
 
 Apply once to the common chronological anchor ledger:
@@ -526,8 +700,44 @@ trade magnitude, zero mask, missingness and denominators invariant
 depth bundle and activity unchanged
 ```
 
-The M-state must be recomputed from the randomized causal features. Channel
-memory may not be copied from the observed run.
+The exact conditional null hypothesis is:
+
+```text
+H0_conditional:
+  conditional on the observed depth bundle, OFI/depletion path,
+  activity/intensity path, missingness, denominators, segment boundaries
+  and fixed matched-pair structure,
+  trade orientation labels are exchangeable within each registered
+  opposite-orientation pair.
+```
+
+The null asks whether trade orientation aligns with the fixed depletion/OFI
+path more often than this conditional exchangeability law permits.
+
+It does not estimate:
+
+- an unconditional market-background false-positive rate;
+- economic false positives;
+- the chance that a live trade loses money;
+- a null that randomizes depth or OFI structure.
+
+Every null replicate must start from randomized causal features and rerun the
+complete pipeline in this order:
+
+```text
+channel new-evidence actions
+-> filter-specific channel memories
+-> M-states
+-> common anchors
+-> common refractory
+-> replicate-specific fixed dependence clusters
+-> 27 delete-only confirmations
+-> external duration censor
+-> cluster counts
+```
+
+Observed channel memory, anchors, refractory decisions, cluster IDs,
+admission bits or counts may not be copied into a null replicate.
 
 Null banks:
 
@@ -622,14 +832,17 @@ For each held-out date:
 1. Use the other eight dates only.
 2. Use only the independent 30s selection null bank.
 3. For each filter, calculate the 199 training-date null false-cluster rates.
-4. Reject filters with zero, negative, non-finite or inconsistent exposure.
-5. Admit filters whose Type-7 p95 null false-cluster rate is at most:
+4. If training exposure is exactly zero, the filter is ordinarily not
+   admitted in that fold.
+5. Negative, non-finite or unit-inconsistent exposure is an A-1-4 integrity
+   failure, not an ordinary filter rejection.
+6. Admit filters whose Type-7 p95 null false-cluster rate is at most:
 
 ```text
 0.10 per comparison-supported capture hour
 ```
 
-6. Select the first admitted filter in frozen least-restrictive-first order:
+7. Select the first admitted filter in frozen least-restrictive-first order:
 
 ```text
 largest TTL
@@ -680,7 +893,73 @@ count_tail_p_h =
   (1 + count_r[N_{h,r} >= O_h]) / 200
 ```
 
-`0 observed / 0 null` is not estimable and may not be called high precision.
+Optional-value semantics:
+
+```text
+H_hours_h = 0
+  -> null_false_cluster_rate_p95_h = null
+  -> estimator is not estimable
+
+O_h = 0
+  -> structural_null_burden_ratio_p95_h = null
+  -> maximum_single_date_share_h = null
+  -> estimator is not estimable
+
+count_tail_p_h
+  -> remains finite in [0,1], including when O_h = 0
+```
+
+These exact null values are legitimate support semantics, not numeric
+corruption.
+
+Negative, NaN, infinite, type-invalid or unit-inconsistent count/exposure/
+rate values are integrity failures.
+
+Primary:
+
+- exact zero exposure or fewer than 30 observed clusters fails A-1-5;
+- `0 observed / 0 null` is not estimable and is never high precision.
+
+Sensitivities:
+
+- zero exposure or zero observed clusters at 10s or 60s makes that
+  sensitivity non-estimable and fails A-1-6.
+
+### 17.1 Raw Sparsity Estimator
+
+For held-out fold `j`, use its already selected filter `f_j` on the observed
+held-out date without any external comparison mask.
+
+Define:
+
+```text
+H_raw_checkpoint_count =
+  sum across non-NONE folds of unique checkpoints t where
+  every M-state checkpoint in [t-120ms,t+p_{f_j}] is non-ABSTAIN
+
+H_raw_seconds =
+  0.020 * H_raw_checkpoint_count
+
+H_raw_hours =
+  H_raw_seconds / 3600
+
+O_raw =
+  observed unique fixed clusters retained by the selected filters
+  before external comparison censor
+
+raw_cluster_rate =
+  O_raw / H_raw_hours when H_raw_hours > 0
+  else null
+```
+
+`NONE` folds contribute exactly zero raw clusters and zero raw exposure.
+
+The maximum 5s burst is calculated from selected-filter confirmation
+timestamps before external comparison censor, separately within captures;
+windows may not cross segment boundaries.
+
+Raw exact-zero exposure is legitimate but cannot pass A-1-7. Negative,
+non-finite or unit-inconsistent raw values fail A-1-4.
 
 ## 18. Primary Gates
 
@@ -703,7 +982,9 @@ Gate A-1-1, Zero Outcome:
 Gate A-1-2, M-State Integrity:
 
 - exact four-state partition;
+- exact six-action channel-input partition;
 - zero sign overlap;
+- zero TTL refresh without new channel evidence;
 - zero unknown-to-background conversion;
 - zero neutral-skip violations;
 - zero expiry violations;
@@ -729,8 +1010,11 @@ Gate A-1-4, Selection And Numeric Integrity:
 - held-out isolation exact;
 - null-bank overlap zero;
 - checkpoint/seconds/hours exact;
-- all counts, rates and exposures non-negative and finite;
-- zero/non-finite semantics fail closed;
+- all required counts and exposures non-negative, finite and correctly typed;
+- rate is null if and only if its exposure is exactly zero;
+- burden/share is null if and only if observed count is exactly zero;
+- legitimate zero support is not a numeric violation;
+- negative, NaN, inf and unit mismatch are numeric violations;
 - filter-duration numerator/denominator identity exact.
 
 Gate A-1-5, Structural Support Estimability:
@@ -810,6 +1094,7 @@ support/
   cross_fitted_null_summary.csv
   structural_false_fire_summary.csv
   parameter_monotonicity.csv
+  orphan_strict_onset_by_date.csv
   slice_invariance.csv
 
 reports/
@@ -827,6 +1112,10 @@ At minimum:
 
 - current strong observation threshold boundaries;
 - mutual exclusion of positive/negative observations;
+- no new underlying event means `NO_UPDATE`;
+- repeated finite rolling ratios without new evidence cannot refresh TTL;
+- channel-specific event masks cannot refresh another channel;
+- new evidence with non-finite required ratio clears that channel;
 - neutral immediately overwrites sign;
 - unknown retains sign only within TTL;
 - expiry at `tau + one checkpoint`;
@@ -835,22 +1124,33 @@ At minimum:
 - `ABSTAIN -> SIGNAL` cannot anchor;
 - six-checkpoint background prestate is exact;
 - stricter filters cannot create common anchors;
+- independently detected strict natural onsets missing from the common ledger
+  are counted as orphan diagnostics and never enter estimators;
 - all comparable filter candidate/cluster subsets are monotonic;
-- null recomputes M-state rather than copying observed memory;
+- the conditional H0 wording and fixed conditioning variables are exact;
+- every null replicate recomputes actions, memories, M-state, anchors,
+  refractory, clusters, filters and censor counts;
+- null cannot copy any observed memory/candidate/cluster/admission identity;
 - missingness and denominator invariants;
 - selection cannot read observed counts;
 - held-out date cannot enter selection;
-- zero/negative/NaN/inf exposure and rate routing;
+- `NONE` folds contribute zero observed/null/raw counts and exposure;
+- primary exact zero routes to A-1-5;
+- sensitivity exact zero routes to A-1-6;
+- raw exact zero fails A-1-7 without becoming integrity corruption;
+- negative/NaN/inf count, exposure and rate route to A-1-4;
 - exposure unit conversion;
 - comparison censor cannot alter causal candidates;
 - artificial slice/reset invariance;
 - Build A/B preseal, pending and final equality;
 - exact Required Outputs and manifest closure;
+- source/controller/cache inventory blob mutation fails authority;
+- every inherited callable AST/callable binding mutation fails authority;
 - poison future/unconsumed fields changes no output.
 
 ## 22. Execution Lock And Next Authority
 
-Revision 1 is not execution authority.
+Revision 2 is not execution authority.
 
 Before any 29-cache run:
 
