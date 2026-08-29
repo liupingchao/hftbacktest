@@ -323,7 +323,7 @@ def common_candidate_ledger(
     counts["common_refractory_admitted"] = len(admitted)
 
     previous: dict[str, Any] | None = None
-    cluster_ordinal = -1
+    cluster_start_ts = -1
     for candidate in admitted:
         same_cluster = (
             previous is not None
@@ -332,12 +332,14 @@ def common_candidate_ledger(
             <= DEPENDENCE_NS
         )
         if not same_cluster:
-            cluster_ordinal += 1
+            cluster_start_ts = int(candidate["candidate_ts_ns"])
         candidate["dependence_cluster_id"] = (
-            f"{capture_id}:{candidate['segment_id']}:{cluster_ordinal}"
+            f"{capture_id}:{candidate['segment_id']}:{cluster_start_ts}"
         )
         previous = candidate
-    counts["fixed_cluster_count"] = cluster_ordinal + 1
+    counts["fixed_cluster_count"] = len(
+        {row["dependence_cluster_id"] for row in admitted}
+    )
     return admitted, dict(sorted(counts.items()))
 
 
@@ -727,7 +729,8 @@ def select_filters(
 
 
 def monotonicity_rows(
-    candidate_sets: dict[str, set[str]]
+    candidate_sets: dict[str, set[str]],
+    cluster_sets: dict[str, set[str]],
 ) -> list[dict[str, Any]]:
     rows = []
     for left in FILTERS:
@@ -748,11 +751,16 @@ def monotonicity_rows(
                 candidate_sets[right.filter_id]
                 - candidate_sets[left.filter_id]
             )
+            cluster_violations = len(
+                cluster_sets[right.filter_id]
+                - cluster_sets[left.filter_id]
+            )
             rows.append(
                 {
                     "looser_filter_id": left.filter_id,
                     "stricter_filter_id": right.filter_id,
                     "candidate_subset_violations": violations,
+                    "cluster_subset_violations": cluster_violations,
                 }
             )
     return rows
@@ -773,6 +781,7 @@ def slice_invariance_rows(
             candidate["candidate_ts_ns"],
             candidate["direction"],
             filter_id,
+            candidate["dependence_cluster_id"],
         )
         for candidate in full_analysis["candidates"]
         for filter_id in candidate["admitted_filter_ids"]
@@ -822,11 +831,26 @@ def slice_invariance_rows(
                     candidate["candidate_ts_ns"],
                     candidate["direction"],
                     filter_id,
+                    candidate["dependence_cluster_id"],
                 )
                 for candidate in sliced_analysis["candidates"]
                 for filter_id in candidate["admitted_filter_ids"]
                 if candidate["candidate_ts_ns"] >= comparison_ts
             }
+            full_after_guard = (
+                (ts >= comparison_ts) & (segments == int(segment))
+            )
+            sliced_after_guard = sliced["ts_ns"] >= comparison_ts
+            expected_support_count = int(
+                np.count_nonzero(
+                    full_analysis["support"] & full_after_guard
+                )
+            )
+            actual_support_count = int(
+                np.count_nonzero(
+                    sliced_analysis["support"] & sliced_after_guard
+                )
+            )
             rows.append(
                 {
                     "capture_id": capture_id,
@@ -837,6 +861,11 @@ def slice_invariance_rows(
                     "expected_count": len(expected),
                     "actual_count": len(actual),
                     "identity_exact": expected == actual,
+                    "expected_support_count": expected_support_count,
+                    "actual_support_count": actual_support_count,
+                    "support_count_exact": (
+                        expected_support_count == actual_support_count
+                    ),
                 }
             )
             start_ts += stride
@@ -1437,6 +1466,7 @@ def write_contracts_and_summary(
             "looser_filter_id",
             "stricter_filter_id",
             "candidate_subset_violations",
+            "cluster_subset_violations",
         ),
     )
     predecessor.write_csv(
@@ -1451,6 +1481,9 @@ def write_contracts_and_summary(
             "expected_count",
             "actual_count",
             "identity_exact",
+            "expected_support_count",
+            "actual_support_count",
+            "support_count_exact",
         ),
     )
     predecessor.write_json(reports / "A_minus1_summary.json", summary)
@@ -1542,6 +1575,7 @@ def execute_audit(
     all_candidate_sets = {
         item.filter_id: set() for item in FILTERS
     }
+    all_cluster_sets = {item.filter_id: set() for item in FILTERS}
     slice_rows: list[dict[str, Any]] = []
     tri_state_violations = 0
     abstain_signal_violations = 0
@@ -1608,6 +1642,10 @@ def execute_audit(
             )
             all_candidate_sets[item.filter_id].update(
                 row["candidate_id"]
+                for row in capture_raw_rows[item.filter_id]
+            )
+            all_cluster_sets[item.filter_id].update(
+                row["dependence_cluster_id"]
                 for row in capture_raw_rows[item.filter_id]
             )
             states = analysis["tri_state"][item.filter_id]
@@ -1812,12 +1850,18 @@ def execute_audit(
         )
     raw_rate = raw_observed / raw_hours if raw_hours > 0 else math.inf
 
-    monotonic_rows = monotonicity_rows(all_candidate_sets)
+    monotonic_rows = monotonicity_rows(
+        all_candidate_sets, all_cluster_sets
+    )
     monotonicity_violations = sum(
-        int(row["candidate_subset_violations"]) for row in monotonic_rows
+        int(row["candidate_subset_violations"])
+        + int(row["cluster_subset_violations"])
+        for row in monotonic_rows
     )
     slice_mismatches = sum(
-        int(not bool(row["identity_exact"])) for row in slice_rows
+        int(not bool(row["identity_exact"]))
+        + int(not bool(row["support_count_exact"]))
+        for row in slice_rows
     )
     fingerprints = {
         key: len({hasher.hexdigest() for hasher in hashers})

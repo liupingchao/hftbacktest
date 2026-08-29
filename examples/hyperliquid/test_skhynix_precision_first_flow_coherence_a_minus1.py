@@ -229,9 +229,12 @@ def test_rng_stream_banks_are_disjoint_and_deterministic() -> None:
 
 def test_monotonicity_detects_stricter_only_candidate() -> None:
     candidate_sets = {item.filter_id: set() for item in AUDIT.FILTERS}
+    cluster_sets = {item.filter_id: set() for item in AUDIT.FILTERS}
     candidate_sets["F000"] = {"shared"}
     candidate_sets["F100"] = {"shared", "violation"}
-    rows = AUDIT.monotonicity_rows(candidate_sets)
+    cluster_sets["F000"] = {"cluster-shared"}
+    cluster_sets["F100"] = {"cluster-shared", "cluster-violation"}
+    rows = AUDIT.monotonicity_rows(candidate_sets, cluster_sets)
     target = next(
         row
         for row in rows
@@ -239,6 +242,7 @@ def test_monotonicity_detects_stricter_only_candidate() -> None:
         and row["stricter_filter_id"] == "F100"
     )
     assert target["candidate_subset_violations"] == 1
+    assert target["cluster_subset_violations"] == 1
 
 
 def test_same_determinism_root_is_rejected(tmp_path: Path) -> None:
