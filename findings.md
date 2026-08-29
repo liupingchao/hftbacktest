@@ -27,6 +27,11 @@
 - Verifying an ancestor file blob is insufficient if the new runner can
   silently reimplement its primitives; callable-level semantic binding is
   required.
+- Audit exposure must include the trailing influence of every state in the
+  novelty path. The correct left boundary is
+  `candidate - novelty - W_state`, not `candidate - max(novelty,W_state)`.
+- Sparse-firing guards should measure uncensored detector behavior; external
+  null pairability must not make an operationally dense detector look sparse.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 

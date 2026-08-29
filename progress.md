@@ -32,6 +32,17 @@
 - Empirical quantiles use the suffix `p95`, not confidence-bound language.
 - Data execution remains locked pending Round 3 review.
 
+## 2026-08-29 0829T001 Plan Review Round 3 Failed
+
+- Round 3 failed with `P0/P1/P2/P3 = 0/1/1/1`.
+- Revision 4 makes the comparison influence window additive:
+  novelty plus the two-second state-history dependency.
+- Filter-duration exposure now requires complete causal support at every
+  novelty and persistence checkpoint.
+- Sparse firing is measured on raw selected-filter behavior before any
+  external comparison censor.
+- Data execution remains locked pending Round 4 review.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

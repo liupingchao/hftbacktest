@@ -11,7 +11,7 @@ Audit ID: `PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1`
 
 Status: frozen draft pending independent plan review
 
-Revision: 3
+Revision: 4
 
 Review history:
 
@@ -23,6 +23,11 @@ Round 1:
 
 Round 2:
   P0/P1/P2/P3 = 0/1/3/1
+  recommendation = FAIL
+  data execution lock = retained
+
+Round 3:
+  P0/P1/P2/P3 = 0/1/1/1
   recommendation = FAIL
   data execution lock = retained
 ```
@@ -546,27 +551,39 @@ The causal detector runs without knowing pairability or microblock boundaries.
 It assigns tri-state outputs, candidates, refractory and fixed cluster IDs
 first.
 
+Freeze the maximum trailing influence required to compute one V2 state:
+
+```text
+W_state = 2000ms
+```
+
 For duration `h`, filter `f` and possible candidate rising-edge checkpoint
 `t`, define:
 
 ```text
-L_f =
-  max(
-    2000ms maximum causal feature history,
-    500ms prestate lookback,
-    filter_novelty_ms
-  )
+causal_path_supported_f(t) =
+  every checkpoint in
+  [t - filter_novelty_ms, t + filter_persistence_ms]
+  has complete V2 causal decision support
 
-R_f = filter_persistence_ms
+comparison_path_supported_{h,f}(t) =
+  duration-h external comparison mask is true at every checkpoint in
+  [
+    t - filter_novelty_ms - W_state,
+    t + filter_persistence_ms
+  ]
 
 E_{h,f}(t) =
-  V2 causal decision support at t
-  and duration-h external comparison mask is true at every checkpoint in
-  [t - L_f, t + R_f]
+  causal_path_supported_f(t)
+  and comparison_path_supported_{h,f}(t)
 ```
 
 `E_{h,f}(t)=false` produces `audit_censored`, not `ABSTAIN`, and does not alter
 detector state or later candidates.
+
+The left extension is additive. It is not
+`max(filter_novelty_ms,W_state)`: the earliest novelty checkpoint has its own
+two-second trailing feature influence.
 
 A fixed cluster is included when at least one retained signal in that cluster
 has `E_{h,f}(candidate_ts)=true`. It is counted once regardless of direction
@@ -858,13 +875,36 @@ Aminus1_structural_false_fire_control_failed
 
 ### Gate A-1-7: Sparse Firing Guard
 
+This gate measures actual selected-filter detector behavior before external
+audit censoring.
+
+Define:
+
+```text
+O_raw =
+  cross-fitted selected-filter observed unique fixed-cluster count
+  before external censor
+
+H_raw =
+  sum over held-out folds j of unique capture-time checkpoints t where
+  causal_path_supported_{f_j}(t)=true
+
+raw_cluster_rate =
+  O_raw / H_raw
+
+raw_5s_burst =
+  maximum selected-filter confirmation count in any same-capture 5s window
+  before external censor
+```
+
 Require:
 
 ```text
-observed cluster rate <= 5 per decision-supported hour
-maximum same-capture 5s burst <= 2
+raw_cluster_rate <= 5 per hour
+raw_5s_burst <= 2
 ```
 
+The external comparison mask, `O_h` and `H_h` do not enter this gate.
 There is no minimum firing-rate gate.
 
 ## 15. Classification Precedence
@@ -948,6 +988,8 @@ comparison mask changes detector state -> hard failure
 filter-specific cluster recomputation -> hard failure
 cross-segment cluster merge -> hard failure
 direction-time denominator double count -> hard failure
+novelty or persistence support-gap checkpoint enters H -> hard failure
+comparison path omits earliest-state W_state influence -> hard failure
 poisoned allowed-but-unconsumed midpoint/OBI/spread -> no output change
 callable replacement or inherited symbol byte change -> hard failure
 ```
