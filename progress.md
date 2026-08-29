@@ -116,6 +116,20 @@
 - A0, future-outcome access and live trading remain unauthorized.
 - Task status is `待验收`.
 
+## 2026-08-29 0829T001 QA Round 1 Failed
+
+- Independent QA failed with `P0/P1/P2/P3 = 0/1/2/0`.
+- Canonical scientific result, 350-candidate ledger, null admissibility,
+  Build A/B equality and `Aminus1_structural_support_not_estimable`
+  classification were independently reproduced.
+- Remediation is execution-contract only:
+  - dynamically route negative/non-finite/unit-corrupt fields to A-1-4;
+  - emit the exact frozen Required Outputs, including tri-state-by-date;
+  - add preseal/pending/final deterministic comparisons and evidence.
+- Detector, filter family, null, thresholds and scientific result remain
+  frozen.
+- Task status is `未通过`.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

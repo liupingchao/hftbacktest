@@ -1,134 +1,26 @@
-# QA 验收结果
+# QA Acceptance Report
 
-执行线程：
-- QA验收线程
+Task: `0829T001`
 
-任务ID：
-- 0828T014
+Date: 2026-08-29
 
-状态：
-- 已通过
+Round: 1
 
-更新时间：
-- 2026-08-28 02:50 CST
+Status: `未通过`
 
-验收线程：
-- 第二轮独立只读 QA 验收线程
+Severity:
+- P0: 0
+- P1: 1
+- P2: 2
+- P3: 0
 
-验收对象：
-- remediation commit：`738072202ea038157f836397654f88b898cf66da`
-- workflow handoff commit：`582c8deb5689a272637f91a1adfae65756767e7e`
+Required remediation:
+- Derive numeric-integrity failures from actual fields and route corruption
+  uniquely to A-1-4.
+- Emit the exact frozen Required Outputs, including tri-state-by-date.
+- Persist preseal, pending and final deterministic comparison evidence.
 
-验收范围：
-- 第一轮四个 execution-package 缺陷的闭合情况。
-- Plan/source/cache、slice invariance、feature-window gate、
-  zero-outcome boundary、Build A/B determinism、manifest、
-  scientific results、classification precedence 和权限边界。
-- 本轮不重跑 199-replicate structural-null research，不读取
-  future-price outcome，不修改工作区文件。
+Scientific result remains:
+- `Aminus1_structural_support_not_estimable`
 
-缺陷分级：
-- P0：0
-- P1：0
-- P2：0
-- P3：0
-
-验收步骤：
-1. 核对指定 commits、commit ancestry、变更范围、plan SHA 和 Git 状态。
-2. 审计 V0-V8 slice/reset invariance 实现及提交产物。
-3. 从 29 个 task cache 独立重算 supplemental slice/boundary audit。
-4. 审计 quality boundary、snapshot reset、segment 和 feature warm-up 语义。
-5. 核对 source Git blobs、cache exact schema、consumed whitelist 和
-   zero-outcome admission。
-6. 核对 pair finalizer、same-root rejection、manifest closure 和
-   Build A/B 全部 non-cache SHA。
-7. 运行 13 focused tests、Ruff、内存 compile 和 git diff check。
-8. 比较 remediation 前后科学数值、failed gates、classification 和
-   authorization flags。
-
-实际结果：
-- Frozen plan SHA256 为
-  `ec299f44386b8fcbf5498c5a0099290be968a2bdfc6d6c4c4bb78fbb1b59fcf3`，
-  与 runner 常量及 source-cache contract 完全一致。
-- V0-V8 各执行 188 个 artificial starts，共 1,692 行。
-- 独立重算得到 1,692 行，与提交的 `slice_invariance.csv` 逐行一致。
-- Anchor identity、正负方向计数、median dwell 和 combined exact
-  mismatch 均为 0。
-- 独立重算的 variant anchor counts 为
-  V0/V1/V2/V3/V4/V5/V6/V7/V8 =
-  `93/99/81/110/87/116/77/194/22`。
-- `cross_segment_or_quality_feature_window_violations=0`。
-- 独立检查 6,101,526 个 ready checkpoints，跨 segment 或非连续
-  20ms history violations 为 0。
-- 上游 replay 在 initial bridge failure、sequence gap 和 snapshot
-  reset 时结束旧 segment、递增 segment_id 并重新 warm-up；
-  最大 2 秒 rolling feature window 只在同一 segment 内计算。
-- Source commit `5603a670e617636b9994d605faef833164d3add4`
-  存在且为 HEAD 祖先；2 个 authority 文件与该 commit Git blobs
-  逐字节一致。
-- Build A/B 各 29 个 cache 均匹配 frozen cache authority 的 size/SHA；
-  两个 build 的 cache SHA mismatch count 为 0。
-- Cache schema 严格限定为 27 个字段；runner 只加载 12 个 causal
-  structural fields。额外 `future_return_500ms` 字段会 fail closed。
-- Midpoint、OBI、spread、future return/markout、fill、fee 和 PnL
-  均未进入 consumed whitelist。
-- Pair finalizer 使用不同 resolved roots；同根 CLI 负测准确拒绝并返回
-  `determinism_pair_roots_not_distinct`。
-- Determinism evidence 的 preseal、pending、final difference count
-  均为 0。
-- Build A/B 的 29 个 managed artifacts 加 run_manifest，共 30 个
-  non-cache files，路径和 SHA 全部一致。
-- 两个 manifest 均为 29/29 exact path、size、SHA closure。
-- Fingerprint 文档和实现统一使用 `capture_ordinal`；
-  不再存在 `capture_cache_name`。
-- Focused tests：`13 passed`。
-- Ruff、内存 compile、git diff check：全部通过。
-- Remediation 前后 reference、shadow、variant、nuisance 和三个
-  structural-null duration 的科学数值全部不变。
-- Classification precedence 实现未改变；首个失败 gate 仍为 A-1-2，
-  classification 仍为 `Aminus1_feature_support_failed`。
-- 核心结果保持：
-  availability `0.720148/0.592082`，V0 anchors `93`，
-  stable variants `0/9`，null count separation `34<41.1`、
-  `40<46`、`25<26`。
-- `draft_a0_contract=false`、
-  `a0_execution_authorized=false`、
-  `future_target_access_authorized=false`。
-- HEAD 为 `582c8deb`，remediation commit 为其祖先，Git 工作区干净。
-
-验收结论：
-- 已通过
-- 结论说明：
-  - 第一轮四个缺陷均已通过实现审计、产物审计、负向测试和独立
-    supplemental 复算闭合。
-  - Remediation 未改变科学结果、classification precedence 或
-    outcome-access 边界。
-  - 当前 hypothesis 仍应停止在 A-1，不授权起草或执行 A0。
-
-通过项：
-1. V0-V8 完整 slice/reset invariance。
-2. Cross-segment/cross-quality atomic gate。
-3. Source/cache/zero-outcome fail-closed evidence。
-4. Distinct-root Build A/B deterministic evidence。
-5. Fingerprint identity 文档统一。
-6. 科学数值、分类和权限封锁保持不变。
-7. Tests、静态检查、manifest 和 Git 状态全部通过。
-
-不通过项：
-1. 无。
-
-缺陷清单：
-1. 无。
-
-阻塞项：
-- 无。
-
-建议总控下一步：
-1. 将本报告同步覆盖 `docs/qa-acceptance-report.md`。
-2. 将任务 `0828T014` 状态更新为 `已通过`。
-3. 保持 A0 和 future-target access 禁止，不以本次 QA 通过
-   覆盖 `Aminus1_feature_support_failed` 的科学停止结论。
-
-提交信息：
-- commit：无
-- 本轮为独立只读 QA，未修改或提交任何文件。
+No A0, future-outcome access or live trading is authorized.

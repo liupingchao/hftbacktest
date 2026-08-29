@@ -61,6 +61,13 @@
 - The structural null itself is admissible and deterministic. Its zero counts
   cannot rescue the hypothesis because `0 observed / 0 null` has no burden or
   precision interpretation.
+- QA Round 1 confirmed the negative result but found that numeric integrity
+  was self-declared rather than recomputed. A fail-closed scientific package
+  must derive A-1-4 from actual count/exposure/rate values.
+- Required artifact names are part of the frozen contract. Semantically
+  similar names do not close a missing tri-state-by-date evidence surface.
+- Deterministic evidence needs three persisted stages: preseal, pending and
+  final. A preseal/final pair alone is insufficient.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 
