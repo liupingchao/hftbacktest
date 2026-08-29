@@ -27,6 +27,15 @@
   onsets. Under precision-first loss this is acceptable, but the omitted
   onsets must be reported as false-negative diagnostics and excluded from
   selection/inference.
+- Information-boundary whitelists must name both derived ratios and the raw
+  current contribution magnitudes used to determine whether a channel
+  observation is genuinely new.
+- Raw source corruption must fail before state construction. Otherwise the
+  same defect can ambiguously appear as source, action-partition or derived
+  numeric failure.
+- Event-mask equality is stronger than preserving aggregate zero counts.
+  Checkpoint-exact trade/depletion/OFI masks are required because they define
+  memory timestamps and therefore M-state exposure.
 
 ## 2026-08-29 Precision-First Detector Objective
 

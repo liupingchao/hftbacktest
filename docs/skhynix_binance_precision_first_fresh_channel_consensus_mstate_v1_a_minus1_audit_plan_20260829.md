@@ -9,9 +9,9 @@ Hypothesis ID: `FRESH_CHANNEL_CONSENSUS_MSTATE_V1`
 
 Audit ID: `FRESH_CHANNEL_CONSENSUS_MSTATE_V1_A_MINUS1`
 
-Status: candidate contract Revision 2; data execution locked
+Status: candidate contract Revision 3; data execution locked
 
-Revision: 2
+Revision: 3
 
 Review history:
 
@@ -19,6 +19,14 @@ Review history:
 Round 1:
   reviewed commit = 2dc0ada6
   P0/P1/P2/P3 = 0/4/2/0
+  recommendation = FAIL
+  data execution lock = retained
+
+Round 2:
+  reviewed commit = d601242f
+  plan SHA256 =
+    57b12e75f3b582685f6037327fd417fdcd920aefdb4255e3f765a5d5beea4026
+  P0/P1/P2/P3 = 0/1/2/0
   recommendation = FAIL
   data execution lock = retained
 ```
@@ -137,6 +145,9 @@ Forbidden values:
 Permitted causal values:
 
 - current and trailing trade, depletion and OFI ratios;
+- current 20ms `trade_total`;
+- current 20ms `bid_depletion` and `ask_depletion`;
+- current 20ms `ofi_abs`;
 - current readiness, activity and segment identity;
 - trailing channel-memory state;
 - outcome-blind null assignments and external comparison masks.
@@ -358,12 +369,48 @@ new_ofi_evidence(t) =
   ofi_abs(t) > 0
 ```
 
-All four contribution magnitudes must be finite and non-negative. A negative
-or non-finite value is a source/numeric integrity failure, not `NO_UPDATE`.
+All four contribution magnitudes must be finite and non-negative.
+
+Before constructing any channel action, perform a source preflight over every
+consumed contribution value:
+
+```text
+invalid_source_contribution_count =
+  count of negative, NaN, +inf or -inf values among
+  trade_total, bid_depletion, ask_depletion and ofi_abs
+```
+
+If the count is nonzero:
+
+- Gate A-1-0 fails;
+- classification is `Aminus1_source_not_admissible`;
+- M-state/action/null execution stops;
+- A-1-1 through A-1-7 are `NOT_EVALUATED`;
+- the value is never converted to `NO_UPDATE`, `NEW_INVALID` or a numeric
+  A-1-4 defect.
+
+A-1-4 is reserved for corruption in derived count/exposure/rate evidence
+after source admissibility has passed.
 
 The indicators are invariant under the registered null because trade
 magnitude, depth magnitude, OFI magnitude, zero masks and missingness are
 preserved exactly.
+
+For every date, bank, duration and replicate, require exact channel-specific
+mask identity:
+
+```text
+observed_new_trade_evidence_mask
+  == null_new_trade_evidence_mask
+
+observed_new_depletion_evidence_mask
+  == null_new_depletion_evidence_mask
+
+observed_new_ofi_evidence_mask
+  == null_new_ofi_evidence_mask
+```
+
+Each comparison is checkpoint-exact, not count-only.
 
 Define:
 
@@ -688,6 +735,43 @@ State evidence by date and filter must include:
 - per-channel neutral-overwrite count;
 - maximum observed memory age.
 
+`channel_state_support_by_date.csv` has one row per:
+
+```text
+research_date, filter_id, channel
+```
+
+Frozen columns:
+
+```text
+research_date
+filter_id
+channel
+global_invalid_action_count
+new_invalid_action_count
+new_pos_action_count
+new_neg_action_count
+new_neutral_action_count
+no_update_action_count
+total_action_count
+action_partition_exact
+observed_new_evidence_count
+invalid_source_contribution_count
+expiry_count
+neutral_overwrite_count
+unauthorized_ttl_refresh_count
+maximum_memory_age_ms
+selection_null_new_evidence_mask_mismatch_count
+evaluation_10s_new_evidence_mask_mismatch_count
+evaluation_30s_new_evidence_mask_mismatch_count
+evaluation_60s_new_evidence_mask_mismatch_count
+```
+
+`invalid_source_contribution_count` must be zero before detector execution.
+The four mask-mismatch columns are per-date/channel totals across all
+replicates in that bank/duration and are duplicated across filter rows only
+for a closed evidence schema.
+
 ## 14. Outcome-Blind Structural Null
 
 Reuse the accepted paired opposite-orientation path-swap null:
@@ -766,6 +850,9 @@ Required null invariants:
 - exact zero-mask preservation;
 - exact missingness preservation;
 - exact denominator preservation;
+- exact trade new-evidence mask identity;
+- exact depletion new-evidence mask identity;
+- exact OFI new-evidence mask identity;
 - fixed pair identity;
 - comparison-mask identity;
 - at least 190 distinct fingerprints among 199 replicates;
@@ -967,6 +1054,7 @@ Gate A-1-0, Authority:
 
 - plan SHA and accepted ancestry;
 - source/cache/schema closure;
+- invalid source contribution count zero;
 - exact callable binding;
 - Build A/B distinct roots;
 - preseal, pending and final difference counts all zero;
@@ -999,6 +1087,9 @@ Gate A-1-3, Structural Null Admissibility:
 - 199 replicates in every bank;
 - at least 190 distinct fingerprints;
 - zero stream overlap;
+- zero trade new-evidence mask mismatches;
+- zero depletion new-evidence mask mismatches;
+- zero OFI new-evidence mask mismatches;
 - zero conservation/invariant mismatches;
 - minimum date-pair count at least 3;
 - maximum date p95 joint distance at most 0.60.
@@ -1115,6 +1206,7 @@ At minimum:
 - no new underlying event means `NO_UPDATE`;
 - repeated finite rolling ratios without new evidence cannot refresh TTL;
 - channel-specific event masks cannot refresh another channel;
+- mutation of each trade/depletion/OFI null event mask fails A-1-3;
 - new evidence with non-finite required ratio clears that channel;
 - neutral immediately overwrites sign;
 - unknown retains sign only within TTL;
@@ -1144,13 +1236,15 @@ At minimum:
 - artificial slice/reset invariance;
 - Build A/B preseal, pending and final equality;
 - exact Required Outputs and manifest closure;
+- negative/NaN/inf source contribution fails uniquely at A-1-0 before action
+  construction, with later gates not evaluated;
 - source/controller/cache inventory blob mutation fails authority;
 - every inherited callable AST/callable binding mutation fails authority;
 - poison future/unconsumed fields changes no output.
 
 ## 22. Execution Lock And Next Authority
 
-Revision 2 is not execution authority.
+Revision 3 is not execution authority.
 
 Before any 29-cache run:
 

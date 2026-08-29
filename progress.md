@@ -32,6 +32,20 @@
   occurring strict onsets are orphan diagnostics only.
 - Data execution remains locked pending Round 2.
 
+## 2026-08-29 0829T002 Plan Review Round 2 Failed
+
+- Independent review returned `P0/P1/P2/P3 = 0/1/2/0`.
+- All Round 1 defects were confirmed closed.
+- Revision 3 adds the four current channel contributions to the formal
+  permitted causal information set.
+- Invalid source contributions now fail uniquely at A-1-0 before any action,
+  M-state or null construction.
+- Trade, depletion and OFI new-evidence masks are checkpoint-exact observed/
+  null invariants with dedicated mismatch counters.
+- The channel-state support table now has a frozen schema covering six action
+  counts, event counts, source invalidity, TTL refresh and null-mask identity.
+- Data execution remains locked pending Round 3.
+
 ## 2026-08-29 0829T001 Precision-First Flow Coherence V2 Contract Drafted
 
 - Created a clean worktree and branch from accepted commit `45544ecc`.
