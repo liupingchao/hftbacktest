@@ -9,7 +9,7 @@ Hypothesis ID: `FIXED_CAUSAL_EPOCH_MSTATE_V2`
 
 Audit ID: `FIXED_CAUSAL_EPOCH_MSTATE_V2_A_MINUS1`
 
-Status: candidate contract Revision 5; data execution locked
+Status: candidate contract Revision 6; data execution locked
 
 ## 1. Decision Context
 
@@ -453,6 +453,22 @@ using `sort_keys=True,separators=(",",":"),ensure_ascii=True`.
 `consumed_value_fields` is exactly the bound `CONSUMED_CACHE_FIELDS`;
 unconsumed value bytes never enter this hash or any other output identity.
 Reusing or slicing full-run rolling features is prohibited.
+
+A-1-1 poison protocol is separate from source-authority mutation:
+
+1. Verify the canonical unmodified cache, full-file SHA and inventory under
+   A-1-0.
+2. After authority succeeds but before detector or slice field routing, make
+   an independent in-memory copy.
+3. Poison every unconsumed field value in that copy while preserving field
+   name, dtype and shape.
+4. Reuse the already verified canonical authority evidence; the poisoned
+   copy is not a new source cache.
+5. Run the complete analysis/finalization and compare all 25 artifact paths
+   and SHA256 values with the canonical run.
+
+Any source-file mutation before authority is a distinct A-1-0 hostile test
+and must not be interpreted as A-1-1 poison.
 Full and sliced capture endpoints are always the corresponding preflighted
 `ts_ns[0]` and `ts_ns[-1]`; copied metadata may not supply an endpoint.
 
@@ -746,9 +762,15 @@ Gate A-1-4, selection and numeric integrity:
 - stored raw-supported and occupied SHA256 values equal reconstructed
   canonical hashes;
 - occupied count is at most raw-supported count;
+- when raw-supported count is positive, stored raw occupancy share equals
+  `occupied_epoch_count / raw_supported_epoch_count` exactly as computed
+  from those integer counts;
 - structural occupied subset violation count equals zero;
 - structural counts and identity hash equal reconstructed eligible/occupied
   sets;
+- when structural eligible count is positive, stored structural occupancy
+  share equals `structurally_occupied_epoch_count /
+  structurally_eligible_epoch_count` from those integer counts;
 - legitimate zero support is not numeric corruption;
 - NaN, infinity, negative values, invalid types or unit mismatch fail.
 
@@ -799,8 +821,14 @@ A-1-6 sensitivities:
 A-1-7:
   raw exposure > 0
   raw selected-filter cluster rate <= 5/hour
-  occupied supported epoch share <= 0.10
+  occupied supported epoch share <= 0.10, implemented without tolerance as
+  10 * occupied_epoch_count <= raw_supported_epoch_count
 ```
+
+Output shares are generated only from the frozen integer counts using Python
+float division and canonical JSON serialization. A-1-4 compares the stored
+float to that unique recomputation with exact equality; no epsilon or rounded
+display value participates in a gate.
 
 Maximum 5s burst must be at most one and is an A-1-2 bookkeeping integrity
 diagnostic, not empirical sparsity evidence. It uses every unique common
@@ -1026,6 +1054,8 @@ At minimum:
   fails;
 - poisoning every unconsumed value leaves `slice_source_sha256` and all 25
   artifacts unchanged;
+- source-file poison before authority uniquely fails A-1-0, while
+  post-authority in-memory unconsumed poison leaves all artifacts unchanged;
 - exact row-aligned field-set and stale full-capture endpoint mutations;
 - multi-segment slice comparison excludes later segments;
 - finite `K_segment`, last nominal boundary and no early-stop behavior;
@@ -1049,6 +1079,8 @@ At minimum:
 - positive raw-supported epochs with zero occupied epochs produce `0.0`, not
   null;
 - raw support/occupied hashes, subset relation and summary field mutation;
+- correct raw/structural counts and hashes with spoofed finite shares fail
+  A-1-4;
 - structural occupancy denominator-zero, positive-denominator-zero, hash and
   subset semantics;
 - selection/evaluation banks are disjoint;
