@@ -32,6 +32,9 @@
   `candidate - novelty - W_state`, not `candidate - max(novelty,W_state)`.
 - Sparse-firing guards should measure uncensored detector behavior; external
   null pairability must not make an operationally dense detector look sparse.
+- Exposure units are part of the scientific contract. Dividing a cluster
+  count by checkpoint count and comparing it with a per-hour threshold can
+  weaken the gate by a factor of 180,000 at a 20ms cadence.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 

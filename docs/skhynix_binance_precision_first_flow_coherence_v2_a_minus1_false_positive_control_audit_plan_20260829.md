@@ -11,7 +11,7 @@ Audit ID: `PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1`
 
 Status: frozen draft pending independent plan review
 
-Revision: 4
+Revision: 5
 
 Review history:
 
@@ -28,6 +28,11 @@ Round 2:
 
 Round 3:
   P0/P1/P2/P3 = 0/1/1/1
+  recommendation = FAIL
+  data execution lock = retained
+
+Round 4:
+  P0/P1/P2/P3 = 0/0/1/0
   recommendation = FAIL
   data execution lock = retained
 ```
@@ -589,21 +594,29 @@ A fixed cluster is included when at least one retained signal in that cluster
 has `E_{h,f}(candidate_ts)=true`. It is counted once regardless of direction
 or the number of included confirmations.
 
-The filter-duration exposure is:
+The filter-duration exposure is frozen in three explicit units:
 
 ```text
-H_{h,f,D} =
-  20ms * count of unique capture-time checkpoints t on date set D
-  where E_{h,f}(t)=true
+H_checkpoint_count_{h,f,D} =
+  count of unique capture-time checkpoints t on date set D where
+  E_{h,f}(t)=true
+
+H_seconds_{h,f,D} =
+  0.020 * H_checkpoint_count_{h,f,D}
+
+H_hours_{h,f,D} =
+  H_seconds_{h,f,D} / 3600
 ```
 
 Exposure is counted once per capture-time checkpoint, never once per
 direction. If directional support ever differs, `E_{h,f}(t)` is true only when
 both directions are supported.
 
-Observed and null use exactly the same `E_{h,f}` and `H_{h,f,D}`. Because the
-null preserves support and external masks, any exposure mismatch is a hard
-failure.
+Observed and null use exactly the same `E_{h,f}`,
+`H_checkpoint_count_{h,f,D}`, `H_seconds_{h,f,D}` and `H_hours_{h,f,D}`.
+Because the null preserves support and external masks, any exposure mismatch
+is a hard failure. Every rate stated as `per hour` uses `H_hours`, never a raw
+checkpoint count.
 
 ## 11. Null-Only Filter Selection
 
@@ -697,8 +710,15 @@ N_{h,r} =
   evaluation-bank cross-fitted unique fixed-cluster count for duration h,
   replicate r
 
-H_h =
-  sum over held-out folds j of H_{h,f_j,{held-out date j}}
+H_checkpoint_count_h =
+  sum over held-out folds j of
+  H_checkpoint_count_{h,f_j,{held-out date j}}
+
+H_seconds_h =
+  0.020 * H_checkpoint_count_h
+
+H_hours_h =
+  H_seconds_h / 3600
 ```
 
 Estimators:
@@ -707,7 +727,7 @@ Estimators:
 null_count_{h,p95} = Type-7 p95 of N_{h,r}
 
 null_false_cluster_rate_{h,p95} =
-  null_count_{h,p95} / H_h
+  null_count_{h,p95} / H_hours_h
 
 structural_null_burden_ratio_{h,p95} =
   null_count_{h,p95} / max(O_h,1)
@@ -809,7 +829,8 @@ Require:
 - candidate-set and fixed-cluster-count monotonicity violations = 0;
 - fixed cluster ID recomputation after filtering = 0;
 - cross-segment fixed-cluster merge = 0;
-- observed/null `E_{h,f}` or `H_{h,f,D}` mismatch = 0;
+- observed/null `E_{h,f}`, checkpoint-count, seconds or hours exposure
+  mismatch = 0;
 - slice/reset mismatches = 0.
 
 Slice/reset audit covers all 27 filters, tri-state counts, base-candidate
@@ -885,12 +906,18 @@ O_raw =
   cross-fitted selected-filter observed unique fixed-cluster count
   before external censor
 
-H_raw =
+raw_supported_checkpoint_count =
   sum over held-out folds j of unique capture-time checkpoints t where
   causal_path_supported_{f_j}(t)=true
 
-raw_cluster_rate =
-  O_raw / H_raw
+H_raw_seconds =
+  0.020 * raw_supported_checkpoint_count
+
+H_raw_hours =
+  H_raw_seconds / 3600
+
+raw_cluster_rate_per_hour =
+  O_raw / H_raw_hours
 
 raw_5s_burst =
   maximum selected-filter confirmation count in any same-capture 5s window
@@ -900,11 +927,11 @@ raw_5s_burst =
 Require:
 
 ```text
-raw_cluster_rate <= 5 per hour
+raw_cluster_rate_per_hour <= 5
 raw_5s_burst <= 2
 ```
 
-The external comparison mask, `O_h` and `H_h` do not enter this gate.
+The external comparison mask, `O_h` and `H_hours_h` do not enter this gate.
 There is no minimum firing-rate gate.
 
 ## 15. Classification Precedence
@@ -990,6 +1017,8 @@ cross-segment cluster merge -> hard failure
 direction-time denominator double count -> hard failure
 novelty or persistence support-gap checkpoint enters H -> hard failure
 comparison path omits earliest-state W_state influence -> hard failure
+180000 supported checkpoints and 5 raw clusters ->
+  H_raw_hours=1 and raw_cluster_rate_per_hour=5
 poisoned allowed-but-unconsumed midpoint/OBI/spread -> no output change
 callable replacement or inherited symbol byte change -> hard failure
 ```

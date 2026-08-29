@@ -43,6 +43,14 @@
   external comparison censor.
 - Data execution remains locked pending Round 4 review.
 
+## 2026-08-29 0829T001 Plan Review Round 4 Failed
+
+- Round 4 failed with `P0/P1/P2/P3 = 0/0/1/0`.
+- Revision 5 freezes every exposure in checkpoint, seconds and hours units.
+- The sparse gate now divides raw cluster count by `H_raw_hours`; a hostile
+  unit test requires 180,000 supported 20ms checkpoints to equal one hour.
+- Data execution remains locked pending Round 5 review.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree
