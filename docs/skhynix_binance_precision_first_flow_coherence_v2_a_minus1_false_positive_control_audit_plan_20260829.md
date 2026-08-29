@@ -11,7 +11,7 @@ Audit ID: `PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1`
 
 Status: frozen draft pending independent plan review
 
-Revision: 6
+Revision: 7
 
 Review history:
 
@@ -38,6 +38,11 @@ Round 4:
 
 Round 5:
   P0/P1/P2/P3 = 0/0/1/0
+  recommendation = FAIL
+  data execution lock = retained
+
+Round 6:
+  P0/P1/P2/P3 = 0/0/3/0
   recommendation = FAIL
   data execution lock = retained
 ```
@@ -647,9 +652,10 @@ For each outer held-out date:
    each of 199 replicates on the remaining dates.
 3. Compute the Type-7 p95 false-cluster rate using the unique capture-time
    comparison-supported denominator frozen in Section 10.1.
-   If the training-date `H_hours_{30s,f,D_train}` is zero, non-finite or
-   otherwise not estimable, the filter is not admitted. A zero null count
-   never converts zero exposure into a zero rate.
+   If the training-date `H_hours_{30s,f,D_train}` is exactly zero, the filter
+   is not admitted. A zero null count never converts zero exposure into a zero
+   rate. Negative or non-finite exposure is an integrity failure under
+   Section 14 rather than an ordinary filter rejection.
 4. Admit filters whose p95 null false-cluster rate is at most:
 
 ```text
@@ -665,7 +671,23 @@ then shortest novelty
 then filter_id
 ```
 
-If no filter qualifies, the complete held-out date is `ABSTAIN`.
+If no filter qualifies, freeze this fold-level sentinel:
+
+```text
+f_j = NONE
+fold_selected_filter = null
+fold_state = META_ABSTAIN
+observed cluster contribution = 0
+null cluster contribution = 0 for every duration and replicate
+H_checkpoint_count contribution = 0 for every duration
+raw supported-checkpoint and cluster contribution = 0
+```
+
+`META_ABSTAIN` is a cross-fit selection state, not a fourth checkpoint-level
+detector state. A partial set of `NONE` folds does not itself fail the audit;
+the aggregate primary support gate decides estimability. If all nine folds
+are `NONE`, Gate A-1-5 fails with
+`Aminus1_structural_support_not_estimable`.
 
 This rule deliberately does not reward observed firing count.
 It makes no claim that the lexicographic order is a total ordering of every
@@ -707,7 +729,8 @@ Monte Carlo draws used for selection.
 
 Primary units are 30-second dependence clusters, not raw confirmations.
 
-For each duration `h in {10s,30s,60s}`, let fold `j` select filter `f_j`.
+For each duration `h in {10s,30s,60s}`, let fold `j` select filter `f_j`,
+where `f_j` may be the `NONE` sentinel frozen in Section 11.
 Define:
 
 ```text
@@ -720,7 +743,8 @@ N_{h,r} =
 
 H_checkpoint_count_h =
   sum over held-out folds j of
-  H_checkpoint_count_{h,f_j,{held-out date j}}
+  H_checkpoint_count_{h,f_j,{held-out date j}},
+  with a zero contribution when f_j = NONE
 
 H_seconds_h =
   0.020 * H_checkpoint_count_h
@@ -747,17 +771,23 @@ count_tail_p_h =
 Fail-closed denominator rules:
 
 ```text
-H_hours_h <= 0 or non-finite ->
+h = 30s and H_hours_30s = 0 ->
   null_false_cluster_rate_{h,p95} = NOT_ESTIMABLE
   Gate A-1-5 fails
   Gate A-1-6 cannot pass
 
-O_h = 0 ->
+h = 30s and O_30s = 0 ->
   date-share and burden-ratio metrics = NOT_ESTIMABLE
   Gate A-1-5 fails before those metrics are interpreted
 
-any NaN or infinity in count, exposure or rate fields ->
-  hard failure
+h in {10s,60s} and (H_hours_h = 0 or O_h = 0) ->
+  corresponding sensitivity metrics = NOT_ESTIMABLE
+  Gate A-1-6 fails
+
+negative or non-finite count/exposure/rate,
+or inconsistent checkpoint/seconds/hours conversion ->
+  Gate A-1-4 integrity failure
+  Aminus1_selection_integrity_failed
 ```
 
 The suffix `p95` means empirical Type-7 95th percentile, not a confidence
@@ -855,6 +885,8 @@ Require:
 - cross-segment fixed-cluster merge = 0;
 - observed/null `E_{h,f}`, checkpoint-count, seconds or hours exposure
   mismatch = 0;
+- negative/non-finite count, exposure or rate fields = 0;
+- checkpoint/seconds/hours conversion inconsistencies = 0;
 - slice/reset mismatches = 0.
 
 Slice/reset audit covers all 27 filters, tri-state counts, base-candidate
@@ -907,6 +939,10 @@ dates above date-null p90 >= 4
 Sensitivity requirements:
 
 ```text
+H_hours_10s > 0 and finite
+H_hours_60s > 0 and finite
+O_10s > 0
+O_60s > 0
 null_false_cluster_rate_{10s,p95} <= 0.20 per hour
 null_false_cluster_rate_{60s,p95} <= 0.20 per hour
 structural_null_burden_ratio_{10s,p95} <= 0.20
@@ -935,7 +971,8 @@ O_raw =
 
 raw_supported_checkpoint_count =
   sum over held-out folds j of unique capture-time checkpoints t where
-  causal_path_supported_{f_j}(t)=true
+  causal_path_supported_{f_j}(t)=true,
+  with a zero contribution when f_j = NONE
 
 H_raw_seconds =
   0.020 * raw_supported_checkpoint_count
@@ -1053,9 +1090,14 @@ comparison path omits earliest-state W_state influence -> hard failure
 180000 supported checkpoints and 5 raw clusters ->
   H_raw_hours=1 and raw_cluster_rate_per_hour=5
 zero selection exposure and zero null clusters -> filter not admitted
-zero evaluation exposure -> Aminus1_structural_support_not_estimable
+zero 30s primary evaluation exposure ->
+  Aminus1_structural_support_not_estimable
 zero raw exposure and zero raw clusters -> sparse gate does not pass
-NaN or infinity in exposure/rate -> hard failure
+zero 10s/60s sensitivity exposure -> structural false-fire control fails
+partial NONE folds -> zero fold contribution, aggregate gates still evaluated
+all NONE folds -> Aminus1_structural_support_not_estimable
+negative/NaN/infinity exposure or inconsistent unit conversion ->
+  Aminus1_selection_integrity_failed
 poisoned allowed-but-unconsumed midpoint/OBI/spread -> no output change
 callable replacement or inherited symbol byte change -> hard failure
 ```

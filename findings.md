@@ -38,6 +38,12 @@
 - Zero exposure must fail closed. `0/0` cannot be interpreted as zero
   false-fire burden, because that would admit an unobservable filter and let
   implementation-specific NaN handling change the scientific classification.
+- Legitimate zero support and corrupted numeric support are different:
+  exactly zero may produce abstention/not-estimable semantics, while negative,
+  non-finite or unit-inconsistent exposure must fail execution integrity.
+- Cross-fit filter selection needs an explicit no-filter sentinel. A missing
+  `f_j` is not a detector state and must contribute exactly zero to observed,
+  null and exposure aggregates.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 

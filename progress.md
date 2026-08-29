@@ -61,6 +61,18 @@
 - NaN or infinite count, exposure or rate fields are hard failures.
 - Data execution remains locked pending Round 6 review.
 
+## 2026-08-29 0829T001 Plan Review Round 6 Failed
+
+- Round 6 failed with `P0/P1/P2/P3 = 0/0/3/0`.
+- Revision 7 maps zero 30s primary support to structural support not
+  estimable, while zero 10s/60s sensitivity support fails false-fire control.
+- A no-filter fold now has the explicit `f_j=NONE/META_ABSTAIN` sentinel and
+  contributes zero clusters and zero exposure without invalidating other
+  folds.
+- Negative, non-finite or unit-inconsistent exposure is an integrity failure,
+  never an ordinary zero-support filter rejection.
+- Data execution remains locked pending Round 7 review.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree
