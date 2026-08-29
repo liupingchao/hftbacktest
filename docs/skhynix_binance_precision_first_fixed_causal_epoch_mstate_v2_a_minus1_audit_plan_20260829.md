@@ -9,7 +9,7 @@ Hypothesis ID: `FIXED_CAUSAL_EPOCH_MSTATE_V2`
 
 Audit ID: `FIXED_CAUSAL_EPOCH_MSTATE_V2_A_MINUS1`
 
-Status: candidate contract Revision 1; data execution locked
+Status: candidate contract Revision 2; data execution locked
 
 ## 1. Decision Context
 
@@ -58,6 +58,17 @@ false-cluster burden satisfies the frozen precision-first gates?
 This is still an outcome-blind A-1 audit. Passing authorizes only drafting a
 separately reviewed A0 contract.
 
+All nine research dates have already participated in repeated hypothesis
+revision. They are historical development data, not a prospective holdout.
+The strongest positive claim available here is:
+
+```text
+historical structural false-fire-control candidate
+```
+
+No pass may be described as prospective precision, economic value, live
+capture probability or deployability.
+
 ## 3. Frozen Predecessor And Data Authority
 
 Accepted predecessor:
@@ -97,7 +108,41 @@ stream_root            c39e6f07ba0ab630785b9737ca3ba051bf3fd9971c29f3bdbdd013df1
 rng_for                8ce7fb9579622cc6762b216b2972eb562c5918776ef135bc623558bd3db504ce
 select_filters         98ebcfbfed5bbd4f6aa37dfc9d112347ceef15990f47dcbc8a47184a0e6903ef
 estimator              04e8bfcb0178a34ef926809eae9a242e39bdcb2089fc62954d9932c84dd883e7
+pair_identities         57926d61e747c162ba68722ab621c31d5089abcba218ca4487a15745b7d4fcaf
+pair_distances          afb245ece524c3a80090da9ec0cb164e3b88daa7a24e298b02713d3166e56ae1
 ```
+
+The conditional-null implementation is also bound directly:
+
+```text
+null authority commit =
+  45544ecc3901623ca7c2e34a059afca6c551d625
+
+null authority path =
+  examples/hyperliquid/skhynix_flow_coherence_a_minus1_audit.py
+
+null authority blob OID =
+  494c203e7195f292e057f7708c99f52096259a02
+
+null authority SHA256 =
+  f7dc1565bf0a45363dadf3204d827e0d13687f6cc3307c2e7c5e77aeb321400c
+```
+
+Normalized null callable AST SHA256:
+
+```text
+base_masks                        bc2155a38bd1707fcdb77bdebea611da3889934a47d415bdfd0d5a95842d7114
+build_features                    e5cca6c2b7627ef8e3719e4fdecb5a540a42a2028e2fb141ea9fff4f7c246933
+fixed_opposite_orientation_pairs  04cef064fdaf5cba94421d6d3250760ccf623b2d0531a883154d2a3bdb4b293d
+null_layout                       2def320606fa9caf45e5878845e91026b1284b57b1dd3ff8265038de92c8dcf5
+permute_trade_direction_paths     b870945f3a079f34337912776001c8bbe8af41c2644e2c0b4acf76277e7637ce
+prior_count                       abbd39099a876c70713b05871152fdfa56d1ee8d142611debe849f1afcc018a8
+run_length                        074d37d93e2b66de5d94c9112494fd3f615a5f24aa3ce77a2f5da64a5b37e37d
+```
+
+The successor must direct-call the bound M-state and null primitives.
+Reimplementation, transitive rebinding or fallback import is an A-1-0
+authority failure.
 
 Source cache root:
 
@@ -199,10 +244,40 @@ eligible iff core_open_ns <= ts_ns < core_close_ns
 The two 15s edge guards are intentional false-negative zones. They ensure
 that eligible cores in adjacent epochs are separated by at least 30s.
 
+### 5.1 Complete Single-Segment Epoch
+
+An epoch is structurally eligible only if its entire 60s checkpoint grid is
+present in one capture and one segment:
+
+```text
+expected checkpoints = 60s / 20ms = 3,000
+first timestamp       = epoch_start_ns
+last timestamp        = epoch_end_ns - 20ms
+all adjacent deltas   = 20ms
+all segment_id values = one identical segment
+```
+
+Otherwise the whole epoch is outcome-blind ineligible with exactly one
+disposition:
+
+```text
+partial_capture_start
+partial_capture_end
+missing_checkpoint
+irregular_checkpoint
+segment_boundary
+eligible
+```
+
+Disposition precedence is the list order above. No anchor, exposure
+checkpoint, observed cluster or null cluster may come from an ineligible
+epoch. A reset inside the core therefore removes the epoch; it never creates
+a second per-segment opportunity.
+
 Common thinning:
 
 ```text
-for each capture, segment, direction and epoch_id:
+for each structurally eligible capture and epoch_id, and each direction:
   retain the earliest common natural onset in the eligible core
   suppress every later onset in the same key
 ```
@@ -210,7 +285,7 @@ for each capture, segment, direction and epoch_id:
 Tie-break:
 
 ```text
-(timestamp, event_seq, direction)
+(candidate_ts_ns, candidate_event_seq)
 ```
 
 At most two anchors may exist per epoch: one per direction.
@@ -218,15 +293,18 @@ At most two anchors may exist per epoch: one per direction.
 Dependence cluster:
 
 ```text
-cluster_id = capture_id : segment_id : epoch_id
+cluster_id = capture_id : epoch_id
 ```
 
-Both directions in the same epoch share one cluster. No accepted-anchor
-timestamp participates in suppression or cluster identity.
+The retained candidate still records the unique epoch segment for audit, but
+segment is not a cluster discriminator. Both directions in the same epoch
+share one cluster. No accepted-anchor timestamp participates in suppression
+or cluster identity.
 
 Consequences:
 
-- slicing before an epoch cannot change decisions in later complete epochs;
+- slicing before an epoch cannot change decisions in later comparable
+  complete epochs;
 - process restart cannot permanently shift thinning phase;
 - adjacent counted clusters have at least 30s temporal separation;
 - an event near an epoch edge is deliberately omitted rather than assigned
@@ -266,46 +344,84 @@ and cannot enter selection or estimators.
 
 ## 7. Slice And Reset Invariance
 
-Artificial slice tests must compare only the same segment.
-
-For each eligible artificial start:
-
-- rebuild causal features and all M-states from the slice;
-- rebuild natural onsets, fixed epoch thinning, epoch clusters and filters;
-- compare after:
+Artificial start schedule is deterministic within each original segment:
 
 ```text
-guard = 122s
+stride = 600s
+first nominal start = first segment checkpoint + 600s
+later nominal starts = first segment checkpoint + k * 600s
+actual start index = searchsorted(ts_ns, nominal_start, side="left")
 ```
 
-The guard exceeds:
+Skip a nominal start when the actual index is absent or belongs to another
+segment. Slice arrays from the actual index to capture end, rebuild all causal
+M-states, natural onsets, epoch eligibility, thinning, clusters and filters.
+
+Define:
 
 ```text
-one full 60s epoch
-+ one additional complete epoch/core opportunity
-+ 500ms feature history
-+ 100ms maximum TTL
-+ 120ms prestate
-+ 800ms maximum persistence
+guard_ns = 122s
+comparison_floor_ns = actual_start_ts_ns + guard_ns
+first_comparable_epoch_id =
+  ceil(comparison_floor_ns / 60s)
 ```
 
-Expected and actual identities are:
+An epoch is comparable only when:
 
 ```text
-(candidate_ts_ns, direction, filter_id, epoch_cluster_id)
+epoch_id >= first_comparable_epoch_id
+the full epoch is structurally eligible in both full and sliced analyses
+the full epoch belongs to the artificial-start segment
 ```
 
-Required:
+Partial final epochs and every later segment are excluded symmetrically from
+both expected and actual sets. Candidate identity is:
+
+```text
+(capture_id, epoch_id, candidate_ts_ns, candidate_event_seq,
+ direction, filter_id, epoch_cluster_id)
+```
+
+M-state support identity is compared checkpoint-by-checkpoint for every
+filter on the union of comparable epoch cores, not over arbitrary tails.
+
+One CSV row is emitted per artificial start with exact expected/actual
+candidate identity hashes, counts, support hashes/counts, comparable epoch
+count and mismatch reason. Required:
 
 ```text
 zero identity mismatch
-zero M-state support-count mismatch
-zero cross-segment comparison
+zero M-state support identity mismatch
+zero row with any compared checkpoint outside the artificial-start segment
 ```
 
 ## 8. Outcome-Blind Structural Null
 
-Reuse the accepted conditional opposite-orientation path-swap null.
+Direct-call the bound paired opposite-orientation path-swap null:
+
+```text
+five-minute parents
+activity/intensity-matched opposite-orientation microblock pairs
+independent Bernoulli(0.5) swap per fixed pair
+trade magnitude, zero mask, missingness and denominators invariant
+depth bundle and activity unchanged
+```
+
+The exact conditional null is:
+
+```text
+H0_conditional:
+  conditional on the observed depth bundle, OFI/depletion path,
+  activity/intensity path, missingness, denominators, segment boundaries,
+  complete-epoch eligibility and fixed matched-pair structure,
+  trade orientation labels are exchangeable within each registered
+  opposite-orientation pair.
+```
+
+It tests whether trade orientation aligns with the fixed depth/OFI path more
+often than this conditional exchangeability law permits. It is not an
+unconditional market false-positive rate, economic loss probability or live
+fill claim.
 
 Banks:
 
@@ -333,6 +449,20 @@ channel actions
 No observed memory, onset, retained anchor, epoch admission or count may be
 copied into a null replicate.
 
+Required replicate invariants:
+
+- exact magnitude, zero-mask, missingness and denominator preservation;
+- exact three channel-specific new-evidence masks;
+- exact pair identity and canonical pair ordering;
+- exact comparison mask;
+- exact complete-epoch eligibility and disposition;
+- both directions deduplicate to one fixed epoch cluster;
+- observed and null use the identical filter-duration exposure masks;
+- at least 190 distinct fingerprints among 199 replicates;
+- zero selection/evaluation stream overlap;
+- minimum three valid date-pairs per duration;
+- maximum date p95 joint distance at most 0.60.
+
 All magnitude, zero-mask, missingness, denominator, new-evidence-mask,
 pair-identity and comparison-mask invariants remain exact.
 
@@ -343,12 +473,18 @@ The detector runs before the comparison mask is applied.
 For filter `f`, duration `h`, checkpoint `t`, exposure requires:
 
 ```text
-t is inside the fixed eligible core
+the containing epoch is structurally eligible
+t is inside that epoch's fixed eligible core
 all M-states in [t-120ms, t+p] are non-ABSTAIN
 comparison mask is true throughout [t-120ms-500ms-tau, t+p]
 ```
 
 Exposure is counted once per unique capture-time checkpoint.
+The same epoch-eligibility mask is used by observed, selection-null,
+evaluation-null and raw exposure. For every filter-duration-date, the
+numerator candidate domain must be a subset of the exact denominator
+checkpoint domain; observed and every null replicate must report the same
+denominator identity hash.
 
 Leave-one-date-out selection remains null-only:
 
@@ -368,6 +504,90 @@ Estimator unit is the fixed epoch cluster.
 
 Primary and sensitivity formulas, optional-value semantics and numeric
 integrity rules remain those of `0829T002`.
+
+Raw sparsity adds:
+
+```text
+eligible_epoch_count =
+  distinct structurally eligible (capture_id, epoch_id) across non-NONE folds
+
+occupied_epoch_count =
+  distinct eligible epoch clusters admitted by the held-out selected filters
+
+occupied_eligible_epoch_share =
+  occupied_epoch_count / eligible_epoch_count
+```
+
+If `eligible_epoch_count=0`, the share is null and A-1-7 fails. Counts are
+deduplicated across directions. This replaces the prior empirical use of a
+5s burst threshold.
+
+Before gates, source-preflight failure stops detector/null execution:
+
+```text
+A-1-0 fails
+A-1-1 through A-1-7 = NOT_EVALUATED
+```
+
+For all other evidence, first failed gate determines classification. No later
+gate may rescue it.
+
+Gate A-1-0, authority and determinism:
+
+- reviewed plan SHA, accepted ancestry, runner blob and callable AST exact;
+- direct null-authority binding exact;
+- 29-cache size/SHA/schema and typed inventory closure exact;
+- invalid raw source contribution count zero;
+- Build A/B roots distinct;
+- preseal, pending and final difference counts zero;
+- exact 25-output set and manifest closure.
+
+Gate A-1-1, zero outcome:
+
+- consumed-field whitelist exact;
+- future price/target and fill/fee/PnL never loaded;
+- poison of unconsumed values changes no output;
+- no target or economic artifact.
+
+Gate A-1-2, M-state/epoch/reset integrity:
+
+- four-state and six-action partitions exact;
+- zero `NEW_INVALID`, sign overlap, unauthorized TTL refresh,
+  UNKNOWN-to-BACKGROUND, neutral skip, expiry and cross-segment carry;
+- zero invalid natural-anchor prestate;
+- epoch arithmetic and six-way disposition partition exact;
+- zero retained onset from an ineligible epoch or edge guard;
+- at most one retained onset per capture/epoch/direction;
+- every retained onset is exact earliest by frozen tie-break;
+- at most two retained anchors and one cluster per capture/epoch;
+- dual directions in one epoch share exact cluster identity;
+- adjacent counted epoch clusters are separated by at least 30s;
+- zero filter monotonicity violation;
+- zero slice candidate/support identity mismatch;
+- zero cross-segment slice comparison.
+
+Gate A-1-3, structural null admissibility:
+
+- 199 replicates in selection and every evaluation bank;
+- at least 190 distinct fingerprints in each bank/duration;
+- zero stream overlap;
+- zero channel mask, conservation, pair identity/order, comparison-mask,
+  epoch-disposition, dual-direction-dedup or denominator-identity mismatch;
+- minimum date-pair count at least 3;
+- maximum date p95 joint distance at most 0.60.
+
+Gate A-1-4, selection and numeric integrity:
+
+- exactly nine folds and held-out isolation exact;
+- observed selection access zero and bank overlap zero;
+- filter-duration numerator/denominator identity exact;
+- checkpoint/seconds/hours conversions exact;
+- counts/exposures are integer, finite and non-negative;
+- rates/burdens/shares are finite when defined;
+- rate is null iff exposure is exactly zero;
+- burden/share is null iff observed count is exactly zero;
+- legitimate zero support is not numeric corruption;
+- NaN, infinity, negative values, invalid types or unit mismatch fail.
 
 Gate order and classifications:
 
@@ -416,14 +636,16 @@ A-1-6 sensitivities:
 A-1-7:
   raw exposure > 0
   raw selected-filter cluster rate <= 5/hour
-  maximum 5s burst <= 2
+  occupied eligible epoch share <= 0.10
 ```
 
-Coverage and firing rate remain diagnostics, not recall targets.
+Maximum 5s burst must be at most one and is an A-1-2 bookkeeping integrity
+diagnostic, not empirical sparsity evidence. Coverage and minimum firing rate
+remain diagnostics, not recall targets.
 
 ## 11. Required Outputs
 
-Exactly 24 non-cache artifacts:
+Exactly 25 non-cache artifacts:
 
 ```text
 contracts/
@@ -457,13 +679,85 @@ classification.json
 run_manifest.json
 ```
 
+`run_manifest.json` lists the other 24 artifacts and excludes itself.
+Missing or extra paths, duplicate paths, schema mismatch, manifest count
+mismatch or SHA mismatch fails closed at A-1-0.
+
+Frozen new/changed schemas:
+
+`fixed_epoch_thinning_contract.json`:
+
+```text
+origin_ns, epoch_width_ns, checkpoint_ns, expected_checkpoint_count,
+core_open_offset_ns, core_close_offset_ns, disposition_precedence,
+thinning_key, tie_break, cluster_key, edge_omission_policy
+```
+
+`epoch_support_by_date.csv`, one row per
+`research_date, capture_id, epoch_id`:
+
+```text
+research_date,capture_id,epoch_id,epoch_start_ns,epoch_end_ns,
+core_open_ns,core_close_ns,segment_id,disposition,
+observed_checkpoint_count,grid_exact,
+raw_natural_onset_neg_count,raw_natural_onset_pos_count,
+edge_guard_omitted_neg_count,edge_guard_omitted_pos_count,
+retained_neg_count,retained_pos_count,
+same_key_suppressed_neg_count,same_key_suppressed_pos_count,
+retained_neg_candidate_id,retained_pos_candidate_id,
+dependence_cluster_id
+```
+
+`candidate_ledger.csv`, one row per retained common candidate:
+
+```text
+research_date,capture_id,epoch_id,epoch_start_ns,core_open_ns,core_close_ns,
+segment_id,direction,candidate_id,candidate_ts_ns,candidate_event_seq,
+dependence_cluster_id,channel_last_observation_ts_json,
+channel_last_observation_age_ms_json,common_prestate_background_count,
+common_prestate_abstain_count,common_prestate_signal_count,
+admitted_filter_ids,confirmation_map_json,cancel_reason_map_json
+```
+
+`slice_invariance.csv`, one row per artificial start:
+
+```text
+research_date,capture_id,segment_id,nominal_start_ts_ns,
+actual_start_ts_ns,comparison_floor_ns,first_comparable_epoch_id,
+comparable_epoch_count,expected_identity_count,actual_identity_count,
+expected_identity_sha256,actual_identity_sha256,identity_exact,
+expected_support_count,actual_support_count,
+expected_support_sha256,actual_support_sha256,support_identity_exact,
+cross_segment_checkpoint_count,mismatch_reason
+```
+
+Candidate/support hashes use canonical JSON over lexicographically sorted
+identity tuples. `mismatch_reason` is exactly one of:
+
+```text
+none
+candidate_identity
+support_identity
+cross_segment
+multiple
+```
+
+All integer fields are base-10 integers, booleans are `True/False`, absent
+candidate IDs are empty strings, and CSV row ordering is ASCII lexical over
+the row grain followed by numeric timestamp/direction fields.
+
 ## 12. Hostile Tests
 
 At minimum:
 
 - absolute epoch boundaries at exactly 0s, 15s, 45s and 60s;
 - core is `[15s,45s)`, not closed on the right;
-- earliest onset per capture/segment/direction/epoch wins;
+- partial, missing-grid, irregular-grid and segment-crossing epochs are
+  ineligible everywhere;
+- reset inside core with same-direction onsets on both sides yields no anchor;
+- reset inside core with opposite-direction onsets on both sides yields no
+  cluster;
+- earliest onset per capture/direction/eligible epoch wins;
 - opposite directions share one epoch cluster but have independent thinning;
 - a later onset in the same epoch cannot replace the first;
 - cutting before an earlier same-epoch onset may change only that epoch;
@@ -472,12 +766,20 @@ At minimum:
 - epoch cluster IDs never depend on accepted-anchor timestamps;
 - adjacent eligible cores are separated by at least 30s;
 - no edge-guard anchor enters candidates, estimators or exposure;
+- boundary epoch disposition is identical in observed, selection-null,
+  evaluation-null and raw paths;
 - strict filters remain delete-only;
 - null recomputes epoch thinning and cluster identity;
+- observed/null dual directions deduplicate to one distinct cluster;
+- every filter-duration numerator is a subset of its denominator identity;
+- every null replicate shares the exact denominator hash;
 - selection/evaluation banks are disjoint;
+- A-1-2/A-1-3/A-1-4 zero, nonfinite and `NOT_EVALUATED` precedence;
+- exact new evidence schemas, row grains and field types;
+- manifest self-exclusion and exact 25-path mutation;
 - all predecessor source/action/memory/null hostile tests remain passing;
 - Build A/B preseal, pending and final equality;
-- exact 24-output and manifest closure.
+- exact 25-output and manifest closure.
 
 ## 13. Execution Lock
 
