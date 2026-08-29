@@ -1,5 +1,15 @@
 # Progress
 
+## 2026-08-29 0829T001 Precision-First Flow Coherence V2 Contract Drafted
+
+- Created a clean worktree and branch from accepted commit `45544ecc`.
+- Registered a new precision-first A-1 task rather than rewriting 0828T014.
+- Drafted tri-state abstention semantics, a 27-filter monotonic family,
+  null-only filter selection, leave-one-date-out cross-fitting and explicit
+  structural false-positive gates.
+- Existing dates are not represented as fresh holdout data.
+- Formal data execution remains locked pending independent plan review.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

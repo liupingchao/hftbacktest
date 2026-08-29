@@ -1,5 +1,19 @@
 # Findings
 
+## 2026-08-29 Precision-First Detector Objective
+
+- For an entry detector, false positives create direct cost while false
+  negatives create opportunity loss only. The research loss function must
+  therefore be asymmetric.
+- Missing feature support should map to `ABSTAIN`, not background/noise.
+  Availability is capacity and validation-speed information, not by itself a
+  detector failure.
+- Outcome-blind A-1 can control structural false positives but cannot estimate
+  economic precision. Economic false positives require a separately reviewed
+  future-outcome task.
+- The existing nine dates were already consumed. Cross-fitting can prevent
+  direct fold leakage but cannot recreate a genuinely unseen holdout.
+
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 
 - The predecessor execution passed QA but failed scientifically at A0.

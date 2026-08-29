@@ -1,5 +1,17 @@
 # Task Plan
 
+## 2026-08-29 0829T001 Precision-First Flow Coherence V2 Active
+
+- `0829T001 / PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1` is `执行中`.
+- The entry detector objective is now precision-first:
+  false positives carry direct cost while false negatives are accepted
+  opportunity loss.
+- The detector has explicit `SIGNAL/BACKGROUND/ABSTAIN` states. Coverage and
+  minimum firing rate are diagnostics, not hard success gates.
+- Filter selection is null-only and leave-one-date-out. All existing dates
+  remain labelled historically reused; no prospective claim is possible.
+- Data execution is locked until independent plan review passes.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit In Progress
 
 - Register `FLOW_COHERENCE_TRANSITION_V1_A_MINUS1` as the current formal task.
