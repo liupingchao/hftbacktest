@@ -9,7 +9,7 @@ Hypothesis ID: `FIXED_CAUSAL_EPOCH_MSTATE_V2`
 
 Audit ID: `FIXED_CAUSAL_EPOCH_MSTATE_V2_A_MINUS1`
 
-Status: candidate contract Revision 3; data execution locked
+Status: candidate contract Revision 4; data execution locked
 
 ## 1. Decision Context
 
@@ -285,24 +285,26 @@ partial_capture_end
 
 missing_checkpoint
   iff neither partial predicate is true
-  and O_e contains only unique timestamps from E_e
-  and set(O_e) is a proper subset of set(E_e)
+  and O_e is a strictly increasing proper subsequence of E_e
 
 irregular_checkpoint
   iff no earlier predicate is true
-  and any observed timestamp is duplicated, off E_e, or set(O_e) != set(E_e)
+  and O_e is neither a strictly increasing proper subsequence of E_e
+  nor exactly equal to the ordered E_e
 
 segment_boundary
   iff no earlier predicate is true
-  and set(O_e) == set(E_e)
+  and O_e == E_e in raw row order
   and cardinality(unique segment_id in O_e) != 1
 
 eligible
   iff no earlier predicate is true
-  and set(O_e) == set(E_e)
+  and O_e == E_e in raw row order
   and cardinality(unique segment_id in O_e) == 1
 ```
 
+`O_e` is never sorted before these predicates. A permutation, duplicate,
+non-increasing timestamp or wrong adjacent delta is therefore irregular.
 The predicates are evaluated over raw timestamps before M-state analysis.
 Duplicate and off-grid counts are retained even if an earlier disposition
 wins. No anchor, exposure checkpoint, observed cluster or null cluster may
@@ -383,10 +385,17 @@ Artificial start schedule is deterministic within each original segment:
 
 ```text
 stride = 600s
-first nominal start = first segment checkpoint + 600s
-later nominal starts = first segment checkpoint + k * 600s
+K_segment = {
+  k in positive integers:
+  first_segment_ts_ns + k * 600s <= last_segment_ts_ns
+}
+nominal start(k) = first_segment_ts_ns + k * 600s
 actual start index = searchsorted(ts_ns, nominal_start, side="left")
 ```
+
+`K_segment` is computed once from the full preflighted arrays; iteration ends
+after its largest member. There is no open-ended loop and no early stop after
+a skipped start.
 
 Skip a nominal start when the actual index is absent or belongs to another
 segment.
@@ -395,9 +404,23 @@ The slice is rebuilt from raw cache authority, never from full-run derived
 features or M-states:
 
 1. Source-preflight the full raw cache.
-2. For every field in the exact allowed cache schema whose first dimension is
-   the checkpoint count, slice `[actual_start_index:n)`.
-3. Copy every non-row-aligned scalar/metadata field unchanged.
+2. Slice `[actual_start_index:n)` for exactly these row-aligned fields:
+
+```text
+activity, ask_depletion, ask_depth, bid_depletion, bid_depth,
+event_seq, midpoint, obi, ofi, ofi_abs, ready, segment_id,
+spread_ticks, trade_signed, trade_total, ts_ns, valid_book
+```
+
+3. Copy exactly these non-row-aligned fields unchanged:
+
+```text
+bin_boundary_violations, cache_schema_version,
+initial_bridge_failure_count, non_admitted_message_contributions,
+quality_boundary_count, reset_count, segment_end_ids, segment_end_ts,
+sequence_gap_count, tick_size
+```
+
 4. Preserve field names, dtypes and trailing shapes exactly.
 5. Write the sliced raw cache in a temporary root excluded from outputs.
 6. Direct-call the bound `build_features(sliced_cache_path)`.
@@ -412,6 +435,8 @@ The slice-source identity is canonical JSON over sorted tuples:
 
 using `sort_keys=True,separators=(",",":"),ensure_ascii=True`.
 Reusing or slicing full-run rolling features is prohibited.
+Full and sliced capture endpoints are always the corresponding preflighted
+`ts_ns[0]` and `ts_ns[-1]`; copied metadata may not supply an endpoint.
 
 Define:
 
@@ -459,9 +484,11 @@ filter_index numeric, mstate_int numeric
 Canonical JSON uses
 `sort_keys=True,separators=(",",":"),ensure_ascii=True`.
 
-One CSV row is emitted per artificial start with exact expected/actual
-candidate identity hashes, counts, support hashes/counts, comparable epoch
-count and mismatch reason. Required:
+One CSV row is emitted only per qualifying artificial start with exact
+expected/actual candidate identity hashes, counts, support hashes/counts,
+comparable epoch count and mismatch reason. Absent/wrong-segment and
+no-comparable starts appear only in the exact summary counters, never as CSV
+rows. Required:
 
 ```text
 zero identity mismatch
@@ -474,6 +501,14 @@ positive compared support checkpoint count
 
 Failure of the last three requirements is an A-1-2 integrity/support audit
 failure, never a vacuous pass.
+
+Distinct comparable epoch identity is exactly `(capture_id, epoch_id)`,
+deduplicated across artificial-start rows.
+`compared_support_checkpoint_count` counts unique
+`(capture_id, epoch_id, checkpoint_ts_ns)` identities, also deduplicated
+across rows. Per-row `expected_support_tuple_count` and
+`actual_support_tuple_count` count the 27 filter-state tuples and therefore
+equal `27 * comparable_core_checkpoint_count`.
 
 ## 8. Outcome-Blind Structural Null
 
@@ -599,11 +634,13 @@ occupied_supported_epoch_share =
   occupied_epoch_count / raw_supported_epoch_count
 ```
 
-If `raw_supported_epoch_count=0`, the share is null and A-1-7 fails after
-A-1-4 verifies that the null is denominator-consistent. If support is
-positive and occupied count is zero, the share is exactly `0.0`. Counts are
-deduplicated across directions. Structurally eligible market-time occupancy
-is reported only as a diagnostic and cannot satisfy sparsity gates.
+If `raw_supported_epoch_count=0`, the share is null. A-1-4 verifies that the
+null is denominator-consistent; if and only if execution reaches A-1-7, zero
+raw support fails A-1-7. If an earlier gate fails, A-1-7 is
+`NOT_EVALUATED`. If support is positive and occupied count is zero, the share
+is exactly `0.0`. Counts are deduplicated across directions. Structurally
+eligible market-time occupancy is reported only as a diagnostic and cannot
+satisfy sparsity gates.
 
 Gates are sequential and fail closed:
 
@@ -658,7 +695,7 @@ Gate A-1-2, M-state/epoch/reset integrity:
 - zero cross-segment slice comparison.
 - qualifying artificial starts on at least four dates;
 - at least 30 distinct comparable epochs and positive support comparison;
-- maximum raw 5s cluster burst at most one.
+- maximum common retained-cluster 5s burst at most one.
 
 Gate A-1-3, structural null admissibility:
 
@@ -738,8 +775,9 @@ A-1-7:
 ```
 
 Maximum 5s burst must be at most one and is an A-1-2 bookkeeping integrity
-diagnostic, not empirical sparsity evidence. It uses unique selected raw
-`dependence_cluster_id` values, one timestamp per cluster equal to
+diagnostic, not empirical sparsity evidence. It uses every unique common
+retained `dependence_cluster_id` before filter confirmation or selection,
+one timestamp per cluster equal to
 `epoch_start_ns`, separately per capture. It takes the maximum count in any
 half-open `[s,s+5s)` window whose `s` is a cluster timestamp; windows never
 cross captures and directions are deduplicated before counting. Coverage and
@@ -823,7 +861,7 @@ common_prestate_abstain_count,common_prestate_signal_count,
 admitted_filter_ids,confirmation_map_json,cancel_reason_map_json
 ```
 
-`slice_invariance.csv`, one row per artificial start:
+`slice_invariance.csv`, one row per qualifying artificial start:
 
 ```text
 research_date,capture_id,segment_id,nominal_start_ts_ns,
@@ -831,7 +869,7 @@ actual_start_ts_ns,comparison_floor_ns,first_comparable_epoch_id,
 slice_source_sha256,
 comparable_epoch_count,expected_identity_count,actual_identity_count,
 expected_identity_sha256,actual_identity_sha256,identity_exact,
-expected_support_count,actual_support_count,
+expected_support_tuple_count,actual_support_tuple_count,
 expected_support_sha256,actual_support_sha256,support_identity_exact,
 cross_segment_checkpoint_count,mismatch_reason
 ```
@@ -847,6 +885,43 @@ represented_slice_date_count
 distinct_comparable_epoch_count
 compared_support_checkpoint_count
 ```
+
+`reports/A_minus1_summary.json` freezes these changed objects:
+
+```text
+raw:
+  observed_cluster_count: int
+  exposure_checkpoint_count: int
+  exposure_seconds: finite float
+  exposure_hours: finite float
+  cluster_rate_per_hour: finite float or null
+  raw_supported_epoch_count: int
+  occupied_epoch_count: int
+  occupied_supported_epoch_share: finite float or null
+  raw_supported_epoch_identity_sha256: ASCII SHA256
+  occupied_epoch_identity_sha256: ASCII SHA256
+  occupied_subset_violation_count: int
+  structurally_eligible_epoch_count: int
+  structurally_occupied_epoch_count: int
+  structurally_occupied_epoch_share: finite float or null
+
+integrity:
+  common_cluster_maximum_5s_burst: int
+  nominal_artificial_start_count: int
+  qualifying_artificial_start_count: int
+  skipped_absent_or_wrong_segment_count: int
+  skipped_no_comparable_epoch_count: int
+  represented_slice_date_count: int
+  distinct_comparable_epoch_count: int
+  compared_support_checkpoint_count: int
+```
+
+Epoch identity hashes use sorted `(capture_id, epoch_id)` tuples. Occupied
+identities must be an exact subset of raw-supported identities. Structural
+market-time occupancy uses all structurally eligible epochs as denominator
+and selected occupied epochs as numerator; it is diagnostic only. The gate
+contract repeats each gate condition with exact `actual`, `required`,
+`passed` and `status` (`PASS`, `FAIL`, `NOT_EVALUATED`).
 
 Candidate/support hashes use canonical JSON over lexicographically sorted
 identity tuples. `mismatch_reason` is exactly one of:
@@ -886,6 +961,7 @@ At minimum:
   ineligible everywhere;
 - disposition overlap/precedence, empty intermediate epoch, duplicate and
   off-grid timestamp mutations;
+- complete timestamp set with permuted/non-monotonic raw row order;
 - reset inside core with same-direction onsets on both sides yields no anchor;
 - reset inside core with opposite-direction onsets on both sides yields no
   cluster;
@@ -896,10 +972,16 @@ At minimum:
 - decisions in later complete epochs are identical after reset;
 - slice is rebuilt from sliced raw cache; derived-feature reuse mutation
   fails;
+- exact row-aligned field-set and stale full-capture endpoint mutations;
 - multi-segment slice comparison excludes later segments;
+- finite `K_segment`, last nominal boundary and no early-stop behavior;
+- skipped starts never create CSV rows and exact summary counters mutate
+  closed;
 - zero qualifying starts, zero comparable epochs and zero support comparison
   cannot pass;
 - exact support identity tuple, typed sorting and hash mutation;
+- comparable epochs deduplicate across starts by `(capture_id,epoch_id)`;
+- support checkpoint count cannot be substituted by 27x support tuple count;
 - epoch cluster IDs never depend on accepted-anchor timestamps;
 - adjacent eligible cores are separated by at least 30s;
 - no edge-guard anchor enters candidates, estimators or exposure;
@@ -912,10 +994,13 @@ At minimum:
 - every null replicate shares the exact denominator hash;
 - positive raw-supported epochs with zero occupied epochs produce `0.0`, not
   null;
+- raw support/occupied hashes, subset relation and summary field mutation;
 - selection/evaluation banks are disjoint;
 - A-1-2/A-1-3/A-1-4 zero, nonfinite and `NOT_EVALUATED` precedence;
 - non-source A-1-0 and A-1-1 failure force all later gates to
   `NOT_EVALUATED`;
+- corrupt selection/null cannot create an earlier A-1-2 burst failure;
+- A-1-5 or A-1-6 failure forces A-1-7 to `NOT_EVALUATED`;
 - segment-boundary epoch schema and empty N/A sentinels round-trip;
 - numeric epoch ordering cannot be replaced by ASCII ordering;
 - exact new evidence schemas, row grains and field types;
