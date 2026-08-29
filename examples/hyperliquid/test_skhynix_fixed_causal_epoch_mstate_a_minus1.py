@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import sys
@@ -44,6 +45,89 @@ def synthetic_features(length: int = 400) -> dict[str, np.ndarray]:
         "ask_depletion": one.copy(),
         "ofi": one.copy(),
         "ofi_abs": one.copy(),
+    }
+
+
+def passing_gate_summary() -> dict[str, object]:
+    estimator = {
+        **AUDIT.exposure_units(180_000),
+        "observed_cluster_count": 30,
+        "null_cluster_count_p95": 1.0,
+        "null_false_cluster_rate_p95_per_hour": 0.05,
+        "structural_null_burden_ratio_p95": 0.05,
+        "count_tail_p": 0.001,
+        "represented_date_count": 4,
+        "maximum_single_date_share": 0.25,
+        "dates_above_date_null_p90": 4,
+        "estimable": True,
+    }
+    return {
+        "plan_sha_verified": True,
+        "predecessor_binding_verified": True,
+        "source_cache_closure": True,
+        "zero_outcome_boundary": True,
+        "unexpected_field_count": 0,
+        "determinism_evidence": {
+            "preseal_difference_count": 0,
+            "pending_difference_count": 0,
+            "final_difference_count": 0,
+        },
+        "null_admissibility": {
+            "replicate_count_exact": True,
+            "minimum_distinct_fingerprints": 199,
+            "stream_identity_overlap": 0,
+            "invariant_mismatches": 0,
+            "minimum_date_pair_count": 4,
+            "maximum_date_p95_joint_distance": 0.5,
+        },
+        "integrity": {
+            "mstate_partition_violations": 0,
+            "action_partition_violations": 0,
+            "new_invalid_action_count": 0,
+            "ttl_refresh_violations": 0,
+            "cross_segment_memory_carry": 0,
+            "anchor_contract_violations": 0,
+            "feature_boundary_violations": 0,
+            "monotonicity_violations": 0,
+            "slice_invariance_mismatches": 0,
+            "represented_slice_date_count": 4,
+            "distinct_comparable_epoch_count": 30,
+            "compared_support_checkpoint_count": 1,
+            "common_cluster_maximum_5s_burst": 1,
+            "fold_count": 9,
+            "observed_selection_access": 0,
+            "null_bank_overlap": 0,
+            "numeric_integrity_violations": 0,
+        },
+        "estimators": {
+            duration: copy.deepcopy(estimator)
+            for duration in ("10000", "30000", "60000")
+        },
+        "raw": {
+            **AUDIT.exposure_units(180_000),
+            "observed_cluster_count": 1,
+            "cluster_rate_per_hour": 1.0,
+            "raw_supported_epoch_count": 100,
+            "occupied_epoch_count": 10,
+            "occupied_supported_epoch_share": 0.1,
+            "structurally_eligible_epoch_count": 100,
+            "structurally_occupied_epoch_count": 10,
+            "structurally_occupied_epoch_share": 0.1,
+            "occupied_subset_violation_count": 0,
+            "structurally_occupied_subset_violation_count": 0,
+            "raw_supported_epoch_identity_sha256": "a" * 64,
+            "occupied_epoch_identity_sha256": "b" * 64,
+            "structurally_eligible_epoch_identity_sha256": "c" * 64,
+        },
+    }
+
+
+def gates_by_id(summary: dict[str, object]) -> dict[str, dict[str, object]]:
+    return {
+        row["gate_id"]: row
+        for row in AUDIT.build_gates(
+            summary, deterministic_build=True
+        )
     }
 
 
@@ -377,6 +461,108 @@ def test_complete_epoch_and_segment_boundary_dispositions() -> None:
     assert not np.any(mask)
 
 
+@pytest.mark.parametrize(
+    ("mutation", "expected"),
+    (
+        ("partial_start", "partial_capture_start"),
+        ("partial_end", "partial_capture_end"),
+        ("missing", "missing_checkpoint"),
+        ("off_grid", "irregular_checkpoint"),
+        ("empty_intermediate", "missing_checkpoint"),
+    ),
+)
+def test_epoch_disposition_mutations_fail_closed(
+    mutation: str, expected: str
+) -> None:
+    features = synthetic_features(AUDIT.EXPECTED_EPOCH_CHECKPOINTS)
+    if mutation == "partial_start":
+        features = {
+            name: value[1:].copy() for name, value in features.items()
+        }
+    elif mutation == "partial_end":
+        features = {
+            name: value[:-1].copy() for name, value in features.items()
+        }
+    elif mutation == "missing":
+        features = {
+            name: np.delete(value, 1000) for name, value in features.items()
+        }
+    elif mutation == "off_grid":
+        features["ts_ns"][1000] += 1
+    elif mutation == "empty_intermediate":
+        features = synthetic_features(
+            AUDIT.EXPECTED_EPOCH_CHECKPOINTS * 3
+        )
+        keep = (features["ts_ns"] // AUDIT.EPOCH_NS) != 1
+        features = {
+            name: value[keep].copy() for name, value in features.items()
+        }
+    rows, _, mask = AUDIT.epoch_support_ledger(
+        capture_id="capture",
+        research_date="2026-08-29",
+        features=features,
+    )
+    matching = (
+        next(row for row in rows if row["epoch_id"] == 1)
+        if mutation == "empty_intermediate"
+        else rows[0]
+    )
+    assert matching["disposition"] == expected
+    assert matching["segment_id"] == ""
+    assert not np.any(
+        mask[
+            (features["ts_ns"] // AUDIT.EPOCH_NS)
+            == int(matching["epoch_id"])
+        ]
+    )
+
+
+def test_duplicate_timestamp_fails_before_disposition_enumeration() -> None:
+    features = synthetic_features(AUDIT.EXPECTED_EPOCH_CHECKPOINTS)
+    features["ts_ns"][1000] = features["ts_ns"][999]
+    with pytest.raises(
+        AUDIT.AuditError, match="raw_timestamp_not_strictly_increasing"
+    ):
+        AUDIT.epoch_support_ledger(
+            capture_id="capture",
+            research_date="2026-08-29",
+            features=features,
+        )
+
+
+@pytest.mark.parametrize("second_direction", (1, -1))
+def test_core_reset_isolated_from_same_or_opposite_direction_onsets(
+    second_direction: int,
+) -> None:
+    features = synthetic_features(AUDIT.EXPECTED_EPOCH_CHECKPOINTS)
+    core_open = AUDIT.CORE_OPEN_NS // AUDIT.CHECKPOINT_NS
+    reset_index = core_open + 300
+    features["segment_id"][reset_index:] = 1
+    state = np.full(len(features["ts_ns"]), AUDIT.M_BACKGROUND, dtype=np.int8)
+    state[core_open + 100] = AUDIT.M_SIGNAL_POS
+    state[reset_index + 100] = second_direction
+    family = {
+        "states_by_key": {(100, 0.0): state},
+        "ages_by_key": {
+            (100, 0.0): np.zeros((len(state), 3), dtype=np.int64)
+        },
+    }
+    candidates, counts, epoch_rows, eligible = (
+        AUDIT.common_candidate_ledger(
+            capture_id="capture",
+            research_date="2026-08-29",
+            features=features,
+            family=family,
+            predecessor=PREDECESSOR,
+        )
+    )
+    assert candidates == []
+    assert counts["fixed_epoch_admitted"] == 0
+    assert epoch_rows[0]["disposition"] == "segment_boundary"
+    assert epoch_rows[0]["dependence_cluster_id"] == ""
+    assert not np.any(eligible)
+
+
 def test_fixed_epoch_thinning_is_earliest_per_direction_and_core_is_half_open() -> None:
     features = synthetic_features(AUDIT.EXPECTED_EPOCH_CHECKPOINTS)
     state = np.full(len(features["ts_ns"]), AUDIT.M_BACKGROUND, dtype=np.int8)
@@ -511,6 +697,168 @@ def test_slice_source_hash_ignores_unconsumed_values() -> None:
     raw["trade_total"][0] += 1
     assert first != AUDIT.slice_source_sha256(
         raw, PREDECESSOR.CONSUMED_CACHE_FIELDS
+    )
+
+
+def test_support_identity_hash_locks_numeric_epoch_order_and_state() -> None:
+    epoch_ids = {2, 10}
+    ts = np.asarray(
+        [
+            epoch_id * AUDIT.EPOCH_NS + AUDIT.CORE_OPEN_NS
+            for epoch_id in sorted(epoch_ids)
+        ],
+        dtype=np.int64,
+    )
+    analysis = {
+        "ts_ns": ts,
+        "states_by_key": {
+            (item.ttl_ms, item.margin): np.asarray(
+                [AUDIT.M_BACKGROUND, AUDIT.M_SIGNAL_POS], dtype=np.int8
+            )
+            for item in AUDIT.FILTERS
+        },
+    }
+    count, checkpoints, actual_sha = AUDIT.support_identity(
+        analysis, epoch_ids, "capture"
+    )
+    expected = [
+        (
+            "capture",
+            epoch_id,
+            int(ts[index]),
+            filter_index,
+            int(
+                analysis["states_by_key"][(item.ttl_ms, item.margin)][
+                    index
+                ]
+            ),
+        )
+        for index, epoch_id in enumerate(sorted(epoch_ids))
+        for filter_index, item in enumerate(AUDIT.FILTERS)
+    ]
+    assert count == 2 * len(AUDIT.FILTERS)
+    assert checkpoints == 2
+    assert actual_sha == AUDIT.canonical_sha(expected)
+    assert actual_sha != AUDIT.canonical_sha(list(reversed(expected)))
+
+    analysis["states_by_key"][(100, 0.0)][1] = AUDIT.M_SIGNAL_NEG
+    assert AUDIT.support_identity(analysis, epoch_ids, "capture")[2] != (
+        actual_sha
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_gate"),
+    (
+        ("mstate", "A-1-2"),
+        ("null_nonfinite", "A-1-3"),
+        ("spoofed_occupancy_share", "A-1-4"),
+        ("malformed_occupancy_hash", "A-1-4"),
+        ("structural_subset", "A-1-4"),
+    ),
+)
+def test_gate_mutations_fail_at_frozen_precedence(
+    mutation: str, expected_gate: str
+) -> None:
+    summary = passing_gate_summary()
+    if mutation == "mstate":
+        summary["integrity"]["mstate_partition_violations"] = 1
+    elif mutation == "null_nonfinite":
+        summary["null_admissibility"][
+            "maximum_date_p95_joint_distance"
+        ] = np.nan
+    elif mutation == "spoofed_occupancy_share":
+        summary["raw"]["occupied_supported_epoch_share"] = 0.09
+    elif mutation == "malformed_occupancy_hash":
+        summary["raw"]["occupied_epoch_identity_sha256"] = "not-a-hash"
+    elif mutation == "structural_subset":
+        summary["raw"]["structurally_eligible_epoch_count"] = 9
+        summary["raw"]["structurally_occupied_epoch_count"] = 10
+        summary["raw"]["structurally_occupied_epoch_share"] = 10 / 9
+    gates = gates_by_id(summary)
+    assert gates[expected_gate]["status"] == "FAIL"
+    failed = False
+    for gate_id in (
+        "A-1-0",
+        "A-1-1",
+        "A-1-2",
+        "A-1-3",
+        "A-1-4",
+        "A-1-5",
+        "A-1-6",
+        "A-1-7",
+    ):
+        row = gates[gate_id]
+        if failed:
+            assert row["status"] == "NOT_EVALUATED"
+            assert row["passed"] is None
+            assert all(
+                condition["status"] == "NOT_EVALUATED"
+                and condition["passed"] is None
+                and condition["actual"] is None
+                and condition["required"]
+                for condition in row["conditions"]
+            )
+        elif gate_id == expected_gate:
+            failed = True
+
+
+@pytest.mark.parametrize(
+    ("failed_gate", "field", "value"),
+    (
+        ("A-1-5", "observed_cluster_count", 29),
+        ("A-1-6", "null_false_cluster_rate_p95_per_hour", 0.11),
+    ),
+)
+def test_late_gate_failure_keeps_a_minus1_7_not_evaluated(
+    failed_gate: str, field: str, value: float
+) -> None:
+    summary = passing_gate_summary()
+    summary["estimators"]["30000"][field] = value
+    gates = gates_by_id(summary)
+    assert gates[failed_gate]["status"] == "FAIL"
+    assert gates["A-1-7"]["status"] == "NOT_EVALUATED"
+    assert all(
+        condition["passed"] is None and condition["actual"] is None
+        for condition in gates["A-1-7"]["conditions"]
+    )
+
+
+def test_zero_occupancy_with_positive_denominator_is_numeric_zero() -> None:
+    summary = passing_gate_summary()
+    summary["raw"]["occupied_epoch_count"] = 0
+    summary["raw"]["occupied_supported_epoch_share"] = 0.0
+    summary["raw"]["structurally_occupied_epoch_count"] = 0
+    summary["raw"]["structurally_occupied_epoch_share"] = 0.0
+    assert AUDIT.numeric_integrity_violations(summary) == 0
+
+
+def test_manifest_self_exclusion_and_exact_25_path_mutations(
+    tmp_path: Path,
+) -> None:
+    for relative in AUDIT.REQUIRED_NON_CACHE_ARTIFACTS:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative + "\n", encoding="ascii")
+    produced = AUDIT.non_cache_artifact_paths(tmp_path)
+    assert produced == AUDIT.REQUIRED_NON_CACHE_ARTIFACTS
+    manifest = PREDECESSOR.artifact_manifest(tmp_path)
+    manifest_paths = {row["path"] for row in manifest["artifacts"]}
+    assert "run_manifest.json" not in manifest_paths
+    assert manifest_paths == (
+        AUDIT.REQUIRED_NON_CACHE_ARTIFACTS - {"run_manifest.json"}
+    )
+    assert manifest["artifact_count"] == 24
+
+    extra = tmp_path / "unexpected.json"
+    extra.write_text("{}\n", encoding="ascii")
+    assert AUDIT.non_cache_artifact_paths(tmp_path) != (
+        AUDIT.REQUIRED_NON_CACHE_ARTIFACTS
+    )
+    extra.unlink()
+    (tmp_path / next(iter(AUDIT.REQUIRED_NON_CACHE_ARTIFACTS))).unlink()
+    assert AUDIT.non_cache_artifact_paths(tmp_path) != (
+        AUDIT.REQUIRED_NON_CACHE_ARTIFACTS
     )
 
 

@@ -2413,6 +2413,11 @@ def numeric_integrity_violations(summary: dict[str, Any]) -> int:
             and isinstance(occupied, int)
             and occupied > raw_supported
         )
+        or (
+            isinstance(structural, int)
+            and isinstance(structural_occupied, int)
+            and structural_occupied > structural
+        )
     )
     for name in (
         "raw_supported_epoch_identity_sha256",
