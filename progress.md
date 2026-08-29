@@ -21,6 +21,17 @@
   now explicit.
 - Data execution remains locked pending Round 2 review.
 
+## 2026-08-29 0829T001 Plan Review Round 2 Failed
+
+- Round 2 failed with `P0/P1/P2/P3 = 0/1/3/1`.
+- Revision 3 gives numerator and denominator the same filter-duration
+  exposure mask, indexes every observed/null/exposure estimator by duration,
+  and forces cluster breaks at every segment boundary.
+- Inherited primitives must now be called directly from the exact accepted
+  predecessor blob and match frozen normalized-AST hashes.
+- Empirical quantiles use the suffix `p95`, not confidence-bound language.
+- Data execution remains locked pending Round 3 review.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

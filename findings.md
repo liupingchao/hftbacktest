@@ -20,6 +20,13 @@
   false-fire rate downward.
 - Retrospective pairability/comparison masks must never enter the causal
   detector state. They are external, symmetric audit censors only.
+- A false-fire rate is valid only when its numerator and denominator have the
+  same filter-duration exposure. Current-time mask support alone is too broad
+  when a signal needs causal lookback plus persistence.
+- Fixed dependence clusters must break at segment/quality boundaries.
+- Verifying an ancestor file blob is insufficient if the new runner can
+  silently reimplement its primitives; callable-level semantic binding is
+  required.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 

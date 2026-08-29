@@ -11,13 +11,18 @@ Audit ID: `PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1`
 
 Status: frozen draft pending independent plan review
 
-Revision: 2
+Revision: 3
 
 Review history:
 
 ```text
 Round 1:
   P0/P1/P2/P3 = 0/5/2/0
+  recommendation = FAIL
+  data execution lock = retained
+
+Round 2:
+  P0/P1/P2/P3 = 0/1/3/1
   recommendation = FAIL
   data execution lock = retained
 ```
@@ -220,16 +225,30 @@ blob SHA256 =
   f7dc1565bf0a45363dadf3204d827e0d13687f6cc3307c2e7c5e77aeb321400c
 ```
 
-The implementation must extract and bind the predecessor definitions used
-for:
+The new runner must import the predecessor module from the exact path above
+only after verifying the complete blob SHA256. It must call, not reimplement,
+the following inherited symbols:
 
 ```text
-conflict_primitives
-coherence_predicates V0 base predicate
-fixed_opposite_orientation_pairs
-null_layout
-permute_trade_direction_paths
+symbol                            normalized AST SHA256
+conflict_primitives               760bbedc04aac79841ac1ce82a89ece851eea6529ba1d02ee756abcd7f05b128
+coherence_predicates              9f0564156193492f5aafc4c4b06d79c1f38c7606947582ed38a554a29a0157ab
+fixed_opposite_orientation_pairs  04cef064fdaf5cba94421d6d3250760ccf623b2d0531a883154d2a3bdb4b293d
+null_layout                       2def320606fa9caf45e5878845e91026b1284b57b1dd3ff8265038de92c8dcf5
+permute_trade_direction_paths     b870945f3a079f34337912776001c8bbe8af41c2644e2c0b4acf76277e7637ce
 ```
+
+Normalization is:
+
+```text
+ast.dump(function_node, annotate_fields=True, include_attributes=False)
+SHA256 over ASCII bytes
+```
+
+The runner must fail if the module blob, symbol AST, callable module/name or
+callable code object differs. Independent validation must compare
+checkpoint-level conflict/coherence arrays, null layout masks and paired
+assignments against direct calls to the bound predecessor module.
 
 Any semantic change requires a new contract revision.
 
@@ -437,12 +456,17 @@ sort key =
   capture_id, candidate_ts_ns, candidate_event_seq, direction
 
 same cluster when =
-  same capture and current candidate_ts - previous candidate_ts <= 30s
+  same capture_id
+  and same segment_id
+  and current candidate_ts - previous candidate_ts <= 30s
 ```
 
 Every filter may retain or delete fixed cluster IDs but may never recompute
 them from filter-specific confirmation timestamps. Candidate-set and
 unique-cluster-count monotonicity must both hold.
+
+Every segment/quality/reset boundary forces a new cluster, regardless of
+timestamp gap.
 
 ## 9. Candidate Ledger And Exact Family Evaluation
 
@@ -522,30 +546,47 @@ The causal detector runs without knowing pairability or microblock boundaries.
 It assigns tri-state outputs, candidates, refractory and fixed cluster IDs
 first.
 
-For a filter-specific signal, observed and null audit inclusion then require
-the external mask to be true across:
+For duration `h`, filter `f` and possible candidate rising-edge checkpoint
+`t`, define:
 
 ```text
-[candidate_ts - max(500ms,filter_novelty_ms), confirmation_ts]
+L_f =
+  max(
+    2000ms maximum causal feature history,
+    500ms prestate lookback,
+    filter_novelty_ms
+  )
+
+R_f = filter_persistence_ms
+
+E_{h,f}(t) =
+  V2 causal decision support at t
+  and duration-h external comparison mask is true at every checkpoint in
+  [t - L_f, t + R_f]
 ```
 
-Failure produces `audit_censored`, not `ABSTAIN`, and does not alter detector
-state or later candidates.
+`E_{h,f}(t)=false` produces `audit_censored`, not `ABSTAIN`, and does not alter
+detector state or later candidates.
 
 A fixed cluster is included when at least one retained signal in that cluster
-passes the filter-specific audit censor. It is counted once regardless of
-direction or the number of included confirmations.
+has `E_{h,f}(candidate_ts)=true`. It is counted once regardless of direction
+or the number of included confirmations.
 
-The false-cluster-rate denominator is counted once per unique capture-time
-20ms interval, never once per direction. It requires:
+The filter-duration exposure is:
 
 ```text
-V2 causal decision support = true
-external comparison mask = true
+H_{h,f,D} =
+  20ms * count of unique capture-time checkpoints t on date set D
+  where E_{h,f}(t)=true
 ```
 
-If directional support ever differs, the interval enters the denominator only
-when both directions are supported.
+Exposure is counted once per capture-time checkpoint, never once per
+direction. If directional support ever differs, `E_{h,f}(t)` is true only when
+both directions are supported.
+
+Observed and null use exactly the same `E_{h,f}` and `H_{h,f,D}`. Because the
+null preserves support and external masks, any exposure mismatch is a hard
+failure.
 
 ## 11. Null-Only Filter Selection
 
@@ -577,7 +618,7 @@ For each outer held-out date:
 0.10 per comparison-supported capture hour
 ```
 
-5. Select the least strict admitted filter using:
+5. Select the first admitted filter in this frozen lexicographic order:
 
 ```text
 lowest persistence
@@ -589,6 +630,8 @@ then filter_id
 If no filter qualifies, the complete held-out date is `ABSTAIN`.
 
 This rule deliberately does not reward observed firing count.
+It makes no claim that the lexicographic order is a total ordering of every
+mixed-dimension notion of strictness.
 
 The selected filter is then frozen for that fold and used unchanged for all
 10s, 30s and 60s evaluation-bank audits.
@@ -626,30 +669,42 @@ Monte Carlo draws used for selection.
 
 Primary units are 30-second dependence clusters, not raw confirmations.
 
-Let:
+For each duration `h in {10s,30s,60s}`, let fold `j` select filter `f_j`.
+Define:
 
 ```text
-O = observed cross-fitted cluster count
-N_r = cross-fitted null cluster count in replicate r
+O_h =
+  observed cross-fitted unique fixed-cluster count after duration-h censor
+
+N_{h,r} =
+  evaluation-bank cross-fitted unique fixed-cluster count for duration h,
+  replicate r
+
+H_h =
+  sum over held-out folds j of H_{h,f_j,{held-out date j}}
 ```
 
 Estimators:
 
 ```text
-null_count_p95 = Type-7 p95 of N_r
+null_count_{h,p95} = Type-7 p95 of N_{h,r}
 
-null_false_cluster_rate_U95 =
-  null_count_p95 / comparison-supported capture hours
+null_false_cluster_rate_{h,p95} =
+  null_count_{h,p95} / H_h
 
-structural_null_burden_ratio_U95 =
-  null_count_p95 / max(O,1)
+structural_null_burden_ratio_{h,p95} =
+  null_count_{h,p95} / max(O_h,1)
 
-count_tail_p =
-  (1 + count(N_r >= O)) / 200
+count_tail_p_h =
+  (1 + count(N_{h,r} >= O_h)) / 200
 ```
 
-`structural_null_burden_ratio_U95` is a descriptive null-burden ratio, not a
-false-discovery confidence bound. It must never be renamed or interpreted as:
+The suffix `p95` means empirical Type-7 95th percentile, not a confidence
+limit.
+
+`structural_null_burden_ratio_{h,p95}` is a descriptive null-burden ratio, not
+a false-discovery confidence bound. It must never be renamed or interpreted
+as:
 
 ```text
 FDP upper confidence bound
@@ -736,6 +791,8 @@ Require:
 - candidate-ledger and independent detector results exact for all filters;
 - candidate-set and fixed-cluster-count monotonicity violations = 0;
 - fixed cluster ID recomputation after filtering = 0;
+- cross-segment fixed-cluster merge = 0;
+- observed/null `E_{h,f}` or `H_{h,f,D}` mismatch = 0;
 - slice/reset mismatches = 0.
 
 Slice/reset audit covers all 27 filters, tri-state counts, base-candidate
@@ -756,7 +813,7 @@ All post-guard identities and metrics must be exact.
 Require on the 30s primary evaluation bank:
 
 ```text
-O >= 30 independent clusters
+O_30s >= 30 independent clusters
 represented dates >= 4
 maximum single-date cluster share <= 0.50
 ```
@@ -776,18 +833,21 @@ Aminus1_structural_support_not_estimable
 Require on the 30s primary:
 
 ```text
-null_false_cluster_rate_U95 <= 0.10 per comparison-supported hour
-structural_null_burden_ratio_U95 <= 0.10
-count_tail_p <= 0.01
+null_false_cluster_rate_{30s,p95} <= 0.10 per hour
+structural_null_burden_ratio_{30s,p95} <= 0.10
+count_tail_p_30s <= 0.01
 dates above date-null p90 >= 4
 ```
 
 Sensitivity requirements:
 
 ```text
-10s and 60s null_false_cluster_rate_U95 <= 0.20
-10s and 60s structural_null_burden_ratio_U95 <= 0.20
-10s and 60s count_tail_p <= 0.05
+null_false_cluster_rate_{10s,p95} <= 0.20 per hour
+null_false_cluster_rate_{60s,p95} <= 0.20 per hour
+structural_null_burden_ratio_{10s,p95} <= 0.20
+structural_null_burden_ratio_{60s,p95} <= 0.20
+count_tail_p_10s <= 0.05
+count_tail_p_60s <= 0.05
 ```
 
 Failure classification:
@@ -886,7 +946,10 @@ selection code reads observed count -> hard failure
 selection/evaluation RNG stream-identity overlap -> hard failure
 comparison mask changes detector state -> hard failure
 filter-specific cluster recomputation -> hard failure
+cross-segment cluster merge -> hard failure
 direction-time denominator double count -> hard failure
+poisoned allowed-but-unconsumed midpoint/OBI/spread -> no output change
+callable replacement or inherited symbol byte change -> hard failure
 ```
 
 ## 18. Stop Rules
