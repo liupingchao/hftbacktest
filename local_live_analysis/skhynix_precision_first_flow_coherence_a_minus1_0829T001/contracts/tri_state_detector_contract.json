@@ -1,0 +1,12 @@
+{
+  "abstain_contributes_to_exposure": false,
+  "abstain_contributes_to_signal": false,
+  "checkpoint_direction_partition_required": true,
+  "comparison_mask_is_external": true,
+  "states": [
+    "SIGNAL",
+    "BACKGROUND",
+    "ABSTAIN"
+  ],
+  "support_rows": 243
+}

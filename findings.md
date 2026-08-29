@@ -68,6 +68,19 @@
   similar names do not close a missing tri-state-by-date evidence surface.
 - Deterministic evidence needs three persisted stages: preseal, pending and
   final. A preseal/final pair alone is insufficient.
+- Round 1 remediation confirms the distinction between accepted missed
+  opportunities and an unmeasurable detector. Precision-first permits low
+  recall, but zero admitted signals still prevents estimating false-fire
+  burden; it cannot be labelled high precision.
+- Fail-closed numeric handling must remain executable after corruption is
+  detected. Sanitizing NaN to null is insufficient if later gates perform
+  unsafe comparisons; every downstream gate now uses finite-aware checks.
+- Required Outputs are an exact evidence namespace, not a suggestion.
+  The repaired package has exactly 21 non-cache artifacts; predecessor
+  blob/AST details live inside the required execution-evidence contract.
+- The remediation leaves the market finding unchanged: all 350 common
+  candidates are still rejected, so the registered structural filter has no
+  estimable support on the nine historical dates.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 

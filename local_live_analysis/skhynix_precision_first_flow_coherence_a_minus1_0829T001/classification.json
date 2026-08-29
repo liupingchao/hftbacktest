@@ -30,6 +30,24 @@
           "condition": "deterministic_build",
           "passed": true,
           "required": "true"
+        },
+        {
+          "actual": 0,
+          "condition": "preseal_difference_count",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "pending_difference_count",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "final_difference_count",
+          "passed": true,
+          "required": "0"
         }
       ],
       "gate_id": "A-1-0",
@@ -272,7 +290,7 @@
     {
       "conditions": [
         {
-          "actual": 1.1602833333333333,
+          "actual": 1.1602833333333336,
           "condition": "raw_exposure_positive",
           "passed": true,
           "required": ">0"

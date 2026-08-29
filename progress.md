@@ -130,6 +130,24 @@
   frozen.
 - Task status is `未通过`.
 
+## 2026-08-29 0829T001 QA Round 1 Remediation Ready For QA
+
+- Remediation commit `e56bb5a5` closes only execution/evidence defects.
+- Dynamic numeric integrity checks and hostile tests route negative or
+  non-finite raw, primary and sensitivity values first to A-1-4.
+- Canonical Build A and fresh Build B each contain exactly the 21 frozen
+  non-cache Required Outputs.
+- Candidate, filter-by-date and tri-state-by-date evidence contain 350, 243
+  and 243 rows respectively.
+- Preseal, pending and final Build A/B difference counts are all persisted as
+  zero; final full non-cache difference count is zero.
+- Manifest closure is exact across 20 manifest-external artifacts.
+- Combined regression is `34 passed`; Ruff, compile and diff checks pass.
+- Scientific result remains
+  `Aminus1_structural_support_not_estimable`; A0 and future outcomes remain
+  unauthorized.
+- Task status returns to `待验收` for independent QA Round 2.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

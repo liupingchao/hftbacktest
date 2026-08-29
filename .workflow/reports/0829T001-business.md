@@ -102,8 +102,27 @@ Gate 结果：
 - live trading 未授权
 
 验证：
-- Focused pytest：`30 passed`
+- Focused pytest：`34 passed`
 - Ruff：通过
 - py_compile：通过
 - git diff check：通过
 - Build A/B full non-cache SHA：零差异
+
+QA Round 1 remediation：
+- 代码 commit：`e56bb5a5`。
+- 数值损坏现在由动态 integrity audit 捕捉；negative/non-finite
+  raw、primary、sensitivity hostile cases 都首先分类到 A-1-4。
+- Build A/B 各自恰好包含 frozen Required Outputs 的 21 个
+  non-cache artifacts，无缺失、无额外文件。
+- 新增 350-row `candidate_ledger.csv`、243-row
+  `filter_support_by_date.csv` 和 243-row
+  `tri_state_support_by_date.csv`。
+- preseal、pending、final Build A/B difference count 均持久化为 0。
+- Manifest 包含 20 个 manifest-external artifacts，hash closure
+  mismatch 为 0。
+- Candidate count、candidate SHA、F000 cancellation、fold selection、
+  observed/null counts 和最终 classification 均未改变。
+
+当前状态：
+- 待验收
+- 等待独立 QA Round 2。

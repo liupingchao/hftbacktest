@@ -5,13 +5,21 @@
   "classification": "Aminus1_structural_support_not_estimable",
   "common_candidate_count": 350,
   "confirmatory_a0_authorized": false,
+  "determinism_evidence": {
+    "final_difference_count": 0,
+    "pending_difference_count": 0,
+    "preseal_difference_count": 0,
+    "stage": "final"
+  },
   "deterministic_build": true,
   "estimators": {
     "10000": {
       "count_tail_p": 1.0,
       "dates_above_date_null_p90": 0,
       "estimable": false,
-      "exposure_hours": 0.23410555555555557,
+      "exposure_checkpoint_count": 42139,
+      "exposure_hours": 0.23410555555555554,
+      "exposure_seconds": 842.78,
       "maximum_single_date_share": null,
       "null_cluster_count_p95": 0.0,
       "null_false_cluster_rate_p95_per_hour": 0.0,
@@ -23,7 +31,9 @@
       "count_tail_p": 1.0,
       "dates_above_date_null_p90": 0,
       "estimable": false,
+      "exposure_checkpoint_count": 74098,
       "exposure_hours": 0.41165555555555555,
+      "exposure_seconds": 1481.96,
       "maximum_single_date_share": null,
       "null_cluster_count_p95": 0.0,
       "null_false_cluster_rate_p95_per_hour": 0.0,
@@ -35,7 +45,9 @@
       "count_tail_p": 1.0,
       "dates_above_date_null_p90": 0,
       "estimable": false,
-      "exposure_hours": 0.2190944444444444,
+      "exposure_checkpoint_count": 39437,
+      "exposure_hours": 0.21909444444444445,
+      "exposure_seconds": 788.74,
       "maximum_single_date_share": null,
       "null_cluster_count_p95": 0.0,
       "null_false_cluster_rate_p95_per_hour": 0.0,
@@ -137,6 +149,24 @@
           "condition": "deterministic_build",
           "passed": true,
           "required": "true"
+        },
+        {
+          "actual": 0,
+          "condition": "preseal_difference_count",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "pending_difference_count",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "final_difference_count",
+          "passed": true,
+          "required": "0"
         }
       ],
       "gate_id": "A-1-0",
@@ -379,7 +409,7 @@
     {
       "conditions": [
         {
-          "actual": 1.1602833333333333,
+          "actual": 1.1602833333333336,
           "condition": "raw_exposure_positive",
           "passed": true,
           "required": ">0"
@@ -433,7 +463,9 @@
   "prospective_precision_validation_required": false,
   "raw": {
     "cluster_rate_per_hour": 0.0,
-    "exposure_hours": 1.1602833333333333,
+    "exposure_checkpoint_count": 208851,
+    "exposure_hours": 1.1602833333333336,
+    "exposure_seconds": 4177.02,
     "maximum_5s_burst": 0,
     "observed_cluster_count": 0
   },
