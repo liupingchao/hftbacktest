@@ -30,7 +30,7 @@
 
 最早失败 gate：
 - `A-1-2`
-- 唯一失败条件：`slice_invariance_mismatches = 17`
+- 唯一失败条件：`slice_invariance_mismatches = 8`
 
 完整性结果：
 - M-state partition violations: `0`
@@ -61,7 +61,10 @@ Cross-fit estimators：
 - `F000` 仅保留 `61/3,783` candidates，主要取消原因为
   `consensus_lost=1,939` 和 `persistence_abstain=1,767`。
 - Cross-fit 常选 `F011`，全样本仅保留 `1` 个 raw cluster。
-- 17 个 slice mismatch 的 M-state support count 全部精确一致，变化只在
+- 初始 slice audit 报告 17 个 identity mismatch。独立 QA 发现其中
+  9 个来自测试实现将切片后的后续 segment candidates 错算进当前
+  segment；修复并重算后，剩余 `8` 个真实 reset mismatch。
+- 8 个真实 mismatch 的 M-state support count 全部精确一致，变化只在
   anchor identity。
 - 根因是 per-direction 30s refractory 的 renewal 相位依赖。人工切片
   删除早期 accepted anchor 后，在密集 natural-onset 流中，后续
@@ -82,4 +85,4 @@ Cross-fit estimators：
   例如基于固定 causal epoch/bucket 的 deterministic thinning，避免
   accepted-anchor-driven refractory renewal。
 - 新版本必须重新从 precision-first A-1 开始；不得在当前版本上调整
-  阈值或事后删除 17 个 mismatch。
+  阈值或事后删除 8 个 mismatch。
