@@ -51,6 +51,16 @@
   unit test requires 180,000 supported 20ms checkpoints to equal one hour.
 - Data execution remains locked pending Round 5 review.
 
+## 2026-08-29 0829T001 Plan Review Round 5 Failed
+
+- Round 5 failed with `P0/P1/P2/P3 = 0/0/1/0`.
+- Revision 6 rejects zero/non-finite selection exposure instead of treating
+  zero null counts as a zero rate.
+- Zero evaluation exposure is now structurally not estimable, and zero raw
+  exposure cannot pass the sparse-firing gate.
+- NaN or infinite count, exposure or rate fields are hard failures.
+- Data execution remains locked pending Round 6 review.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

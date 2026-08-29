@@ -35,6 +35,9 @@
 - Exposure units are part of the scientific contract. Dividing a cluster
   count by checkpoint count and comparing it with a per-hour threshold can
   weaken the gate by a factor of 180,000 at a 20ms cadence.
+- Zero exposure must fail closed. `0/0` cannot be interpreted as zero
+  false-fire burden, because that would admit an unobservable filter and let
+  implementation-specific NaN handling change the scientific classification.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 

@@ -11,7 +11,7 @@ Audit ID: `PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1`
 
 Status: frozen draft pending independent plan review
 
-Revision: 5
+Revision: 6
 
 Review history:
 
@@ -32,6 +32,11 @@ Round 3:
   data execution lock = retained
 
 Round 4:
+  P0/P1/P2/P3 = 0/0/1/0
+  recommendation = FAIL
+  data execution lock = retained
+
+Round 5:
   P0/P1/P2/P3 = 0/0/1/0
   recommendation = FAIL
   data execution lock = retained
@@ -642,6 +647,9 @@ For each outer held-out date:
    each of 199 replicates on the remaining dates.
 3. Compute the Type-7 p95 false-cluster rate using the unique capture-time
    comparison-supported denominator frozen in Section 10.1.
+   If the training-date `H_hours_{30s,f,D_train}` is zero, non-finite or
+   otherwise not estimable, the filter is not admitted. A zero null count
+   never converts zero exposure into a zero rate.
 4. Admit filters whose p95 null false-cluster rate is at most:
 
 ```text
@@ -734,6 +742,22 @@ structural_null_burden_ratio_{h,p95} =
 
 count_tail_p_h =
   (1 + count(N_{h,r} >= O_h)) / 200
+```
+
+Fail-closed denominator rules:
+
+```text
+H_hours_h <= 0 or non-finite ->
+  null_false_cluster_rate_{h,p95} = NOT_ESTIMABLE
+  Gate A-1-5 fails
+  Gate A-1-6 cannot pass
+
+O_h = 0 ->
+  date-share and burden-ratio metrics = NOT_ESTIMABLE
+  Gate A-1-5 fails before those metrics are interpreted
+
+any NaN or infinity in count, exposure or rate fields ->
+  hard failure
 ```
 
 The suffix `p95` means empirical Type-7 95th percentile, not a confidence
@@ -851,6 +875,9 @@ All post-guard identities and metrics must be exact.
 Require on the 30s primary evaluation bank:
 
 ```text
+H_checkpoint_count_30s > 0
+H_seconds_30s > 0 and finite
+H_hours_30s > 0 and finite
 O_30s >= 30 independent clusters
 represented dates >= 4
 maximum single-date cluster share <= 0.50
@@ -917,7 +944,7 @@ H_raw_hours =
   H_raw_seconds / 3600
 
 raw_cluster_rate_per_hour =
-  O_raw / H_raw_hours
+  O_raw / H_raw_hours, only when H_raw_hours > 0 and finite
 
 raw_5s_burst =
   maximum selected-filter confirmation count in any same-capture 5s window
@@ -927,9 +954,15 @@ raw_5s_burst =
 Require:
 
 ```text
+H_raw_hours > 0 and finite
+raw_cluster_rate_per_hour is finite
 raw_cluster_rate_per_hour <= 5
 raw_5s_burst <= 2
 ```
+
+If `H_raw_hours <= 0` or is non-finite, the raw rate is
+`NOT_ESTIMABLE` and Gate A-1-7 cannot pass. Zero raw clusters do not convert
+zero raw exposure into a zero rate.
 
 The external comparison mask, `O_h` and `H_hours_h` do not enter this gate.
 There is no minimum firing-rate gate.
@@ -1019,6 +1052,10 @@ novelty or persistence support-gap checkpoint enters H -> hard failure
 comparison path omits earliest-state W_state influence -> hard failure
 180000 supported checkpoints and 5 raw clusters ->
   H_raw_hours=1 and raw_cluster_rate_per_hour=5
+zero selection exposure and zero null clusters -> filter not admitted
+zero evaluation exposure -> Aminus1_structural_support_not_estimable
+zero raw exposure and zero raw clusters -> sparse gate does not pass
+NaN or infinity in exposure/rate -> hard failure
 poisoned allowed-but-unconsumed midpoint/OBI/spread -> no output change
 callable replacement or inherited symbol byte change -> hard failure
 ```
