@@ -194,6 +194,28 @@ REQUIRED_NON_CACHE_ARTIFACTS = frozenset(
         "support/structural_false_fire_summary.csv",
     }
 )
+CANDIDATE_LEDGER_FIELDS = (
+    "research_date",
+    "capture_id",
+    "epoch_id",
+    "epoch_start_ns",
+    "core_open_ns",
+    "core_close_ns",
+    "segment_id",
+    "direction",
+    "candidate_id",
+    "candidate_ts_ns",
+    "candidate_event_seq",
+    "dependence_cluster_id",
+    "channel_last_observation_ts_json",
+    "channel_last_observation_age_ms_json",
+    "common_prestate_background_count",
+    "common_prestate_abstain_count",
+    "common_prestate_signal_count",
+    "admitted_filter_ids",
+    "confirmation_map_json",
+    "cancel_reason_map_json",
+)
 
 
 class AuditError(RuntimeError):
@@ -433,6 +455,209 @@ def verify_controller_and_cache_authority(
         },
         inventory,
     )
+
+
+def poisoned_array(value: np.ndarray) -> np.ndarray:
+    contiguous = np.ascontiguousarray(value)
+    raw = np.frombuffer(contiguous.tobytes(order="C"), dtype=np.uint8).copy()
+    raw ^= np.uint8(0xFF)
+    return np.frombuffer(raw.tobytes(), dtype=contiguous.dtype).reshape(
+        contiguous.shape
+    )
+
+
+def poison_attestation_path(output_root: Path) -> Path:
+    return output_root.with_name(f"{output_root.name}.poison-attestation.json")
+
+
+def materialize_poisoned_cache_set(
+    *,
+    canonical_cache_root: Path,
+    poisoned_cache_root: Path,
+    poison_output_root: Path,
+    cache_inventory: Sequence[dict[str, Any]],
+    allowed_fields: set[str] | frozenset[str],
+    consumed_fields: set[str] | frozenset[str],
+) -> dict[str, Any]:
+    poisoned_cache_root.mkdir(parents=True, exist_ok=True)
+    unconsumed_fields = sorted(set(allowed_fields) - set(consumed_fields))
+    cache_rows = []
+    consumed_mismatches = 0
+    nonempty_unconsumed_instances = 0
+    changed_unconsumed_instances = 0
+    for cache_row in cache_inventory:
+        cache_name = str(cache_row["cache_name"])
+        source = canonical_cache_root / cache_name
+        target = poisoned_cache_root / cache_name
+        with np.load(source, allow_pickle=False) as handle:
+            if set(handle.files) != set(allowed_fields):
+                raise AuditError(f"poison_cache_field_set:{cache_name}")
+            raw = {name: handle[name].copy() for name in handle.files}
+        poisoned = {}
+        field_rows = []
+        for name, value in raw.items():
+            if name in consumed_fields:
+                poisoned[name] = value.copy()
+                consumed_mismatches += int(
+                    not np.array_equal(
+                        poisoned[name], value, equal_nan=True
+                    )
+                )
+                continue
+            changed = poisoned_array(value)
+            poisoned[name] = changed
+            if value.size:
+                nonempty_unconsumed_instances += 1
+                differs = value.tobytes(order="C") != changed.tobytes(
+                    order="C"
+                )
+                changed_unconsumed_instances += int(differs)
+                if not differs:
+                    raise AuditError(
+                        f"poison_unconsumed_value_unchanged:{cache_name}:{name}"
+                    )
+            field_rows.append(
+                {
+                    "field": name,
+                    "dtype": value.dtype.str,
+                    "shape": list(value.shape),
+                    "source_value_sha256": hashlib.sha256(
+                        np.ascontiguousarray(value).tobytes(order="C")
+                    ).hexdigest(),
+                    "poison_value_sha256": hashlib.sha256(
+                        np.ascontiguousarray(changed).tobytes(order="C")
+                    ).hexdigest(),
+                }
+            )
+        np.savez_compressed(target, **poisoned)
+        with np.load(target, allow_pickle=False) as handle:
+            if set(handle.files) != set(allowed_fields):
+                raise AuditError(f"poison_roundtrip_field_set:{cache_name}")
+            for name, original in raw.items():
+                restored = handle[name]
+                if (
+                    restored.dtype != original.dtype
+                    or restored.shape != original.shape
+                ):
+                    raise AuditError(
+                        f"poison_roundtrip_schema:{cache_name}:{name}"
+                    )
+                if name in consumed_fields and not np.array_equal(
+                    restored, original, equal_nan=True
+                ):
+                    raise AuditError(
+                        f"poison_consumed_value_changed:{cache_name}:{name}"
+                    )
+        cache_rows.append(
+            {
+                "cache_name": cache_name,
+                "unconsumed_fields": field_rows,
+            }
+        )
+    if consumed_mismatches:
+        raise AuditError("poison_consumed_field_mismatch")
+    attestation = {
+        "task_id": TASK_ID,
+        "hypothesis_id": HYPOTHESIS_ID,
+        "poison_output_root": str(poison_output_root.resolve()),
+        "source_inventory_sha256": canonical_sha(list(cache_inventory)),
+        "cache_count": len(cache_rows),
+        "unconsumed_fields": unconsumed_fields,
+        "unconsumed_field_count": len(unconsumed_fields),
+        "nonempty_unconsumed_field_instance_count": (
+            nonempty_unconsumed_instances
+        ),
+        "changed_unconsumed_field_instance_count": (
+            changed_unconsumed_instances
+        ),
+        "consumed_field_mismatch_count": consumed_mismatches,
+        "caches": cache_rows,
+    }
+    path = poison_attestation_path(poison_output_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            attestation,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        + "\n",
+        encoding="ascii",
+    )
+    return attestation
+
+
+def verify_poison_attestation(
+    *,
+    poison_output_root: Path,
+    cache_inventory: Sequence[dict[str, Any]],
+    allowed_fields: set[str] | frozenset[str],
+    consumed_fields: set[str] | frozenset[str],
+) -> dict[str, Any]:
+    path = poison_attestation_path(poison_output_root)
+    if not path.is_file():
+        raise AuditError("poison_attestation_missing")
+    attestation = json.loads(path.read_text(encoding="ascii"))
+    unconsumed = sorted(set(allowed_fields) - set(consumed_fields))
+    cache_names = sorted(
+        str(row["cache_name"]) for row in cache_inventory
+    )
+    attested_names = sorted(
+        str(row["cache_name"]) for row in attestation.get("caches", [])
+    )
+    expected_instances = sum(
+        int(bool(field_row["shape"]) and math.prod(field_row["shape"]) > 0)
+        for cache_row in attestation.get("caches", [])
+        for field_row in cache_row.get("unconsumed_fields", [])
+    )
+    conditions = (
+        attestation.get("task_id") == TASK_ID,
+        attestation.get("hypothesis_id") == HYPOTHESIS_ID,
+        attestation.get("poison_output_root")
+        == str(poison_output_root.resolve()),
+        attestation.get("source_inventory_sha256")
+        == canonical_sha(list(cache_inventory)),
+        attestation.get("cache_count") == len(cache_inventory),
+        attested_names == cache_names,
+        attestation.get("unconsumed_fields") == unconsumed,
+        attestation.get("unconsumed_field_count") == len(unconsumed),
+        attestation.get("consumed_field_mismatch_count") == 0,
+        attestation.get("nonempty_unconsumed_field_instance_count")
+        == expected_instances,
+        attestation.get("changed_unconsumed_field_instance_count")
+        == expected_instances,
+    )
+    if not all(conditions):
+        raise AuditError("poison_attestation_invalid")
+    for cache_row in attestation["caches"]:
+        field_names = sorted(
+            str(row["field"]) for row in cache_row["unconsumed_fields"]
+        )
+        if field_names != unconsumed:
+            raise AuditError("poison_attestation_field_set")
+        for field_row in cache_row["unconsumed_fields"]:
+            if (
+                math.prod(field_row["shape"]) > 0
+                and field_row["source_value_sha256"]
+                == field_row["poison_value_sha256"]
+            ):
+                raise AuditError("poison_attestation_unchanged_value")
+    return {
+        "executed": True,
+        "attestation_sha256": sha256_file(path),
+        "cache_count": int(attestation["cache_count"]),
+        "unconsumed_field_count": int(
+            attestation["unconsumed_field_count"]
+        ),
+        "nonempty_unconsumed_field_instance_count": int(
+            attestation["nonempty_unconsumed_field_instance_count"]
+        ),
+        "changed_unconsumed_field_instance_count": int(
+            attestation["changed_unconsumed_field_instance_count"]
+        ),
+        "consumed_field_mismatch_count": 0,
+    }
 
 
 def filter_contract_rows() -> list[dict[str, Any]]:
@@ -1241,6 +1466,10 @@ def candidate_diagnostics(
                 {
                     "capture_id": candidate["capture_id"],
                     "research_date": candidate["research_date"],
+                    "epoch_id": candidate["epoch_id"],
+                    "epoch_start_ns": candidate["epoch_start_ns"],
+                    "core_open_ns": candidate["core_open_ns"],
+                    "core_close_ns": candidate["core_close_ns"],
                     "segment_id": candidate["segment_id"],
                     "direction": candidate["direction"],
                     "candidate_id": candidate["candidate_id"],
@@ -1345,6 +1574,83 @@ def candidate_diagnostics(
         )
     )
     return rows, csv_rows, len(hash_rows), canonical_sha(hash_rows)
+
+
+def validate_candidate_ledger_rows(
+    rows: Sequence[dict[str, Any]],
+) -> None:
+    expected_fields = set(CANDIDATE_LEDGER_FIELDS)
+    identities = set()
+    for row_index, row in enumerate(rows):
+        if set(row) != expected_fields:
+            raise AuditError(
+                f"candidate_ledger_schema:{row_index}:"
+                f"{sorted(set(row) ^ expected_fields)}"
+            )
+        integer_fields = (
+            "epoch_id",
+            "epoch_start_ns",
+            "core_open_ns",
+            "core_close_ns",
+            "segment_id",
+            "direction",
+            "candidate_ts_ns",
+            "candidate_event_seq",
+            "common_prestate_background_count",
+            "common_prestate_abstain_count",
+            "common_prestate_signal_count",
+        )
+        if any(
+            isinstance(row[field], bool)
+            or not isinstance(row[field], (int, np.integer))
+            for field in integer_fields
+        ):
+            raise AuditError(
+                f"candidate_ledger_integer_type:{row_index}"
+            )
+        epoch_id = int(row["epoch_id"])
+        start = int(row["epoch_start_ns"])
+        core_open = int(row["core_open_ns"])
+        core_close = int(row["core_close_ns"])
+        candidate_ts = int(row["candidate_ts_ns"])
+        direction = int(row["direction"])
+        capture_id = str(row["capture_id"])
+        if (
+            start != epoch_id * EPOCH_NS
+            or core_open != start + CORE_OPEN_NS
+            or core_close != start + CORE_CLOSE_NS
+            or not (core_open <= candidate_ts < core_close)
+            or direction not in (-1, 1)
+            or row["dependence_cluster_id"]
+            != f"{capture_id}:{epoch_id}"
+            or not str(row["candidate_id"])
+            or not str(row["research_date"])
+        ):
+            raise AuditError(
+                f"candidate_ledger_identity_contract:{row_index}"
+            )
+        identity = (
+            capture_id,
+            epoch_id,
+            direction,
+            candidate_ts,
+            int(row["candidate_event_seq"]),
+        )
+        if identity in identities:
+            raise AuditError(f"candidate_ledger_duplicate:{row_index}")
+        identities.add(identity)
+        for json_field in (
+            "channel_last_observation_ts_json",
+            "channel_last_observation_age_ms_json",
+            "confirmation_map_json",
+            "cancel_reason_map_json",
+        ):
+            try:
+                json.loads(str(row[json_field]))
+            except (TypeError, ValueError) as exc:
+                raise AuditError(
+                    f"candidate_ledger_json:{row_index}:{json_field}"
+                ) from exc
 
 
 def mstate_support_rows(
@@ -2826,7 +3132,10 @@ def write_contracts_and_summary(
             "consumed_cache_fields": sorted(
                 predecessor.CONSUMED_CACHE_FIELDS
             ),
-            "poisoned_unconsumed_fields_change_output": False,
+            "poisoned_unconsumed_fields_change_output": (
+                False if summary["zero_outcome_boundary"] else None
+            ),
+            "poison_protocol": summary["outcome_poison_evidence"],
         },
     )
     for obsolete in (
@@ -3127,31 +3436,11 @@ def write_contracts_and_summary(
             "dependence_cluster_id",
         ),
     )
+    validate_candidate_ledger_rows(candidate_ledger_rows)
     predecessor.write_csv(
         support_dir / "candidate_ledger.csv",
         list(candidate_ledger_rows),
-        (
-            "research_date",
-            "capture_id",
-            "epoch_id",
-            "epoch_start_ns",
-            "core_open_ns",
-            "core_close_ns",
-            "segment_id",
-            "direction",
-            "candidate_id",
-            "candidate_ts_ns",
-            "candidate_event_seq",
-            "dependence_cluster_id",
-            "channel_last_observation_ts_json",
-            "channel_last_observation_age_ms_json",
-            "common_prestate_background_count",
-            "common_prestate_abstain_count",
-            "common_prestate_signal_count",
-            "admitted_filter_ids",
-            "confirmation_map_json",
-            "cancel_reason_map_json",
-        ),
+        CANDIDATE_LEDGER_FIELDS,
     )
     predecessor.write_csv(
         support_dir / "filter_support_by_date.csv",
@@ -3185,6 +3474,8 @@ def execute_audit(
     repo_root: Path,
     source_cache_root: Path,
     output_root: Path,
+    *,
+    poison_unconsumed: bool = False,
 ) -> dict[str, Any]:
     if sha256_file(repo_root / PLAN_PATH) != PLAN_SHA256:
         raise AuditError("plan_sha_mismatch")
@@ -3197,6 +3488,21 @@ def execute_audit(
         null_authority=predecessor.NULL_AUTHORITY,
     )
     cache_inventory.sort(key=lambda row: row["cache_name"].encode("ascii"))
+    poison_temp: tempfile.TemporaryDirectory[str] | None = None
+    analysis_cache_root = output_root / "cache"
+    if poison_unconsumed:
+        poison_temp = tempfile.TemporaryDirectory(
+            prefix="fixed-epoch-outcome-poison-"
+        )
+        analysis_cache_root = Path(poison_temp.name)
+        materialize_poisoned_cache_set(
+            canonical_cache_root=output_root / "cache",
+            poisoned_cache_root=analysis_cache_root,
+            poison_output_root=output_root,
+            cache_inventory=cache_inventory,
+            allowed_fields=predecessor.ALLOWED_CACHE_FIELDS,
+            consumed_fields=predecessor.CONSUMED_CACHE_FIELDS,
+        )
     dates = sorted(
         {
             predecessor.date_from_cache_name(row["cache_name"])
@@ -3303,7 +3609,7 @@ def execute_audit(
         research_date = predecessor.date_from_cache_name(cache_name)
         d_index = date_index[research_date]
         features = predecessor.build_features(
-            output_root / "cache" / cache_name
+            analysis_cache_root / cache_name
         )
         invalid_source_count, event_masks = predecessor.source_preflight(
             features
@@ -3404,7 +3710,7 @@ def execute_audit(
         ) = slice_invariance_rows(
             capture_id=capture_id,
             research_date=research_date,
-            cache_path=output_root / "cache" / cache_name,
+            cache_path=analysis_cache_root / cache_name,
             features=features,
             predecessor=predecessor,
             full_analysis=analysis,
@@ -3693,7 +3999,20 @@ def execute_audit(
         "plan_sha_verified": True,
         "predecessor_binding_verified": True,
         "source_cache_closure": True,
-        "zero_outcome_boundary": True,
+        "zero_outcome_boundary": False,
+        "outcome_poison_evidence": {
+            "stage": "pending",
+            "executed": False,
+            "attestation_sha256": None,
+            "cache_count": None,
+            "unconsumed_field_count": None,
+            "nonempty_unconsumed_field_instance_count": None,
+            "changed_unconsumed_field_instance_count": None,
+            "consumed_field_mismatch_count": None,
+            "preseal_difference_count": None,
+            "pending_difference_count": None,
+            "final_difference_count": None,
+        },
         "unexpected_field_count": 0,
         "research_dates": dates,
         "cache_count": len(cache_inventory),
@@ -3728,7 +4047,7 @@ def execute_audit(
             ),
         },
         "null_admissibility": {
-            "replicate_count_exact": True,
+            "replicate_count_exact": NULL_REPLICATES == 199,
             "minimum_distinct_fingerprints": min(fingerprints.values()),
             "distinct_fingerprints": {
                 f"{key[0]}:{key[1]}": value
@@ -3812,6 +4131,8 @@ def execute_audit(
         orphan_rows=orphan_rows,
         deterministic_build=False,
     )
+    if poison_temp is not None:
+        poison_temp.cleanup()
     return summary
 
 
@@ -3909,6 +4230,174 @@ def finalize_pair(
     return payloads[0]
 
 
+def cache_inventory_from_output(
+    predecessor: Any, output_root: Path
+) -> list[dict[str, Any]]:
+    rows = predecessor.read_csv(
+        output_root / "support/source_cache_inventory.csv"
+    )
+    return [
+        {
+            "cache_name": row["cache_name"],
+            "size_bytes": int(row["size_bytes"]),
+            "row_count": int(row["row_count"]),
+            "cache_schema_version": int(row["cache_schema_version"]),
+            "cache_sha256": row["cache_sha256"],
+            "paired_determinism_verified": (
+                row["paired_determinism_verified"] == "True"
+            ),
+            "cache_field_schema_verified": (
+                row["cache_field_schema_verified"] == "True"
+            ),
+        }
+        for row in rows
+    ]
+
+
+def compare_triad(
+    predecessor: Any,
+    canonical_a: Path,
+    canonical_b: Path,
+    poisoned: Path,
+    stage: str,
+) -> None:
+    for name, left, right in (
+        ("canonical", canonical_a, canonical_b),
+        ("poison", canonical_a, poisoned),
+    ):
+        differences = compare_outputs(predecessor, left, right)
+        if differences:
+            raise AuditError(
+                f"{stage}_{name}_output_mismatch:{differences[:5]}"
+            )
+
+
+def finalize_triad(
+    repo_root: Path,
+    canonical_a: Path,
+    canonical_b: Path,
+    poisoned: Path,
+) -> dict[str, Any]:
+    predecessor = load_bound_predecessor(repo_root)
+    roots = (canonical_a, canonical_b, poisoned)
+    if len({root.resolve() for root in roots}) != 3:
+        raise AuditError("determinism_triad_roots_not_distinct")
+    compare_triad(
+        predecessor,
+        canonical_a,
+        canonical_b,
+        poisoned,
+        "preseal",
+    )
+    inventories = [
+        cache_inventory_from_output(predecessor, root) for root in roots
+    ]
+    if not (inventories[0] == inventories[1] == inventories[2]):
+        raise AuditError("triad_cache_inventory_mismatch")
+    poison_attestation = verify_poison_attestation(
+        poison_output_root=poisoned,
+        cache_inventory=inventories[0],
+        allowed_fields=predecessor.ALLOWED_CACHE_FIELDS,
+        consumed_fields=predecessor.CONSUMED_CACHE_FIELDS,
+    )
+    summaries = [
+        strip_dynamic_summary(
+            json.loads(
+                (root / "reports/A_minus1_summary.json").read_text(
+                    encoding="ascii"
+                )
+            )
+        )
+        for root in roots
+    ]
+
+    stages = (
+        (
+            "pending",
+            False,
+            False,
+            {
+                "stage": "pending",
+                "preseal_difference_count": 0,
+                "pending_difference_count": None,
+                "final_difference_count": None,
+            },
+            {
+                **poison_attestation,
+                "stage": "pending",
+                "preseal_difference_count": 0,
+                "pending_difference_count": None,
+                "final_difference_count": None,
+            },
+        ),
+        (
+            "final_pending",
+            True,
+            False,
+            {
+                "stage": "final_pending",
+                "preseal_difference_count": 0,
+                "pending_difference_count": 0,
+                "final_difference_count": None,
+            },
+            {
+                **poison_attestation,
+                "stage": "final_pending",
+                "preseal_difference_count": 0,
+                "pending_difference_count": 0,
+                "final_difference_count": None,
+            },
+        ),
+        (
+            "final",
+            True,
+            True,
+            {
+                "stage": "final",
+                "preseal_difference_count": 0,
+                "pending_difference_count": 0,
+                "final_difference_count": 0,
+            },
+            {
+                **poison_attestation,
+                "stage": "final",
+                "preseal_difference_count": 0,
+                "pending_difference_count": 0,
+                "final_difference_count": 0,
+            },
+        ),
+    )
+    payloads = []
+    for (
+        stage,
+        deterministic_build,
+        zero_outcome_boundary,
+        determinism_evidence,
+        poison_evidence,
+    ) in stages:
+        payloads = []
+        for root, summary in zip(roots, summaries):
+            summary["zero_outcome_boundary"] = zero_outcome_boundary
+            summary["outcome_poison_evidence"] = poison_evidence
+            payloads.append(
+                seal_dynamic_outputs(
+                    output_root=root,
+                    predecessor=predecessor,
+                    summary=summary,
+                    deterministic_build=deterministic_build,
+                    determinism_evidence=determinism_evidence,
+                )
+            )
+        compare_triad(
+            predecessor,
+            canonical_a,
+            canonical_b,
+            poisoned,
+            stage,
+        )
+    return payloads[0]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
@@ -3924,6 +4413,16 @@ def parse_args() -> argparse.Namespace:
         nargs=2,
         metavar=("BUILD_A", "BUILD_B"),
     )
+    parser.add_argument(
+        "--finalize-triad",
+        type=Path,
+        nargs=3,
+        metavar=("CANONICAL_A", "CANONICAL_B", "POISONED"),
+    )
+    parser.add_argument(
+        "--poison-unconsumed",
+        action="store_true",
+    )
     parser.add_argument("--repair-existing", type=Path)
     return parser.parse_args()
 
@@ -3931,9 +4430,25 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     repo_root = args.repo_root.resolve()
-    if args.finalize_pair and args.repair_existing:
+    selected_modes = sum(
+        (
+            bool(args.finalize_pair),
+            bool(args.finalize_triad),
+            bool(args.repair_existing),
+        )
+    )
+    if selected_modes > 1:
         raise AuditError("multiple_execution_modes")
-    if args.finalize_pair:
+    if selected_modes and args.poison_unconsumed:
+        raise AuditError("poison_flag_with_finalize_mode")
+    if args.finalize_triad:
+        summary = finalize_triad(
+            repo_root,
+            args.finalize_triad[0].resolve(),
+            args.finalize_triad[1].resolve(),
+            args.finalize_triad[2].resolve(),
+        )
+    elif args.finalize_pair:
         summary = finalize_pair(
             repo_root,
             args.finalize_pair[0].resolve(),
@@ -3949,6 +4464,7 @@ def main() -> None:
             repo_root,
             args.source_cache_root.resolve(),
             args.output_root.resolve(),
+            poison_unconsumed=args.poison_unconsumed,
         )
     print(json.dumps(summary, sort_keys=True, ensure_ascii=True))
 

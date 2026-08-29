@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 
 MODULE_PATH = (
@@ -409,6 +411,67 @@ def test_fixed_epoch_thinning_is_earliest_per_direction_and_core_is_half_open() 
     assert epoch_rows[0]["edge_guard_omitted_neg_count"] == 1
 
 
+def candidate_diagnostic_fixture() -> dict[str, object]:
+    epoch_id = 7
+    start = epoch_id * AUDIT.EPOCH_NS
+    return {
+        "capture_id": "capture",
+        "research_date": "2026-08-29",
+        "epoch_id": epoch_id,
+        "epoch_start_ns": start,
+        "core_open_ns": start + AUDIT.CORE_OPEN_NS,
+        "core_close_ns": start + AUDIT.CORE_CLOSE_NS,
+        "segment_id": 0,
+        "direction": 1,
+        "candidate_id": "candidate",
+        "candidate_ts_ns": start + AUDIT.CORE_OPEN_NS,
+        "candidate_event_seq": 99,
+        "dependence_cluster_id": f"capture:{epoch_id}",
+        "channel_last_observation_ts_ns": {
+            channel: start for channel in AUDIT.CHANNELS
+        },
+        "channel_last_observation_ages_ms": {
+            channel: 0 for channel in AUDIT.CHANNELS
+        },
+        "common_prestate_background_count": AUDIT.PRESTATE_COUNT,
+        "common_prestate_abstain_count": 0,
+        "common_prestate_signal_count": 0,
+        "admitted_filter_ids": [],
+        "confirmations": {},
+        "filter_cancel_reasons": {
+            item.filter_id: "consensus_lost" for item in AUDIT.FILTERS
+        },
+    }
+
+
+def test_candidate_diagnostics_populates_frozen_epoch_schema() -> None:
+    _, rows, count, _ = AUDIT.candidate_diagnostics(
+        [[candidate_diagnostic_fixture()]]
+    )
+    assert count == 1
+    assert set(rows[0]) == set(AUDIT.CANDIDATE_LEDGER_FIELDS)
+    assert rows[0]["epoch_id"] == 7
+    assert rows[0]["epoch_start_ns"] == 7 * AUDIT.EPOCH_NS
+    assert rows[0]["core_open_ns"] == (
+        7 * AUDIT.EPOCH_NS + AUDIT.CORE_OPEN_NS
+    )
+    assert rows[0]["core_close_ns"] == (
+        7 * AUDIT.EPOCH_NS + AUDIT.CORE_CLOSE_NS
+    )
+    AUDIT.validate_candidate_ledger_rows(rows)
+
+
+def test_candidate_ledger_schema_fails_closed_on_missing_epoch_value() -> None:
+    _, rows, _, _ = AUDIT.candidate_diagnostics(
+        [[candidate_diagnostic_fixture()]]
+    )
+    rows[0]["epoch_id"] = ""
+    with pytest.raises(
+        AUDIT.AuditError, match="candidate_ledger_integer_type"
+    ):
+        AUDIT.validate_candidate_ledger_rows(rows)
+
+
 def test_global_timestamp_order_fails_before_epoch_enumeration() -> None:
     features = synthetic_features(AUDIT.EXPECTED_EPOCH_CHECKPOINTS * 2)
     boundary = AUDIT.EXPECTED_EPOCH_CHECKPOINTS
@@ -449,3 +512,128 @@ def test_slice_source_hash_ignores_unconsumed_values() -> None:
     assert first != AUDIT.slice_source_sha256(
         raw, PREDECESSOR.CONSUMED_CACHE_FIELDS
     )
+
+
+def test_outcome_poison_changes_every_unconsumed_value_only(
+    tmp_path: Path,
+) -> None:
+    canonical = tmp_path / "canonical"
+    poisoned = tmp_path / "poison-cache"
+    output = tmp_path / "poison-output"
+    canonical.mkdir()
+    cache_name = "2026-08-29_fixture.npz"
+    raw = {
+        name: np.asarray([index + 1, index + 2], dtype=np.int64)
+        for index, name in enumerate(
+            sorted(PREDECESSOR.ALLOWED_CACHE_FIELDS)
+        )
+    }
+    np.savez_compressed(canonical / cache_name, **raw)
+    inventory = [
+        {
+            "cache_name": cache_name,
+            "size_bytes": 1,
+            "row_count": 2,
+            "cache_schema_version": 4,
+            "cache_sha256": "source",
+            "paired_determinism_verified": True,
+            "cache_field_schema_verified": True,
+        }
+    ]
+    attestation = AUDIT.materialize_poisoned_cache_set(
+        canonical_cache_root=canonical,
+        poisoned_cache_root=poisoned,
+        poison_output_root=output,
+        cache_inventory=inventory,
+        allowed_fields=PREDECESSOR.ALLOWED_CACHE_FIELDS,
+        consumed_fields=PREDECESSOR.CONSUMED_CACHE_FIELDS,
+    )
+    with np.load(poisoned / cache_name, allow_pickle=False) as handle:
+        for name, original in raw.items():
+            actual = handle[name]
+            assert actual.dtype == original.dtype
+            assert actual.shape == original.shape
+            if name in PREDECESSOR.CONSUMED_CACHE_FIELDS:
+                assert np.array_equal(actual, original)
+            else:
+                assert actual.tobytes() != original.tobytes()
+    assert attestation["consumed_field_mismatch_count"] == 0
+    assert (
+        attestation["changed_unconsumed_field_instance_count"]
+        == len(
+            set(PREDECESSOR.ALLOWED_CACHE_FIELDS)
+            - set(PREDECESSOR.CONSUMED_CACHE_FIELDS)
+        )
+    )
+    evidence = AUDIT.verify_poison_attestation(
+        poison_output_root=output,
+        cache_inventory=inventory,
+        allowed_fields=PREDECESSOR.ALLOWED_CACHE_FIELDS,
+        consumed_fields=PREDECESSOR.CONSUMED_CACHE_FIELDS,
+    )
+    assert evidence["executed"] is True
+    assert evidence["consumed_field_mismatch_count"] == 0
+
+
+def test_outcome_poison_attestation_mutation_fails_closed(
+    tmp_path: Path,
+) -> None:
+    canonical = tmp_path / "canonical"
+    poisoned = tmp_path / "poison-cache"
+    output = tmp_path / "poison-output"
+    canonical.mkdir()
+    cache_name = "2026-08-29_fixture.npz"
+    raw = {
+        name: np.asarray([1], dtype=np.int64)
+        for name in PREDECESSOR.ALLOWED_CACHE_FIELDS
+    }
+    np.savez_compressed(canonical / cache_name, **raw)
+    inventory = [
+        {
+            "cache_name": cache_name,
+            "size_bytes": 1,
+            "row_count": 1,
+            "cache_schema_version": 4,
+            "cache_sha256": "source",
+            "paired_determinism_verified": True,
+            "cache_field_schema_verified": True,
+        }
+    ]
+    AUDIT.materialize_poisoned_cache_set(
+        canonical_cache_root=canonical,
+        poisoned_cache_root=poisoned,
+        poison_output_root=output,
+        cache_inventory=inventory,
+        allowed_fields=PREDECESSOR.ALLOWED_CACHE_FIELDS,
+        consumed_fields=PREDECESSOR.CONSUMED_CACHE_FIELDS,
+    )
+    path = AUDIT.poison_attestation_path(output)
+    payload = json.loads(path.read_text(encoding="ascii"))
+    payload["changed_unconsumed_field_instance_count"] -= 1
+    path.write_text(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="ascii",
+    )
+    with pytest.raises(AUDIT.AuditError, match="poison_attestation_invalid"):
+        AUDIT.verify_poison_attestation(
+            poison_output_root=output,
+            cache_inventory=inventory,
+            allowed_fields=PREDECESSOR.ALLOWED_CACHE_FIELDS,
+            consumed_fields=PREDECESSOR.CONSUMED_CACHE_FIELDS,
+        )
+
+
+def test_triad_comparison_detects_poison_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    roots = [tmp_path / name for name in ("a", "b", "poison")]
+    for root in roots:
+        target = root / "reports" / "result.json"
+        target.parent.mkdir(parents=True)
+        target.write_text('{"same":true}\n', encoding="ascii")
+    AUDIT.compare_triad(PREDECESSOR, *roots, stage="preseal")
+    (roots[2] / "reports" / "result.json").write_text(
+        '{"same":false}\n', encoding="ascii"
+    )
+    with pytest.raises(AUDIT.AuditError, match="preseal_poison_output_mismatch"):
+        AUDIT.compare_triad(PREDECESSOR, *roots, stage="preseal")
