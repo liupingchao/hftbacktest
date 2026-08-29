@@ -81,6 +81,16 @@
   integrity, and A-1-7 is not evaluated.
 - Data execution remains locked pending Round 8 review.
 
+## 2026-08-29 0829T001 Plan Review Round 8 Passed
+
+- Independent read-only review passed with
+  `P0/P1/P2/P3 = 0/0/0/0`.
+- Revision 8 is frozen for outcome-blind A-1 execution.
+- Frozen plan SHA256 is
+  `6e6e1af47dbf0c982ee83654c60f054aac6d81452b1246d65a39123a7d384593`.
+- The 29-cache execution lock is released.
+- Future outcomes, A0 execution and live trading remain unauthorized.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

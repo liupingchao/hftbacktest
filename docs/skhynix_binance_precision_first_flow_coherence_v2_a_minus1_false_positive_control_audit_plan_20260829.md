@@ -9,7 +9,7 @@ Hypothesis ID: `PRECISION_FIRST_FLOW_COHERENCE_V2`
 
 Audit ID: `PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1`
 
-Status: frozen draft pending independent plan review
+Status: frozen and accepted for outcome-blind A-1 execution
 
 Revision: 8
 
@@ -50,6 +50,11 @@ Round 7:
   P0/P1/P2/P3 = 0/0/1/0
   recommendation = FAIL
   data execution lock = retained
+
+Round 8:
+  P0/P1/P2/P3 = 0/0/0/0
+  recommendation = PASS
+  data execution lock = released
 ```
 
 ## 1. Decision Context
@@ -1126,5 +1131,6 @@ Do not rescue a failed result by:
 - adding a minimum firing-rate target;
 - reading future price.
 
-The next action after this draft is independent plan review. Data execution
-remains locked until that review reports no P0-P2 defects.
+Independent plan review passed in Round 8 with no P0-P3 defects. The
+outcome-blind 29-cache A-1 execution is authorized. Future-target access,
+A0 execution and live trading remain locked.

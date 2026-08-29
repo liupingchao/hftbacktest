@@ -47,6 +47,9 @@
 - Raw zero exposure is a support condition, while negative or non-finite raw
   exposure is corruption. Gate precedence should be explicit rather than
   relied upon to resolve contradictory wording.
+- Revision 8 passed independent review with no P0-P3 findings. This authorizes
+  only the registered historical structural false-fire audit, not economic
+  precision estimation or prospective confirmation.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 
