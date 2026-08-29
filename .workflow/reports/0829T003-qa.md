@@ -7,153 +7,118 @@
 - 0829T003
 
 状态：
-- 未通过
+- 已通过
 
 更新时间：
-- 2026-08-29 23:00 CST（星期六）
+- 2026-08-29 23:12 CST（星期六）
 
 验收线程：
 - QA验收线程
 
 验收对象：
-- SKHYNIX Fixed Causal Epoch M-State V2 A-1 remediation
+- SKHYNIX Fixed Causal Epoch M-State V2 A-1 第三轮最终 QA
 - branch `codex/fixed-causal-epoch-mstate-a-minus1`
-- HEAD `6c5ff601c69bf9e05b4c2c5c84bc1ad2956ab90a`
-- implementation remediation `cfc04b4921635eb46fffe08f7684679990f31ec9`
-- final ledger remediation `5b6c2ecde058af4d235f9d12dd2288fb20bb6c63`
+- HEAD `9cd9be5171936f2b28a469a293cc1012c56cb394`
+- hostile-test remediation `b583d02b12a2464a9d58863c3b761fca6f37e8d3`
+- frozen plan SHA256
+  `682ea69016c472d5ae3adc255f974d05ef72d7d78e90e11b976b52589a501aba`
 
 验收范围：
-- 重新从最新 HEAD 验收冻结计划、runner/tests、canonical A、fresh
-  canonical B、poison P、poison attestation、25 项 evidence closure、
-  candidate schema/value、outcome boundary、199 null、sequential gates、
-  classification 与 A0 lock。
+- 关闭上一轮唯一 P2：冻结计划第 12 节 hostile-test minimum 的持久回归覆盖。
+- 复验正式 Build A、Build B、poison Build P 的 25 项 evidence closure、
+  exact determinism、outcome poison、null、slice、gates、classification
+  与 A0 lock。
 - QA 未运行 29-cache，未读取 future outcomes，未修改 plan、runner、
-  tests、task、执行报告或研究产物。
+  tests、task、execution report 或正式研究产物。
+- 本轮只覆盖本报告与 `docs/qa-acceptance-report.md`。
 
 严重度：
 - P0: 0
 - P1: 0
-- P2: 1
+- P2: 0
 - P3: 0
 
 验收步骤：
-1. 核对最新 HEAD、remediation ancestry、任务状态和 frozen plan SHA256。
-2. 独立枚举 A/B/P 的 non-cache paths，复算每份 manifest 的 size/SHA256
-   及三路逐字节 equality。
-3. 独立解析并重算 candidate CSV exact header、epoch arithmetic、
-   candidate identity、cluster identity 和空值计数。
-4. 从 canonical cache arrays 独立重建每个 XOR poison hash，核对
-   attestation、三路 outcome ledger 和 A-1-1 evidence。
-5. 复算 199 null、slice evidence、gate precedence、classification 与
-   A0/future outcome locks。
-6. 运行 current focused tests、predecessor tests 和 Ruff，并逐条对照
-   frozen hostile-test minimum。
+1. 核对 HEAD、remediation ancestry、冻结计划 SHA 和工作区初始状态。
+2. 将冻结计划 `:1035-1100` 的 hostile minimum 逐项映射到 current、
+   predecessor tests 和正式 evidence invariants。
+3. 运行 current focused suite、current+predecessor suite、Ruff 和隔离
+   py_compile。
+4. 独立枚举 A/B/P 的 25 个 non-cache artifacts，复算 manifest
+   size/SHA256 和三路逐字节 equality。
+5. 独立重建 gates、numeric integrity、classification，并复核 candidate、
+   null、slice、outcome ledger、attestation 和 A0/future locks。
 
 实际结果：
-- frozen plan SHA256 精确为
-  `682ea69016c472d5ae3adc255f974d05ef72d7d78e90e11b976b52589a501aba`。
+- Frozen plan SHA256 精确匹配任务冻结值；`b583d02b` 是当前 HEAD 的直接
+  祖先。
+- Current focused suite 为 `48 passed`；current+predecessor suite 为
+  `68 passed`；Ruff 与隔离 py_compile 均通过。
+- 上一轮缺失的 epoch disposition mutations、core reset 同/反向隔离、
+  typed/hash support mutation、raw/structural occupancy 与 numeric gate
+  precedence、A-1-5/A-1-6 后续 gate 语义、manifest self-exclusion 和
+  exact-25 mutation 均已形成可执行的 fail-closed 回归。
+- Structural `occupied > eligible` 现在与 raw occupancy 对称地计入 numeric
+  integrity violation；对应 mutation 在 A-1-4 精确失败，后续 gates
+  保持 `NOT_EVALUATED`。
+- 冻结 hostile minimum 的其余边界、thinning、delete-only、null、
+  exposure、source/action/memory、poison 和 build closure 条目由 current
+  与 predecessor suites 以及正式 evidence invariants 共同覆盖，未发现
+  未闭合条目。
 - A/B/P 各有精确 25 个唯一 non-cache artifacts；manifest 各列出除自身
-  外的 24 项，所有 size/SHA256 可独立复算，A/B 与 A/P 的 25 项
-  byte-difference 均为 `0`。
+  外的 24 项，所有 size/SHA256 独立复算正确。
+- A/B、A/P、B/P 的 25 项 artifact byte-difference 均为 `0`。
 - 三路 `outcome_access_ledger.json` SHA256 均为
-  `5072c60ba234042bcf981ae1fd17ca199adbdd2e33500bff395925f79b847140`。
-- 三路 ledger 均为 `stage=final`、`executed=true`、
+  `5072c60ba234042bcf981ae1fd17ca199adbdd2e33500bff395925f79b847140`；
+  均为 `stage=final`、`executed=true`、
   `poisoned_unconsumed_fields_change_output=false`、
-  `preseal/pending/final_difference_count=0`，且 poison evidence 与
-  summary 完全一致。
-- attestation SHA256 精确为
-  `3eaca61d3769f2dee6c50aea45a95109fc622b2ce557277451b504c8aca8942b`。
-  独立核对 29 caches、15 unconsumed fields、435 field instances；
-  435 个 source hashes 和按 byte XOR `0xff` 重建的 poison hashes 全部
-  匹配，`consumed_field_mismatch_count=0`。
-- `candidate_ledger.csv` exact header 与冻结 schema 一致，共 2219 行；
-  四个 epoch fields 空值均为 `0`。所有行通过 epoch/core arithmetic、
-  half-open core、direction、cluster、candidate-id 和唯一性复算。
-- evaluation null CSV 有 597 行，10s/30s/60s 各为完整 replicate
-  `0..198`；selection/evaluation 四个 bank-duration fingerprint count
-  均为 199，stream overlap 和 invariant mismatch 均为 `0`。
-- 186 个 slice rows 全部 `identity_exact=True`、
-  `support_identity_exact=True`、`cross_segment_checkpoint_count=0`；
-  覆盖 9 日期和 1730 distinct comparable epochs。
-- summary、classification 和 gate contract 完全一致：
-  A-1-0 至 A-1-4 PASS，A-1-5 FAIL，A-1-6/A-1-7 为
-  `NOT_EVALUATED` 且每个 condition 均保持
-  `passed=null,actual=null`。
-- classification 为 `Aminus1_structural_support_not_estimable`；
-  confirmatory/exploratory A0 与 future-target authority 均为 false。
-- current suite 为 `30 passed`；连同 predecessor suite 为
-  `50 passed`；Ruff 为 `All checks passed`。
+  `final_difference_count=0`。
+- Poison attestation SHA256 为
+  `3eaca61d3769f2dee6c50aea45a95109fc622b2ce557277451b504c8aca8942b`；
+  记录 29 caches、15 unconsumed fields、435 changed instances、
+  0 consumed mismatch。
+- `candidate_ledger.csv` 有 2219 行，四个 frozen epoch fields 均无空值。
+- Evaluation null 有 597 行，10s/30s/60s 各有完整 199 replicates。
+- `slice_invariance.csv` 有 186 行，identity/support mismatch 与
+  cross-segment checkpoint violation 均为 `0`。
+- 三路 summary 的 stored gates 与当前 runner 重建结果完全相同，
+  `numeric_integrity_violations=0`：A-1-0 至 A-1-4 PASS，A-1-5 FAIL，
+  A-1-6/A-1-7 为 `NOT_EVALUATED`。
+- 三路 classification 均为
+  `Aminus1_structural_support_not_estimable`；confirmatory A0、
+  exploratory A0 execution 与 future-target access 均保持 `false`。
 
-## Previous Finding Closure
-
-### P1-1 Candidate Ledger Epoch Fields
-
-- 已关闭。
-- `candidate_diagnostics()` 现在填充四个 epoch fields，并在 production
-  write 前调用 `validate_candidate_ledger_rows()`。
-- 新增正向 schema/value 测试和缺失 epoch value 的 fail-closed 测试。
-- 三路正式 CSV 均通过本轮独立逐行复算。
-
-### P1-2 Full Outcome Poison Pipeline
-
-- 已关闭。
-- poison P 运行完整 29-cache pipeline，finalizer 比较 A/B/P 全部 25 项
-  artifacts；attestation 可由 canonical arrays 独立重建。
-- commit `5b6c2ecd` 修复 dynamic seal 未重写 outcome ledger 的问题；
-  三路 ledger 现在均为 final 且 SHA 相同。
-- 新增 poison field、attestation mutation、triad artifact mutation 和
-  pending/final ledger payload tests。
-
-## Finding
-
-### P2-1 Frozen Hostile-Test Minimum 仍未完整落成持久回归
-
-- 冻结计划
-  `docs/skhynix_binance_precision_first_fixed_causal_epoch_mstate_v2_a_minus1_audit_plan_20260829.md:1035-1100`
-  明确把整组 hostile cases 定义为 `At minimum`，不是可选建议。
-- 本轮新增测试已经覆盖上一轮直接暴露的 candidate、poison、attestation、
-  triad comparison 和 final ledger 缺陷，但 current suite 仍只有 30 个
-  tests。
-- 仍没有对应的 durable mutation tests 覆盖至少以下冻结 surfaces：
-  missing/irregular/duplicate/off-grid/empty-intermediate epoch 与 disposition
-  precedence；core 内 reset 的同向/反向隔离；slice support hash/typed
-  ordering mutation；raw/structural occupancy hash、subset 和 spoofed share；
-  A-1-2/A-1-3/A-1-4 numeric/`NOT_EVALUATED` precedence；manifest
-  self-exclusion/exact-25 path mutation。
-- 本轮 QA 的只读脚本能够证明当前 artifacts 正确，但不能替代这些
-  fail-closed mutation 的持久回归保护。因此上一报告的 P2-1 只部分
-  关闭，尚不满足 frozen test contract。
+Previous Finding Closure：
+- P2-1 已关闭。冻结计划第 12 节要求的缺失 hostile surfaces 已由
+  `b583d02b` 的 mutation tests 和 structural occupancy 对称 fail-closed
+  修复持久化；本轮未发现新的 P0-P3 finding。
 
 验收结论：
-- 未通过
+- 已通过
 - 结论说明：
-  - 当前三路执行、outcome evidence、负面科学分类和 A0 lock 均可复现且
-    自洽；剩余失败仅为冻结 hostile-test minimum 未完整闭合。
+  - 实现、测试和三路 evidence 流程符合冻结合同；QA 通过只表示执行与
+    证据正确，不改变负面科学分类。
 
 通过项：
-1. 上一轮 P1-1 candidate schema/value 缺陷已关闭。
-2. 上一轮 P1-2 full outcome poison pipeline 缺陷已关闭。
-3. 最新 outcome ledger pending 缺陷已关闭，三路 final ledger 完全一致。
-4. A/B/P 25-artifact closure、attestation、199 null、slice、gates、
-   classification 和 A0 lock 全部通过独立复算。
-5. Current 30 tests、current+predecessor 50 tests 和 Ruff 全部通过。
+1. Frozen hostile-test minimum 已闭合为持久回归。
+2. A/B/P 25-artifact closure、exact determinism 与 poison boundary 通过。
+3. Fixed epoch/reset/slice、199 null、sequential gates 与 classification
+   可独立复算。
+4. `Aminus1_structural_support_not_estimable` 和 A0/future locks 保持不变。
 
 不通过项：
-1. Frozen hostile-test minimum 尚未形成完整持久 mutation coverage。
+1. 无
 
 缺陷清单：
-1. P2-1：补齐计划 `:1035-1100` 中尚未覆盖的 durable hostile tests。
+1. 无
 
 阻塞项：
-- 无外部阻塞。
+- 无
 
 建议总控下一步：
-1. 仅补测试，不改变冻结计划、阈值、runner 科学语义或正式结果。
-2. 优先用参数化测试覆盖 epoch disposition、reset/slice、occupancy/numeric
-   gate precedence 和 manifest mutation。
-3. 测试补齐后重新运行 current+predecessor suites、Ruff，并做一次只读
-   QA；无需因纯测试补充重新解释当前负面科学分类。
-4. 在 QA 通过前继续保持 A0、future outcome 与 live/private/order lock。
+1. 可将 0829T003 流程状态推进为 `已通过`。
+2. 保持 A0 与 future outcome lock；若继续研究，应注册新的独立假设，
+   不得把本次 QA 通过解释为当前 M-state 获得科学支持。
 
 提交信息：
 - commit：无
