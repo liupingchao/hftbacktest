@@ -51,14 +51,29 @@ action：
   payload，并在 final stage 重写该合同。
 - 分别运行三套 199-replicate 正式构建，并用 `--finalize-triad` 执行
   preseal、pending、final 三阶段 exact comparison。
+- 第二轮 QA 于 2026-08-29 23:00 CST 以
+  `P0/P1/P2/P3=0/0/1/0` 拒绝；三路正式证据和科学分类全部通过，
+  唯一缺口是冻结计划要求的 hostile mutation tests 尚未完整持久化。
+- commit `b583d02b` 补齐 epoch disposition、core reset、slice support
+  identity、occupancy/numeric gate precedence 和 exact-25 manifest
+  mutation tests。测试注入同时发现并修复
+  `structurally_occupied_epoch_count >
+  structurally_eligible_epoch_count` 未被 A-1-4 fail-closed 拒绝的
+  对称性缺口。
 
 verify：
 - `python -m pytest examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py -q`
-  ：`30 passed`。
-- `python -m ruff check examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py`
+  ：`48 passed`。
+- `python -m pytest examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py examples/hyperliquid/test_skhynix_fresh_channel_consensus_mstate_a_minus1.py -q`
+  ：current 与 predecessor 联合回归 `68 passed`。
+- `ruff check examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py`
   ：通过。
 - `python -m py_compile examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py`
   ：通过。
+- 使用修复后的 `numeric_integrity_violations()` 对正式
+  `A_minus1_summary.json` 重新构建 gates：numeric violations 仍为 `0`，
+  所有 gates 与已封存 summary 完全相等，classification 仍为
+  `Aminus1_structural_support_not_estimable`。
 - canonical A、canonical B 与 poison P 各有 25 项 non-cache
   artifacts；path set 相同，A/B 与 A/P 逐文件 SHA256 difference
   count 均为 `0`。
@@ -115,9 +130,10 @@ blockers：
   live/private/order execution 均继续锁定。
 
 commit：
-- `781a7cd0`, `cfc04b49`, `5b6c2ecd`
+- `781a7cd0`, `cfc04b49`, `5b6c2ecd`, `b583d02b`
 
 提交信息：
 - `research: implement fixed causal epoch A-1`
 - `research: prove fixed epoch outcome boundary`
 - `research: seal final poison ledger`
+- `test: close fixed epoch hostile contract`
