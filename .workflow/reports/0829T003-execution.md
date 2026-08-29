@@ -46,12 +46,15 @@ action：
 - remediation commit `cfc04b49` 补齐 candidate ledger schema/value
   fail-closed 校验，并实现 canonical A、fresh canonical B、poison P
   三套完整 29-cache 流水线及 poison attestation。
+- post-finalizer review 发现 `outcome_access_ledger.json` 仍停在 pending；
+  commit `5b6c2ecd` 让 preseal 与 dynamic seal 共用唯一 outcome-ledger
+  payload，并在 final stage 重写该合同。
 - 分别运行三套 199-replicate 正式构建，并用 `--finalize-triad` 执行
   preseal、pending、final 三阶段 exact comparison。
 
 verify：
 - `python -m pytest examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py -q`
-  ：`29 passed`。
+  ：`30 passed`。
 - `python -m ruff check examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py`
   ：通过。
 - `python -m py_compile examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py`
@@ -67,6 +70,9 @@ verify：
   pipeline；435 个非空 field instances 全部改变，
   `consumed_field_mismatch_count=0`，attestation SHA256 为
   `3eaca61d3769f2dee6c50aea45a95109fc622b2ce557277451b504c8aca8942b`。
+- 三路 `outcome_access_ledger.json` 均为 `stage=final`、
+  `executed=true`、`poisoned_unconsumed_fields_change_output=false`、
+  `final_difference_count=0`，且内容完全一致。
 - `candidate_ledger.csv` 有 2219 行；`epoch_id`、`epoch_start_ns`、
   `core_open_ns`、`core_close_ns` 的空值计数均为 `0`。
 - Outcome boundary、M-state/action partition、anchor、feature boundary、
@@ -109,8 +115,9 @@ blockers：
   live/private/order execution 均继续锁定。
 
 commit：
-- `781a7cd0`, `cfc04b49`
+- `781a7cd0`, `cfc04b49`, `5b6c2ecd`
 
 提交信息：
 - `research: implement fixed causal epoch A-1`
 - `research: prove fixed epoch outcome boundary`
+- `research: seal final poison ledger`
