@@ -334,16 +334,7 @@ def test_slice_actual_identity_excludes_later_segments() -> None:
             "admitted_filter_ids": ["F000"],
         },
     ]
-    actual = {
-        (
-            candidate["candidate_ts_ns"],
-            candidate["direction"],
-            filter_id,
-            candidate["dependence_cluster_id"],
-        )
-        for candidate in candidates
-        for filter_id in candidate["admitted_filter_ids"]
-        if candidate["candidate_ts_ns"] >= 90
-        and int(candidate["segment_id"]) == 0
-    }
+    actual = AUDIT.admitted_identity_set(
+        candidates, minimum_ts_ns=90, segment_id=0
+    )
     assert actual == {(100, 1, "F000", "s0")}

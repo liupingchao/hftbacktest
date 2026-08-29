@@ -1447,6 +1447,26 @@ def monotonicity_rows(
     return rows
 
 
+def admitted_identity_set(
+    candidates: Sequence[dict[str, Any]],
+    *,
+    minimum_ts_ns: int,
+    segment_id: int,
+) -> set[tuple[int, int, str, str]]:
+    return {
+        (
+            int(candidate["candidate_ts_ns"]),
+            int(candidate["direction"]),
+            filter_id,
+            str(candidate["dependence_cluster_id"]),
+        )
+        for candidate in candidates
+        for filter_id in candidate["admitted_filter_ids"]
+        if int(candidate["candidate_ts_ns"]) >= minimum_ts_ns
+        and int(candidate["segment_id"]) == segment_id
+    }
+
+
 def slice_invariance_rows(
     *,
     capture_id: str,
@@ -1503,18 +1523,11 @@ def slice_invariance_rows(
                     ]
                 )
             }
-            actual = {
-                (
-                    candidate["candidate_ts_ns"],
-                    candidate["direction"],
-                    filter_id,
-                    candidate["dependence_cluster_id"],
-                )
-                for candidate in sliced_analysis["candidates"]
-                for filter_id in candidate["admitted_filter_ids"]
-                if candidate["candidate_ts_ns"] >= comparison_ts
-                and int(candidate["segment_id"]) == int(segment)
-            }
+            actual = admitted_identity_set(
+                sliced_analysis["candidates"],
+                minimum_ts_ns=comparison_ts,
+                segment_id=int(segment),
+            )
             full_after_guard = (
                 (ts >= comparison_ts) & (segments == int(segment))
             )

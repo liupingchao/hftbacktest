@@ -12,11 +12,13 @@
 执行版本：
 - implementation commit: `4457f127`
 - classification correction commit: `54368521`
+- multi-segment slice remediation commit: `a8d45ef9`
+- corrected evidence report commit: `b25a09f1`
 - frozen plan SHA256:
   `9f214893d7d4ef0431efaf6641c52c84d2fe4f0b516897818b92671355343de5`
 
 验证：
-- hostile tests: `19 passed`
+- hostile tests: `20 passed`
 - canonical Build A: 完成
 - fresh Build B: 完成
 - preseal difference count: `0`
@@ -24,6 +26,9 @@
 - final difference count: `0`
 - non-cache artifact count: `23`
 - future/outcome access: `false`
+- remediation path:
+  `--repair-existing` rebuilt only outcome-blind slice evidence in both roots,
+  then `--finalize-pair` restored deterministic final seals.
 
 最终分类：
 - `Aminus1_mstate_integrity_failed`
