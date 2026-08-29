@@ -40,22 +40,35 @@ action：
 - 实现 outcome-blind 29-cache runner、199-replicate structural null、
   leave-one-date-out selection、slice/reset invariance、sequential gates
   与 exact 25-artifact evidence closure。
-- 分别运行 canonical Build A 与 fresh Build B，并执行 preseal、
-  pending、final 三阶段 determinism finalizer。
+- 首轮 QA 于 2026-08-29 20:38 CST 以 `P0/P1/P2/P3=0/2/1/0`
+  拒绝：candidate ledger 四个 epoch 字段为空、outcome poison 未执行
+  完整流水线、相关 hostile tests 不足。
+- remediation commit `cfc04b49` 补齐 candidate ledger schema/value
+  fail-closed 校验，并实现 canonical A、fresh canonical B、poison P
+  三套完整 29-cache 流水线及 poison attestation。
+- 分别运行三套 199-replicate 正式构建，并用 `--finalize-triad` 执行
+  preseal、pending、final 三阶段 exact comparison。
 
 verify：
 - `python -m pytest examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py -q`
-  ：`24 passed`。
+  ：`29 passed`。
 - `python -m ruff check examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py`
   ：通过。
 - `python -m py_compile examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py`
   ：通过。
-- Build A 与 Build B 各有 25 项 non-cache artifacts；path set 相同，
-  逐文件 SHA256 difference count 为 `0`。
-- Determinism finalizer：
+- canonical A、canonical B 与 poison P 各有 25 项 non-cache
+  artifacts；path set 相同，A/B 与 A/P 逐文件 SHA256 difference
+  count 均为 `0`。
+- Triad finalizer：
   `preseal_difference_count=0`、
   `pending_difference_count=0`、
   `final_difference_count=0`。
+- Outcome poison 对 29 caches 的 15 个 unconsumed fields 执行完整
+  pipeline；435 个非空 field instances 全部改变，
+  `consumed_field_mismatch_count=0`，attestation SHA256 为
+  `3eaca61d3769f2dee6c50aea45a95109fc622b2ce557277451b504c8aca8942b`。
+- `candidate_ledger.csv` 有 2219 行；`epoch_id`、`epoch_start_ns`、
+  `core_open_ns`、`core_close_ns` 的空值计数均为 `0`。
 - Outcome boundary、M-state/action partition、anchor、feature boundary、
   monotonicity、slice invariance、null stream independence 和 numeric
   integrity 均通过。
@@ -96,7 +109,8 @@ blockers：
   live/private/order execution 均继续锁定。
 
 commit：
-- `781a7cd0`
+- `781a7cd0`, `cfc04b49`
 
 提交信息：
 - `research: implement fixed causal epoch A-1`
+- `research: prove fixed epoch outcome boundary`
