@@ -42,6 +42,9 @@
 - Once raw source preflight passes, an impossible/non-finite ratio at a new
   evidence checkpoint is a derived-feature integrity defect, not a normal
   market support condition.
+- Revision 4 passed independent review with no P0-P3 findings. The accepted
+  object is a conditional trade-orientation structural audit, not a general
+  market-noise or economic-precision test.
 
 ## 2026-08-29 Precision-First Detector Objective
 
