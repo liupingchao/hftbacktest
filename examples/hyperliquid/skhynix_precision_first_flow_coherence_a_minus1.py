@@ -79,6 +79,31 @@ ACTIVITY_Q60 = 44.0
 RAW_RATE_LIMIT_PER_HOUR = 5.0
 RAW_BURST_LIMIT = 2
 SELECTION_NULL_RATE_LIMIT = 0.10
+REQUIRED_NON_CACHE_ARTIFACTS = frozenset(
+    {
+        "classification.json",
+        "contracts/cross_fit_selection_contract.json",
+        "contracts/execution_evidence_contract.json",
+        "contracts/gate_contract.json",
+        "contracts/outcome_access_ledger.json",
+        "contracts/precision_filter_family_contract.json",
+        "contracts/source_cache_contract.json",
+        "contracts/structural_null_contract.json",
+        "contracts/tri_state_detector_contract.json",
+        "reports/A_minus1_summary.json",
+        "run_manifest.json",
+        "support/candidate_ledger.csv",
+        "support/cross_fitted_null_summary.csv",
+        "support/cross_fitted_signal_ledger.csv",
+        "support/filter_support_by_date.csv",
+        "support/fold_selection_ledger.csv",
+        "support/parameter_monotonicity.csv",
+        "support/slice_invariance.csv",
+        "support/source_cache_inventory.csv",
+        "support/structural_false_fire_summary.csv",
+        "support/tri_state_support_by_date.csv",
+    }
+)
 
 
 class AuditError(RuntimeError):
@@ -600,13 +625,14 @@ def filter_cluster_counts(
 
 def candidate_diagnostics(
     candidate_batches: Sequence[Sequence[dict[str, Any]]],
-) -> tuple[list[dict[str, Any]], int, str]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int, str]:
     counters: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     clusters: dict[tuple[str, str], set[str]] = defaultdict(set)
-    ledger_rows = []
+    hash_rows = []
+    csv_rows = []
     for candidates in candidate_batches:
         for candidate in candidates:
-            ledger_rows.append(
+            hash_row = (
                 {
                     "capture_id": candidate["capture_id"],
                     "candidate_ts_ns": candidate["candidate_ts_ns"],
@@ -622,6 +648,44 @@ def candidate_diagnostics(
                     "filter_cancel_reasons": candidate[
                         "filter_cancel_reasons"
                     ],
+                }
+            )
+            hash_rows.append(hash_row)
+            csv_rows.append(
+                {
+                    "capture_id": candidate["capture_id"],
+                    "research_date": candidate["research_date"],
+                    "segment_id": candidate["segment_id"],
+                    "direction": candidate["direction"],
+                    "candidate_id": candidate["candidate_id"],
+                    "candidate_ts_ns": candidate["candidate_ts_ns"],
+                    "candidate_event_seq": candidate[
+                        "candidate_event_seq"
+                    ],
+                    "dependence_cluster_id": candidate[
+                        "dependence_cluster_id"
+                    ],
+                    "exclusive_conflict_family": candidate[
+                        "exclusive_conflict_family"
+                    ],
+                    "prior_contiguous_conflict_ms": candidate[
+                        "prior_contiguous_conflict_ms"
+                    ],
+                    "admitted_filter_ids": ";".join(
+                        candidate["admitted_filter_ids"]
+                    ),
+                    "confirmation_map_json": json.dumps(
+                        candidate["confirmations"],
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=True,
+                    ),
+                    "cancel_reason_map_json": json.dumps(
+                        candidate["filter_cancel_reasons"],
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=True,
+                    ),
                 }
             )
             date = str(candidate["research_date"])
@@ -663,7 +727,7 @@ def candidate_diagnostics(
                 **{field: values[field] for field in fields},
             }
         )
-    ledger_rows.sort(
+    hash_rows.sort(
         key=lambda row: (
             row["capture_id"],
             row["candidate_ts_ns"],
@@ -671,7 +735,43 @@ def candidate_diagnostics(
             row["direction"],
         )
     )
-    return rows, len(ledger_rows), canonical_sha(ledger_rows)
+    csv_rows.sort(
+        key=lambda row: (
+            row["capture_id"],
+            row["candidate_ts_ns"],
+            row["candidate_event_seq"],
+            row["direction"],
+        )
+    )
+    return rows, csv_rows, len(hash_rows), canonical_sha(hash_rows)
+
+
+def tri_state_support_rows(
+    dated_analyses: Sequence[tuple[str, dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    totals: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
+    for date, analysis in dated_analyses:
+        for item in FILTERS:
+            states = analysis["tri_state"][item.filter_id]
+            totals[(date, item.filter_id)].update(states)
+            totals[(date, item.filter_id)]["EXPECTED"] += (
+                2 * len(analysis["support"])
+            )
+    rows = []
+    for (date, filter_id), values in sorted(totals.items()):
+        total = values["SIGNAL"] + values["BACKGROUND"] + values["ABSTAIN"]
+        rows.append(
+            {
+                "research_date": date,
+                "filter_id": filter_id,
+                "signal_pair_count": values["SIGNAL"],
+                "background_pair_count": values["BACKGROUND"],
+                "abstain_pair_count": values["ABSTAIN"],
+                "total_pair_count": total,
+                "partition_exact": total == values["EXPECTED"],
+            }
+        )
+    return rows
 
 
 def maximum_five_second_burst(rows: Sequence[dict[str, Any]]) -> int:
@@ -756,7 +856,7 @@ def select_filters(
     *,
     dates: Sequence[str],
     selection_counts: np.ndarray,
-    selection_exposure_hours: np.ndarray,
+    selection_exposure_checkpoint_counts: np.ndarray,
 ) -> list[dict[str, Any]]:
     if selection_counts.shape != (
         NULL_REPLICATES,
@@ -764,6 +864,18 @@ def select_filters(
         len(FILTERS),
     ):
         raise AuditError("selection_count_shape")
+    if selection_exposure_checkpoint_counts.shape != (
+        len(dates),
+        len(FILTERS),
+    ):
+        raise AuditError("selection_exposure_shape")
+    if (
+        not np.issubdtype(
+            selection_exposure_checkpoint_counts.dtype, np.integer
+        )
+        or np.any(selection_exposure_checkpoint_counts < 0)
+    ):
+        raise AuditError("selection_exposure_corrupt")
     rows = []
     for held_out_index, held_out_date in enumerate(dates):
         train_mask = np.ones(len(dates), dtype=bool)
@@ -771,13 +883,20 @@ def select_filters(
         selected: PrecisionFilter | None = None
         selected_p95 = math.nan
         for filter_index, item in enumerate(FILTERS):
-            exposure = float(
-                np.sum(selection_exposure_hours[train_mask, filter_index])
+            exposure_checkpoint_count = int(
+                np.sum(
+                    selection_exposure_checkpoint_counts[
+                        train_mask, filter_index
+                    ]
+                )
             )
-            if not np.isfinite(exposure) or exposure < 0:
+            if exposure_checkpoint_count < 0:
                 raise AuditError("selection_exposure_corrupt")
-            if exposure == 0:
+            if exposure_checkpoint_count == 0:
                 continue
+            exposure = float(
+                exposure_units(exposure_checkpoint_count)["exposure_hours"]
+            )
             replicate_counts = np.sum(
                 selection_counts[:, train_mask, filter_index], axis=1
             )
@@ -979,6 +1098,125 @@ def finite_le(value: Any, limit: float) -> bool:
     )
 
 
+def finite_ge(value: Any, limit: float) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+        and float(value) >= limit
+    )
+
+
+def exposure_units(checkpoint_count: int) -> dict[str, Any]:
+    if not isinstance(checkpoint_count, (int, np.integer)):
+        raise AuditError("exposure_checkpoint_count_type")
+    seconds = int(checkpoint_count) * CHECKPOINT_MS / 1_000
+    return {
+        "exposure_checkpoint_count": int(checkpoint_count),
+        "exposure_seconds": seconds,
+        "exposure_hours": seconds / 3_600,
+    }
+
+
+def numeric_integrity_violations(summary: dict[str, Any]) -> int:
+    violations = 0
+
+    def nonnegative_finite(value: Any) -> bool:
+        return (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
+            and float(value) >= 0
+        )
+
+    def exact_units(item: dict[str, Any]) -> bool:
+        count = item.get("exposure_checkpoint_count")
+        seconds = item.get("exposure_seconds")
+        hours = item.get("exposure_hours")
+        if (
+            not isinstance(count, int)
+            or isinstance(count, bool)
+            or count < 0
+            or not nonnegative_finite(seconds)
+            or not nonnegative_finite(hours)
+        ):
+            return False
+        expected_seconds = count * CHECKPOINT_MS / 1_000
+        return math.isclose(
+            float(seconds), expected_seconds, rel_tol=0, abs_tol=1e-12
+        ) and math.isclose(
+            float(hours),
+            expected_seconds / 3_600,
+            rel_tol=0,
+            abs_tol=1e-15,
+        )
+
+    for item in summary.get("estimators", {}).values():
+        violations += int(not exact_units(item))
+        observed = item.get("observed_cluster_count")
+        null_p95 = item.get("null_cluster_count_p95")
+        violations += int(
+            not isinstance(observed, int)
+            or isinstance(observed, bool)
+            or observed < 0
+        )
+        violations += int(not nonnegative_finite(null_p95))
+        exposure_count = item.get("exposure_checkpoint_count")
+        rate = item.get("null_false_cluster_rate_p95_per_hour")
+        burden = item.get("structural_null_burden_ratio_p95")
+        share = item.get("maximum_single_date_share")
+        if isinstance(exposure_count, int) and exposure_count == 0:
+            violations += int(rate is not None)
+        else:
+            violations += int(not nonnegative_finite(rate))
+        if isinstance(observed, int) and observed == 0:
+            violations += int(burden is not None or share is not None)
+        else:
+            violations += int(not nonnegative_finite(burden))
+            violations += int(
+                not nonnegative_finite(share)
+                or (nonnegative_finite(share) and float(share) > 1)
+            )
+        for name in ("count_tail_p",):
+            value = item.get(name)
+            violations += int(
+                not nonnegative_finite(value)
+                or (nonnegative_finite(value) and float(value) > 1)
+            )
+        for name in (
+            "represented_date_count",
+            "dates_above_date_null_p90",
+        ):
+            value = item.get(name)
+            violations += int(
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or value < 0
+            )
+
+    raw = summary.get("raw", {})
+    violations += int(not exact_units(raw))
+    raw_observed = raw.get("observed_cluster_count")
+    violations += int(
+        not isinstance(raw_observed, int)
+        or isinstance(raw_observed, bool)
+        or raw_observed < 0
+    )
+    raw_exposure = raw.get("exposure_checkpoint_count")
+    raw_rate = raw.get("cluster_rate_per_hour")
+    if isinstance(raw_exposure, int) and raw_exposure == 0:
+        violations += int(raw_rate is not None)
+    else:
+        violations += int(not nonnegative_finite(raw_rate))
+    raw_burst = raw.get("maximum_5s_burst")
+    violations += int(
+        not isinstance(raw_burst, int)
+        or isinstance(raw_burst, bool)
+        or raw_burst < 0
+    )
+    return violations
+
+
 def classify(gates: Sequence[dict[str, Any]]) -> str:
     mapping = {
         "A-1-0": "Aminus1_source_not_admissible",
@@ -1005,6 +1243,21 @@ def build_gates(
     sensitivity_10 = summary["estimators"]["10000"]
     sensitivity_60 = summary["estimators"]["60000"]
     raw = summary["raw"]
+    determinism = summary.get("determinism_evidence", {})
+    derived_numeric_violations = numeric_integrity_violations(summary)
+    stored_numeric_value = summary["integrity"].get(
+        "numeric_integrity_violations", 0
+    )
+    stored_numeric_violations = (
+        int(stored_numeric_value)
+        if isinstance(stored_numeric_value, int)
+        and not isinstance(stored_numeric_value, bool)
+        and stored_numeric_value >= 0
+        else 1
+    )
+    total_numeric_violations = (
+        derived_numeric_violations + stored_numeric_violations
+    )
     gates = [
         gate(
             "A-1-0",
@@ -1027,6 +1280,24 @@ def build_gates(
                     deterministic_build,
                     deterministic_build,
                     "true",
+                ),
+                (
+                    "preseal_difference_count",
+                    determinism.get("preseal_difference_count") == 0,
+                    determinism.get("preseal_difference_count"),
+                    "0",
+                ),
+                (
+                    "pending_difference_count",
+                    determinism.get("pending_difference_count") == 0,
+                    determinism.get("pending_difference_count"),
+                    "0",
+                ),
+                (
+                    "final_difference_count",
+                    determinism.get("final_difference_count") == 0,
+                    determinism.get("final_difference_count"),
+                    "0",
                 ),
             ),
         ),
@@ -1148,8 +1419,8 @@ def build_gates(
                 ),
                 (
                     "numeric_integrity_violations",
-                    integrity["numeric_integrity_violations"] == 0,
-                    integrity["numeric_integrity_violations"],
+                    total_numeric_violations == 0,
+                    total_numeric_violations,
                     "0",
                 ),
             ),
@@ -1159,19 +1430,20 @@ def build_gates(
             (
                 (
                     "primary_exposure_positive",
-                    primary["exposure_hours"] > 0,
+                    finite_ge(primary["exposure_hours"], 0)
+                    and primary["exposure_hours"] > 0,
                     primary["exposure_hours"],
                     ">0",
                 ),
                 (
                     "primary_clusters_ge_30",
-                    primary["observed_cluster_count"] >= 30,
+                    finite_ge(primary["observed_cluster_count"], 30),
                     primary["observed_cluster_count"],
                     ">=30",
                 ),
                 (
                     "represented_dates_ge_4",
-                    primary["represented_date_count"] >= 4,
+                    finite_ge(primary["represented_date_count"], 4),
                     primary["represented_date_count"],
                     ">=4",
                 ),
@@ -1208,25 +1480,25 @@ def build_gates(
                 ),
                 (
                     "primary_tail",
-                    primary["count_tail_p"] <= 0.01,
+                    finite_le(primary["count_tail_p"], 0.01),
                     primary["count_tail_p"],
                     "<=0.01",
                 ),
                 (
                     "dates_above_null_p90",
-                    primary["dates_above_date_null_p90"] >= 4,
+                    finite_ge(primary["dates_above_date_null_p90"], 4),
                     primary["dates_above_date_null_p90"],
                     ">=4",
                 ),
                 (
                     "sensitivity_10_estimable",
-                    sensitivity_10["estimable"],
+                    sensitivity_10["estimable"] is True,
                     sensitivity_10["estimable"],
                     "true",
                 ),
                 (
                     "sensitivity_60_estimable",
-                    sensitivity_60["estimable"],
+                    sensitivity_60["estimable"] is True,
                     sensitivity_60["estimable"],
                     "true",
                 ),
@@ -1284,13 +1556,13 @@ def build_gates(
                 ),
                 (
                     "sensitivity_10_tail",
-                    sensitivity_10["count_tail_p"] <= 0.05,
+                    finite_le(sensitivity_10["count_tail_p"], 0.05),
                     sensitivity_10["count_tail_p"],
                     "<=0.05",
                 ),
                 (
                     "sensitivity_60_tail",
-                    sensitivity_60["count_tail_p"] <= 0.05,
+                    finite_le(sensitivity_60["count_tail_p"], 0.05),
                     sensitivity_60["count_tail_p"],
                     "<=0.05",
                 ),
@@ -1301,7 +1573,8 @@ def build_gates(
             (
                 (
                     "raw_exposure_positive",
-                    raw["exposure_hours"] > 0,
+                    finite_ge(raw["exposure_hours"], 0)
+                    and raw["exposure_hours"] > 0,
                     raw["exposure_hours"],
                     ">0",
                 ),
@@ -1316,7 +1589,9 @@ def build_gates(
                 ),
                 (
                     "raw_burst_le_2",
-                    raw["maximum_5s_burst"] <= RAW_BURST_LIMIT,
+                    finite_le(
+                        raw["maximum_5s_burst"], RAW_BURST_LIMIT
+                    ),
                     raw["maximum_5s_burst"],
                     "<=2",
                 ),
@@ -1330,8 +1605,16 @@ def estimator(
     *,
     observed_by_date: np.ndarray,
     null_by_replicate_date: np.ndarray,
-    exposure_hours: float,
+    exposure_checkpoint_count: int,
 ) -> dict[str, Any]:
+    if (
+        np.any(observed_by_date < 0)
+        or np.any(null_by_replicate_date < 0)
+        or exposure_checkpoint_count < 0
+    ):
+        raise AuditError("negative_estimator_input")
+    units = exposure_units(exposure_checkpoint_count)
+    exposure_hours = float(units["exposure_hours"])
     observed = int(np.sum(observed_by_date))
     null_totals = np.sum(null_by_replicate_date, axis=1)
     estimable = exposure_hours > 0 and observed > 0
@@ -1365,7 +1648,7 @@ def estimator(
         "represented_date_count": represented,
         "maximum_single_date_share": maximum_share,
         "dates_above_date_null_p90": dates_above,
-        "exposure_hours": exposure_hours,
+        **units,
     }
 
 
@@ -1379,9 +1662,48 @@ def strip_dynamic_summary(summary: dict[str, Any]) -> dict[str, Any]:
         "exploratory_a0_execution_authorized",
         "confirmatory_a0_authorized",
         "prospective_precision_validation_required",
+        "determinism_evidence",
     ):
         result.pop(key, None)
     return result
+
+
+def nonfinite_paths(value: Any, prefix: str = "root") -> list[str]:
+    if isinstance(value, float) and not math.isfinite(value):
+        return [prefix]
+    if isinstance(value, dict):
+        return [
+            path
+            for key, item in value.items()
+            for path in nonfinite_paths(item, f"{prefix}.{key}")
+        ]
+    if isinstance(value, (list, tuple)):
+        return [
+            path
+            for index, item in enumerate(value)
+            for path in nonfinite_paths(item, f"{prefix}[{index}]")
+        ]
+    return []
+
+
+def sanitize_nonfinite(value: Any) -> Any:
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {key: sanitize_nonfinite(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitize_nonfinite(item) for item in value]
+    if isinstance(value, tuple):
+        return [sanitize_nonfinite(item) for item in value]
+    return value
+
+
+def non_cache_artifact_paths(output_root: Path) -> set[str]:
+    return {
+        path.relative_to(output_root).as_posix()
+        for path in output_root.rglob("*")
+        if path.is_file() and "cache" not in path.parts
+    }
 
 
 def seal_dynamic_outputs(
@@ -1390,12 +1712,32 @@ def seal_dynamic_outputs(
     predecessor: Any,
     summary: dict[str, Any],
     deterministic_build: bool,
+    determinism_evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     contracts = output_root / "contracts"
     reports = output_root / "reports"
-    gates = build_gates(summary, deterministic_build=deterministic_build)
+    nonfinite = nonfinite_paths(summary)
+    clean_summary = sanitize_nonfinite(summary)
+    clean_summary["integrity"]["numeric_integrity_violations"] = (
+        int(
+            clean_summary["integrity"].get(
+                "numeric_integrity_violations", 0
+            )
+        )
+        + len(nonfinite)
+    )
+    evidence = determinism_evidence or {
+        "stage": "preseal",
+        "preseal_difference_count": None,
+        "pending_difference_count": None,
+        "final_difference_count": None,
+    }
+    clean_summary["determinism_evidence"] = evidence
+    gates = build_gates(
+        clean_summary, deterministic_build=deterministic_build
+    )
     classification = classify(gates)
-    payload = dict(summary)
+    payload = dict(clean_summary)
     payload["gates"] = gates
     payload["classification"] = classification
     payload["deterministic_build"] = deterministic_build
@@ -1413,11 +1755,21 @@ def seal_dynamic_outputs(
         contracts / "execution_evidence_contract.json",
         {
             "deterministic_build": deterministic_build,
-            "plan_sha_verified": summary["plan_sha_verified"],
-            "predecessor_binding_verified": summary[
+            "determinism_evidence": evidence,
+            "plan_sha_verified": clean_summary["plan_sha_verified"],
+            "predecessor_binding_verified": clean_summary[
                 "predecessor_binding_verified"
             ],
-            "source_cache_closure": summary["source_cache_closure"],
+            "predecessor_binding": {
+                "path": PREDECESSOR_PATH.as_posix(),
+                "commit": PREDECESSOR_COMMIT,
+                "blob_oid": PREDECESSOR_BLOB_OID,
+                "blob_sha256": PREDECESSOR_SHA256,
+                "callable_ast_sha256": PREDECESSOR_AST_SHA256,
+            },
+            "source_cache_closure": clean_summary[
+                "source_cache_closure"
+            ],
         },
     )
     predecessor.write_json(reports / "A_minus1_summary.json", payload)
@@ -1445,6 +1797,13 @@ def seal_dynamic_outputs(
             "artifacts": manifest["artifacts"],
         },
     )
+    produced = non_cache_artifact_paths(output_root)
+    if produced != REQUIRED_NON_CACHE_ARTIFACTS:
+        missing = sorted(REQUIRED_NON_CACHE_ARTIFACTS - produced)
+        extra = sorted(produced - REQUIRED_NON_CACHE_ARTIFACTS)
+        raise AuditError(
+            f"required_output_set_mismatch:missing={missing}:extra={extra}"
+        )
     return payload
 
 
@@ -1462,6 +1821,8 @@ def write_contracts_and_summary(
     monotonic_rows: Sequence[dict[str, Any]],
     slice_rows: Sequence[dict[str, Any]],
     admission_rows: Sequence[dict[str, Any]],
+    candidate_ledger_rows: Sequence[dict[str, Any]],
+    tri_state_rows: Sequence[dict[str, Any]],
     deterministic_build: bool,
 ) -> None:
     contracts = output_root / "contracts"
@@ -1488,17 +1849,6 @@ def write_contracts_and_summary(
         },
     )
     predecessor.write_json(
-        contracts / "predecessor_binding.json",
-        {
-            "path": PREDECESSOR_PATH.as_posix(),
-            "commit": PREDECESSOR_COMMIT,
-            "blob_oid": PREDECESSOR_BLOB_OID,
-            "blob_sha256": PREDECESSOR_SHA256,
-            "callable_ast_sha256": PREDECESSOR_AST_SHA256,
-            "verified": True,
-        },
-    )
-    predecessor.write_json(
         contracts / "outcome_access_ledger.json",
         {
             "future_target_accessed": False,
@@ -1510,8 +1860,26 @@ def write_contracts_and_summary(
             "poisoned_unconsumed_fields_change_output": False,
         },
     )
-    predecessor.write_json(
+    for obsolete in (
         contracts / "filter_family_contract.json",
+        contracts / "predecessor_binding.json",
+        contracts / "selection_contract.json",
+        support_dir / "filter_admission_by_date.csv",
+    ):
+        obsolete.unlink(missing_ok=True)
+    predecessor.write_json(
+        contracts / "tri_state_detector_contract.json",
+        {
+            "states": ["SIGNAL", "BACKGROUND", "ABSTAIN"],
+            "checkpoint_direction_partition_required": True,
+            "abstain_contributes_to_signal": False,
+            "abstain_contributes_to_exposure": False,
+            "comparison_mask_is_external": True,
+            "support_rows": len(tri_state_rows),
+        },
+    )
+    predecessor.write_json(
+        contracts / "precision_filter_family_contract.json",
         {
             "filter_count": len(FILTERS),
             "filters": filter_contract_rows(),
@@ -1540,7 +1908,7 @@ def write_contracts_and_summary(
         },
     )
     predecessor.write_json(
-        contracts / "selection_contract.json",
+        contracts / "cross_fit_selection_contract.json",
         {
             "observed_selection_access": False,
             "selection_duration_ms": SELECTION_DURATION_MS,
@@ -1611,6 +1979,8 @@ def write_contracts_and_summary(
             "estimable",
             "observed_cluster_count",
             "null_cluster_count_p95",
+            "exposure_checkpoint_count",
+            "exposure_seconds",
             "exposure_hours",
             "null_false_cluster_rate_p95_per_hour",
             "structural_null_burden_ratio_p95",
@@ -1648,7 +2018,39 @@ def write_contracts_and_summary(
         ),
     )
     predecessor.write_csv(
-        support_dir / "filter_admission_by_date.csv",
+        support_dir / "tri_state_support_by_date.csv",
+        list(tri_state_rows),
+        (
+            "research_date",
+            "filter_id",
+            "signal_pair_count",
+            "background_pair_count",
+            "abstain_pair_count",
+            "total_pair_count",
+            "partition_exact",
+        ),
+    )
+    predecessor.write_csv(
+        support_dir / "candidate_ledger.csv",
+        list(candidate_ledger_rows),
+        (
+            "capture_id",
+            "research_date",
+            "segment_id",
+            "direction",
+            "candidate_id",
+            "candidate_ts_ns",
+            "candidate_event_seq",
+            "dependence_cluster_id",
+            "exclusive_conflict_family",
+            "prior_contiguous_conflict_ms",
+            "admitted_filter_ids",
+            "confirmation_map_json",
+            "cancel_reason_map_json",
+        ),
+    )
+    predecessor.write_csv(
+        support_dir / "filter_support_by_date.csv",
         list(admission_rows),
         (
             "research_date",
@@ -1706,9 +2108,13 @@ def execute_audit(
         )
         for duration in NULL_DURATIONS_MS
     }
-    selection_exposure = np.zeros((len(dates), len(FILTERS)))
+    selection_exposure = np.zeros(
+        (len(dates), len(FILTERS)), dtype=np.int64
+    )
     evaluation_exposure = {
-        duration: np.zeros((len(dates), len(FILTERS)))
+        duration: np.zeros(
+            (len(dates), len(FILTERS)), dtype=np.int64
+        )
         for duration in NULL_DURATIONS_MS
     }
     observed_counts = {
@@ -1725,7 +2131,9 @@ def execute_audit(
         for duration in NULL_DURATIONS_MS
     }
     raw_counts = np.zeros((len(dates), len(FILTERS)), dtype=np.int64)
-    raw_exposure = np.zeros((len(dates), len(FILTERS)))
+    raw_exposure = np.zeros(
+        (len(dates), len(FILTERS)), dtype=np.int64
+    )
     raw_rows: dict[str, dict[str, list[dict[str, Any]]]] = {
         date: {item.filter_id: [] for item in FILTERS} for date in dates
     }
@@ -1735,6 +2143,7 @@ def execute_audit(
     all_cluster_sets = {item.filter_id: set() for item in FILTERS}
     slice_rows: list[dict[str, Any]] = []
     observed_candidate_batches: list[list[dict[str, Any]]] = []
+    dated_analyses: list[tuple[str, dict[str, Any]]] = []
     tri_state_violations = 0
     abstain_signal_violations = 0
     feature_boundary_violations = 0
@@ -1781,6 +2190,7 @@ def execute_audit(
             predecessor=predecessor,
         )
         observed_candidate_batches.append(analysis["candidates"])
+        dated_analyses.append((research_date, analysis))
         support = analysis["support"]
         segments = features["segment_id"]
         raw_masks = raw_support_masks(support, segments)
@@ -1789,12 +2199,8 @@ def execute_audit(
         )
         raw_counts[d_index] += raw_count_values
         for filter_index, item in enumerate(FILTERS):
-            raw_exposure[d_index, filter_index] += (
-                np.count_nonzero(
-                    raw_masks[(item.persistence_ms, item.novelty_ms)]
-                )
-                * CHECKPOINT_MS
-                / 3_600_000
+            raw_exposure[d_index, filter_index] += np.count_nonzero(
+                raw_masks[(item.persistence_ms, item.novelty_ms)]
             )
             raw_rows[research_date][item.filter_id].extend(
                 capture_raw_rows[item.filter_id]
@@ -1846,16 +2252,16 @@ def execute_audit(
             )
             observed_counts[duration][d_index] += count_values
             for filter_index, item in enumerate(FILTERS):
-                hours = (
-                    np.count_nonzero(
-                        masks[(item.persistence_ms, item.novelty_ms)]
-                    )
-                    * CHECKPOINT_MS
-                    / 3_600_000
+                checkpoint_count = np.count_nonzero(
+                    masks[(item.persistence_ms, item.novelty_ms)]
                 )
-                evaluation_exposure[duration][d_index, filter_index] += hours
+                evaluation_exposure[duration][
+                    d_index, filter_index
+                ] += checkpoint_count
                 if duration == SELECTION_DURATION_MS:
-                    selection_exposure[d_index, filter_index] += hours
+                    selection_exposure[
+                        d_index, filter_index
+                    ] += checkpoint_count
                 observed_rows[duration][research_date][
                     item.filter_id
                 ].extend(rows_by_filter[item.filter_id])
@@ -1940,7 +2346,7 @@ def execute_audit(
     fold_rows = select_filters(
         dates=dates,
         selection_counts=selection_counts,
-        selection_exposure_hours=selection_exposure,
+        selection_exposure_checkpoint_counts=selection_exposure,
     )
     selected_indices = [
         (
@@ -1952,7 +2358,7 @@ def execute_audit(
     ]
     cross_observed: dict[int, np.ndarray] = {}
     cross_null: dict[int, np.ndarray] = {}
-    cross_exposure: dict[int, float] = {}
+    cross_exposure: dict[int, int] = {}
     signal_rows = []
     null_summary_rows = []
     structural_rows = []
@@ -1962,7 +2368,7 @@ def execute_audit(
         null_by_rep_date = np.zeros(
             (NULL_REPLICATES, len(dates)), dtype=np.int64
         )
-        exposure = 0.0
+        exposure_checkpoint_count = 0
         for d_index, selected in enumerate(selected_indices):
             if selected is None:
                 continue
@@ -1970,7 +2376,7 @@ def execute_audit(
             null_by_rep_date[:, d_index] = evaluation_counts[duration][
                 :, d_index, selected
             ]
-            exposure += float(
+            exposure_checkpoint_count += int(
                 evaluation_exposure[duration][d_index, selected]
             )
             filter_id = FILTERS[selected].filter_id
@@ -1978,11 +2384,11 @@ def execute_audit(
                 signal_rows.append({**row, "duration_ms": duration})
         cross_observed[duration] = by_date
         cross_null[duration] = null_by_rep_date
-        cross_exposure[duration] = exposure
+        cross_exposure[duration] = exposure_checkpoint_count
         item = estimator(
             observed_by_date=by_date,
             null_by_replicate_date=null_by_rep_date,
-            exposure_hours=exposure,
+            exposure_checkpoint_count=exposure_checkpoint_count,
         )
         estimators[str(duration)] = item
         structural_rows.append({"duration_ms": duration, **item})
@@ -1997,24 +2403,32 @@ def execute_audit(
         )
 
     raw_observed = 0
-    raw_hours = 0.0
+    raw_checkpoint_count = 0
     selected_raw_rows = []
     for d_index, selected in enumerate(selected_indices):
         if selected is None:
             continue
         raw_observed += int(raw_counts[d_index, selected])
-        raw_hours += float(raw_exposure[d_index, selected])
+        raw_checkpoint_count += int(raw_exposure[d_index, selected])
         selected_raw_rows.extend(
             raw_rows[dates[d_index]][FILTERS[selected].filter_id]
         )
+    raw_units = exposure_units(raw_checkpoint_count)
+    raw_hours = float(raw_units["exposure_hours"])
     raw_rate = raw_observed / raw_hours if raw_hours > 0 else None
 
     monotonic_rows = monotonicity_rows(
         all_candidate_sets, all_cluster_sets
     )
-    admission_rows, candidate_count, candidate_ledger_sha256 = (
+    (
+        admission_rows,
+        candidate_ledger_rows,
+        candidate_count,
+        candidate_ledger_sha256,
+    ) = (
         candidate_diagnostics(observed_candidate_batches)
     )
+    tri_state_rows = tri_state_support_rows(dated_analyses)
     monotonicity_violations = sum(
         int(row["candidate_subset_violations"])
         + int(row["cluster_subset_violations"])
@@ -2064,7 +2478,7 @@ def execute_audit(
         "estimators": estimators,
         "raw": {
             "observed_cluster_count": raw_observed,
-            "exposure_hours": raw_hours,
+            **raw_units,
             "cluster_rate_per_hour": raw_rate,
             "maximum_5s_burst": maximum_five_second_burst(
                 selected_raw_rows
@@ -2107,6 +2521,8 @@ def execute_audit(
         monotonic_rows=monotonic_rows,
         slice_rows=slice_rows,
         admission_rows=admission_rows,
+        candidate_ledger_rows=candidate_ledger_rows,
+        tri_state_rows=tri_state_rows,
         deterministic_build=False,
     )
     return summary
@@ -2120,24 +2536,6 @@ def compare_outputs(
     return predecessor.compare_outputs(left.resolve(), right.resolve())
 
 
-def nonfinite_paths(value: Any, prefix: str = "root") -> list[str]:
-    if isinstance(value, float) and not math.isfinite(value):
-        return [prefix]
-    if isinstance(value, dict):
-        return [
-            path
-            for key, item in value.items()
-            for path in nonfinite_paths(item, f"{prefix}.{key}")
-        ]
-    if isinstance(value, (list, tuple)):
-        return [
-            path
-            for index, item in enumerate(value)
-            for path in nonfinite_paths(item, f"{prefix}[{index}]")
-        ]
-    return []
-
-
 def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
     predecessor = load_bound_predecessor(repo_root)
     predecessor.verify_existing_cache_closure(repo_root, output_root)
@@ -2149,17 +2547,38 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
         )
     )
     for item in summary["estimators"].values():
-        if float(item["exposure_hours"]) <= 0:
+        hours = item.get("exposure_hours")
+        if isinstance(hours, (int, float)) and math.isfinite(float(hours)):
+            checkpoint_count = int(
+                round(float(hours) * 3_600_000 / CHECKPOINT_MS)
+            )
+            item.update(exposure_units(checkpoint_count))
+        else:
+            item["exposure_checkpoint_count"] = None
+            item["exposure_seconds"] = None
+        if item.get("exposure_checkpoint_count") == 0:
             item["null_false_cluster_rate_p95_per_hour"] = None
         if int(item["observed_cluster_count"]) == 0:
             item["estimable"] = False
             item["structural_null_burden_ratio_p95"] = None
             item["maximum_single_date_share"] = None
-    if float(summary["raw"]["exposure_hours"]) <= 0:
+    raw_hours = summary["raw"].get("exposure_hours")
+    if isinstance(raw_hours, (int, float)) and math.isfinite(
+        float(raw_hours)
+    ):
+        raw_checkpoint_count = int(
+            round(float(raw_hours) * 3_600_000 / CHECKPOINT_MS)
+        )
+        summary["raw"].update(exposure_units(raw_checkpoint_count))
+    else:
+        summary["raw"]["exposure_checkpoint_count"] = None
+        summary["raw"]["exposure_seconds"] = None
+    if summary["raw"].get("exposure_checkpoint_count") == 0:
         summary["raw"]["cluster_rate_per_hour"] = None
 
     slice_rows = []
     candidate_batches = []
+    dated_analyses = []
     inventory = predecessor.read_csv(
         output_root / "support/source_cache_inventory.csv"
     )
@@ -2176,6 +2595,9 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
             predecessor=predecessor,
         )
         candidate_batches.append(analysis["candidates"])
+        dated_analyses.append(
+            (predecessor.date_from_cache_name(cache_name), analysis)
+        )
         slice_rows.extend(
             slice_invariance_rows(
                 capture_id=cache_name[:-4],
@@ -2191,11 +2613,65 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
         for row in slice_rows
     )
     summary["integrity"]["slice_invariance_mismatches"] = slice_mismatches
-    admission_rows, candidate_count, candidate_ledger_sha256 = (
+    (
+        admission_rows,
+        candidate_ledger_rows,
+        candidate_count,
+        candidate_ledger_sha256,
+    ) = (
         candidate_diagnostics(candidate_batches)
     )
+    tri_state_rows = tri_state_support_rows(dated_analyses)
     summary["common_candidate_count"] = candidate_count
     summary["candidate_ledger_sha256"] = candidate_ledger_sha256
+    contracts = output_root / "contracts"
+    old_filter_contract = contracts / "filter_family_contract.json"
+    if old_filter_contract.is_file():
+        filter_payload = json.loads(
+            old_filter_contract.read_text(encoding="ascii")
+        )
+    else:
+        filter_payload = {
+            "filter_count": len(FILTERS),
+            "filters": filter_contract_rows(),
+            "common_refractory_ms": REFRACTORY_NS // 1_000_000,
+            "fixed_cluster_ms": DEPENDENCE_NS // 1_000_000,
+        }
+    predecessor.write_json(
+        contracts / "precision_filter_family_contract.json",
+        filter_payload,
+    )
+    old_filter_contract.unlink(missing_ok=True)
+    (contracts / "predecessor_binding.json").unlink(missing_ok=True)
+    old_selection_contract = contracts / "selection_contract.json"
+    if old_selection_contract.is_file():
+        selection_payload = json.loads(
+            old_selection_contract.read_text(encoding="ascii")
+        )
+    else:
+        selection_payload = {
+            "observed_selection_access": False,
+            "selection_duration_ms": SELECTION_DURATION_MS,
+            "threshold_per_hour": SELECTION_NULL_RATE_LIMIT,
+            "none_sentinel": "META_ABSTAIN",
+            "folds": summary["fold_selection"],
+        }
+    predecessor.write_json(
+        contracts / "cross_fit_selection_contract.json",
+        selection_payload,
+    )
+    old_selection_contract.unlink(missing_ok=True)
+    predecessor.write_json(
+        contracts / "tri_state_detector_contract.json",
+        {
+            "states": ["SIGNAL", "BACKGROUND", "ABSTAIN"],
+            "checkpoint_direction_partition_required": True,
+            "abstain_contributes_to_signal": False,
+            "abstain_contributes_to_exposure": False,
+            "comparison_mask_is_external": True,
+            "support_rows": len(tri_state_rows),
+        },
+    )
     predecessor.write_csv(
         output_root / "support/slice_invariance.csv",
         slice_rows,
@@ -2226,6 +2702,8 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
             "estimable",
             "observed_cluster_count",
             "null_cluster_count_p95",
+            "exposure_checkpoint_count",
+            "exposure_seconds",
             "exposure_hours",
             "null_false_cluster_rate_p95_per_hour",
             "structural_null_burden_ratio_p95",
@@ -2235,8 +2713,43 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
             "dates_above_date_null_p90",
         ),
     )
+    (output_root / "support/filter_admission_by_date.csv").unlink(
+        missing_ok=True
+    )
     predecessor.write_csv(
-        output_root / "support/filter_admission_by_date.csv",
+        output_root / "support/tri_state_support_by_date.csv",
+        tri_state_rows,
+        (
+            "research_date",
+            "filter_id",
+            "signal_pair_count",
+            "background_pair_count",
+            "abstain_pair_count",
+            "total_pair_count",
+            "partition_exact",
+        ),
+    )
+    predecessor.write_csv(
+        output_root / "support/candidate_ledger.csv",
+        candidate_ledger_rows,
+        (
+            "capture_id",
+            "research_date",
+            "segment_id",
+            "direction",
+            "candidate_id",
+            "candidate_ts_ns",
+            "candidate_event_seq",
+            "dependence_cluster_id",
+            "exclusive_conflict_family",
+            "prior_contiguous_conflict_ms",
+            "admitted_filter_ids",
+            "confirmation_map_json",
+            "cancel_reason_map_json",
+        ),
+    )
+    predecessor.write_csv(
+        output_root / "support/filter_support_by_date.csv",
         admission_rows,
         (
             "research_date",
@@ -2253,9 +2766,6 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
             "cancel_margin",
         ),
     )
-    invalid = nonfinite_paths(summary)
-    if invalid:
-        raise AuditError(f"nonfinite_repair_summary:{invalid[:5]}")
     return seal_dynamic_outputs(
         output_root=output_root,
         predecessor=predecessor,
@@ -2271,7 +2781,7 @@ def finalize_pair(
     differences = compare_outputs(predecessor, left, right)
     if differences:
         raise AuditError(f"preseal_output_mismatch:{differences[:5]}")
-    payloads = []
+    summaries = []
     for root in (left, right):
         summary = strip_dynamic_summary(
             json.loads(
@@ -2280,15 +2790,63 @@ def finalize_pair(
                 )
             )
         )
-        invalid = nonfinite_paths(summary)
-        if invalid:
-            raise AuditError(f"nonfinite_finalize_summary:{invalid[:5]}")
-        payloads.append(
-            seal_dynamic_outputs(
+        summaries.append(summary)
+
+    pending_evidence = {
+        "stage": "pending",
+        "preseal_difference_count": 0,
+        "pending_difference_count": None,
+        "final_difference_count": None,
+    }
+    for root, summary in zip((left, right), summaries):
+        seal_dynamic_outputs(
+            output_root=root,
+            predecessor=predecessor,
+            summary=summary,
+            deterministic_build=False,
+            determinism_evidence=pending_evidence,
+        )
+    pending_differences = compare_outputs(predecessor, left, right)
+    if pending_differences:
+        raise AuditError(
+            f"pending_output_mismatch:{pending_differences[:5]}"
+        )
+
+    final_pending_evidence = {
+        "stage": "final_pending",
+        "preseal_difference_count": 0,
+        "pending_difference_count": 0,
+        "final_difference_count": None,
+    }
+    for root, summary in zip((left, right), summaries):
+        seal_dynamic_outputs(
             output_root=root,
             predecessor=predecessor,
             summary=summary,
             deterministic_build=True,
+            determinism_evidence=final_pending_evidence,
+        )
+    final_differences = compare_outputs(predecessor, left, right)
+    if final_differences:
+        raise AuditError(
+            f"final_pending_output_mismatch:{final_differences[:5]}"
+        )
+
+    final_evidence = {
+        "stage": "final",
+        "preseal_difference_count": 0,
+        "pending_difference_count": 0,
+        "final_difference_count": 0,
+    }
+    payloads = []
+    for root, summary in zip((left, right), summaries):
+        payloads.append(
+            seal_dynamic_outputs(
+                output_root=root,
+                predecessor=predecessor,
+                summary=summary,
+                deterministic_build=True,
+                determinism_evidence=final_evidence,
             )
         )
     differences = compare_outputs(predecessor, left, right)

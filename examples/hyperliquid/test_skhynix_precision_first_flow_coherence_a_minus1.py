@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -178,11 +179,13 @@ def test_zero_selection_exposure_produces_meta_abstain() -> None:
         (AUDIT.NULL_REPLICATES, len(dates), len(AUDIT.FILTERS)),
         dtype=np.int64,
     )
-    exposure = np.zeros((len(dates), len(AUDIT.FILTERS)))
+    exposure = np.zeros(
+        (len(dates), len(AUDIT.FILTERS)), dtype=np.int64
+    )
     rows = AUDIT.select_filters(
         dates=dates,
         selection_counts=counts,
-        selection_exposure_hours=exposure,
+        selection_exposure_checkpoint_counts=exposure,
     )
     assert len(rows) == 9
     assert {row["fold_state"] for row in rows} == {"META_ABSTAIN"}
@@ -201,7 +204,7 @@ def test_nonfinite_selection_exposure_fails_integrity() -> None:
         AUDIT.select_filters(
             dates=dates,
             selection_counts=counts,
-            selection_exposure_hours=exposure,
+            selection_exposure_checkpoint_counts=exposure,
         )
 
 
@@ -211,7 +214,7 @@ def test_estimator_zero_exposure_is_not_estimable() -> None:
         null_by_replicate_date=np.zeros(
             (AUDIT.NULL_REPLICATES, 9), dtype=np.int64
         ),
-        exposure_hours=0,
+        exposure_checkpoint_count=0,
     )
     assert not result["estimable"]
     assert result["null_false_cluster_rate_p95_per_hour"] is None
@@ -224,15 +227,99 @@ def test_nonfinite_summary_values_are_rejected() -> None:
     assert AUDIT.nonfinite_paths({"bad": float("inf")}) == ["root.bad"]
 
 
+def valid_existing_summary() -> dict[str, object]:
+    path = (
+        REPO_ROOT
+        / "local_live_analysis"
+        / "skhynix_precision_first_flow_coherence_a_minus1_0829T001"
+        / "reports"
+        / "A_minus1_summary.json"
+    )
+    summary = AUDIT.strip_dynamic_summary(
+        json.loads(path.read_text(encoding="ascii"))
+    )
+    for item in summary["estimators"].values():
+        checkpoint_count = int(
+            round(
+                float(item["exposure_hours"])
+                * 3_600_000
+                / AUDIT.CHECKPOINT_MS
+            )
+        )
+        item.update(AUDIT.exposure_units(checkpoint_count))
+    raw = summary["raw"]
+    raw_checkpoint_count = int(
+        round(
+            float(raw["exposure_hours"])
+            * 3_600_000
+            / AUDIT.CHECKPOINT_MS
+        )
+    )
+    raw.update(AUDIT.exposure_units(raw_checkpoint_count))
+    summary["integrity"]["numeric_integrity_violations"] = 0
+    summary["determinism_evidence"] = {
+        "stage": "final",
+        "preseal_difference_count": 0,
+        "pending_difference_count": 0,
+        "final_difference_count": 0,
+    }
+    assert AUDIT.numeric_integrity_violations(summary) == 0
+    return summary
+
+
+def assert_numeric_corruption_routes_to_a_minus1_4(
+    summary: dict[str, object],
+) -> None:
+    gates = AUDIT.build_gates(summary, deterministic_build=True)
+    assert AUDIT.classify(gates) == "Aminus1_selection_integrity_failed"
+    failed = [gate["gate_id"] for gate in gates if not gate["passed"]]
+    assert failed[0] == "A-1-4"
+
+
+def test_raw_negative_numeric_corruption_routes_to_a_minus1_4() -> None:
+    summary = valid_existing_summary()
+    summary["raw"]["cluster_rate_per_hour"] = -1.0
+    assert_numeric_corruption_routes_to_a_minus1_4(summary)
+
+
+def test_primary_nonfinite_numeric_corruption_routes_to_a_minus1_4() -> None:
+    summary = valid_existing_summary()
+    summary["estimators"]["30000"]["exposure_hours"] = float("nan")
+    assert_numeric_corruption_routes_to_a_minus1_4(summary)
+
+
+def test_sensitivity_negative_numeric_corruption_routes_to_a_minus1_4() -> None:
+    summary = valid_existing_summary()
+    summary["estimators"]["10000"]["null_cluster_count_p95"] = -1.0
+    assert_numeric_corruption_routes_to_a_minus1_4(summary)
+
+
+def test_required_non_cache_artifact_set_matches_frozen_plan() -> None:
+    assert len(AUDIT.REQUIRED_NON_CACHE_ARTIFACTS) == 21
+    assert "contracts/tri_state_detector_contract.json" in (
+        AUDIT.REQUIRED_NON_CACHE_ARTIFACTS
+    )
+    assert "support/tri_state_support_by_date.csv" in (
+        AUDIT.REQUIRED_NON_CACHE_ARTIFACTS
+    )
+    assert "contracts/predecessor_binding.json" not in (
+        AUDIT.REQUIRED_NON_CACHE_ARTIFACTS
+    )
+
+
 def test_candidate_diagnostics_balance_each_filter() -> None:
     candidate = {
         "capture_id": "capture",
         "research_date": "2026-08-29",
         "candidate_ts_ns": 100,
         "candidate_event_seq": 5,
+        "candidate_id": "capture:0:1:5",
         "direction": 1,
         "segment_id": 0,
         "dependence_cluster_id": "cluster",
+        "exclusive_conflict_family": "none",
+        "prior_contiguous_conflict_ms": 0,
+        "confirmations": {"F000": {"confirmation_ts_ns": 100}},
         "admitted_filter_ids": ["F000"],
         "filter_cancel_reasons": {
             item.filter_id: "margin"
@@ -240,8 +327,9 @@ def test_candidate_diagnostics_balance_each_filter() -> None:
             if item.filter_id != "F000"
         },
     }
-    rows, count, digest = AUDIT.candidate_diagnostics([[candidate]])
+    rows, ledger, count, digest = AUDIT.candidate_diagnostics([[candidate]])
     assert count == 1
+    assert len(ledger) == 1
     assert len(digest) == 64
     admitted = next(row for row in rows if row["filter_id"] == "F000")
     rejected = next(row for row in rows if row["filter_id"] == "F001")
