@@ -91,6 +91,31 @@
 - The 29-cache execution lock is released.
 - Future outcomes, A0 execution and live trading remain unauthorized.
 
+## 2026-08-29 0829T001 Precision-First A-1 Execution Ready For QA
+
+- Implemented the frozen V2 runner at commit `734bf9d5`.
+- Ran all 29 historical caches with an independent 30s selection bank and
+  10s/30s/60s evaluation banks, each with 199 replicates.
+- Build A required evidence-only remediation: 12 support-count slice rows
+  included later segments although all 187 candidate identities were exact.
+  The corrected segment mask produced zero slice mismatches.
+- Fresh Build B reproduced all 18 non-cache artifacts exactly; final
+  difference count is zero.
+- All four null banks have 199 distinct fingerprints, zero stream overlap,
+  zero conservation mismatch, minimum date pair count 6 and maximum date p95
+  joint distance 0.582117.
+- All nine folds selected `F000` using null-only selection.
+- The data contain 350 common base candidates, but no filter admits any
+  candidate or cluster.
+- For `F000`, cancellations are 279 abstention, 34 not novel, 22 conflict,
+  8 coherence loss, 5 opposite coherence and 2 margin failures.
+- Primary 30s comparison-supported exposure is 0.411656 hours with zero
+  observed clusters. The first failed gate is A-1-5.
+- Final classification is
+  `Aminus1_structural_support_not_estimable`.
+- A0, future-outcome access and live trading remain unauthorized.
+- Task status is `待验收`.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

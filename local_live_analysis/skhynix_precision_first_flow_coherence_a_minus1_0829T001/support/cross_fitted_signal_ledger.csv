@@ -1,0 +1,1 @@
+capture_id,research_date,segment_id,direction,candidate_id,candidate_ts_ns,candidate_event_seq,confirmation_ts_ns,confirmation_event_seq,dependence_cluster_id,filter_id,persistence_ms,margin,novelty_ms,duration_ms

@@ -1,0 +1,6 @@
+{
+  "deterministic_build": true,
+  "plan_sha_verified": true,
+  "predecessor_binding_verified": true,
+  "source_cache_closure": true
+}

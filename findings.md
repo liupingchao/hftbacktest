@@ -50,6 +50,17 @@
 - Revision 8 passed independent review with no P0-P3 findings. This authorizes
   only the registered historical structural false-fire audit, not economic
   precision estimation or prospective confirmation.
+- Precision-first filtering did not expose a sparse high-confidence subset.
+  All 350 common base candidates were rejected even by `F000`.
+- The dominant bottleneck is complete path support: 279 of 350 `F000`
+  candidates become `ABSTAIN`. This is followed by 34 novelty failures and 22
+  renewed conflicts; only two candidates fail solely on the zero margin.
+- Therefore the zero firing result is not evidence of excellent precision.
+  It is a structural-support failure: false-fire burden is unobservable
+  because no observed signal survives.
+- The structural null itself is admissible and deterministic. Its zero counts
+  cannot rescue the hypothesis because `0 observed / 0 null` has no burden or
+  precision interpretation.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 

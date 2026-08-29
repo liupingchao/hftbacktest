@@ -1,0 +1,31 @@
+{
+  "admissibility": {
+    "distinct_fingerprints": {
+      "1:30000": 199,
+      "2:10000": 199,
+      "2:30000": 199,
+      "2:60000": 199
+    },
+    "invariant_mismatches": 0,
+    "maximum_date_p95_joint_distance": 0.5821166286511941,
+    "minimum_date_pair_count": 6,
+    "minimum_distinct_fingerprints": 199,
+    "replicate_count_exact": true,
+    "stream_identity_overlap": 0
+  },
+  "evaluation_bank": {
+    "bank_code": 2,
+    "durations_ms": [
+      10000,
+      30000,
+      60000
+    ],
+    "replicates_per_duration": 199
+  },
+  "seed_root": "[20260829,bank_code,microblock_ms,replicate_id,capture_ordinal]",
+  "selection_bank": {
+    "bank_code": 1,
+    "duration_ms": 30000,
+    "replicates": 199
+  }
+}

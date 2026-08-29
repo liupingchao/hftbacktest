@@ -1,0 +1,455 @@
+{
+  "audit_id": "PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1",
+  "cache_count": 29,
+  "candidate_ledger_sha256": "b47e8998353a1059c88b7c25b67a58c29193fed152985463964632d35d09f5dc",
+  "classification": "Aminus1_structural_support_not_estimable",
+  "common_candidate_count": 350,
+  "confirmatory_a0_authorized": false,
+  "deterministic_build": true,
+  "estimators": {
+    "10000": {
+      "count_tail_p": 1.0,
+      "dates_above_date_null_p90": 0,
+      "estimable": false,
+      "exposure_hours": 0.23410555555555557,
+      "maximum_single_date_share": null,
+      "null_cluster_count_p95": 0.0,
+      "null_false_cluster_rate_p95_per_hour": 0.0,
+      "observed_cluster_count": 0,
+      "represented_date_count": 0,
+      "structural_null_burden_ratio_p95": null
+    },
+    "30000": {
+      "count_tail_p": 1.0,
+      "dates_above_date_null_p90": 0,
+      "estimable": false,
+      "exposure_hours": 0.41165555555555555,
+      "maximum_single_date_share": null,
+      "null_cluster_count_p95": 0.0,
+      "null_false_cluster_rate_p95_per_hour": 0.0,
+      "observed_cluster_count": 0,
+      "represented_date_count": 0,
+      "structural_null_burden_ratio_p95": null
+    },
+    "60000": {
+      "count_tail_p": 1.0,
+      "dates_above_date_null_p90": 0,
+      "estimable": false,
+      "exposure_hours": 0.2190944444444444,
+      "maximum_single_date_share": null,
+      "null_cluster_count_p95": 0.0,
+      "null_false_cluster_rate_p95_per_hour": 0.0,
+      "observed_cluster_count": 0,
+      "represented_date_count": 0,
+      "structural_null_burden_ratio_p95": null
+    }
+  },
+  "exploratory_a0_execution_authorized": false,
+  "fold_selection": [
+    {
+      "fold_index": 0,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-07-29",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 1,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-07-30",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 2,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-03",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 3,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-04",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 4,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-07",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 5,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-24",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 6,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-25",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 7,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-26",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 8,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-27",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    }
+  ],
+  "future_target_access_authorized": false,
+  "gates": [
+    {
+      "conditions": [
+        {
+          "actual": true,
+          "condition": "plan_sha",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": true,
+          "condition": "predecessor_binding",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": true,
+          "condition": "source_cache_closure",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": true,
+          "condition": "deterministic_build",
+          "passed": true,
+          "required": "true"
+        }
+      ],
+      "gate_id": "A-1-0",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": true,
+          "condition": "zero_outcome_boundary",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": 0,
+          "condition": "unexpected_fields",
+          "passed": true,
+          "required": "0"
+        }
+      ],
+      "gate_id": "A-1-1",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": 0,
+          "condition": "tri_state_partition_violations",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "abstain_signal_violations",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "feature_boundary_violations",
+          "passed": true,
+          "required": "0"
+        }
+      ],
+      "gate_id": "A-1-2",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": true,
+          "condition": "replicate_count",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": 199,
+          "condition": "fingerprints",
+          "passed": true,
+          "required": ">=190"
+        },
+        {
+          "actual": 0,
+          "condition": "stream_overlap",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "invariant_mismatches",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 6,
+          "condition": "minimum_date_pairs",
+          "passed": true,
+          "required": ">=3"
+        },
+        {
+          "actual": 0.5821166286511941,
+          "condition": "p95_joint_distance",
+          "passed": true,
+          "required": "<=0.60"
+        }
+      ],
+      "gate_id": "A-1-3",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": 9,
+          "condition": "fold_count",
+          "passed": true,
+          "required": "9"
+        },
+        {
+          "actual": 0,
+          "condition": "observed_selection_access",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "null_bank_overlap",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "monotonicity_violations",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "slice_invariance_mismatches",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "numeric_integrity_violations",
+          "passed": true,
+          "required": "0"
+        }
+      ],
+      "gate_id": "A-1-4",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": 0.41165555555555555,
+          "condition": "primary_exposure_positive",
+          "passed": true,
+          "required": ">0"
+        },
+        {
+          "actual": 0,
+          "condition": "primary_clusters_ge_30",
+          "passed": false,
+          "required": ">=30"
+        },
+        {
+          "actual": 0,
+          "condition": "represented_dates_ge_4",
+          "passed": false,
+          "required": ">=4"
+        },
+        {
+          "actual": null,
+          "condition": "single_date_share_le_0_50",
+          "passed": false,
+          "required": "<=0.50"
+        }
+      ],
+      "gate_id": "A-1-5",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "actual": 0.0,
+          "condition": "primary_null_rate",
+          "passed": true,
+          "required": "<=0.10"
+        },
+        {
+          "actual": null,
+          "condition": "primary_burden",
+          "passed": false,
+          "required": "<=0.10"
+        },
+        {
+          "actual": 1.0,
+          "condition": "primary_tail",
+          "passed": false,
+          "required": "<=0.01"
+        },
+        {
+          "actual": 0,
+          "condition": "dates_above_null_p90",
+          "passed": false,
+          "required": ">=4"
+        },
+        {
+          "actual": false,
+          "condition": "sensitivity_10_estimable",
+          "passed": false,
+          "required": "true"
+        },
+        {
+          "actual": false,
+          "condition": "sensitivity_60_estimable",
+          "passed": false,
+          "required": "true"
+        },
+        {
+          "actual": 0.0,
+          "condition": "sensitivity_10_rate",
+          "passed": true,
+          "required": "<=0.20"
+        },
+        {
+          "actual": 0.0,
+          "condition": "sensitivity_60_rate",
+          "passed": true,
+          "required": "<=0.20"
+        },
+        {
+          "actual": null,
+          "condition": "sensitivity_10_burden",
+          "passed": false,
+          "required": "<=0.20"
+        },
+        {
+          "actual": null,
+          "condition": "sensitivity_60_burden",
+          "passed": false,
+          "required": "<=0.20"
+        },
+        {
+          "actual": 1.0,
+          "condition": "sensitivity_10_tail",
+          "passed": false,
+          "required": "<=0.05"
+        },
+        {
+          "actual": 1.0,
+          "condition": "sensitivity_60_tail",
+          "passed": false,
+          "required": "<=0.05"
+        }
+      ],
+      "gate_id": "A-1-6",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "actual": 1.1602833333333333,
+          "condition": "raw_exposure_positive",
+          "passed": true,
+          "required": ">0"
+        },
+        {
+          "actual": 0.0,
+          "condition": "raw_rate_le_5",
+          "passed": true,
+          "required": "<=5"
+        },
+        {
+          "actual": 0,
+          "condition": "raw_burst_le_2",
+          "passed": true,
+          "required": "<=2"
+        }
+      ],
+      "gate_id": "A-1-7",
+      "passed": true
+    }
+  ],
+  "hypothesis_id": "PRECISION_FIRST_FLOW_COHERENCE_V2",
+  "integrity": {
+    "abstain_signal_violations": 0,
+    "feature_boundary_violations": 0,
+    "fold_count": 9,
+    "monotonicity_violations": 0,
+    "null_bank_overlap": 0,
+    "numeric_integrity_violations": 0,
+    "observed_selection_access": 0,
+    "slice_invariance_mismatches": 0,
+    "tri_state_partition_violations": 0
+  },
+  "null_admissibility": {
+    "distinct_fingerprints": {
+      "1:30000": 199,
+      "2:10000": 199,
+      "2:30000": 199,
+      "2:60000": 199
+    },
+    "invariant_mismatches": 0,
+    "maximum_date_p95_joint_distance": 0.5821166286511941,
+    "minimum_date_pair_count": 6,
+    "minimum_distinct_fingerprints": 199,
+    "replicate_count_exact": true,
+    "stream_identity_overlap": 0
+  },
+  "plan_sha256": "6e6e1af47dbf0c982ee83654c60f054aac6d81452b1246d65a39123a7d384593",
+  "plan_sha_verified": true,
+  "predecessor_binding_verified": true,
+  "prospective_precision_validation_required": false,
+  "raw": {
+    "cluster_rate_per_hour": 0.0,
+    "exposure_hours": 1.1602833333333333,
+    "maximum_5s_burst": 0,
+    "observed_cluster_count": 0
+  },
+  "research_dates": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-03",
+    "2026-08-04",
+    "2026-08-07",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27"
+  ],
+  "source_cache_closure": true,
+  "task_id": "0829T001",
+  "unexpected_field_count": 0,
+  "zero_outcome_boundary": true
+}

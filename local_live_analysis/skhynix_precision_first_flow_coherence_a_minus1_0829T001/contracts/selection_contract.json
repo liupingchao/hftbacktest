@@ -1,0 +1,71 @@
+{
+  "folds": [
+    {
+      "fold_index": 0,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-07-29",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 1,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-07-30",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 2,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-03",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 3,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-04",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 4,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-07",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 5,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-24",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 6,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-25",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 7,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-26",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    },
+    {
+      "fold_index": 8,
+      "fold_state": "SELECTED",
+      "held_out_date": "2026-08-27",
+      "selected_filter_id": "F000",
+      "selection_null_rate_p95_per_hour": 0.0
+    }
+  ],
+  "none_sentinel": "META_ABSTAIN",
+  "observed_selection_access": false,
+  "selection_duration_ms": 30000,
+  "threshold_per_hour": 0.1
+}

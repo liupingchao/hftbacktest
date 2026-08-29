@@ -1,0 +1,292 @@
+{
+  "gates": [
+    {
+      "conditions": [
+        {
+          "actual": true,
+          "condition": "plan_sha",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": true,
+          "condition": "predecessor_binding",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": true,
+          "condition": "source_cache_closure",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": true,
+          "condition": "deterministic_build",
+          "passed": true,
+          "required": "true"
+        }
+      ],
+      "gate_id": "A-1-0",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": true,
+          "condition": "zero_outcome_boundary",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": 0,
+          "condition": "unexpected_fields",
+          "passed": true,
+          "required": "0"
+        }
+      ],
+      "gate_id": "A-1-1",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": 0,
+          "condition": "tri_state_partition_violations",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "abstain_signal_violations",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "feature_boundary_violations",
+          "passed": true,
+          "required": "0"
+        }
+      ],
+      "gate_id": "A-1-2",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": true,
+          "condition": "replicate_count",
+          "passed": true,
+          "required": "true"
+        },
+        {
+          "actual": 199,
+          "condition": "fingerprints",
+          "passed": true,
+          "required": ">=190"
+        },
+        {
+          "actual": 0,
+          "condition": "stream_overlap",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "invariant_mismatches",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 6,
+          "condition": "minimum_date_pairs",
+          "passed": true,
+          "required": ">=3"
+        },
+        {
+          "actual": 0.5821166286511941,
+          "condition": "p95_joint_distance",
+          "passed": true,
+          "required": "<=0.60"
+        }
+      ],
+      "gate_id": "A-1-3",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": 9,
+          "condition": "fold_count",
+          "passed": true,
+          "required": "9"
+        },
+        {
+          "actual": 0,
+          "condition": "observed_selection_access",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "null_bank_overlap",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "monotonicity_violations",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "slice_invariance_mismatches",
+          "passed": true,
+          "required": "0"
+        },
+        {
+          "actual": 0,
+          "condition": "numeric_integrity_violations",
+          "passed": true,
+          "required": "0"
+        }
+      ],
+      "gate_id": "A-1-4",
+      "passed": true
+    },
+    {
+      "conditions": [
+        {
+          "actual": 0.41165555555555555,
+          "condition": "primary_exposure_positive",
+          "passed": true,
+          "required": ">0"
+        },
+        {
+          "actual": 0,
+          "condition": "primary_clusters_ge_30",
+          "passed": false,
+          "required": ">=30"
+        },
+        {
+          "actual": 0,
+          "condition": "represented_dates_ge_4",
+          "passed": false,
+          "required": ">=4"
+        },
+        {
+          "actual": null,
+          "condition": "single_date_share_le_0_50",
+          "passed": false,
+          "required": "<=0.50"
+        }
+      ],
+      "gate_id": "A-1-5",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "actual": 0.0,
+          "condition": "primary_null_rate",
+          "passed": true,
+          "required": "<=0.10"
+        },
+        {
+          "actual": null,
+          "condition": "primary_burden",
+          "passed": false,
+          "required": "<=0.10"
+        },
+        {
+          "actual": 1.0,
+          "condition": "primary_tail",
+          "passed": false,
+          "required": "<=0.01"
+        },
+        {
+          "actual": 0,
+          "condition": "dates_above_null_p90",
+          "passed": false,
+          "required": ">=4"
+        },
+        {
+          "actual": false,
+          "condition": "sensitivity_10_estimable",
+          "passed": false,
+          "required": "true"
+        },
+        {
+          "actual": false,
+          "condition": "sensitivity_60_estimable",
+          "passed": false,
+          "required": "true"
+        },
+        {
+          "actual": 0.0,
+          "condition": "sensitivity_10_rate",
+          "passed": true,
+          "required": "<=0.20"
+        },
+        {
+          "actual": 0.0,
+          "condition": "sensitivity_60_rate",
+          "passed": true,
+          "required": "<=0.20"
+        },
+        {
+          "actual": null,
+          "condition": "sensitivity_10_burden",
+          "passed": false,
+          "required": "<=0.20"
+        },
+        {
+          "actual": null,
+          "condition": "sensitivity_60_burden",
+          "passed": false,
+          "required": "<=0.20"
+        },
+        {
+          "actual": 1.0,
+          "condition": "sensitivity_10_tail",
+          "passed": false,
+          "required": "<=0.05"
+        },
+        {
+          "actual": 1.0,
+          "condition": "sensitivity_60_tail",
+          "passed": false,
+          "required": "<=0.05"
+        }
+      ],
+      "gate_id": "A-1-6",
+      "passed": false
+    },
+    {
+      "conditions": [
+        {
+          "actual": 1.1602833333333333,
+          "condition": "raw_exposure_positive",
+          "passed": true,
+          "required": ">0"
+        },
+        {
+          "actual": 0.0,
+          "condition": "raw_rate_le_5",
+          "passed": true,
+          "required": "<=5"
+        },
+        {
+          "actual": 0,
+          "condition": "raw_burst_le_2",
+          "passed": true,
+          "required": "<=2"
+        }
+      ],
+      "gate_id": "A-1-7",
+      "passed": true
+    }
+  ]
+}

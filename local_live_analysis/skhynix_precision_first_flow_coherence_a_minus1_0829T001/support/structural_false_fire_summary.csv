@@ -1,0 +1,4 @@
+duration_ms,estimable,observed_cluster_count,null_cluster_count_p95,exposure_hours,null_false_cluster_rate_p95_per_hour,structural_null_burden_ratio_p95,count_tail_p,represented_date_count,maximum_single_date_share,dates_above_date_null_p90
+10000,False,0,0.0,0.23410555555555557,0.0,,1.0,0,,0
+30000,False,0,0.0,0.41165555555555555,0.0,,1.0,0,,0
+60000,False,0,0.0,0.2190944444444444,0.0,,1.0,0,,0

@@ -1,0 +1,20 @@
+{
+  "consumed_cache_fields": [
+    "activity",
+    "ask_depletion",
+    "bid_depletion",
+    "event_seq",
+    "ofi",
+    "ofi_abs",
+    "ready",
+    "segment_id",
+    "trade_signed",
+    "trade_total",
+    "ts_ns",
+    "valid_book"
+  ],
+  "fill_fee_pnl_accessed": false,
+  "future_price_accessed": false,
+  "future_target_accessed": false,
+  "poisoned_unconsumed_fields_change_output": false
+}
