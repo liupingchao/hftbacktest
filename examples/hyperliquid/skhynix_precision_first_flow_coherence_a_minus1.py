@@ -840,7 +840,10 @@ def slice_invariance_rows(
             full_after_guard = (
                 (ts >= comparison_ts) & (segments == int(segment))
             )
-            sliced_after_guard = sliced["ts_ns"] >= comparison_ts
+            sliced_after_guard = (
+                (sliced["ts_ns"] >= comparison_ts)
+                & (sliced["segment_id"] == int(segment))
+            )
             expected_support_count = int(
                 np.count_nonzero(
                     full_analysis["support"] & full_after_guard
@@ -889,6 +892,15 @@ def gate(
         "passed": all(row["passed"] for row in rows),
         "conditions": rows,
     }
+
+
+def finite_le(value: Any, limit: float) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+        and float(value) <= limit
+    )
 
 
 def classify(gates: Sequence[dict[str, Any]]) -> str:
@@ -1017,7 +1029,9 @@ def build_gates(
                 ),
                 (
                     "p95_joint_distance",
-                    null["maximum_date_p95_joint_distance"] <= 0.60,
+                    finite_le(
+                        null["maximum_date_p95_joint_distance"], 0.60
+                    ),
                     null["maximum_date_p95_joint_distance"],
                     "<=0.60",
                 ),
@@ -1087,7 +1101,7 @@ def build_gates(
                 ),
                 (
                     "single_date_share_le_0_50",
-                    primary["maximum_single_date_share"] <= 0.50,
+                    finite_le(primary["maximum_single_date_share"], 0.50),
                     primary["maximum_single_date_share"],
                     "<=0.50",
                 ),
@@ -1098,13 +1112,21 @@ def build_gates(
             (
                 (
                     "primary_null_rate",
-                    primary["null_false_cluster_rate_p95_per_hour"] <= 0.10,
+                    finite_le(
+                        primary[
+                            "null_false_cluster_rate_p95_per_hour"
+                        ],
+                        0.10,
+                    ),
                     primary["null_false_cluster_rate_p95_per_hour"],
                     "<=0.10",
                 ),
                 (
                     "primary_burden",
-                    primary["structural_null_burden_ratio_p95"] <= 0.10,
+                    finite_le(
+                        primary["structural_null_burden_ratio_p95"],
+                        0.10,
+                    ),
                     primary["structural_null_burden_ratio_p95"],
                     "<=0.10",
                 ),
@@ -1134,10 +1156,12 @@ def build_gates(
                 ),
                 (
                     "sensitivity_10_rate",
-                    sensitivity_10[
-                        "null_false_cluster_rate_p95_per_hour"
-                    ]
-                    <= 0.20,
+                    finite_le(
+                        sensitivity_10[
+                            "null_false_cluster_rate_p95_per_hour"
+                        ],
+                        0.20,
+                    ),
                     sensitivity_10[
                         "null_false_cluster_rate_p95_per_hour"
                     ],
@@ -1145,10 +1169,12 @@ def build_gates(
                 ),
                 (
                     "sensitivity_60_rate",
-                    sensitivity_60[
-                        "null_false_cluster_rate_p95_per_hour"
-                    ]
-                    <= 0.20,
+                    finite_le(
+                        sensitivity_60[
+                            "null_false_cluster_rate_p95_per_hour"
+                        ],
+                        0.20,
+                    ),
                     sensitivity_60[
                         "null_false_cluster_rate_p95_per_hour"
                     ],
@@ -1156,10 +1182,12 @@ def build_gates(
                 ),
                 (
                     "sensitivity_10_burden",
-                    sensitivity_10[
-                        "structural_null_burden_ratio_p95"
-                    ]
-                    <= 0.20,
+                    finite_le(
+                        sensitivity_10[
+                            "structural_null_burden_ratio_p95"
+                        ],
+                        0.20,
+                    ),
                     sensitivity_10[
                         "structural_null_burden_ratio_p95"
                     ],
@@ -1167,10 +1195,12 @@ def build_gates(
                 ),
                 (
                     "sensitivity_60_burden",
-                    sensitivity_60[
-                        "structural_null_burden_ratio_p95"
-                    ]
-                    <= 0.20,
+                    finite_le(
+                        sensitivity_60[
+                            "structural_null_burden_ratio_p95"
+                        ],
+                        0.20,
+                    ),
                     sensitivity_60[
                         "structural_null_burden_ratio_p95"
                     ],
@@ -1201,7 +1231,10 @@ def build_gates(
                 ),
                 (
                     "raw_rate_le_5",
-                    raw["cluster_rate_per_hour"] <= RAW_RATE_LIMIT_PER_HOUR,
+                    finite_le(
+                        raw["cluster_rate_per_hour"],
+                        RAW_RATE_LIMIT_PER_HOUR,
+                    ),
                     raw["cluster_rate_per_hour"],
                     "<=5",
                 ),
@@ -1227,20 +1260,20 @@ def estimator(
     null_totals = np.sum(null_by_replicate_date, axis=1)
     estimable = exposure_hours > 0 and observed > 0
     if exposure_hours <= 0:
-        rate = math.inf
+        rate = None
     else:
         rate = finite_type7(null_totals, 0.95) / exposure_hours
     burden = (
         finite_type7(null_totals, 0.95) / observed
         if observed > 0
-        else math.inf
+        else None
     )
     tail = (1 + int(np.count_nonzero(null_totals >= observed))) / 200
     represented = int(np.count_nonzero(observed_by_date))
     maximum_share = (
         float(np.max(observed_by_date) / observed)
         if observed > 0
-        else math.inf
+        else None
     )
     dates_above = 0
     for date_index, value in enumerate(observed_by_date):
@@ -1258,6 +1291,85 @@ def estimator(
         "dates_above_date_null_p90": dates_above,
         "exposure_hours": exposure_hours,
     }
+
+
+def strip_dynamic_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    result = dict(summary)
+    for key in (
+        "gates",
+        "classification",
+        "deterministic_build",
+        "future_target_access_authorized",
+        "exploratory_a0_execution_authorized",
+        "confirmatory_a0_authorized",
+        "prospective_precision_validation_required",
+    ):
+        result.pop(key, None)
+    return result
+
+
+def seal_dynamic_outputs(
+    *,
+    output_root: Path,
+    predecessor: Any,
+    summary: dict[str, Any],
+    deterministic_build: bool,
+) -> dict[str, Any]:
+    contracts = output_root / "contracts"
+    reports = output_root / "reports"
+    gates = build_gates(summary, deterministic_build=deterministic_build)
+    classification = classify(gates)
+    payload = dict(summary)
+    payload["gates"] = gates
+    payload["classification"] = classification
+    payload["deterministic_build"] = deterministic_build
+    payload["future_target_access_authorized"] = False
+    payload["exploratory_a0_execution_authorized"] = False
+    payload["confirmatory_a0_authorized"] = False
+    payload["prospective_precision_validation_required"] = (
+        classification
+        == "Aminus1_historical_structural_false_fire_control_candidate"
+    )
+    predecessor.write_json(
+        contracts / "gate_contract.json", {"gates": gates}
+    )
+    predecessor.write_json(
+        contracts / "execution_evidence_contract.json",
+        {
+            "deterministic_build": deterministic_build,
+            "plan_sha_verified": summary["plan_sha_verified"],
+            "predecessor_binding_verified": summary[
+                "predecessor_binding_verified"
+            ],
+            "source_cache_closure": summary["source_cache_closure"],
+        },
+    )
+    predecessor.write_json(reports / "A_minus1_summary.json", payload)
+    predecessor.write_json(
+        output_root / "classification.json",
+        {
+            "task_id": TASK_ID,
+            "hypothesis_id": HYPOTHESIS_ID,
+            "audit_id": AUDIT_ID,
+            "classification": classification,
+            "gates": gates,
+            "future_target_access_authorized": False,
+            "exploratory_a0_execution_authorized": False,
+            "confirmatory_a0_authorized": False,
+        },
+    )
+    manifest = predecessor.artifact_manifest(output_root)
+    predecessor.write_json(
+        output_root / "run_manifest.json",
+        {
+            "schema_version": SCHEMA_VERSION,
+            "task_id": TASK_ID,
+            "hypothesis_id": HYPOTHESIS_ID,
+            "artifact_count": len(manifest["artifacts"]),
+            "artifacts": manifest["artifacts"],
+        },
+    )
+    return payload
 
 
 def write_contracts_and_summary(
@@ -1281,20 +1393,6 @@ def write_contracts_and_summary(
     contracts.mkdir(parents=True, exist_ok=True)
     support_dir.mkdir(parents=True, exist_ok=True)
     reports.mkdir(parents=True, exist_ok=True)
-
-    gates = build_gates(summary, deterministic_build=deterministic_build)
-    classification = classify(gates)
-    summary = dict(summary)
-    summary["gates"] = gates
-    summary["classification"] = classification
-    summary["deterministic_build"] = deterministic_build
-    summary["future_target_access_authorized"] = False
-    summary["exploratory_a0_execution_authorized"] = False
-    summary["confirmatory_a0_authorized"] = False
-    summary["prospective_precision_validation_required"] = (
-        classification
-        == "Aminus1_historical_structural_false_fire_control_candidate"
-    )
 
     predecessor.write_json(
         contracts / "source_cache_contract.json",
@@ -1372,20 +1470,6 @@ def write_contracts_and_summary(
             "threshold_per_hour": SELECTION_NULL_RATE_LIMIT,
             "none_sentinel": "META_ABSTAIN",
             "folds": list(fold_rows),
-        },
-    )
-    predecessor.write_json(
-        contracts / "gate_contract.json", {"gates": gates}
-    )
-    predecessor.write_json(
-        contracts / "execution_evidence_contract.json",
-        {
-            "deterministic_build": deterministic_build,
-            "plan_sha_verified": summary["plan_sha_verified"],
-            "predecessor_binding_verified": summary[
-                "predecessor_binding_verified"
-            ],
-            "source_cache_closure": summary["source_cache_closure"],
         },
     )
     predecessor.write_csv(
@@ -1486,33 +1570,11 @@ def write_contracts_and_summary(
             "support_count_exact",
         ),
     )
-    predecessor.write_json(reports / "A_minus1_summary.json", summary)
-    predecessor.write_json(
-        output_root / "classification.json",
-        {
-            "task_id": TASK_ID,
-            "hypothesis_id": HYPOTHESIS_ID,
-            "audit_id": AUDIT_ID,
-            "classification": classification,
-            "gates": gates,
-            "future_target_access_authorized": False,
-            "exploratory_a0_execution_authorized": False,
-            "confirmatory_a0_authorized": False,
-        },
-    )
-    predecessor.write_json(
-        output_root / "run_manifest.json",
-        {
-            "schema_version": SCHEMA_VERSION,
-            "task_id": TASK_ID,
-            "hypothesis_id": HYPOTHESIS_ID,
-            "artifact_count": len(
-                predecessor.artifact_manifest(output_root)["artifacts"]
-            ),
-            "artifacts": predecessor.artifact_manifest(output_root)[
-                "artifacts"
-            ],
-        },
+    seal_dynamic_outputs(
+        output_root=output_root,
+        predecessor=predecessor,
+        summary=summary,
+        deterministic_build=deterministic_build,
     )
 
 
@@ -1848,7 +1910,7 @@ def execute_audit(
         selected_raw_rows.extend(
             raw_rows[dates[d_index]][FILTERS[selected].filter_id]
         )
-    raw_rate = raw_observed / raw_hours if raw_hours > 0 else math.inf
+    raw_rate = raw_observed / raw_hours if raw_hours > 0 else None
 
     monotonic_rows = monotonicity_rows(
         all_candidate_sets, all_cluster_sets
@@ -1867,7 +1929,7 @@ def execute_audit(
         key: len({hasher.hexdigest() for hasher in hashers})
         for key, hashers in fingerprint_hashers.items()
     }
-    maximum_date_p95 = 0.0
+    maximum_date_p95: float | None = 0.0
     minimum_date_pairs = math.inf
     for duration in NULL_DURATIONS_MS:
         for date in dates:
@@ -1876,10 +1938,13 @@ def execute_audit(
                 pair_counts_by_duration_date[duration][date],
             )
             values = pair_distances_by_duration_date[duration][date]
-            maximum_date_p95 = max(
-                maximum_date_p95,
-                finite_type7(values, 0.95) if values else math.inf,
-            )
+            if not values:
+                maximum_date_p95 = None
+            elif maximum_date_p95 is not None:
+                maximum_date_p95 = max(
+                    maximum_date_p95,
+                    finite_type7(values, 0.95),
+                )
     stream_overlap = len(stream_ids[1] & stream_ids[2])
     summary = {
         "task_id": TASK_ID,
@@ -1952,6 +2017,125 @@ def compare_outputs(
     return predecessor.compare_outputs(left.resolve(), right.resolve())
 
 
+def nonfinite_paths(value: Any, prefix: str = "root") -> list[str]:
+    if isinstance(value, float) and not math.isfinite(value):
+        return [prefix]
+    if isinstance(value, dict):
+        return [
+            path
+            for key, item in value.items()
+            for path in nonfinite_paths(item, f"{prefix}.{key}")
+        ]
+    if isinstance(value, (list, tuple)):
+        return [
+            path
+            for index, item in enumerate(value)
+            for path in nonfinite_paths(item, f"{prefix}[{index}]")
+        ]
+    return []
+
+
+def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
+    predecessor = load_bound_predecessor(repo_root)
+    predecessor.verify_existing_cache_closure(repo_root, output_root)
+    summary = strip_dynamic_summary(
+        json.loads(
+            (output_root / "reports/A_minus1_summary.json").read_text(
+                encoding="ascii"
+            )
+        )
+    )
+    for item in summary["estimators"].values():
+        if float(item["exposure_hours"]) <= 0:
+            item["null_false_cluster_rate_p95_per_hour"] = None
+        if int(item["observed_cluster_count"]) == 0:
+            item["estimable"] = False
+            item["structural_null_burden_ratio_p95"] = None
+            item["maximum_single_date_share"] = None
+    if float(summary["raw"]["exposure_hours"]) <= 0:
+        summary["raw"]["cluster_rate_per_hour"] = None
+
+    slice_rows = []
+    inventory = predecessor.read_csv(
+        output_root / "support/source_cache_inventory.csv"
+    )
+    inventory.sort(key=lambda row: row["cache_name"].encode("ascii"))
+    for row in inventory:
+        cache_name = row["cache_name"]
+        features = predecessor.build_features(
+            output_root / "cache" / cache_name
+        )
+        analysis = analyze_features(
+            capture_id=cache_name[:-4],
+            research_date=predecessor.date_from_cache_name(cache_name),
+            features=features,
+            predecessor=predecessor,
+        )
+        slice_rows.extend(
+            slice_invariance_rows(
+                capture_id=cache_name[:-4],
+                research_date=predecessor.date_from_cache_name(cache_name),
+                features=features,
+                predecessor=predecessor,
+                full_analysis=analysis,
+            )
+        )
+    slice_mismatches = sum(
+        int(not bool(row["identity_exact"]))
+        + int(not bool(row["support_count_exact"]))
+        for row in slice_rows
+    )
+    summary["integrity"]["slice_invariance_mismatches"] = slice_mismatches
+    predecessor.write_csv(
+        output_root / "support/slice_invariance.csv",
+        slice_rows,
+        (
+            "capture_id",
+            "research_date",
+            "segment_id",
+            "artificial_start_ts_ns",
+            "comparison_guard_ts_ns",
+            "expected_count",
+            "actual_count",
+            "identity_exact",
+            "expected_support_count",
+            "actual_support_count",
+            "support_count_exact",
+        ),
+    )
+    predecessor.write_csv(
+        output_root / "support/structural_false_fire_summary.csv",
+        [
+            {"duration_ms": int(duration), **item}
+            for duration, item in sorted(
+                summary["estimators"].items(), key=lambda pair: int(pair[0])
+            )
+        ],
+        (
+            "duration_ms",
+            "estimable",
+            "observed_cluster_count",
+            "null_cluster_count_p95",
+            "exposure_hours",
+            "null_false_cluster_rate_p95_per_hour",
+            "structural_null_burden_ratio_p95",
+            "count_tail_p",
+            "represented_date_count",
+            "maximum_single_date_share",
+            "dates_above_date_null_p90",
+        ),
+    )
+    invalid = nonfinite_paths(summary)
+    if invalid:
+        raise AuditError(f"nonfinite_repair_summary:{invalid[:5]}")
+    return seal_dynamic_outputs(
+        output_root=output_root,
+        predecessor=predecessor,
+        summary=summary,
+        deterministic_build=False,
+    )
+
+
 def finalize_pair(
     repo_root: Path, left: Path, right: Path
 ) -> dict[str, Any]:
@@ -1961,63 +2145,22 @@ def finalize_pair(
         raise AuditError(f"preseal_output_mismatch:{differences[:5]}")
     payloads = []
     for root in (left, right):
-        summary = json.loads(
-            (root / "reports/A_minus1_summary.json").read_text(
-                encoding="ascii"
-            )
-        )
-        source_binding = json.loads(
-            (root / "contracts/source_cache_contract.json").read_text(
-                encoding="ascii"
-            )
-        )["source_binding"]
-        cache_inventory = predecessor.read_csv(
-            root / "support/source_cache_inventory.csv"
-        )
-        fold_rows = predecessor.read_csv(
-            root / "support/fold_selection_ledger.csv"
-        )
-        signal_rows = predecessor.read_csv(
-            root / "support/cross_fitted_signal_ledger.csv"
-        )
-        null_rows = predecessor.read_csv(
-            root / "support/cross_fitted_null_summary.csv"
-        )
-        structural_rows = predecessor.read_csv(
-            root / "support/structural_false_fire_summary.csv"
-        )
-        monotonic_rows = predecessor.read_csv(
-            root / "support/parameter_monotonicity.csv"
-        )
-        slice_rows = predecessor.read_csv(
-            root / "support/slice_invariance.csv"
-        )
-        summary.pop("gates", None)
-        summary.pop("classification", None)
-        summary.pop("deterministic_build", None)
-        summary.pop("future_target_access_authorized", None)
-        summary.pop("exploratory_a0_execution_authorized", None)
-        summary.pop("confirmatory_a0_authorized", None)
-        summary.pop("prospective_precision_validation_required", None)
-        write_contracts_and_summary(
-            output_root=root,
-            predecessor=predecessor,
-            summary=summary,
-            source_binding=source_binding,
-            cache_inventory=cache_inventory,
-            fold_rows=fold_rows,
-            signal_rows=signal_rows,
-            null_summary_rows=null_rows,
-            structural_rows=structural_rows,
-            monotonic_rows=monotonic_rows,
-            slice_rows=slice_rows,
-            deterministic_build=True,
-        )
-        payloads.append(
+        summary = strip_dynamic_summary(
             json.loads(
                 (root / "reports/A_minus1_summary.json").read_text(
                     encoding="ascii"
                 )
+            )
+        )
+        invalid = nonfinite_paths(summary)
+        if invalid:
+            raise AuditError(f"nonfinite_finalize_summary:{invalid[:5]}")
+        payloads.append(
+            seal_dynamic_outputs(
+            output_root=root,
+            predecessor=predecessor,
+            summary=summary,
+            deterministic_build=True,
             )
         )
     differences = compare_outputs(predecessor, left, right)
@@ -2041,17 +2184,25 @@ def parse_args() -> argparse.Namespace:
         nargs=2,
         metavar=("BUILD_A", "BUILD_B"),
     )
+    parser.add_argument("--repair-existing", type=Path)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     repo_root = args.repo_root.resolve()
+    if args.finalize_pair and args.repair_existing:
+        raise AuditError("multiple_execution_modes")
     if args.finalize_pair:
         summary = finalize_pair(
             repo_root,
             args.finalize_pair[0].resolve(),
             args.finalize_pair[1].resolve(),
+        )
+    elif args.repair_existing:
+        summary = repair_existing(
+            repo_root,
+            args.repair_existing.resolve(),
         )
     else:
         summary = execute_audit(

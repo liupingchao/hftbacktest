@@ -214,8 +214,14 @@ def test_estimator_zero_exposure_is_not_estimable() -> None:
         exposure_hours=0,
     )
     assert not result["estimable"]
-    assert np.isinf(result["null_false_cluster_rate_p95_per_hour"])
-    assert np.isinf(result["structural_null_burden_ratio_p95"])
+    assert result["null_false_cluster_rate_p95_per_hour"] is None
+    assert result["structural_null_burden_ratio_p95"] is None
+    assert result["maximum_single_date_share"] is None
+
+
+def test_nonfinite_summary_values_are_rejected() -> None:
+    assert AUDIT.nonfinite_paths({"ok": 1.0}) == []
+    assert AUDIT.nonfinite_paths({"bad": float("inf")}) == ["root.bad"]
 
 
 def test_rng_stream_banks_are_disjoint_and_deterministic() -> None:
