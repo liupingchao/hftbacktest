@@ -598,6 +598,82 @@ def filter_cluster_counts(
     )
 
 
+def candidate_diagnostics(
+    candidate_batches: Sequence[Sequence[dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], int, str]:
+    counters: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
+    clusters: dict[tuple[str, str], set[str]] = defaultdict(set)
+    ledger_rows = []
+    for candidates in candidate_batches:
+        for candidate in candidates:
+            ledger_rows.append(
+                {
+                    "capture_id": candidate["capture_id"],
+                    "candidate_ts_ns": candidate["candidate_ts_ns"],
+                    "candidate_event_seq": candidate["candidate_event_seq"],
+                    "direction": candidate["direction"],
+                    "segment_id": candidate["segment_id"],
+                    "dependence_cluster_id": candidate[
+                        "dependence_cluster_id"
+                    ],
+                    "admitted_filter_ids": candidate[
+                        "admitted_filter_ids"
+                    ],
+                    "filter_cancel_reasons": candidate[
+                        "filter_cancel_reasons"
+                    ],
+                }
+            )
+            date = str(candidate["research_date"])
+            for item in FILTERS:
+                key = (date, item.filter_id)
+                counters[key]["common_candidate_count"] += 1
+                if item.filter_id in candidate["admitted_filter_ids"]:
+                    counters[key]["admitted_candidate_count"] += 1
+                    clusters[key].add(candidate["dependence_cluster_id"])
+                else:
+                    reason = candidate["filter_cancel_reasons"][
+                        item.filter_id
+                    ]
+                    counters[key][f"cancel_{reason}"] += 1
+    rows = []
+    fields = (
+        "cancel_insufficient_history",
+        "cancel_abstain",
+        "cancel_not_novel",
+        "cancel_opposite_coherence",
+        "cancel_conflict",
+        "cancel_coherence_lost",
+        "cancel_margin",
+    )
+    for key in sorted(counters):
+        date, filter_id = key
+        values = counters[key]
+        rows.append(
+            {
+                "research_date": date,
+                "filter_id": filter_id,
+                "common_candidate_count": values[
+                    "common_candidate_count"
+                ],
+                "admitted_candidate_count": values[
+                    "admitted_candidate_count"
+                ],
+                "admitted_cluster_count": len(clusters[key]),
+                **{field: values[field] for field in fields},
+            }
+        )
+    ledger_rows.sort(
+        key=lambda row: (
+            row["capture_id"],
+            row["candidate_ts_ns"],
+            row["candidate_event_seq"],
+            row["direction"],
+        )
+    )
+    return rows, len(ledger_rows), canonical_sha(ledger_rows)
+
+
 def maximum_five_second_burst(rows: Sequence[dict[str, Any]]) -> int:
     by_capture: dict[str, list[int]] = defaultdict(list)
     for row in rows:
@@ -1385,6 +1461,7 @@ def write_contracts_and_summary(
     structural_rows: Sequence[dict[str, Any]],
     monotonic_rows: Sequence[dict[str, Any]],
     slice_rows: Sequence[dict[str, Any]],
+    admission_rows: Sequence[dict[str, Any]],
     deterministic_build: bool,
 ) -> None:
     contracts = output_root / "contracts"
@@ -1570,6 +1647,24 @@ def write_contracts_and_summary(
             "support_count_exact",
         ),
     )
+    predecessor.write_csv(
+        support_dir / "filter_admission_by_date.csv",
+        list(admission_rows),
+        (
+            "research_date",
+            "filter_id",
+            "common_candidate_count",
+            "admitted_candidate_count",
+            "admitted_cluster_count",
+            "cancel_insufficient_history",
+            "cancel_abstain",
+            "cancel_not_novel",
+            "cancel_opposite_coherence",
+            "cancel_conflict",
+            "cancel_coherence_lost",
+            "cancel_margin",
+        ),
+    )
     seal_dynamic_outputs(
         output_root=output_root,
         predecessor=predecessor,
@@ -1639,6 +1734,7 @@ def execute_audit(
     }
     all_cluster_sets = {item.filter_id: set() for item in FILTERS}
     slice_rows: list[dict[str, Any]] = []
+    observed_candidate_batches: list[list[dict[str, Any]]] = []
     tri_state_violations = 0
     abstain_signal_violations = 0
     feature_boundary_violations = 0
@@ -1684,6 +1780,7 @@ def execute_audit(
             features=features,
             predecessor=predecessor,
         )
+        observed_candidate_batches.append(analysis["candidates"])
         support = analysis["support"]
         segments = features["segment_id"]
         raw_masks = raw_support_masks(support, segments)
@@ -1915,6 +2012,9 @@ def execute_audit(
     monotonic_rows = monotonicity_rows(
         all_candidate_sets, all_cluster_sets
     )
+    admission_rows, candidate_count, candidate_ledger_sha256 = (
+        candidate_diagnostics(observed_candidate_batches)
+    )
     monotonicity_violations = sum(
         int(row["candidate_subset_violations"])
         + int(row["cluster_subset_violations"])
@@ -1958,6 +2058,8 @@ def execute_audit(
         "unexpected_field_count": 0,
         "research_dates": dates,
         "cache_count": len(cache_inventory),
+        "common_candidate_count": candidate_count,
+        "candidate_ledger_sha256": candidate_ledger_sha256,
         "fold_selection": fold_rows,
         "estimators": estimators,
         "raw": {
@@ -2004,6 +2106,7 @@ def execute_audit(
         structural_rows=structural_rows,
         monotonic_rows=monotonic_rows,
         slice_rows=slice_rows,
+        admission_rows=admission_rows,
         deterministic_build=False,
     )
     return summary
@@ -2056,6 +2159,7 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
         summary["raw"]["cluster_rate_per_hour"] = None
 
     slice_rows = []
+    candidate_batches = []
     inventory = predecessor.read_csv(
         output_root / "support/source_cache_inventory.csv"
     )
@@ -2071,6 +2175,7 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
             features=features,
             predecessor=predecessor,
         )
+        candidate_batches.append(analysis["candidates"])
         slice_rows.extend(
             slice_invariance_rows(
                 capture_id=cache_name[:-4],
@@ -2086,6 +2191,11 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
         for row in slice_rows
     )
     summary["integrity"]["slice_invariance_mismatches"] = slice_mismatches
+    admission_rows, candidate_count, candidate_ledger_sha256 = (
+        candidate_diagnostics(candidate_batches)
+    )
+    summary["common_candidate_count"] = candidate_count
+    summary["candidate_ledger_sha256"] = candidate_ledger_sha256
     predecessor.write_csv(
         output_root / "support/slice_invariance.csv",
         slice_rows,
@@ -2123,6 +2233,24 @@ def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
             "represented_date_count",
             "maximum_single_date_share",
             "dates_above_date_null_p90",
+        ),
+    )
+    predecessor.write_csv(
+        output_root / "support/filter_admission_by_date.csv",
+        admission_rows,
+        (
+            "research_date",
+            "filter_id",
+            "common_candidate_count",
+            "admitted_candidate_count",
+            "admitted_cluster_count",
+            "cancel_insufficient_history",
+            "cancel_abstain",
+            "cancel_not_novel",
+            "cancel_opposite_coherence",
+            "cancel_conflict",
+            "cancel_coherence_lost",
+            "cancel_margin",
         ),
     )
     invalid = nonfinite_paths(summary)

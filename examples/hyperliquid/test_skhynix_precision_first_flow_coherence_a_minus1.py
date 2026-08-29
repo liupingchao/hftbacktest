@@ -224,6 +224,35 @@ def test_nonfinite_summary_values_are_rejected() -> None:
     assert AUDIT.nonfinite_paths({"bad": float("inf")}) == ["root.bad"]
 
 
+def test_candidate_diagnostics_balance_each_filter() -> None:
+    candidate = {
+        "capture_id": "capture",
+        "research_date": "2026-08-29",
+        "candidate_ts_ns": 100,
+        "candidate_event_seq": 5,
+        "direction": 1,
+        "segment_id": 0,
+        "dependence_cluster_id": "cluster",
+        "admitted_filter_ids": ["F000"],
+        "filter_cancel_reasons": {
+            item.filter_id: "margin"
+            for item in AUDIT.FILTERS
+            if item.filter_id != "F000"
+        },
+    }
+    rows, count, digest = AUDIT.candidate_diagnostics([[candidate]])
+    assert count == 1
+    assert len(digest) == 64
+    admitted = next(row for row in rows if row["filter_id"] == "F000")
+    rejected = next(row for row in rows if row["filter_id"] == "F001")
+    assert admitted["common_candidate_count"] == 1
+    assert admitted["admitted_candidate_count"] == 1
+    assert admitted["admitted_cluster_count"] == 1
+    assert rejected["common_candidate_count"] == 1
+    assert rejected["admitted_candidate_count"] == 0
+    assert rejected["cancel_margin"] == 1
+
+
 def test_rng_stream_banks_are_disjoint_and_deterministic() -> None:
     selection_root = AUDIT.stream_root(1, 30_000, 0, 0)
     evaluation_root = AUDIT.stream_root(2, 30_000, 0, 0)
