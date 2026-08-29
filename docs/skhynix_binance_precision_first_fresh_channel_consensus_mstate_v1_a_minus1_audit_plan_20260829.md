@@ -9,9 +9,9 @@ Hypothesis ID: `FRESH_CHANNEL_CONSENSUS_MSTATE_V1`
 
 Audit ID: `FRESH_CHANNEL_CONSENSUS_MSTATE_V1_A_MINUS1`
 
-Status: candidate contract Revision 3; data execution locked
+Status: candidate contract Revision 4; data execution locked
 
-Revision: 3
+Revision: 4
 
 Review history:
 
@@ -27,6 +27,14 @@ Round 2:
   plan SHA256 =
     57b12e75f3b582685f6037327fd417fdcd920aefdb4255e3f765a5d5beea4026
   P0/P1/P2/P3 = 0/1/2/0
+  recommendation = FAIL
+  data execution lock = retained
+
+Round 3:
+  reviewed commit = d39f3dbe
+  plan SHA256 =
+    cf5c079f25ea26be49a586e3fad41ef2bbbcef30c74c300f4f8e19072f1353be
+  P0/P1/P2/P3 = 0/1/0/0
   recommendation = FAIL
   data execution lock = retained
 ```
@@ -146,7 +154,9 @@ Permitted causal values:
 
 - current and trailing trade, depletion and OFI ratios;
 - current 20ms `trade_total`;
+- current 20ms `trade_signed`;
 - current 20ms `bid_depletion` and `ask_depletion`;
+- current 20ms signed `ofi`;
 - current 20ms `ofi_abs`;
 - current readiness, activity and segment identity;
 - trailing channel-memory state;
@@ -378,6 +388,9 @@ consumed contribution value:
 invalid_source_contribution_count =
   count of negative, NaN, +inf or -inf values among
   trade_total, bid_depletion, ask_depletion and ofi_abs
+
+  plus count of NaN, +inf or -inf values among
+  trade_signed and ofi
 ```
 
 If the count is nonzero:
@@ -391,6 +404,10 @@ If the count is nonzero:
 
 A-1-4 is reserved for corruption in derived count/exposure/rate evidence
 after source admissibility has passed.
+
+The source preflight must run on the raw cache arrays before `build_features`
+or any rolling ratio is used. Non-finite `trade_signed` or `ofi` may not be
+reinterpreted as derived feature unavailability.
 
 The indicators are invariant under the registered null because trade
 magnitude, depth magnitude, OFI magnitude, zero masks and missingness are
@@ -476,6 +493,15 @@ integrity failure.
 
 `NO_UPDATE` never changes `last_observed_at_c`. Repeated finite rolling ratios
 without a new underlying contribution cannot refresh TTL.
+
+After complete raw-source preflight, `NEW_INVALID` is a derived-feature
+integrity state. It is retained in the six-action partition to fail closed,
+but:
+
+- it clears the affected channel memory immediately;
+- any `NEW_INVALID` count fails Gate A-1-2;
+- it may not be treated as ordinary abstention/support loss;
+- it may not proceed to structural-support or false-fire interpretation.
 
 The amplitude thresholds are not lower than V2:
 
@@ -1071,6 +1097,7 @@ Gate A-1-2, M-State Integrity:
 
 - exact four-state partition;
 - exact six-action channel-input partition;
+- zero `NEW_INVALID` derived-feature actions;
 - zero sign overlap;
 - zero TTL refresh without new channel evidence;
 - zero unknown-to-background conversion;
@@ -1208,6 +1235,8 @@ At minimum:
 - channel-specific event masks cannot refresh another channel;
 - mutation of each trade/depletion/OFI null event mask fails A-1-3;
 - new evidence with non-finite required ratio clears that channel;
+- after valid source preflight, any `NEW_INVALID` action fails A-1-2 rather
+  than becoming ordinary support loss;
 - neutral immediately overwrites sign;
 - unknown retains sign only within TTL;
 - expiry at `tau + one checkpoint`;
@@ -1238,13 +1267,14 @@ At minimum:
 - exact Required Outputs and manifest closure;
 - negative/NaN/inf source contribution fails uniquely at A-1-0 before action
   construction, with later gates not evaluated;
+- `trade_signed=NaN/inf` and `ofi=NaN/inf` each fail uniquely at A-1-0;
 - source/controller/cache inventory blob mutation fails authority;
 - every inherited callable AST/callable binding mutation fails authority;
 - poison future/unconsumed fields changes no output.
 
 ## 22. Execution Lock And Next Authority
 
-Revision 3 is not execution authority.
+Revision 4 is not execution authority.
 
 Before any 29-cache run:
 

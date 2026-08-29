@@ -36,6 +36,12 @@
 - Event-mask equality is stronger than preserving aggregate zero counts.
   Checkpoint-exact trade/depletion/OFI masks are required because they define
   memory timestamps and therefore M-state exposure.
+- Signed raw contributions may legitimately be negative but must always be
+  finite. Checking only unsigned denominators allows source corruption to
+  masquerade as derived-feature missingness and inflate abstention.
+- Once raw source preflight passes, an impossible/non-finite ratio at a new
+  evidence checkpoint is a derived-feature integrity defect, not a normal
+  market support condition.
 
 ## 2026-08-29 Precision-First Detector Objective
 

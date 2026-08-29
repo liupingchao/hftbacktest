@@ -46,6 +46,16 @@
   counts, event counts, source invalidity, TTL refresh and null-mask identity.
 - Data execution remains locked pending Round 3.
 
+## 2026-08-29 0829T002 Plan Review Round 3 Failed
+
+- Independent review returned `P0/P1/P2/P3 = 0/1/0/0`.
+- All Round 2 defects were confirmed closed.
+- Revision 4 extends raw-source preflight to finite `trade_signed` and `ofi`
+  before feature construction.
+- A post-preflight `NEW_INVALID` action is now a derived-feature integrity
+  defect under A-1-2, not ordinary support loss.
+- Data execution remains locked pending Round 4.
+
 ## 2026-08-29 0829T001 Precision-First Flow Coherence V2 Contract Drafted
 
 - Created a clean worktree and branch from accepted commit `45544ecc`.
