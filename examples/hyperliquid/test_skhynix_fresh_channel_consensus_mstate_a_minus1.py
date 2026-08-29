@@ -306,3 +306,12 @@ def test_required_non_cache_artifact_set_matches_frozen_plan() -> None:
     assert "support/orphan_strict_onset_by_date.csv" in (
         AUDIT.REQUIRED_NON_CACHE_ARTIFACTS
     )
+
+
+def test_a_minus1_2_classification_matches_frozen_plan() -> None:
+    gates = [
+        {"gate_id": "A-1-0", "passed": True},
+        {"gate_id": "A-1-1", "passed": True},
+        {"gate_id": "A-1-2", "passed": False},
+    ]
+    assert AUDIT.classify(gates) == "Aminus1_mstate_integrity_failed"

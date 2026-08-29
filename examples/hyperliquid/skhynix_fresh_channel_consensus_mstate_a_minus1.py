@@ -1711,7 +1711,7 @@ def classify(gates: Sequence[dict[str, Any]]) -> str:
     mapping = {
         "A-1-0": "Aminus1_source_not_admissible",
         "A-1-1": "Aminus1_zero_outcome_boundary_violated",
-        "A-1-2": "Aminus1_abstention_contract_violated",
+        "A-1-2": "Aminus1_mstate_integrity_failed",
         "A-1-3": "Aminus1_structural_null_not_admissible",
         "A-1-4": "Aminus1_selection_integrity_failed",
         "A-1-5": "Aminus1_structural_support_not_estimable",
