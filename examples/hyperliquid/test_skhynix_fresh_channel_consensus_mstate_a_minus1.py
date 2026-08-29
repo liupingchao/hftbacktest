@@ -315,3 +315,35 @@ def test_a_minus1_2_classification_matches_frozen_plan() -> None:
         {"gate_id": "A-1-2", "passed": False},
     ]
     assert AUDIT.classify(gates) == "Aminus1_mstate_integrity_failed"
+
+
+def test_slice_actual_identity_excludes_later_segments() -> None:
+    candidates = [
+        {
+            "candidate_ts_ns": 100,
+            "direction": 1,
+            "segment_id": 0,
+            "dependence_cluster_id": "s0",
+            "admitted_filter_ids": ["F000"],
+        },
+        {
+            "candidate_ts_ns": 120,
+            "direction": 1,
+            "segment_id": 1,
+            "dependence_cluster_id": "s1",
+            "admitted_filter_ids": ["F000"],
+        },
+    ]
+    actual = {
+        (
+            candidate["candidate_ts_ns"],
+            candidate["direction"],
+            filter_id,
+            candidate["dependence_cluster_id"],
+        )
+        for candidate in candidates
+        for filter_id in candidate["admitted_filter_ids"]
+        if candidate["candidate_ts_ns"] >= 90
+        and int(candidate["segment_id"]) == 0
+    }
+    assert actual == {(100, 1, "F000", "s0")}

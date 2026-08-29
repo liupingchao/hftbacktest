@@ -1513,6 +1513,7 @@ def slice_invariance_rows(
                 for candidate in sliced_analysis["candidates"]
                 for filter_id in candidate["admitted_filter_ids"]
                 if candidate["candidate_ts_ns"] >= comparison_ts
+                and int(candidate["segment_id"]) == int(segment)
             }
             full_after_guard = (
                 (ts >= comparison_ts) & (segments == int(segment))
@@ -3169,9 +3170,79 @@ def compare_outputs(
 
 
 def repair_existing(repo_root: Path, output_root: Path) -> dict[str, Any]:
-    raise AuditError(
-        "repair_existing_not_supported_for_frozen_mstate_audit:"
-        "run_a_fresh_build"
+    if sha256_file(repo_root / PLAN_PATH) != PLAN_SHA256:
+        raise AuditError("plan_sha_mismatch")
+    predecessor = load_bound_predecessor(repo_root)
+    summary = strip_dynamic_summary(
+        json.loads(
+            (output_root / "reports/A_minus1_summary.json").read_text(
+                encoding="ascii"
+            )
+        )
+    )
+    inventory = predecessor.read_csv(
+        output_root / "support/source_cache_inventory.csv"
+    )
+    inventory.sort(key=lambda row: row["cache_name"].encode("ascii"))
+    if len(inventory) != 29:
+        raise AuditError("repair_cache_inventory_count")
+    slice_rows = []
+    for row in inventory:
+        cache_name = row["cache_name"]
+        cache_path = output_root / "cache" / cache_name
+        if (
+            not cache_path.is_file()
+            or sha256_file(cache_path) != row["cache_sha256"]
+        ):
+            raise AuditError(f"repair_cache_identity:{cache_name}")
+        features = predecessor.build_features(cache_path)
+        invalid_source, event_masks = source_preflight(features)
+        if invalid_source:
+            raise AuditError(f"invalid_source_contribution:{cache_name}")
+        research_date = predecessor.date_from_cache_name(cache_name)
+        analysis = analyze_features(
+            capture_id=cache_name[:-4],
+            research_date=research_date,
+            features=features,
+            predecessor=predecessor,
+            event_masks=event_masks,
+        )
+        slice_rows.extend(
+            slice_invariance_rows(
+                capture_id=cache_name[:-4],
+                research_date=research_date,
+                features=features,
+                predecessor=predecessor,
+                full_analysis=analysis,
+            )
+        )
+    summary["integrity"]["slice_invariance_mismatches"] = sum(
+        int(not bool(row["identity_exact"]))
+        + int(not bool(row["support_count_exact"]))
+        for row in slice_rows
+    )
+    predecessor.write_csv(
+        output_root / "support/slice_invariance.csv",
+        slice_rows,
+        (
+            "capture_id",
+            "research_date",
+            "segment_id",
+            "artificial_start_ts_ns",
+            "comparison_guard_ts_ns",
+            "expected_count",
+            "actual_count",
+            "identity_exact",
+            "expected_support_count",
+            "actual_support_count",
+            "support_count_exact",
+        ),
+    )
+    return seal_dynamic_outputs(
+        output_root=output_root,
+        predecessor=predecessor,
+        summary=summary,
+        deterministic_build=False,
     )
 
 
