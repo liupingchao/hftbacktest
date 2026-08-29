@@ -16,7 +16,9 @@
 - 是
 
 QA说明：
-- 无
+- 第三轮最终 QA 于 2026-08-29 23:12 CST 通过，
+  `P0/P1/P2/P3=0/0/0/0`；详见
+  `.workflow/reports/0829T003-qa.md`。
 
 files：
 - `docs/skhynix_binance_precision_first_fixed_causal_epoch_mstate_v2_a_minus1_audit_plan_20260829.md`
@@ -60,6 +62,8 @@ action：
   `structurally_occupied_epoch_count >
   structurally_eligible_epoch_count` 未被 A-1-4 fail-closed 拒绝的
   对称性缺口。
+- 第三轮最终 QA 在 HEAD `9cd9be51` 上独立复验，以
+  `P0/P1/P2/P3=0/0/0/0` 通过；冻结 hostile-test minimum 无剩余缺口。
 
 verify：
 - `python -m pytest examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py -q`
