@@ -637,3 +637,31 @@ def test_triad_comparison_detects_poison_artifact_mutation(
     )
     with pytest.raises(AUDIT.AuditError, match="preseal_poison_output_mismatch"):
         AUDIT.compare_triad(PREDECESSOR, *roots, stage="preseal")
+
+
+def test_outcome_access_payload_tracks_pending_and_final_poison_state() -> None:
+    pending_evidence = {"stage": "pending", "executed": False}
+    pending = AUDIT.outcome_access_payload(
+        summary={
+            "zero_outcome_boundary": False,
+            "outcome_poison_evidence": pending_evidence,
+        },
+        consumed_cache_fields={"ts_ns", "event_seq"},
+    )
+    assert pending["poisoned_unconsumed_fields_change_output"] is None
+    assert pending["poison_protocol"] == pending_evidence
+
+    final_evidence = {
+        "stage": "final",
+        "executed": True,
+        "final_difference_count": 0,
+    }
+    final = AUDIT.outcome_access_payload(
+        summary={
+            "zero_outcome_boundary": True,
+            "outcome_poison_evidence": final_evidence,
+        },
+        consumed_cache_fields={"ts_ns", "event_seq"},
+    )
+    assert final["poisoned_unconsumed_fields_change_output"] is False
+    assert final["poison_protocol"] == final_evidence

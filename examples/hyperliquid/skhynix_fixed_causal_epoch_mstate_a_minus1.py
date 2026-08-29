@@ -2978,6 +2978,23 @@ def non_cache_artifact_paths(output_root: Path) -> set[str]:
     }
 
 
+def outcome_access_payload(
+    *,
+    summary: dict[str, Any],
+    consumed_cache_fields: Iterable[str],
+) -> dict[str, Any]:
+    return {
+        "future_target_accessed": False,
+        "future_price_accessed": False,
+        "fill_fee_pnl_accessed": False,
+        "consumed_cache_fields": sorted(consumed_cache_fields),
+        "poisoned_unconsumed_fields_change_output": (
+            False if summary["zero_outcome_boundary"] else None
+        ),
+        "poison_protocol": summary["outcome_poison_evidence"],
+    }
+
+
 def seal_dynamic_outputs(
     *,
     output_root: Path,
@@ -3043,6 +3060,13 @@ def seal_dynamic_outputs(
                 "source_cache_closure"
             ],
         },
+    )
+    predecessor.write_json(
+        contracts / "outcome_access_ledger.json",
+        outcome_access_payload(
+            summary=clean_summary,
+            consumed_cache_fields=predecessor.CONSUMED_CACHE_FIELDS,
+        ),
     )
     predecessor.write_json(reports / "A_minus1_summary.json", payload)
     predecessor.write_json(
@@ -3125,18 +3149,10 @@ def write_contracts_and_summary(
     )
     predecessor.write_json(
         contracts / "outcome_access_ledger.json",
-        {
-            "future_target_accessed": False,
-            "future_price_accessed": False,
-            "fill_fee_pnl_accessed": False,
-            "consumed_cache_fields": sorted(
-                predecessor.CONSUMED_CACHE_FIELDS
-            ),
-            "poisoned_unconsumed_fields_change_output": (
-                False if summary["zero_outcome_boundary"] else None
-            ),
-            "poison_protocol": summary["outcome_poison_evidence"],
-        },
+        outcome_access_payload(
+            summary=summary,
+            consumed_cache_fields=predecessor.CONSUMED_CACHE_FIELDS,
+        ),
     )
     for obsolete in (
         contracts / "filter_family_contract.json",
