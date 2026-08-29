@@ -13,6 +13,13 @@
   future-outcome task.
 - The existing nine dates were already consumed. Cross-fitting can prevent
   direct fold leakage but cannot recreate a genuinely unseen holdout.
+- A structural randomization null identifies background false-fire burden and
+  count separation, not economic precision or a formal per-anchor FDP bound.
+- Null-only filter selection still needs an independent evaluation bank;
+  reusing the Monte Carlo draws that admitted a filter biases its apparent
+  false-fire rate downward.
+- Retrospective pairability/comparison masks must never enter the causal
+  detector state. They are external, symmetric audit censors only.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 

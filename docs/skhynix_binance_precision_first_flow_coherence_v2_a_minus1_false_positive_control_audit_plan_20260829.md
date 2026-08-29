@@ -11,6 +11,17 @@ Audit ID: `PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1`
 
 Status: frozen draft pending independent plan review
 
+Revision: 2
+
+Review history:
+
+```text
+Round 1:
+  P0/P1/P2/P3 = 0/5/2/0
+  recommendation = FAIL
+  data execution lock = retained
+```
+
 ## 1. Decision Context
 
 The accepted `0828T014` result established that the first
@@ -44,8 +55,8 @@ The primary question is:
 
 ```text
 Can a causal, interpretable and deliberately sparse flow-coherence detector
-produce historical SIGNAL anchors whose structural false-discovery upper
-bound is at most 10%, after accounting for filter selection?
+keep its structural-null false-cluster rate below a frozen ceiling and still
+show historical count separation after accounting for filter selection?
 ```
 
 This is not a recall study. The detector may abstain almost everywhere.
@@ -82,7 +93,7 @@ Permitted inputs:
 Passing this audit can produce only:
 
 ```text
-historical_precision_support_candidate
+historical_structural_false_fire_control_candidate
 ```
 
 It cannot produce:
@@ -140,6 +151,88 @@ The task must verify:
 
 No raw reparse is required if cache and source authority close exactly.
 
+### 5.1 Exact Cache Schema
+
+Allowed cache fields are exactly:
+
+```text
+activity
+ask_depletion
+ask_depth
+bid_depletion
+bid_depth
+bin_boundary_violations
+cache_schema_version
+event_seq
+initial_bridge_failure_count
+midpoint
+non_admitted_message_contributions
+obi
+ofi
+ofi_abs
+quality_boundary_count
+ready
+reset_count
+segment_end_ids
+segment_end_ts
+segment_id
+sequence_gap_count
+spread_ticks
+tick_size
+trade_signed
+trade_total
+ts_ns
+valid_book
+```
+
+The detector may load values only from:
+
+```text
+activity
+ask_depletion
+bid_depletion
+event_seq
+ofi
+ofi_abs
+ready
+segment_id
+trade_signed
+trade_total
+ts_ns
+valid_book
+```
+
+Field-name inspection for schema admission is allowed. Values from midpoint,
+OBI, spread, depth snapshots or any field outside the consumed whitelist may
+not be loaded.
+
+### 5.2 Inherited Code Authority
+
+Accepted predecessor file:
+
+```text
+path =
+  examples/hyperliquid/skhynix_flow_coherence_a_minus1_audit.py
+
+commit = 45544ecc
+Git blob OID = 494c203e7195f292e057f7708c99f52096259a02
+blob SHA256 =
+  f7dc1565bf0a45363dadf3204d827e0d13687f6cc3307c2e7c5e77aeb321400c
+```
+
+The implementation must extract and bind the predecessor definitions used
+for:
+
+```text
+conflict_primitives
+coherence_predicates V0 base predicate
+fixed_opposite_orientation_pairs
+null_layout
+permute_trade_direction_paths
+```
+
+Any semantic change requires a new contract revision.
+
 ## 6. Three-State Detector Contract
 
 Every checkpoint-direction pair has exactly one state:
@@ -158,14 +251,13 @@ ABSTAIN
 - startup/reconnect cooldown;
 - missing required trade/depth denominator;
 - cross-segment or non-contiguous feature history;
-- structural-null comparison mask false;
 - insufficient causal history for a registered filter.
 
 An abstained checkpoint:
 
 - cannot open or confirm a candidate;
 - cannot contribute persistence;
-- cannot enter a denominator for precision claims;
+- cannot enter a decision-supported-time denominator;
 - is reported as coverage loss only;
 - is never labelled noise or false negative.
 
@@ -258,6 +350,10 @@ Indices use ascending list order.
 
 ### 8.1 Coherence Margin
 
+V2 decision support requires both the fast and medium ratio vectors to have
+finite trade, depletion and OFI components. If either depth component is
+missing, the checkpoint is `ABSTAIN`.
+
 At each supported checkpoint in direction `d`:
 
 ```text
@@ -265,42 +361,21 @@ trade_margin =
   d * fast_trade_ratio - 0.50
 
 depth_margin =
-  max(d * fast_depletion_ratio, d * fast_ofi_ratio) - 0.50
+  min(d * fast_depletion_ratio, d * fast_ofi_ratio) - 0.50
 
 medium_margin =
   d * medium_composite_ratio - 0.25
-
-opposition_margin =
-  min(
-    d * fast_depletion_ratio + 0.50,
-    d * fast_ofi_ratio + 0.50
-  )
 
 normalized_coherence_margin =
   min(
     trade_margin,
     depth_margin,
-    medium_margin,
-    opposition_margin
+    medium_margin
 )
 ```
 
-For the two fast depth components:
-
-```text
-available_depth_components =
-  finite values among depletion and OFI
-
-depth_margin =
-  max margin over available_depth_components
-
-opposition_margin =
-  min opposition margin over available_depth_components
-```
-
-At least one depth component must be finite. A missing component is excluded
-from both extrema and is never substituted with zero. Missing trade or medium
-composite makes the checkpoint `ABSTAIN`.
+The medium composite is the median of all three finite medium components.
+Missing values are never substituted or excluded from an extremum.
 
 The candidate must maintain:
 
@@ -333,8 +408,8 @@ all satisfy base coherence and the margin threshold.
 
 The candidate checkpoint contributes zero persistence exposure.
 
-Opposite coherence, conflict, `ABSTAIN`, segment change or comparison-mask
-loss cancels the candidate.
+Opposite coherence, conflict, `ABSTAIN` or segment change cancels the
+candidate.
 
 ### 8.4 Refractory And Dependence
 
@@ -353,6 +428,21 @@ second refractory is allowed.
 This deliberately allows a base candidate that later fails a strict filter to
 suppress a later candidate. The recall loss is accepted and preserves exact
 monotonic nesting across the 27-filter family.
+
+After common refractory, fixed dependence-cluster IDs are assigned once,
+before filtering, using base-candidate rising-edge timestamps:
+
+```text
+sort key =
+  capture_id, candidate_ts_ns, candidate_event_seq, direction
+
+same cluster when =
+  same capture and current candidate_ts - previous candidate_ts <= 30s
+```
+
+Every filter may retain or delete fixed cluster IDs but may never recompute
+them from filter-specific confirmation timestamps. Candidate-set and
+unique-cluster-count monotonicity must both hold.
 
 ## 9. Candidate Ledger And Exact Family Evaluation
 
@@ -382,7 +472,6 @@ The accepted `0828T014` paired opposite-orientation path-swap null is reused:
 five-minute parents
 activity/intensity-matched opposite-orientation microblock pairs
 independent Bernoulli(0.5) label swap per fixed pair
-same observed/null boundary censor
 trade magnitude, zero mask, missingness and denominator invariant
 depth bundle and activity unchanged
 ```
@@ -395,19 +484,68 @@ Durations:
 60s sensitivity
 ```
 
-Replicates:
+Null banks:
 
 ```text
-199 per duration
-root seed = 20260829
+selection bank:
+  duration = 30s primary only
+  replicates = 199
+  bank_code = 1
+
+evaluation bank:
+  durations = 10s, 30s, 60s
+  replicates = 199 per duration
+  bank_code = 2
+
+SeedSequence root:
+  [20260829,bank_code,microblock_ms,replicate_id,capture_ordinal]
+
 PRNG = numpy PCG64
 ```
+
+Selection-bank and evaluation-bank RNG stream identities must be disjoint.
+No generator state or stream key may be reused across banks. Independently
+generated banks may coincidentally produce the same aggregate swap vector;
+such collisions are reported but are not bank overlap.
 
 Pairing, identifier and fingerprint rules are inherited from the accepted
 Revision 6 contract, including `capture_ordinal`.
 
 Any conservation, caliper, balance, fingerprint-diversity or boundary-censor
 failure makes the null inadmissible.
+
+### 10.1 External Audit Censor
+
+The null comparison mask is an external audit censor, not detector input.
+
+The causal detector runs without knowing pairability or microblock boundaries.
+It assigns tri-state outputs, candidates, refractory and fixed cluster IDs
+first.
+
+For a filter-specific signal, observed and null audit inclusion then require
+the external mask to be true across:
+
+```text
+[candidate_ts - max(500ms,filter_novelty_ms), confirmation_ts]
+```
+
+Failure produces `audit_censored`, not `ABSTAIN`, and does not alter detector
+state or later candidates.
+
+A fixed cluster is included when at least one retained signal in that cluster
+passes the filter-specific audit censor. It is counted once regardless of
+direction or the number of included confirmations.
+
+The false-cluster-rate denominator is counted once per unique capture-time
+20ms interval, never once per direction. It requires:
+
+```text
+V2 causal decision support = true
+external comparison mask = true
+```
+
+If directional support ever differs, the interval enters the denominator only
+when both directions are supported.
 
 ## 11. Null-Only Filter Selection
 
@@ -424,18 +562,19 @@ It may not use:
 - future outcomes;
 - any economic metric.
 
-For each outer held-out date and duration:
+Filter selection uses only the 30s primary selection bank.
+
+For each outer held-out date:
 
 1. Exclude the held-out date.
-2. For every filter, calculate the null false-cluster rate for each of 199
-   replicates on the remaining dates.
-3. Compute the Type-7 p95 false-cluster rate per decision-supported hour,
-   where decision-supported checkpoints are exactly `SIGNAL | BACKGROUND`
-   and exclude `ABSTAIN`.
+2. For every filter, calculate the selection-bank null false-cluster rate for
+   each of 199 replicates on the remaining dates.
+3. Compute the Type-7 p95 false-cluster rate using the unique capture-time
+   comparison-supported denominator frozen in Section 10.1.
 4. Admit filters whose p95 null false-cluster rate is at most:
 
 ```text
-0.10 per decision-supported hour
+0.10 per comparison-supported capture hour
 ```
 
 5. Select the least strict admitted filter using:
@@ -451,6 +590,14 @@ If no filter qualifies, the complete held-out date is `ABSTAIN`.
 
 This rule deliberately does not reward observed firing count.
 
+The selected filter is then frozen for that fold and used unchanged for all
+10s, 30s and 60s evaluation-bank audits.
+
+Because the selection bank is independent of the evaluation bank and
+selection reads no observed count, evaluation-bank randomization p-values are
+interpreted conditional on the frozen selection-bank realization. The 27-way
+filter search does not reuse evaluation draws.
+
 ## 12. Leave-One-Date-Out Cross-Fitting
 
 The nine outer folds are identified by held-out research date.
@@ -459,19 +606,23 @@ For each fold:
 
 - the filter is selected from the other eight dates using Section 11 only;
 - the selected filter is applied once to the held-out observed date;
-- the same selected filter is applied to every held-out null replicate;
+- the same selected filter is applied to every independent held-out
+  evaluation-bank null replicate at all three durations;
 - no held-out row enters selection;
 - no filter may change after held-out evaluation.
 
 The cross-fitted observed ledger is the concatenation of the nine held-out
 observed ledgers.
 
-For null replicate `r`, the cross-fitted null ledger concatenates held-out
-replicate `r` from all nine folds using each fold's already selected filter.
+For evaluation-bank null replicate `r` and duration `h`, the cross-fitted null
+ledger concatenates held-out replicate `(h,r)` from all nine folds using each
+fold's already selected 30s filter.
 
-This produces a selection-aware null without selecting on observed anchors.
+This produces a null conditional on an independently generated null-only
+selection bank. It neither selects on observed anchors nor evaluates on the
+Monte Carlo draws used for selection.
 
-## 13. Structural False-Positive Estimators
+## 13. Structural False-Fire Estimators
 
 Primary units are 30-second dependence clusters, not raw confirmations.
 
@@ -487,14 +638,23 @@ Estimators:
 ```text
 null_count_p95 = Type-7 p95 of N_r
 
-structural_FDP_U95 =
-  min(1, null_count_p95 / max(O,1))
+null_false_cluster_rate_U95 =
+  null_count_p95 / comparison-supported capture hours
 
-structural_precision_L95 =
-  1 - structural_FDP_U95
+structural_null_burden_ratio_U95 =
+  null_count_p95 / max(O,1)
 
 count_tail_p =
   (1 + count(N_r >= O)) / 200
+```
+
+`structural_null_burden_ratio_U95` is a descriptive null-burden ratio, not a
+false-discovery confidence bound. It must never be renamed or interpreted as:
+
+```text
+FDP upper confidence bound
+precision lower confidence bound
+economic false-positive probability
 ```
 
 Date support:
@@ -505,7 +665,8 @@ maximum single-date cluster share
 dates with observed count above date-specific null p90
 ```
 
-These quantities describe structural false-positive control only.
+The identifiable claims are limited to null false-fire rate and historical
+randomization separation.
 
 ## 14. Primary Gates
 
@@ -516,7 +677,11 @@ Require:
 - accepted predecessor/source ancestry;
 - source Git blob closure;
 - 29-cache authority closure;
-- deterministic Build A/B;
+- exact 27-field schema and 12-field consumed whitelist closure;
+- Build A/B use distinct resolved output roots;
+- same-root finalization is rejected;
+- preseal, pending and final full non-cache SHA difference count = 0;
+- deterministic Build A/B becomes true only after final comparison;
 - manifest closure.
 
 ### Gate A-1-1: Zero Outcome
@@ -525,6 +690,7 @@ Require:
 
 - exact allowed cache schema;
 - exact consumed-field whitelist;
+- hostile unexpected future/outcome field causes hard failure;
 - no future/outcome fields consumed;
 - no target/model/economic artifacts.
 
@@ -536,16 +702,19 @@ Require:
 - `ABSTAIN -> SIGNAL` violations = 0;
 - cross-segment/quality feature windows = 0;
 - candidate persistence through abstention = 0;
+- external comparison mask access by detector = 0;
+- decision-supported denominator direction double-count = 0;
 - no availability or recall lower bound.
 
 Availability and abstention shares are diagnostics only.
 
 ### Gate A-1-3: Null Admissibility
 
-For 10s, 30s and 60s require:
+For the 30s selection bank and 10s/30s/60s evaluation banks require:
 
 - 199 replicates;
 - at least 190 distinct fingerprints;
+- cross-bank RNG stream-identity overlap = 0;
 - pair-label, magnitude, zero-mask, missingness and denominator mismatch = 0;
 - caliper and boundary-censor violations = 0;
 - every date has at least three matched pairs;
@@ -560,14 +729,31 @@ Require:
 - exactly nine outer folds;
 - held-out row leakage = 0;
 - observed-count access during selection = 0;
+- selection/evaluation null bank overlap = 0;
+- only the 30s selection bank chooses filters;
+- selected filter identity is unchanged across all evaluation durations;
 - selected filter equals independent null-only recomputation;
 - candidate-ledger and independent detector results exact for all filters;
-- monotonic-family violations = 0;
+- candidate-set and fixed-cluster-count monotonicity violations = 0;
+- fixed cluster ID recomputation after filtering = 0;
 - slice/reset mismatches = 0.
 
-### Gate A-1-5: Precision Estimability
+Slice/reset audit covers all 27 filters, tri-state counts, base-candidate
+identity, common refractory admission, fixed cluster IDs, filter bits,
+fold-selected signals and all three duration-specific external censor bits.
 
-Require on the 30s primary:
+Every segment at least 10 minutes long receives artificial starts at 10-minute
+spacing. Comparison starts after:
+
+```text
+30s cooldown + 2s maximum causal history + 30s common refractory
+```
+
+All post-guard identities and metrics must be exact.
+
+### Gate A-1-5: Structural Support Estimability
+
+Require on the 30s primary evaluation bank:
 
 ```text
 O >= 30 independent clusters
@@ -575,22 +761,23 @@ represented dates >= 4
 maximum single-date cluster share <= 0.50
 ```
 
-These are not recall targets. They are the minimum evidence required to bound
-false-positive risk.
+These are not recall targets and do not estimate economic precision. They are
+the minimum support needed to interpret null burden and cross-date count
+separation.
 
 Failure classification:
 
 ```text
-Aminus1_precision_not_estimable
+Aminus1_structural_support_not_estimable
 ```
 
-### Gate A-1-6: Structural False-Positive Control
+### Gate A-1-6: Structural False-Fire Control
 
 Require on the 30s primary:
 
 ```text
-structural_FDP_U95 <= 0.10
-structural_precision_L95 >= 0.90
+null_false_cluster_rate_U95 <= 0.10 per comparison-supported hour
+structural_null_burden_ratio_U95 <= 0.10
 count_tail_p <= 0.01
 dates above date-null p90 >= 4
 ```
@@ -598,14 +785,15 @@ dates above date-null p90 >= 4
 Sensitivity requirements:
 
 ```text
-10s and 60s structural_FDP_U95 <= 0.20
+10s and 60s null_false_cluster_rate_U95 <= 0.20
+10s and 60s structural_null_burden_ratio_U95 <= 0.20
 10s and 60s count_tail_p <= 0.05
 ```
 
 Failure classification:
 
 ```text
-Aminus1_structural_false_positive_control_failed
+Aminus1_structural_false_fire_control_failed
 ```
 
 ### Gate A-1-7: Sparse Firing Guard
@@ -629,10 +817,10 @@ Aminus1_zero_outcome_boundary_violated
 Aminus1_abstention_contract_violated
 Aminus1_structural_null_not_admissible
 Aminus1_selection_integrity_failed
-Aminus1_precision_not_estimable
-Aminus1_structural_false_positive_control_failed
+Aminus1_structural_support_not_estimable
+Aminus1_structural_false_fire_control_failed
 Aminus1_signal_not_sparse
-Aminus1_historical_precision_support_candidate
+Aminus1_historical_structural_false_fire_control_candidate
 ```
 
 Precedence follows gate order A-1-0 through A-1-7.
@@ -675,7 +863,7 @@ support/
   fold_selection_ledger.csv
   cross_fitted_signal_ledger.csv
   cross_fitted_null_summary.csv
-  structural_false_positive_summary.csv
+  structural_false_fire_summary.csv
   parameter_monotonicity.csv
   slice_invariance.csv
 
@@ -688,6 +876,18 @@ run_manifest.json
 
 Large candidate/null ledgers may remain ignored if compact summaries contain
 exact hashes and complete gate evidence.
+
+Required negative tests:
+
+```text
+unexpected future_return_500ms cache field -> hard failure
+same resolved Build A/B root -> hard failure
+selection code reads observed count -> hard failure
+selection/evaluation RNG stream-identity overlap -> hard failure
+comparison mask changes detector state -> hard failure
+filter-specific cluster recomputation -> hard failure
+direction-time denominator double count -> hard failure
+```
 
 ## 18. Stop Rules
 

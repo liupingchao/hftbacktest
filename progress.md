@@ -10,6 +10,17 @@
 - Existing dates are not represented as fresh holdout data.
 - Formal data execution remains locked pending independent plan review.
 
+## 2026-08-29 0829T001 Plan Review Round 1 Failed
+
+- Independent read-only review failed with `P0/P1/P2/P3 = 0/5/2/0`.
+- Revision 2 removes the invalid FDP/precision confidence interpretation,
+  separates null selection and evaluation banks, and prevents retrospective
+  comparison support from changing detector state.
+- Full depth support, fixed pre-filter cluster IDs, one primary selected
+  detector across all null durations and fail-closed evidence semantics are
+  now explicit.
+- Data execution remains locked pending Round 2 review.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree
