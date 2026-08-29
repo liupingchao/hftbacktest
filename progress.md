@@ -73,6 +73,14 @@
   never an ordinary zero-support filter rejection.
 - Data execution remains locked pending Round 7 review.
 
+## 2026-08-29 0829T001 Plan Review Round 7 Failed
+
+- Round 7 failed with `P0/P1/P2/P3 = 0/0/1/0`.
+- Revision 8 limits raw `NOT_ESTIMABLE` semantics to exactly zero exposure.
+- Negative or non-finite raw exposure/rate now fails A-1-4 selection
+  integrity, and A-1-7 is not evaluated.
+- Data execution remains locked pending Round 8 review.
+
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 
 - Created isolated worktree

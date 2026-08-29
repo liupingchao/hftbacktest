@@ -11,7 +11,7 @@ Audit ID: `PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1`
 
 Status: frozen draft pending independent plan review
 
-Revision: 7
+Revision: 8
 
 Review history:
 
@@ -43,6 +43,11 @@ Round 5:
 
 Round 6:
   P0/P1/P2/P3 = 0/0/3/0
+  recommendation = FAIL
+  data execution lock = retained
+
+Round 7:
+  P0/P1/P2/P3 = 0/0/1/0
   recommendation = FAIL
   data execution lock = retained
 ```
@@ -997,9 +1002,13 @@ raw_cluster_rate_per_hour <= 5
 raw_5s_burst <= 2
 ```
 
-If `H_raw_hours <= 0` or is non-finite, the raw rate is
-`NOT_ESTIMABLE` and Gate A-1-7 cannot pass. Zero raw clusters do not convert
-zero raw exposure into a zero rate.
+If `H_raw_hours == 0`, the raw rate is `NOT_ESTIMABLE` and Gate A-1-7
+cannot pass. Zero raw clusters do not convert zero raw exposure into a zero
+rate.
+
+If `H_raw_hours < 0`, `H_raw_hours` is non-finite, or
+`raw_cluster_rate_per_hour` is non-finite, Gate A-1-4 fails with
+`Aminus1_selection_integrity_failed`; Gate A-1-7 is not evaluated.
 
 The external comparison mask, `O_h` and `H_hours_h` do not enter this gate.
 There is no minimum firing-rate gate.
@@ -1093,6 +1102,8 @@ zero selection exposure and zero null clusters -> filter not admitted
 zero 30s primary evaluation exposure ->
   Aminus1_structural_support_not_estimable
 zero raw exposure and zero raw clusters -> sparse gate does not pass
+negative/NaN/infinity raw exposure or raw rate ->
+  Aminus1_selection_integrity_failed and A-1-7 not evaluated
 zero 10s/60s sensitivity exposure -> structural false-fire control fails
 partial NONE folds -> zero fold contribution, aggregate gates still evaluated
 all NONE folds -> Aminus1_structural_support_not_estimable

@@ -44,6 +44,9 @@
 - Cross-fit filter selection needs an explicit no-filter sentinel. A missing
   `f_j` is not a detector state and must contribute exactly zero to observed,
   null and exposure aggregates.
+- Raw zero exposure is a support condition, while negative or non-finite raw
+  exposure is corruption. Gate precedence should be explicit rather than
+  relied upon to resolve contradictory wording.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 
