@@ -99,7 +99,7 @@
 - Build A required evidence-only remediation: 12 support-count slice rows
   included later segments although all 187 candidate identities were exact.
   The corrected segment mask produced zero slice mismatches.
-- Fresh Build B reproduced all 18 non-cache artifacts exactly; final
+- Fresh Build B reproduced all final 21 non-cache artifacts exactly; final
   difference count is zero.
 - All four null banks have 199 distinct fingerprints, zero stream overlap,
   zero conservation mismatch, minimum date pair count 6 and maximum date p95
@@ -147,6 +147,24 @@
   `Aminus1_structural_support_not_estimable`; A0 and future outcomes remain
   unauthorized.
 - Task status returns to `待验收` for independent QA Round 2.
+
+## 2026-08-29 0829T001 QA Round 2 Accepted
+
+- Independent QA passed commit
+  `f1ad26a6e891f5580e4d335a93c21eac1746f739` with
+  `P0/P1/P2/P3 = 0/0/0/1`.
+- An independent 69-case hostile numeric matrix routed every negative,
+  NaN and infinite raw/primary/sensitivity corruption first to A-1-4 with
+  zero exceptions.
+- Both builds contain exactly 21 Required Outputs, with zero missing, extra,
+  SHA-different or manifest-invalid artifacts.
+- Candidate count/SHA, cancellation conservation, zero filter admission,
+  tri-state partition, slice/monotonicity and null admissibility all passed.
+- The P3 was stale pre-remediation artifact-count wording in the business
+  report; it has been corrected to the final count of 21.
+- Task `0829T001` is closed as `已通过`.
+- This accepts the execution of a negative A-1 result only. A0, future
+  outcomes, prospective claims and live trading remain unauthorized.
 
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit
 

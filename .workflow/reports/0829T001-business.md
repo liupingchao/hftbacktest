@@ -10,7 +10,7 @@
 - 2026-08-29
 
 状态：
-- 待验收
+- 已通过
 
 合同：
 - Revision 8 independent plan review：
@@ -33,7 +33,7 @@ Build 证据：
   `local_live_analysis/skhynix_precision_first_flow_coherence_a_minus1_0829T001/`
 - Fresh Build B：
   `local_live_analysis/skhynix_precision_first_flow_coherence_a_minus1_0829T001_build_b/`
-- Final non-cache artifact count：18。
+- Final remediated non-cache artifact count：21。
 - Final Build A/B difference count：0。
 - Manifest closure violations：0。
 
@@ -124,5 +124,7 @@ QA Round 1 remediation：
   observed/null counts 和最终 classification 均未改变。
 
 当前状态：
-- 待验收
-- 等待独立 QA Round 2。
+- 已通过
+- QA Round 2：`P0/P1/P2/P3 = 0/0/0/1`。
+- 唯一 P3 是本报告曾同时保留 remediation 前后的 artifact count；
+  已统一为最终 21 项，不影响执行或科学结论。

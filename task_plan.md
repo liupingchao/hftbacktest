@@ -2,7 +2,7 @@
 
 ## 2026-08-29 0829T001 Precision-First Flow Coherence V2 Active
 
-- `0829T001 / PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1` is `待验收`.
+- `0829T001 / PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1` is `已通过`.
 - The entry detector objective is now precision-first:
   false positives carry direct cost while false negatives are accepted
   opportunity loss.
@@ -10,8 +10,10 @@
   minimum firing rate are diagnostics, not hard success gates.
 - Filter selection is null-only and leave-one-date-out. All existing dates
   remain labelled historically reused; no prospective claim is possible.
-- Frozen execution and Round 1 remediation are complete; independent QA
-  Round 2 is pending.
+- Independent QA Round 2 passed at `P0/P1/P2/P3=0/0/0/1`.
+- The accepted result remains
+  `Aminus1_structural_support_not_estimable`; A0, future outcomes and live
+  trading remain unauthorized.
 
 ## 2026-08-28 0828T014 Flow Coherence A-1 Audit In Progress
 

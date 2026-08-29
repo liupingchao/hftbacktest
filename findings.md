@@ -81,6 +81,12 @@
 - The remediation leaves the market finding unchanged: all 350 common
   candidates are still rejected, so the registered structural filter has no
   estimable support on the nine historical dates.
+- Independent QA Round 2 tested a broader 69-case numeric corruption matrix
+  and confirmed that precision-first fail-closed semantics are executable,
+  not merely documented.
+- Acceptance of this task means the negative result is auditable. It does
+  not mean the detector achieved high precision: with zero surviving signals,
+  precision and false-fire burden remain unidentifiable.
 
 ## 2026-08-28 Flow Coherence A-1 Audit Design
 
