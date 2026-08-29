@@ -1,5 +1,20 @@
 # Progress
 
+## 2026-08-29 0829T002 Fresh-Channel Consensus M-State Drafted
+
+- Created clean worktree
+  `/Users/liu/Documents/hftbacktest-0829t002-fresh-channel-consensus-mstate-a-minus1`
+  on branch `codex/fresh-channel-consensus-mstate-a-minus1`.
+- Registered `FRESH_CHANNEL_CONSENSUS_MSTATE_V1` instead of changing the
+  accepted negative V2 result.
+- The successor preserves three-channel consensus and directional thresholds,
+  but replaces simultaneous every-checkpoint completeness with bounded
+  per-channel fresh memory.
+- Candidate anchors require observable background before consensus and cannot
+  arise from data recovery.
+- Revision 1 is candidate-only. The 29-cache execution lock remains active
+  pending independent review.
+
 ## 2026-08-29 0829T001 Precision-First Flow Coherence V2 Contract Drafted
 
 - Created a clean worktree and branch from accepted commit `45544ecc`.

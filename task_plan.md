@@ -1,5 +1,18 @@
 # Task Plan
 
+## 2026-08-29 0829T002 Fresh-Channel Consensus M-State V1
+
+- `0829T002 / FRESH_CHANNEL_CONSENSUS_MSTATE_V1_A_MINUS1` is `执行中`.
+- The new state model requires all three channels but allows their latest
+  observations to align asynchronously inside a frozen 40/60/100ms TTL.
+- Neutral observations overwrite old signs immediately; stale, missing or
+  cross-segment state is `ABSTAIN`.
+- Anchors require six consecutive observable `BACKGROUND` checkpoints before
+  the first fresh consensus state. `ABSTAIN -> SIGNAL` cannot anchor.
+- Direction thresholds remain 0.50 fast and 0.25 medium before margin.
+- Data execution is locked pending independent plan review.
+- Future outcomes, A0 and live trading remain unauthorized.
+
 ## 2026-08-29 0829T001 Precision-First Flow Coherence V2 Active
 
 - `0829T001 / PRECISION_FIRST_FLOW_COHERENCE_V2_A_MINUS1` is `已通过`.

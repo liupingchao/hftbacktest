@@ -1,5 +1,22 @@
 # Findings
 
+## 2026-08-29 Fresh-Channel Consensus M-State Design
+
+- The previous failure should not be repaired by lowering amplitude or using
+  a 2-of-3 vote. Both changes would directly increase false-positive risk.
+- The narrower support hypothesis is asynchronous observability: a channel's
+  last explicit sign or neutral state may remain usable for a short frozen
+  TTL, after which it becomes unknown.
+- Neutral overwrite is load-bearing. Ignoring a neutral update and retaining
+  an older sign would turn bounded memory into favorable stale imputation.
+- `ABSTAIN -> SIGNAL` must not be an anchor because data recovery can mimic a
+  state onset. A contiguous observable-background prestate separates market
+  transition semantics from availability transition semantics.
+- A common permissive anchor ledger plus delete-only stricter filters accepts
+  false negatives while preserving candidate and cluster monotonicity.
+- Structural support can improve without implying recall or alpha. The task
+  still needs enough observed clusters to estimate false-fire burden.
+
 ## 2026-08-29 Precision-First Detector Objective
 
 - For an entry detector, false positives create direct cost while false
