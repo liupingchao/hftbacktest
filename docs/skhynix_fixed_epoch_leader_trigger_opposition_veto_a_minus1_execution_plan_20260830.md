@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 15, pre-execution
+Revision: 16, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -813,21 +813,36 @@ must retain the physical file size; a size change cannot be hidden. The
 producer and terminal verifier independently recompute the same registered
 projection.
 
-Canonical serialization defects are pre-classification execution-integrity
-failures, not A-1-1 scientific evidence. The exact runner/verifier failure
-codes are:
+Canonical serialization defects are execution-integrity failures, not A-1-1
+scientific evidence. Their lifecycle ownership is phase-specific:
 
 ```text
-poison_slice_comparison_noncanonical
-poison_manifest_comparison_noncanonical
+support/slice_invariance.csv:
+  checked during RAW_11 comparison before gate derivation;
+  failure terminates before a valid raw_a_p ComparisonRow,
+  raw_a_p_difference_count, gate payload or scientific classification exists.
+
+run_manifest.json:
+  checked during FINAL_17 comparison after classification bytes exist;
+  failure is a post-classification terminal-package failure;
+  the existing scientific classification bytes are not rewritten, but no
+  accepted terminal result is formed.
 ```
 
-Such a failure occurs before a valid `ComparisonRow`,
-`raw_a_p_difference_count`, gate payload or scientific classification can be
-formed. It terminates the one-shot attempt as an execution failure; no
-scientific classification is synthesized. A-1-1 owns only A/P missing/extra
-paths and producer-canonical comparison rows whose registered semantic hashes
-are unequal.
+Runner guard details are not public terminal-verifier failure codes. The
+terminal verifier retains the single frozen `V00`-`V12` namespace with no
+alternate code vocabulary. On a completed package whose manifest
+canonicality or comparison closure is later found invalid, the public first
+failure is `V09_COMPARISON_CLOSURE`; if the producer stops before
+`attempt-result.json` and the terminal receipt exist, the precommitted claim
+state proves `INTERRUPTED_TERMINAL`.
+
+A-1-1 owns only A/P `RAW_11` missing/extra paths and producer-canonical
+`RAW_11` comparison rows whose registered semantic hashes are unequal.
+`SEALED_15` and `FINAL_17` are post-classification package-closure domains:
+all A/B and A/P comparison `difference_count` values must be zero. Any
+nonzero value terminates package closure without rewriting the already formed
+scientific classification.
 
 The physical A/B/P slice and manifest bytes remain permanent evidence.
 Same-build `slice_source_sha256`, WorkRow SHA, SLICE FeatureCall input
@@ -866,11 +881,11 @@ Every retained slice is also no-replace published and fsynced.
 permanent for this task and may not be cleaned after claim consumption.
 
 Canonical A/B differences belong only to A-1-0. Producer-canonical A/P
-differences under the registered poison-normalized comparison belong only to
-A-1-1. Such an A/P mismatch is retained as negative outcome-boundary evidence;
-it does not prevent final package creation and is not reassigned to A-1-0.
-Non-canonical serialization has the separate pre-classification terminal
-semantics defined above.
+`RAW_11` differences under the registered poison-normalized comparison belong
+only to A-1-1. Such a RAW mismatch is retained as negative outcome-boundary
+evidence; it does not prevent final package creation and is not reassigned to
+A-1-0. `SEALED_15`, `FINAL_17` and non-canonical serialization have the
+separate phase-specific package semantics defined above.
 
 Frozen poison expectations:
 
@@ -1971,7 +1986,7 @@ At minimum:
 - A/B missing, extra and byte mutations fail A-1-0;
 - A/P missing and extra paths produce A-1-1 negative evidence;
 - producer-canonical A/P byte/value mutations outside the two registered
-  normalized fields produce A-1-1 negative evidence;
+  normalized fields in `RAW_11` produce A-1-1 negative evidence;
 - A/P `slice_invariance.csv` header/row/order/non-source-field mutations fail,
   while a same-build-valid `slice_source_sha256` physical identity difference
   alone is normalized;
@@ -1979,11 +1994,14 @@ At minimum:
   while only the slice artifact SHA derived from the registered normalized
   slice comparison is normalized;
 - A/P `slice_invariance.csv` equivalent-value `QUOTE_ALL`, CRLF or alternate
-  escaping terminal-fails with
-  `poison_slice_comparison_noncanonical` before classification;
+  escaping terminates execution before classification;
 - A/P `run_manifest.json` equivalent-object compact JSON, alternate key order,
-  whitespace or trailing-newline mutation terminal-fails with
-  `poison_manifest_comparison_noncanonical` before classification;
+  whitespace or trailing-newline mutation is a post-classification package
+  failure; a completed mutated package first-fails terminal verification at
+  `V09_COMPARISON_CLOSURE`;
+- synchronized producer-canonical `SEALED_15` or `FINAL_17` A/B or A/P
+  inequality is a post-classification package failure and cannot be accepted
+  merely because comparison evidence was updated consistently;
 - attestation mutation fails;
 - all 17 schemas, typed sentinels, sorting and manifest self-exclusion;
 - zero, negative, NaN, infinity and wrong-type gate mutations;
