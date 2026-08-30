@@ -3,16 +3,22 @@
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 
 - `0830T003 / FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
-  is `执行中`.
+  is `未通过`.
 - Preserve the terminal failure history of `0830T002`; this is a distinct
   one-shot task with distinct claim, tags, attempt root and controller ref.
 - Keep the Revision 18 scientific contract unchanged. The only implementation
   change is the required baseline authority argument
   `check_working_tree=True`.
-- Data execution is locked pending independent replacement-plan review,
-  implementation tests and readiness acceptance.
-- After claim consumption, contradictory results or execution failures must
-  be recorded without repair, diagnosis, plan revision or rerun.
+- Plan and implementation readiness both passed at `P0/P1/P2/P3=0/0/0/0`.
+- The single-use claim was consumed at `108378d8`; execution passed baseline
+  preflight, entered Build A and then stopped before Build A publication.
+- Final state is `INTERRUPTED_TERMINAL`; classification is `NONE` and
+  prediction is `NOT_EVALUATED`.
+- Independent final QA marked the task `未通过` at `0/1/0/0`: record
+  authenticity passed, but no complete A/B/P scientific package exists.
+- Preserve the claim, partial work, consumption tag and remote ledger as
+  immutable terminal evidence. No repair, diagnosis or rerun is authorized in
+  this task.
 - Future outcomes, A0 and live/private/order execution remain unauthorized.
 
 ## 2026-08-30 0830T002 Leader Trigger Opposition Veto A-1

@@ -33,6 +33,9 @@
 - Scientific classification is `NONE`; prediction is `NOT_EVALUATED`.
 - The post-claim contract prohibits repair, diagnosis, code/plan/test changes
   or another attempt in `0830T003`.
+- Independent final QA marked the task `未通过` at
+  `P0/P1/P2/P3=0/1/0/0`: record authenticity passed, while the formal
+  scientific execution did not complete.
 
 ## 2026-08-30 0830T002 Formal Attempt Interrupted
 
