@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 12, pre-execution
+Revision: 13, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -707,13 +707,13 @@ The one-shot process performs:
 4. write and verify sibling `poison-attestation.json`;
 5. Build P over poison caches into empty `poison_p`, while inventory authority
    remains canonical;
-6. compare the exact `RAW_11` projection;
+6. compare the `RAW_11` projection under the registered comparison mode;
 7. derive one global gate/classification payload from A plus A/B and A/P
    comparison evidence, and write identical dynamic bytes into A/B/P;
-8. compare exact `SEALED_15`;
+8. compare `SEALED_15` under the registered comparison mode;
 9. write identical `execution_evidence.json`;
 10. write each self-excluding manifest;
-11. compare exact `FINAL_17` externally;
+11. compare `FINAL_17` externally under the registered comparison mode;
 12. publish and fsync siblings `instrumentation-evidence.json` and
     `work-manifest.json`;
 13. publish and fsync sibling `attempt-result.json`;
@@ -749,6 +749,63 @@ FINAL_17 =
   + run_manifest.json
 ```
 
+Registered comparison modes:
+
+```text
+A/B:
+  exact file-byte SHA256 for every path in RAW_11, SEALED_15 and FINAL_17
+
+A/P:
+  exact file-byte SHA256 for every path except:
+    support/slice_invariance.csv
+    run_manifest.json
+  poison-normalized semantic SHA256 for those two paths only
+```
+
+The A/P exception is necessary because Build P deliberately changes all
+registered unconsumed cache fields. The retained physical slice therefore has
+a different work-file SHA even when the consumed feature projection is
+identical. `slice_source_sha256` records that physical identity and must bind
+the same-build WorkRow; it is not itself a consumed scientific feature.
+
+For A/P comparison of `support/slice_invariance.csv`, the semantic hash
+preimage is constructed exactly as follows:
+
+1. decode the file as ASCII CSV;
+2. require the exact registered header;
+3. retain the original row order, row count and every parsed string value;
+4. replace only each row's `slice_source_sha256` value with 64 ASCII zeroes;
+5. encode the resulting list of row objects with
+   `json.dumps(value, sort_keys=True, separators=(",", ":"),
+   ensure_ascii=True).encode("ascii")`;
+6. use SHA256 of those bytes as the `ComparisonRow` hash.
+
+For A/P comparison of `run_manifest.json`, the semantic hash preimage is
+constructed exactly as follows:
+
+1. decode the file as ASCII JSON;
+2. require `artifacts` to be a list with exactly one row whose `path` is
+   `support/slice_invariance.csv`;
+3. preserve every key, value, list order and artifact row;
+4. replace only that row's `sha256` with the poison-normalized semantic SHA256
+   of the same root's `support/slice_invariance.csv`;
+5. encode the full JSON object with the same canonical JSON rule above;
+6. use SHA256 of those bytes as the `ComparisonRow` hash.
+
+No other path, field, value, row, count, order, size, or manifest identity is
+normalized. Missing or extra files remain differences. Malformed headers,
+missing or duplicated manifest slice rows, and any non-registered mutation
+fail closed. The producer and terminal verifier independently recompute the
+same registered projection.
+
+The physical A/B/P slice and manifest bytes remain permanent evidence.
+Same-build `slice_source_sha256`, WorkRow SHA, SLICE FeatureCall input
+authority, work-manifest closure, consumer feature-output equality and
+terminal manifest self-exclusion are verified before accepting the semantic
+comparison. Thus normalization removes only the mechanical identity change
+caused by deliberately poisoned unconsumed bytes; it does not hide a consumed
+feature, detector, support, gate, or package mutation.
+
 `execution_evidence.json` contains only `RAW_11` and `SEALED_15` comparison
 rows. It never hashes itself or either manifest. `attempt-result.json` is the
 pre-terminal closure over `FINAL_17` plus exactly:
@@ -777,9 +834,10 @@ Every retained slice is also no-replace published and fsynced.
 `attempt-result.json` and the tracked terminal receipt. Work evidence is
 permanent for this task and may not be cleaned after claim consumption.
 
-Canonical A/B differences belong only to A-1-0. A/P differences belong only
-to A-1-1. An A/P mismatch is retained as negative outcome-boundary evidence;
-it does not prevent final package creation and is not reassigned to A-1-0.
+Canonical A/B differences belong only to A-1-0. A/P differences under the
+registered poison-normalized comparison belong only to A-1-1. An A/P
+mismatch is retained as negative outcome-boundary evidence; it does not
+prevent final package creation and is not reassigned to A-1-0.
 
 Frozen poison expectations:
 
@@ -1878,7 +1936,15 @@ At minimum:
   restore and post-entry array mutation are terminal failures;
 - every unconsumed poison value changes and consumed values do not;
 - A/B missing, extra and byte mutations fail A-1-0;
-- A/P missing, extra and byte mutations produce A-1-1 negative evidence;
+- A/P missing and extra paths produce A-1-1 negative evidence;
+- A/P byte mutations outside the two registered normalized fields produce
+  A-1-1 negative evidence;
+- A/P `slice_invariance.csv` header/row/order/non-source-field mutations fail,
+  while a same-build-valid `slice_source_sha256` physical identity difference
+  alone is normalized;
+- A/P `run_manifest.json` structure/order/non-slice-artifact mutations fail,
+  while only the slice artifact SHA derived from the registered normalized
+  slice comparison is normalized;
 - attestation mutation fails;
 - all 17 schemas, typed sentinels, sorting and manifest self-exclusion;
 - zero, negative, NaN, infinity and wrong-type gate mutations;
