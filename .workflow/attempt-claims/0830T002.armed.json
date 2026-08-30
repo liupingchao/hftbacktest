@@ -18,12 +18,12 @@
   "implementation_tag": "skhynix-fixed-epoch-leader-trigger-a-minus1-implementation-v1",
   "plan_sha256": "8171a7bed7b216527fed468dbcff8f31ab1f48ec871bb2eee9b0ae7ad123f79c",
   "repo_root": "/Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate",
-  "runner_sha256": "5fdfe09a42c85f9d7a135d50bca3dda680f33b429a6869ac8e0586f9663967cf",
+  "runner_sha256": "7115b3f0b0816d80aee2192f65cf53207c47e1583c2c23e9b1887a62df4956be",
   "schema_version": 1,
   "source_cache_root": "/Users/liu/Documents/hftbacktest-0829t003-fixed-causal-epoch-mstate-a-minus1/local_live_analysis/skhynix_fixed_causal_epoch_mstate_a_minus1_0829T003/cache",
   "status": "ARMED_FOR_SINGLE_USE",
   "task_id": "0830T002",
-  "task_sha256": "94ee1103069e67186efb4ba1ce4799a5266698f54d020b5815b10f92cba6bb51",
-  "tests_sha256": "33dce2f5011b8722d724bbcc893a8164ae71fb0ee172d3bd85c2d80ac442fa53",
-  "verifier_sha256": "692a1a1778f17e4af2f73bb034bcd87f86085b17993bbefdf1ef3afa3cedcdf7"
+  "task_sha256": "c7cd7d2b6e7ef73acedd6d8bd058bbea99aaffcd21f49510fdf461d5a230d272",
+  "tests_sha256": "2af680f36d65715b54ad4a5ac486b003d828cd74df6515910db1cea5e726ef97",
+  "verifier_sha256": "6fd1883637a4f357454d5835e35d2f3d3a844c7712d7dff4a922a543a419d8d2"
 }
