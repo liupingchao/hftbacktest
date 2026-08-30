@@ -10,8 +10,12 @@
 - The Revision 18 scientific contract is unchanged. The only registered
   implementation correction is an explicit
   `check_working_tree=True` baseline-authority preflight argument.
-- Formal cache execution remains locked pending independent replacement-plan
-  review, focused tests and implementation readiness acceptance.
+- Independent replacement-plan review passed at
+  `P0/P1/P2/P3=0/0/0/0`.
+- Replacement implementation commit is `65b0e553`; focused tests passed at
+  `152 passed`, inherited tests at `156 passed, 1 skipped`.
+- Formal cache execution remains locked pending claim/tag freeze and
+  independent implementation readiness acceptance.
 
 ## 2026-08-30 0830T002 Formal Attempt Interrupted
 
