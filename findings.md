@@ -45,6 +45,12 @@
 - Instrumentation evidence should be a terminal-only artifact when boundary
   violations prevent a complete scientific build; placing it inside a
   scientific gate file creates conflicting ownership.
+- A commit cannot bind its own SHA through a file in its tree. Terminal head
+  identity must be observed only after commit creation and must never flow
+  back into pre-terminal artifacts.
+- External durability claims need an explicit threat model. This task protects
+  against local deletion and accidental rerun, not an administrator
+  deliberately rewriting the external Git host.
 
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 

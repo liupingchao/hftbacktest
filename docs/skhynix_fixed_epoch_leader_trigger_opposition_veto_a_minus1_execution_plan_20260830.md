@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 6, pre-execution
+Revision: 7, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -239,7 +239,7 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 6 definitions and the task-frozen idea SHA are
+The idea document's Revision 7 definitions and the task-frozen idea SHA are
 normative, in this only order:
 
 - checkpoint-exact causal order;
@@ -454,40 +454,32 @@ annotated tag:
 skhynix-fixed-epoch-leader-trigger-a-minus1-terminal-v1
 ```
 
-The protected controller authority is outside the formal worktree:
+The controller authority is the external GitHub remote, outside the local
+worktree and object store:
 
 ```text
-bare repo:
-  /Users/liu/Documents/.codex-research-controller/0830T002.git
 remote name:
-  0830T002-controller
+  origin
+remote URL:
+  git@github.com:liupingchao/hftbacktest.git
 ledger ref:
-  refs/heads/0830T002-ledger
+  refs/heads/codex/0830T002-controller-ledger
 ```
 
-Implementation freeze creates this bare repo with:
-
-```text
-receive.denyDeletes=true
-receive.denyNonFastForwards=true
-core.fsync=all
-core.fsyncMethod=fsync
-```
-
-and a frozen `pre-receive` hook. The hook accepts only:
-
-1. absent ref -> exact consumption commit whose parent is the implementation
-   tag and whose only tree delta is armed-to-claimed same-blob rename;
-2. consumption commit -> exact terminal commit whose only tree delta is the
-   terminal receipt;
-3. rejects deletion, non-fast-forward, extra commits, extra refs and every
-   third update.
-
-The hook path/SHA256 and bare-repo config are frozen in task/armed claim.
 Before any cache read, the source repo pushes the consumption commit to the
-controller ledger and requires the remote ref to equal the consumption head.
+external ledger and requires `git ls-remote` to equal the consumption head.
 Formal completion pushes the terminal commit as the ledger's only
 fast-forward and requires the remote ref to equal the terminal head.
+
+Threat model:
+
+- protects against local worktree/object-store deletion, reset, crash,
+  accidental rerun and ordinary protocol deviation;
+- does not claim resistance to an actor who deliberately uses GitHub
+  repository-administration credentials to delete or rewrite the external
+  ledger;
+- such remote-admin tampering is outside this scientific execution protocol
+  and must be treated as invalidating the study, not as a supported recovery.
 
 and commits exactly one tracked armed claim:
 
@@ -560,7 +552,8 @@ Before any `.npz` open, the orchestrator must:
 9. commit the exact same-blob armed-to-claimed rename as the only tree delta,
    create the annotated consumption tag, verify its parent is the
    implementation tag, run `git fsck --full`, and reverify Git fsync settings;
-10. push the consumption commit to the protected controller ledger and verify
+10. push the consumption commit to the external controller ledger without
+    force and verify
     the remote ref exactly;
 11. create the attempt root with `mkdir`, then `fsync` its parent directory;
 12. create and `fsync` `attempt-lock.json` through a same-directory temporary
@@ -611,7 +604,8 @@ The one-shot process performs:
 14. create the exact tracked terminal receipt, commit only that receipt,
     create the annotated terminal tag and verify its parent is the consumption
     commit; run `git fsck --full` and reverify Git fsync settings;
-15. push the terminal commit as the only controller-ledger fast-forward and
+15. push the terminal commit without force as the only controller-ledger
+    fast-forward and
     verify the remote ref exactly.
 
 Exact projections:
@@ -905,7 +899,8 @@ FeatureCall = object{
   call_index:int,build_label:str,unit_kind:str,capture_id:str,
   research_date:str,slice_ordinal:nullable[int],resolved_input_path:str,
   input_sha256:sha256,input_authority:str,feature_output_sha256:sha256,
-  consumer_input_sha256:sha256,field_name_schema_access_count:int,
+  ipc_envelope_sha256:sha256,consumer_input_sha256:sha256,
+  detector_exit_sha256:sha256,field_name_schema_access_count:int,
   consumed_value_access_count:int,forbidden_value_access_count:int,
   consumer_use_count:int
 }
@@ -917,7 +912,7 @@ FieldAccess = object{
 }
 
 RawOpenEvent = object{
-  event_index:int,build_label:str,phase:str,event_type:str,
+  event_index:int,call_index:int,build_label:str,phase:str,event_type:str,
   resolved_path:str,operation:str,caller_path:str,caller_name:str,
   allowed:bool
 }
@@ -1076,8 +1071,7 @@ Exact sibling schemas:
   formal_argv:list[str],repo_root:str,source_cache_root:str,attempt_root:str,
   idea_sha256:sha256,plan_sha256:sha256,task_sha256:sha256,
   runner_sha256:sha256,verifier_sha256:sha256,tests_sha256:sha256,
-  controller_repo:str,controller_ref:str,controller_hook_sha256:sha256,
-  controller_config_sha256:sha256,status:str
+  controller_remote:str,controller_url:str,controller_ref:str,status:str
 }
 ```
 
@@ -1088,7 +1082,7 @@ attempt-lock.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,pid:int,
   started_at_utc:str,cwd:str,argv:list[str],implementation_head:sha1,
   consumption_head:sha1,claimed_sha256:sha256,repo_root:str,
-  source_cache_root:str,attempt_root:str,controller_repo:str,
+  source_cache_root:str,attempt_root:str,controller_remote:str,
   controller_ref:str,controller_consumption_head:sha1
 }
 ```
@@ -1130,7 +1124,7 @@ hypothesis_id = "FIXED_CAUSAL_EPOCH_MSTATE_V2"
 attempt-result.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,
   phase:str,exit_code:int,finished_at_utc:str,consumption_head:sha1,
-  controller_ref:str,controller_terminal_head:sha1,
+  controller_ref:str,
   attempt_lock_sha256:sha256,claimed_sha256:sha256,
   poison_attestation_sha256:sha256,instrumentation_evidence_sha256:sha256,
   work_manifest_sha256:sha256,
@@ -1153,7 +1147,10 @@ instrumentation-evidence.json = object{
   successor_np_load_callsite_count:int,feature_calls:list[FeatureCall],
   field_accesses:list[FieldAccess],raw_open_events:list[RawOpenEvent],
   loader_boundary_violation_count:int,detector_boundary_violation_count:int,
-  feature_mutation_violation_count:int
+  feature_mutation_violation_count:int,inherited_fd_violation_count:int,
+  ipc_envelope_violation_count:int,raw_reference_cross_boundary_count:int,
+  raw_buffer_cross_boundary_count:int,loader_process_count:int,
+  detector_process_count:int
 }
 ```
 
@@ -1161,8 +1158,7 @@ instrumentation-evidence.json = object{
 .workflow/attempt-receipts/0830T002.terminal.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,
   implementation_head:sha1,consumption_head:sha1,
-  terminal_head:sha1,controller_repo:str,controller_ref:str,
-  controller_terminal_head:sha1,
+  controller_remote:str,controller_ref:str,
   attempt_result_sha256:sha256,attempt_lock_sha256:sha256,
   poison_attestation_sha256:sha256,
   instrumentation_evidence_sha256:sha256,
@@ -1267,8 +1263,7 @@ tracked_files count/order:
   4 examples/hyperliquid/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py
   5 examples/hyperliquid/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_verifier.py
   6 examples/hyperliquid/test_skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py
-  7 .workflow/controller-hooks/0830T002-pre-receive
-  8 .workflow/attempt-claims/0830T002.claimed.json
+  7 .workflow/attempt-claims/0830T002.claimed.json
 
 callables count/order:
   1 build_features
@@ -1327,7 +1322,39 @@ FeatureCall enums:
   consumed_value_access_count = 12
   forbidden_value_access_count = 0
   consumer_use_count = 1
-  feature_output_sha256 = consumer_input_sha256
+  feature_output_sha256 = consumer_input_sha256 = detector_exit_sha256
+
+instrumentation evidence:
+  status = "PASS"
+  successor_np_load_callsite_count = 0
+  all seven violation counts = 0
+  loader_process_count = analyzed_unit_count
+  detector_process_count = analyzed_unit_count
+
+RawOpenEvent:
+  event_index is global zero-based contiguous after canonical sorting
+  call_index references one FeatureCall
+  build_label in {"A","B","P"}
+  phase order/enums = {"HASHER","SLICE_MATERIALIZER","LOADER"}
+  event_type in {"open","os.open","mmap.__new__"}
+  operation in {"READ_INPUT","WRITE_SLICE"}
+  caller_path is repo-relative authority source path
+  caller_name is the authority-root function, not immediate library frame
+  allowed = true for every successful row
+  sort = call_index, phase order, event_type ASCII, resolved_path ASCII,
+         operation ASCII, caller_path ASCII, caller_name ASCII
+  duplicate full rows forbidden
+
+IPC envelope exact canonical JSON:
+  object{
+    schema_version=1,
+    call_index,
+    feature_output_sha256,
+    field_access_sha256,
+    feature_key_count
+  }
+  serialized sort_keys=true,separators=(",",":"),ensure_ascii=true
+  SHA256 equals FeatureCall.ipc_envelope_sha256
 
 Comparison.domain exact values:
   "RAW_11:A_vs_B"
@@ -1615,6 +1642,9 @@ At minimum:
   and transition commit remain;
 - delete tags + reset branch + delete root still fails via reflog/unreachable
   transition scan; simulated Git object/ref loss fails `git fsck`;
+- local refs/reflogs/object store deletion still cannot erase the external
+  origin ledger; deliberate GitHub-admin ledger tampering is outside the
+  registered threat model and invalidates the study;
 - missing/mutated/extra work input, work-manifest mismatch and FeatureCall
   input-SHA/path-authority mismatch fail terminal verification;
 - FINAL_17/attestation/result no-replace publication, directory fsync,
@@ -1625,6 +1655,12 @@ At minimum:
   maximum-memory-age sentinel.
 - verifier wrong CLI/root/tag, verifier self-mutation, missing work evidence,
   post-seal mutation, exact exit code and 13-row result schema.
+- no pre-terminal artifact contains terminal commit/ref SHA; self-reference
+  graph mutation fails plan/readiness review.
+- inherited FD injection, DETECTOR raw path/env/cwd reconstruction, LOADER IPC
+  extra field/raw-byte smuggling, RawOpenEvent drop/reorder/caller spoof,
+  HASHER/SLICE authority mutation and instrumentation sibling
+  missing/extra/mutation/no-replace failures.
 
 ## 17. Pre-Execution Locks
 

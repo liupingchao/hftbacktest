@@ -32,6 +32,11 @@
 - Revision 6 moves single-use authority to a protected controller bare repo
   outside the worktree and closes the remaining instrumentation/hash/verifier
   ambiguities. No cache has been read.
+- Independent Round 6 review failed at `P0/P1/P2/P3=1/1/2/0`; the P0 was a
+  terminal-commit SHA self-reference, so execution remained locked.
+- Revision 7 removes all pre-terminal terminal-head fields and uses the
+  external GitHub origin ledger under an explicit non-adversarial-admin threat
+  model. No cache has been read.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 
