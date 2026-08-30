@@ -1202,6 +1202,8 @@ def recompute_a_minus1_2_actuals(
     tables: Mapping[str, list[dict[str, Any]]],
     work: Mapping[str, Any],
     instrumentation: Mapping[str, Any],
+    *,
+    build_label: str = "A",
 ) -> dict[str, int]:
     channel_rows = tables["support/channel_action_by_date.csv"]
     epoch_rows = tables["support/epoch_support.csv"]
@@ -1214,12 +1216,15 @@ def recompute_a_minus1_2_actuals(
         work["per_build_slice_count"] == len(slice_rows),
         "slice_work_count_identity",
     )
-    a_work_rows = {
+    build_work_rows = {
         (row["cache_name"], row["slice_ordinal"]): row
         for row in work_rows
-        if row["build_label"] == "A"
+        if row["build_label"] == build_label
     }
-    require(len(a_work_rows) == len(slice_rows), "slice_work_a_identity")
+    require(
+        len(build_work_rows) == len(slice_rows),
+        f"slice_work_{build_label.lower()}_identity",
+    )
     slice_calls = [
         row for row in instrumentation["feature_calls"] if row["unit_kind"] == "SLICE"
     ]
@@ -1227,8 +1232,16 @@ def recompute_a_minus1_2_actuals(
         len(slice_calls) == len(work_rows),
         "slice_feature_call_count_identity",
     )
+    build_slice_calls = [
+        row for row in slice_calls if row["build_label"] == build_label
+    ]
+    require(
+        len(build_slice_calls) == len(slice_rows),
+        f"slice_feature_call_{build_label.lower()}_identity",
+    )
 
     comparable_keys: set[tuple[str, int]] = set()
+    derived_slice_mismatch_count = 0
     rows_by_capture: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
     for row in slice_rows:
         rows_by_capture[row["capture_id"]].append(row)
@@ -1245,7 +1258,7 @@ def recompute_a_minus1_2_actuals(
                 "slice_comparison_boundary_identity",
             )
             cache_name = f"{capture_id}.npz"
-            work_row = a_work_rows.get((cache_name, slice_ordinal))
+            work_row = build_work_rows.get((cache_name, slice_ordinal))
             require(
                 work_row is not None
                 and row["slice_source_sha256"] == work_row["sha256"],
@@ -1261,11 +1274,49 @@ def recompute_a_minus1_2_actuals(
             }
             require(
                 len(comparable) == row["comparable_epoch_count"]
-                and row["expected_epoch_disposition_count"] == len(comparable)
-                and row["actual_epoch_disposition_count"] == len(comparable),
+                and row["expected_epoch_disposition_count"] == len(comparable),
                 "slice_comparable_epoch_identity",
             )
             comparable_keys.update(comparable)
+            derived_exacts = {}
+            for surface in (
+                "epoch_disposition",
+                "counter",
+                "retained",
+                "status",
+                "support",
+            ):
+                exact = (
+                    row[f"expected_{surface}_count"] == row[f"actual_{surface}_count"]
+                    and row[f"expected_{surface}_sha256"]
+                    == row[f"actual_{surface}_sha256"]
+                )
+                require(
+                    row[f"{surface}_exact"] is exact,
+                    f"slice_{surface}_exact_derivation",
+                )
+                derived_exacts[surface] = exact
+            mismatch_reason = next(
+                (
+                    surface
+                    for surface in (
+                        "epoch_disposition",
+                        "counter",
+                        "retained",
+                        "status",
+                        "support",
+                    )
+                    if not derived_exacts[surface]
+                ),
+                "cross_segment"
+                if row["cross_segment_checkpoint_count"] > 0
+                else "none",
+            )
+            require(
+                row["mismatch_reason"] == mismatch_reason,
+                "slice_mismatch_reason_derivation",
+            )
+            derived_slice_mismatch_count += int(mismatch_reason != "none")
 
     fixed_epoch_violations = 0
     epochs_by_capture: dict[tuple[str, str], list[Mapping[str, Any]]] = defaultdict(
@@ -1281,10 +1332,27 @@ def recompute_a_minus1_2_actuals(
             )
         )
 
+    action_partition_violation_count = 0
+    for row in channel_rows:
+        partition_exact = row["total_action_count"] == sum(
+            row[field]
+            for field in (
+                "global_invalid_action_count",
+                "new_invalid_action_count",
+                "new_pos_action_count",
+                "new_neg_action_count",
+                "new_neutral_action_count",
+                "no_update_action_count",
+            )
+        )
+        require(
+            row["action_partition_exact"] is partition_exact,
+            "action_partition_exact_derivation",
+        )
+        action_partition_violation_count += int(not partition_exact)
+
     return {
-        "action_partition_violation_count": sum(
-            not row["action_partition_exact"] for row in channel_rows
-        ),
+        "action_partition_violation_count": action_partition_violation_count,
         "unauthorized_ttl_refresh_count": sum(
             row["unauthorized_ttl_refresh_count"] for row in channel_rows
         ),
@@ -1294,9 +1362,7 @@ def recompute_a_minus1_2_actuals(
         "conservation_violation_count": 3
         * counter_conservation_violation_count(counter_rows),
         "fixed_epoch_violation_count": 3 * fixed_epoch_violations,
-        "slice_mismatch_count": sum(
-            row["mismatch_reason"] != "none" for row in slice_rows
-        ),
+        "slice_mismatch_count": derived_slice_mismatch_count,
         "cross_segment_compared_checkpoint_count": sum(
             row["cross_segment_checkpoint_count"] for row in slice_rows
         ),
@@ -1318,6 +1384,8 @@ def validate_scientific_derivations(
     integrity: Mapping[str, Any],
     work: Mapping[str, Any],
     instrumentation: Mapping[str, Any],
+    *,
+    build_label: str,
 ) -> None:
     expected_support, expected_variants = recompute_scientific_tables(
         tables["support/epoch_variant_counters.csv"],
@@ -1352,7 +1420,12 @@ def validate_scientific_derivations(
             )
     expected_integrity = {
         "source_preflight_violation_count": 0,
-        **recompute_a_minus1_2_actuals(tables, work, instrumentation),
+        **recompute_a_minus1_2_actuals(
+            tables,
+            work,
+            instrumentation,
+            build_label=build_label,
+        ),
     }
     require(integrity == expected_integrity, "a_minus1_2_integrity_derivation")
     a_minus1_2 = next(row for row in gate["gates"] if row["gate_id"] == "A-1-2")
@@ -1397,13 +1470,31 @@ def comparison(
     left_root: Path,
     right_root: Path,
     paths: Sequence[str],
+    *,
+    poison_normalize_slice_source: bool = False,
 ) -> dict[str, Any]:
     left = {path for path in paths if (left_root / path).is_file()}
     right = {path for path in paths if (right_root / path).is_file()}
     rows = []
     for relative in sorted(left | right):
-        left_sha = sha256_file(left_root / relative) if relative in left else None
-        right_sha = sha256_file(right_root / relative) if relative in right else None
+        left_sha = (
+            comparison_path_sha(
+                left_root,
+                relative,
+                poison_normalize_slice_source=poison_normalize_slice_source,
+            )
+            if relative in left
+            else None
+        )
+        right_sha = (
+            comparison_path_sha(
+                right_root,
+                relative,
+                poison_normalize_slice_source=poison_normalize_slice_source,
+            )
+            if relative in right
+            else None
+        )
         rows.append(
             {
                 "path": relative,
@@ -1421,6 +1512,53 @@ def comparison(
         + len(set(paths) - (left | right)),
         "rows": rows,
     }
+
+
+def comparison_path_sha(
+    root: Path,
+    relative: str,
+    *,
+    poison_normalize_slice_source: bool,
+) -> str:
+    path = root / relative
+    if not poison_normalize_slice_source:
+        return sha256_file(path)
+    if relative == "support/slice_invariance.csv":
+        with path.open(newline="", encoding="ascii") as handle:
+            reader = csv.DictReader(handle)
+            require(
+                tuple(reader.fieldnames or ())
+                == CSV_HEADERS["support/slice_invariance.csv"],
+                "poison_slice_comparison_header",
+            )
+            rows = list(reader)
+        for row in rows:
+            row["slice_source_sha256"] = "0" * 64
+        return canonical_sha(rows)
+    if relative == "run_manifest.json":
+        payload = read_json(path)
+        artifacts = payload.get("artifacts")
+        require(
+            isinstance(artifacts, list),
+            "poison_manifest_comparison_artifacts",
+        )
+        slice_rows = [
+            row
+            for row in artifacts
+            if isinstance(row, dict)
+            and row.get("path") == "support/slice_invariance.csv"
+        ]
+        require(
+            len(slice_rows) == 1,
+            "poison_manifest_comparison_slice_row",
+        )
+        slice_rows[0]["sha256"] = comparison_path_sha(
+            root,
+            "support/slice_invariance.csv",
+            poison_normalize_slice_source=True,
+        )
+        return canonical_sha(payload)
+    return sha256_file(path)
 
 
 def validate_comparison(
@@ -1676,7 +1814,12 @@ def validate_gate_contract(payload: Mapping[str, Any]) -> None:
     )
 
 
-def validate_final_root(root: Path, context: Mapping[str, Any]) -> dict[str, Any]:
+def validate_final_root(
+    root: Path,
+    context: Mapping[str, Any],
+    *,
+    build_label: str,
+) -> dict[str, Any]:
     require(
         all(not path.is_symlink() for path in root.rglob("*")),
         "final17_symlink",
@@ -1886,6 +2029,7 @@ def validate_final_root(root: Path, context: Mapping[str, Any]) -> dict[str, Any
         summary["integrity"],
         context["work_manifest"],
         context["instrumentation"],
+        build_label=build_label,
     )
     require(
         summary["task_id"] == TASK_ID
@@ -2854,6 +2998,31 @@ def check_v05(context: dict[str, Any]) -> None:
         },
         "feature_full_call_closure",
     )
+    calls_by_unit: dict[
+        tuple[str, str, str, int | None], dict[str, Mapping[str, Any]]
+    ] = defaultdict(dict)
+    for call in calls:
+        key = (
+            call["unit_kind"],
+            call["capture_id"],
+            call["research_date"],
+            call["slice_ordinal"],
+        )
+        require(
+            call["build_label"] not in calls_by_unit[key],
+            "duplicate_cross_build_feature_call",
+        )
+        calls_by_unit[key][call["build_label"]] = call
+    for calls_by_build in calls_by_unit.values():
+        require(
+            set(calls_by_build) == set(ROOT_LABELS),
+            "cross_build_feature_call_triad",
+        )
+        require(
+            len({call["feature_output_sha256"] for call in calls_by_build.values()})
+            == 1,
+            "cross_build_feature_output_mismatch",
+        )
     events = instrumentation["raw_open_events"]
     require(
         [row["event_index"] for row in events] == list(range(len(events))),
@@ -3066,7 +3235,8 @@ def check_v06(context: dict[str, Any]) -> None:
 def check_v07(context: dict[str, Any]) -> None:
     roots = context["roots"]
     classifications = [
-        validate_final_root(roots[label], context) for label in ROOT_LABELS
+        validate_final_root(roots[label], context, build_label=label)
+        for label in ROOT_LABELS
     ]
     require(
         classifications[0] == classifications[1] == classifications[2],
@@ -3113,12 +3283,22 @@ def check_v09(context: dict[str, Any]) -> None:
     evidence = read_json(roots["A"] / "contracts/execution_evidence.json")
     expected = {
         "raw_a_b": comparison("RAW_11:A_vs_B", roots["A"], roots["B"], RAW_PATHS),
-        "raw_a_p": comparison("RAW_11:A_vs_P", roots["A"], roots["P"], RAW_PATHS),
+        "raw_a_p": comparison(
+            "RAW_11:A_vs_P",
+            roots["A"],
+            roots["P"],
+            RAW_PATHS,
+            poison_normalize_slice_source=True,
+        ),
         "sealed_a_b": comparison(
             "SEALED_15:A_vs_B", roots["A"], roots["B"], SEALED_PATHS
         ),
         "sealed_a_p": comparison(
-            "SEALED_15:A_vs_P", roots["A"], roots["P"], SEALED_PATHS
+            "SEALED_15:A_vs_P",
+            roots["A"],
+            roots["P"],
+            SEALED_PATHS,
+            poison_normalize_slice_source=True,
         ),
     }
     for name, value in expected.items():
@@ -3137,7 +3317,11 @@ def check_v09(context: dict[str, Any]) -> None:
         "FINAL_17:A_vs_B", roots["A"], roots["B"], FINAL_PATHS
     )
     context["final_a_p"] = comparison(
-        "FINAL_17:A_vs_P", roots["A"], roots["P"], FINAL_PATHS
+        "FINAL_17:A_vs_P",
+        roots["A"],
+        roots["P"],
+        FINAL_PATHS,
+        poison_normalize_slice_source=True,
     )
     validate_comparison(
         context["final_a_b"],

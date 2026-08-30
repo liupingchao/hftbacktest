@@ -1824,7 +1824,11 @@ def synthetic_terminal_package(
                 slice_path = work_root / build_label / cache_name / "slice_000000.npz"
                 slice_path.parent.mkdir(parents=True, exist_ok=True)
                 slice_path.write_bytes(
-                    f"slice-{build_label}-{cache_index}\n".encode("ascii")
+                    (
+                        f"slice-canonical-{cache_index}\n"
+                        if build_label in {"A", "B"}
+                        else f"slice-poisoned-{cache_index}\n"
+                    ).encode("ascii")
                 )
                 work_rows.append(
                     {
@@ -1986,8 +1990,11 @@ def synthetic_terminal_package(
     channel_rows = []
     epoch_rows = []
     slice_rows = []
-    a_work_by_cache = {
-        row["cache_name"]: row for row in work_rows if row["build_label"] == "A"
+    work_by_label_cache = {
+        label: {
+            row["cache_name"]: row for row in work_rows if row["build_label"] == label
+        }
+        for label in VERIFIER.ROOT_LABELS
     }
     for date_index in range(4):
         research_date = f"2026-08-{date_index + 1:02d}"
@@ -2048,7 +2055,7 @@ def synthetic_terminal_package(
                 "actual_start_ts_ns": 0,
                 "comparison_floor_ns": VERIFIER.SLICE_GUARD_NS,
                 "first_comparable_epoch_id": 3,
-                "slice_source_sha256": a_work_by_cache[f"{capture_id}.npz"]["sha256"],
+                "slice_source_sha256": "",
                 "comparable_epoch_count": 8,
                 "expected_epoch_disposition_count": 8,
                 "actual_epoch_disposition_count": 8,
@@ -2079,17 +2086,24 @@ def synthetic_terminal_package(
                 "mismatch_reason": "none",
             }
         )
-    raw_tables = {
-        "support/source_cache_inventory.csv": inventory,
-        "support/channel_action_by_date.csv": channel_rows,
-        "support/epoch_support.csv": epoch_rows,
-        "support/epoch_variant_counters.csv": counter_rows,
-        "support/slice_invariance.csv": slice_rows,
-        "support/support_by_date.csv": support_rows,
-        "support/trigger_ledger.csv": [],
-        "support/variant_summary.csv": variant_rows,
-    }
-    for root in roots.values():
+    raw_tables_by_label = {}
+    for label, root in roots.items():
+        label_slice_rows = copy.deepcopy(slice_rows)
+        for row in label_slice_rows:
+            row["slice_source_sha256"] = work_by_label_cache[label][
+                f"{row['capture_id']}.npz"
+            ]["sha256"]
+        raw_tables = {
+            "support/source_cache_inventory.csv": inventory,
+            "support/channel_action_by_date.csv": channel_rows,
+            "support/epoch_support.csv": epoch_rows,
+            "support/epoch_variant_counters.csv": counter_rows,
+            "support/slice_invariance.csv": label_slice_rows,
+            "support/support_by_date.csv": support_rows,
+            "support/trigger_ledger.csv": [],
+            "support/variant_summary.csv": variant_rows,
+        }
+        raw_tables_by_label[label] = raw_tables
         AUDIT.write_json_no_replace(
             root / "contracts/authority_binding.json", authority
         )
@@ -2105,10 +2119,14 @@ def synthetic_terminal_package(
             AUDIT.write_csv_no_replace(
                 root / relative, rows, VERIFIER.CSV_HEADERS[relative]
             )
+    raw_tables = raw_tables_by_label["A"]
     integrity = {
         "source_preflight_violation_count": 0,
         **VERIFIER.recompute_a_minus1_2_actuals(
-            raw_tables, work_manifest, instrumentation
+            raw_tables,
+            work_manifest,
+            instrumentation,
+            build_label="A",
         ),
     }
     authority_state = {
@@ -2283,10 +2301,12 @@ def synthetic_terminal_package(
         "instrumentation": instrumentation,
         "work_manifest": work_manifest,
         "raw_tables": raw_tables,
+        "raw_tables_by_label": raw_tables_by_label,
         "counter_rows": counter_rows,
         "support_rows": support_rows,
         "variant_rows": variant_rows,
         "integrity": integrity,
+        "comparisons": comparisons,
     }
 
 
@@ -2538,6 +2558,27 @@ def test_complete_synthetic_terminal_package_passes_v00_v12(
         )
         == 24
     )
+    work_rows = package["work_manifest"]["rows"]
+    work_sha = {
+        (row["build_label"], row["cache_name"], row["slice_ordinal"]): row["sha256"]
+        for row in work_rows
+    }
+    assert work_sha[("A", "capture00.npz", 0)] == work_sha[("B", "capture00.npz", 0)]
+    assert work_sha[("A", "capture00.npz", 0)] != work_sha[("P", "capture00.npz", 0)]
+    for label, root in package["roots"].items():
+        rows = VERIFIER.typed_csv_rows(
+            root / "support/slice_invariance.csv",
+            "support/slice_invariance.csv",
+        )
+        assert rows[0]["slice_source_sha256"] == work_sha[(label, "capture00.npz", 0)]
+    assert VERIFIER.sha256_file(
+        package["roots"]["A"] / "support/slice_invariance.csv"
+    ) != VERIFIER.sha256_file(package["roots"]["P"] / "support/slice_invariance.csv")
+    assert VERIFIER.sha256_file(
+        package["roots"]["A"] / "run_manifest.json"
+    ) != VERIFIER.sha256_file(package["roots"]["P"] / "run_manifest.json")
+    assert package["comparisons"]["final_a_b"]["difference_count"] == 0
+    assert package["comparisons"]["final_a_p"]["difference_count"] == 0
     assert package["integrity"] == {
         "source_preflight_violation_count": 0,
         "action_partition_violation_count": 0,
@@ -2579,6 +2620,117 @@ def test_v07_rejects_empty_slice_evidence_with_handfilled_passing_actuals(
     assert package["integrity"]["distinct_comparable_epoch_count"] == 32
     assert package["integrity"]["compared_support_checkpoint_count"] == 288_000
     assert_verify_terminal_failure(package, 7)
+
+
+def test_v07_rejects_handfilled_action_partition_exact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    for root in package["roots"].values():
+        relative = "support/channel_action_by_date.csv"
+        rows = VERIFIER.typed_csv_rows(root / relative, relative)
+        rows[0]["total_action_count"] = 1
+        assert rows[0]["action_partition_exact"] is True
+        (root / relative).write_bytes(
+            AUDIT.csv_bytes(rows, VERIFIER.CSV_HEADERS[relative])
+        )
+    assert_verify_terminal_failure(package, 7)
+
+
+def test_v07_rejects_handfilled_slice_exact_and_mismatch_reason(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    for root in package["roots"].values():
+        relative = "support/slice_invariance.csv"
+        rows = VERIFIER.typed_csv_rows(root / relative, relative)
+        rows[0]["actual_counter_count"] += 1
+        assert rows[0]["counter_exact"] is True
+        assert rows[0]["mismatch_reason"] == "none"
+        (root / relative).write_bytes(
+            AUDIT.csv_bytes(rows, VERIFIER.CSV_HEADERS[relative])
+        )
+    assert_verify_terminal_failure(package, 7)
+
+
+def test_v07_rejects_handfilled_slice_mismatch_reason_after_exact_sync(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    for root in package["roots"].values():
+        relative = "support/slice_invariance.csv"
+        rows = VERIFIER.typed_csv_rows(root / relative, relative)
+        rows[0]["actual_counter_count"] += 1
+        rows[0]["counter_exact"] = False
+        assert rows[0]["mismatch_reason"] == "none"
+        (root / relative).write_bytes(
+            AUDIT.csv_bytes(rows, VERIFIER.CSV_HEADERS[relative])
+        )
+    assert_verify_terminal_failure(package, 7)
+
+
+def test_v05_rejects_cross_build_consumer_output_mismatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    path = package["attempt"] / "instrumentation-evidence.json"
+    payload = VERIFIER.read_json(path)
+    call = next(
+        row
+        for row in payload["feature_calls"]
+        if row["build_label"] == "P"
+        and row["unit_kind"] == "SLICE"
+        and row["capture_id"] == "capture00"
+    )
+    changed = VERIFIER.canonical_sha(["changed-consumer-output"])
+    call["feature_output_sha256"] = changed
+    call["consumer_input_sha256"] = changed
+    call["detector_exit_sha256"] = changed
+    write_json(path, payload)
+    assert_verify_terminal_failure(package, 5)
+
+
+def test_poison_comparison_ignores_only_slice_source_sha(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    roots = package["roots"]
+    comparison = AUDIT.comparison(
+        "RAW_11:A_vs_P",
+        roots["A"],
+        roots["P"],
+        AUDIT.RAW_11,
+        poison_normalize_slice_source=True,
+    )
+    assert comparison["difference_count"] == 0
+
+    relative = "support/slice_invariance.csv"
+    rows = VERIFIER.typed_csv_rows(roots["P"] / relative, relative)
+    rows[0]["actual_support_count"] += 1
+    (roots["P"] / relative).write_bytes(
+        AUDIT.csv_bytes(rows, VERIFIER.CSV_HEADERS[relative])
+    )
+    comparison = AUDIT.comparison(
+        "RAW_11:A_vs_P",
+        roots["A"],
+        roots["P"],
+        AUDIT.RAW_11,
+        poison_normalize_slice_source=True,
+    )
+    assert comparison["difference_count"] == 1
+    assert (
+        next(
+            row
+            for row in comparison["rows"]
+            if row["path"] == "support/slice_invariance.csv"
+        )["equal"]
+        is False
+    )
 
 
 @pytest.mark.parametrize("target_index", range(12))
@@ -2878,19 +3030,33 @@ def test_production_v09_rejects_execution_evidence_artifact_mutation(
     roots = {label: tmp_path / label for label in VERIFIER.ROOT_LABELS}
     for relative in VERIFIER.SEALED_PATHS:
         for root in roots.values():
-            write_ascii(root / relative, f"{relative}\n")
+            if relative == "support/slice_invariance.csv":
+                root.joinpath(relative).parent.mkdir(parents=True, exist_ok=True)
+                root.joinpath(relative).write_bytes(
+                    AUDIT.csv_bytes([], VERIFIER.CSV_HEADERS[relative])
+                )
+            else:
+                write_ascii(root / relative, f"{relative}\n")
     evidence = {
         "raw_a_b": VERIFIER.comparison(
             "RAW_11:A_vs_B", roots["A"], roots["B"], VERIFIER.RAW_PATHS
         ),
         "raw_a_p": VERIFIER.comparison(
-            "RAW_11:A_vs_P", roots["A"], roots["P"], VERIFIER.RAW_PATHS
+            "RAW_11:A_vs_P",
+            roots["A"],
+            roots["P"],
+            VERIFIER.RAW_PATHS,
+            poison_normalize_slice_source=True,
         ),
         "sealed_a_b": VERIFIER.comparison(
             "SEALED_15:A_vs_B", roots["A"], roots["B"], VERIFIER.SEALED_PATHS
         ),
         "sealed_a_p": VERIFIER.comparison(
-            "SEALED_15:A_vs_P", roots["A"], roots["P"], VERIFIER.SEALED_PATHS
+            "SEALED_15:A_vs_P",
+            roots["A"],
+            roots["P"],
+            VERIFIER.SEALED_PATHS,
+            poison_normalize_slice_source=True,
         ),
         "implementation_head": "mutated",
     }

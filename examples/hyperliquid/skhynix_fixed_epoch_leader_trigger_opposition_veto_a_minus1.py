@@ -1798,13 +1798,31 @@ def comparison(
     left_root: Path,
     right_root: Path,
     paths: Sequence[str],
+    *,
+    poison_normalize_slice_source: bool = False,
 ) -> dict[str, Any]:
     left_paths = {path for path in paths if (left_root / path).is_file()}
     right_paths = {path for path in paths if (right_root / path).is_file()}
     rows = []
     for path in sorted(left_paths | right_paths):
-        left_sha = sha256_file(left_root / path) if path in left_paths else None
-        right_sha = sha256_file(right_root / path) if path in right_paths else None
+        left_sha = (
+            comparison_path_sha(
+                left_root,
+                path,
+                poison_normalize_slice_source=poison_normalize_slice_source,
+            )
+            if path in left_paths
+            else None
+        )
+        right_sha = (
+            comparison_path_sha(
+                right_root,
+                path,
+                poison_normalize_slice_source=poison_normalize_slice_source,
+            )
+            if path in right_paths
+            else None
+        )
         rows.append(
             {
                 "path": path,
@@ -1822,6 +1840,85 @@ def comparison(
         + len(set(paths) - (left_paths | right_paths)),
         "rows": rows,
     }
+
+
+def comparison_path_sha(
+    root: Path,
+    relative: str,
+    *,
+    poison_normalize_slice_source: bool,
+) -> str:
+    path = root / relative
+    if not poison_normalize_slice_source:
+        return sha256_file(path)
+    if relative == "support/slice_invariance.csv":
+        with path.open(newline="", encoding="ascii") as handle:
+            reader = csv.DictReader(handle)
+            require(
+                tuple(reader.fieldnames or ()) == SLICE_FIELDS,
+                "poison_slice_comparison_header",
+            )
+            rows = list(reader)
+        for row in rows:
+            row["slice_source_sha256"] = "0" * 64
+        return canonical_sha(rows)
+    if relative == "run_manifest.json":
+        payload = json.loads(path.read_text(encoding="ascii"))
+        artifacts = payload.get("artifacts")
+        require(
+            isinstance(artifacts, list),
+            "poison_manifest_comparison_artifacts",
+        )
+        slice_rows = [
+            row
+            for row in artifacts
+            if isinstance(row, dict)
+            and row.get("path") == "support/slice_invariance.csv"
+        ]
+        require(
+            len(slice_rows) == 1,
+            "poison_manifest_comparison_slice_row",
+        )
+        slice_rows[0]["sha256"] = comparison_path_sha(
+            root,
+            "support/slice_invariance.csv",
+            poison_normalize_slice_source=True,
+        )
+        return canonical_sha(payload)
+    return sha256_file(path)
+
+
+def require_cross_build_consumer_identity(
+    feature_calls: Sequence[Mapping[str, Any]],
+) -> None:
+    grouped: dict[tuple[str, str, str, int | None], dict[str, Mapping[str, Any]]] = (
+        defaultdict(dict)
+    )
+    for call in feature_calls:
+        key = (
+            str(call["unit_kind"]),
+            str(call["capture_id"]),
+            str(call["research_date"]),
+            call["slice_ordinal"],
+        )
+        build_label = str(call["build_label"])
+        require(
+            build_label not in grouped[key],
+            "duplicate_cross_build_feature_call",
+        )
+        grouped[key][build_label] = call
+    for calls_by_build in grouped.values():
+        require(
+            set(calls_by_build) == {"A", "B", "P"},
+            "cross_build_feature_call_triad",
+        )
+        require(
+            len(
+                {str(call["feature_output_sha256"]) for call in calls_by_build.values()}
+            )
+            == 1,
+            "cross_build_feature_output_mismatch",
+        )
 
 
 def manifest_rows(root: Path, paths: Sequence[str]) -> list[dict[str, Any]]:
@@ -2977,7 +3074,13 @@ def seal_roots(
     implementation_head: str,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     raw_ab = comparison("RAW_11:A_vs_B", roots["A"], roots["B"], RAW_11)
-    raw_ap = comparison("RAW_11:A_vs_P", roots["A"], roots["P"], RAW_11)
+    raw_ap = comparison(
+        "RAW_11:A_vs_P",
+        roots["A"],
+        roots["P"],
+        RAW_11,
+        poison_normalize_slice_source=True,
+    )
     values = build_gate_values(
         aggregate=aggregate,
         integrity=integrity,
@@ -3053,7 +3156,13 @@ def seal_roots(
         write_json_no_replace(root / "reports/A_minus1_summary.json", summary)
         write_json_no_replace(root / "classification.json", classification_payload)
     sealed_ab = comparison("SEALED_15:A_vs_B", roots["A"], roots["B"], SEALED_15)
-    sealed_ap = comparison("SEALED_15:A_vs_P", roots["A"], roots["P"], SEALED_15)
+    sealed_ap = comparison(
+        "SEALED_15:A_vs_P",
+        roots["A"],
+        roots["P"],
+        SEALED_15,
+        poison_normalize_slice_source=True,
+    )
     evidence = {
         "schema_version": SCHEMA_VERSION,
         "attempt_id": attempt_id,
@@ -3076,7 +3185,13 @@ def seal_roots(
         )
         fsync_directory(root)
     final_ab = comparison("FINAL_17:A_vs_B", roots["A"], roots["B"], FINAL_17)
-    final_ap = comparison("FINAL_17:A_vs_P", roots["A"], roots["P"], FINAL_17)
+    final_ap = comparison(
+        "FINAL_17:A_vs_P",
+        roots["A"],
+        roots["P"],
+        FINAL_17,
+        poison_normalize_slice_source=True,
+    )
     return (
         {
             "classification": classification,
@@ -3879,6 +3994,7 @@ def execute_formal_attempt(
         for label in ("A", "B", "P")
         for row in build_results[label]["feature_calls"]
     ]
+    require_cross_build_consumer_identity(feature_calls)
     field_accesses = [
         row
         for label in ("A", "B", "P")
