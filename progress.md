@@ -43,6 +43,9 @@
 - Independent Round 8 review failed at `P0/P1/P2/P3=0/1/2/0`.
 - Revision 9 adds independent sender/receiver IPC transcripts and
   machine-readable pre/post remote observations. No cache has been read.
+- Independent Round 9 review failed at `P0/P1/P2/P3=0/1/2/0`.
+- Revision 10 closes command-exit and empty-string schema ambiguity and
+  enumerates the new hostile mutations. Data remains untouched.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 

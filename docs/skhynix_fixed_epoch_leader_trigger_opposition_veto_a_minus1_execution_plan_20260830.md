@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 9, pre-execution
+Revision: 10, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -239,7 +239,7 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 9 definitions and the task-frozen idea SHA are
+The idea document's Revision 10 definitions and the task-frozen idea SHA are
 normative, in this only order:
 
 - checkpoint-exact causal order;
@@ -515,8 +515,10 @@ the registered pre/post `ls-remote` observations:
 
 ```text
 attempt-lock remote_observations:
-  PRE_CONSUMPTION: stdout="", observed_head=null
+  PRE_CONSUMPTION: exit_code=0, stdout="", stderr="",
+                   observed_head=null
   POST_CONSUMPTION: stdout exact full line,
+                    exit_code=0, stderr="",
                     observed_head=consumption_head
 
 attempt-lock remote_transitions:
@@ -529,7 +531,8 @@ attempt-lock successful_push_count=1
 
 verifier remote_observations:
   exact copies of PRE_CONSUMPTION and POST_CONSUMPTION from attempt-lock
-  POST_TERMINAL: online ls-remote exact full line,
+  POST_TERMINAL: exit_code=0, stderr="",
+                 online ls-remote exact full line,
                  observed_head=terminal_head
 
 verifier remote_transitions:
@@ -544,6 +547,8 @@ verifier successful_push_count=2
 
 The verifier also requires the external ref history from consumption to
 terminal to be one commit and requires terminal parent exactly consumption.
+Any nonzero `ls-remote` exit code is terminal failure regardless of stdout;
+empty stdout is interpreted as absence only when exit code is exactly zero.
 
 Threat model:
 
@@ -949,6 +954,7 @@ Schema notation:
 
 ```text
 str = nonempty ASCII string
+text = ASCII string, empty allowed
 int = base-10 integer, bool forbidden
 number = finite JSON number, bool forbidden
 bool = true/false
@@ -1000,7 +1006,7 @@ IPCReceiver = object{
 }
 
 RemoteObservation = object{
-  observation_id:str,command:list[str],stdout:str,
+  observation_id:str,command:list[str],exit_code:int,stdout:text,stderr:text,
   observed_head:nullable[sha1]
 }
 
@@ -1077,7 +1083,7 @@ WorkRow = object{
 }
 
 VerifierCheck = object{
-  check_id:str,status:str,actual:str,required:str
+  check_id:str,status:str,actual:text,required:str
 }
 ```
 
@@ -1849,6 +1855,15 @@ At minimum:
   extra field/raw-byte smuggling, RawOpenEvent drop/reorder/caller spoof,
   HASHER/SLICE authority mutation and instrumentation sibling
   missing/extra/mutation/no-replace failures.
+- sender/receiver header, payload, frame SHA/size mismatch; zero/two frames;
+  missing EOF; nonzero unused bytes; open inherited send-end; second frame;
+  trailing bytes and receiver-side transcript mutation.
+- IPC dtype spelling, negative shape, shape/itemsize/length mismatch, offset
+  gap/overlap/overflow, zero-dimensional/zero-length arithmetic, payload-slice
+  SHA and canonical feature-row projection mutations.
+- `ls-remote` nonzero exit with empty stdout, stderr mutation, pre-existing
+  equal ref, wrong URL/refspec, wrong pre/post full SHA, transition
+  derived-from mutation and abbreviated SHA substitution.
 
 ## 17. Pre-Execution Locks
 
