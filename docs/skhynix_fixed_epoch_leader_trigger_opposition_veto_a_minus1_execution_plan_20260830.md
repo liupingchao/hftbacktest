@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 16, pre-execution
+Revision: 17, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -880,12 +880,13 @@ Every retained slice is also no-replace published and fsynced.
 `attempt-result.json` and the tracked terminal receipt. Work evidence is
 permanent for this task and may not be cleaned after claim consumption.
 
-Canonical A/B differences belong only to A-1-0. Producer-canonical A/P
-`RAW_11` differences under the registered poison-normalized comparison belong
-only to A-1-1. Such a RAW mismatch is retained as negative outcome-boundary
-evidence; it does not prevent final package creation and is not reassigned to
-A-1-0. `SEALED_15`, `FINAL_17` and non-canonical serialization have the
-separate phase-specific package semantics defined above.
+Canonical A/B `RAW_11` differences belong only to A-1-0.
+Producer-canonical A/P `RAW_11` differences under the registered
+poison-normalized comparison belong only to A-1-1. Such a RAW mismatch is
+retained as negative outcome-boundary evidence; it does not prevent final
+package creation and is not reassigned to A-1-0. `SEALED_15`, `FINAL_17` and
+non-canonical serialization have the separate phase-specific package
+semantics defined above.
 
 Frozen poison expectations:
 
@@ -1983,8 +1984,8 @@ At minimum:
 - attempted unconsumed/alternate-loader reads, alias import, proxy early
   restore and post-entry array mutation are terminal failures;
 - every unconsumed poison value changes and consumed values do not;
-- A/B missing, extra and byte mutations fail A-1-0;
-- A/P missing and extra paths produce A-1-1 negative evidence;
+- A/B `RAW_11` missing, extra and byte mutations fail A-1-0;
+- A/P `RAW_11` missing and extra paths produce A-1-1 negative evidence;
 - producer-canonical A/P byte/value mutations outside the two registered
   normalized fields in `RAW_11` produce A-1-1 negative evidence;
 - A/P `slice_invariance.csv` header/row/order/non-source-field mutations fail,
