@@ -1378,6 +1378,8 @@ def canonical_trigger_row(
             "capture_id": "fixture",
             "variant": "TRADE_LED",
             "direction": "-1",
+            "raw_onset_count": "1",
+            "veto_admitted_count": "1",
             "retained_count": "1",
             "confirmed_count": "1",
             "retained_candidate_id": candidate,
@@ -1445,6 +1447,897 @@ def write_ascii(path: Path, text: str) -> None:
 def write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(VERIFIER.pretty_json_bytes(payload))
+
+
+def git_output(repo: Path, *args: str) -> str:
+    return subprocess.check_output(("git", *args), cwd=repo, text=True).strip()
+
+
+def remote_observation(observation_id: str, head: str | None) -> dict[str, object]:
+    stdout = "" if head is None else f"{head}\t{VERIFIER.CONTROLLER_REF}\n"
+    return {
+        "observation_id": observation_id,
+        "command": [
+            "git",
+            "ls-remote",
+            "--heads",
+            VERIFIER.CONTROLLER_REMOTE,
+            VERIFIER.CONTROLLER_REF,
+        ],
+        "exit_code": 0,
+        "stdout": stdout,
+        "stderr": "",
+        "observed_head": head,
+    }
+
+
+def push_call(
+    *,
+    ordinal: int,
+    phase: str,
+    old_head: str | None,
+    new_head: str,
+    pre_observation_id: str,
+    post_observation_id: str,
+) -> dict[str, object]:
+    refspec = f"{new_head}:{VERIFIER.CONTROLLER_REF}"
+    return {
+        "ordinal": ordinal,
+        "phase": phase,
+        "argv": [
+            "git",
+            "push",
+            "--porcelain",
+            VERIFIER.CONTROLLER_REMOTE,
+            refspec,
+        ],
+        "refspec": refspec,
+        "expected_old_head": old_head,
+        "expected_new_head": new_head,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "pre_observation_id": pre_observation_id,
+        "post_observation_id": post_observation_id,
+        "started_at_utc": "2026-08-30T00:00:00.000000Z",
+        "finished_at_utc": "2026-08-30T00:00:01.000000Z",
+        "retry_allowed": False,
+    }
+
+
+def zero_counter_rows() -> list[dict[str, object]]:
+    rows = []
+    for date_index in range(4):
+        research_date = f"2026-08-{date_index + 1:02d}"
+        for variant in VERIFIER.VARIANTS:
+            for direction in VERIFIER.DIRECTIONS:
+                rows.append(
+                    {
+                        "research_date": research_date,
+                        "capture_id": f"capture{date_index:02d}",
+                        "epoch_id": 0,
+                        "variant": variant,
+                        "direction": direction,
+                        "raw_onset_count": 0,
+                        "epoch_core_omitted_count": 0,
+                        "anchor_vetoed_count": 0,
+                        "confirmation_edge_omitted_count": 0,
+                        "veto_admitted_count": 0,
+                        "retained_count": 0,
+                        "same_key_suppressed_count": 0,
+                        "confirmed_count": 0,
+                        "cancelled_count": 0,
+                        "retained_candidate_id": None,
+                    }
+                )
+    return rows
+
+
+def synthetic_terminal_package(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> dict[str, object]:
+    source_repo = Path(__file__).resolve().parents[2]
+    repo = tmp_path / "repo"
+    source_root = tmp_path / "source"
+    attempt = tmp_path / "attempt"
+    repo.mkdir()
+    source_root.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    for key, value in (
+        ("user.name", "Fixture"),
+        ("user.email", "fixture@example.com"),
+        ("core.fsync", "all"),
+        ("core.fsyncMethod", "fsync"),
+        ("core.logAllRefUpdates", "always"),
+    ):
+        subprocess.run(["git", "config", key, value], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "remote", "add", VERIFIER.CONTROLLER_REMOTE, VERIFIER.CONTROLLER_URL],
+        cwd=repo,
+        check=True,
+    )
+
+    for relative in (
+        VERIFIER.IDEA_PATH,
+        VERIFIER.PLAN_PATH,
+        VERIFIER.RUNNER_PATH,
+        VERIFIER.VERIFIER_PATH,
+        VERIFIER.TEST_PATH,
+    ):
+        target = repo / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((source_repo / relative).read_bytes())
+    write_ascii(repo / VERIFIER.TASK_PATH, "task: 0830T002 synthetic fixture\n")
+    formal_argv = [
+        VERIFIER.RUNNER_PATH.as_posix(),
+        "--formal-attempt",
+        "--repo-root",
+        str(repo),
+        "--source-cache-root",
+        str(source_root),
+        "--attempt-root",
+        str(attempt),
+    ]
+    claim = {
+        "schema_version": 1,
+        "task_id": VERIFIER.TASK_ID,
+        "attempt_id": "synthetic-pass-baseline",
+        "implementation_tag": VERIFIER.IMPLEMENTATION_TAG,
+        "formal_argv": formal_argv,
+        "repo_root": str(repo),
+        "source_cache_root": str(source_root),
+        "attempt_root": str(attempt),
+        "idea_sha256": VERIFIER.IDEA_SHA256,
+        "plan_sha256": VERIFIER.PLAN_SHA256,
+        "task_sha256": VERIFIER.sha256_file(repo / VERIFIER.TASK_PATH),
+        "runner_sha256": VERIFIER.sha256_file(repo / VERIFIER.RUNNER_PATH),
+        "verifier_sha256": VERIFIER.sha256_file(repo / VERIFIER.VERIFIER_PATH),
+        "tests_sha256": VERIFIER.sha256_file(repo / VERIFIER.TEST_PATH),
+        "controller_remote": VERIFIER.CONTROLLER_REMOTE,
+        "controller_url": VERIFIER.CONTROLLER_URL,
+        "controller_ref": VERIFIER.CONTROLLER_REF,
+        "status": "ARMED_FOR_SINGLE_USE",
+    }
+    write_json(repo / VERIFIER.CLAIM_ARMED_PATH, claim)
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "synthetic implementation"],
+        cwd=repo,
+        check=True,
+    )
+    implementation = git_output(repo, "rev-parse", "HEAD")
+    claimed = repo / VERIFIER.CLAIMED_PATH
+    claimed.parent.mkdir(parents=True, exist_ok=True)
+    os.link(repo / VERIFIER.CLAIM_ARMED_PATH, claimed)
+    (repo / VERIFIER.CLAIM_ARMED_PATH).unlink()
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", VERIFIER.CONSUMPTION_MESSAGE],
+        cwd=repo,
+        check=True,
+    )
+    consumption = git_output(repo, "rev-parse", "HEAD")
+
+    roots = {
+        label: attempt / VERIFIER.ROOT_CHILDREN[label] for label in VERIFIER.ROOT_LABELS
+    }
+    poison_cache = attempt / "poison_cache"
+    work_root = attempt / "work"
+    push_root = attempt / "push-ledger"
+    for path in (*roots.values(), poison_cache, work_root, push_root):
+        path.mkdir(parents=True)
+
+    inventory = []
+    for index in range(29):
+        cache_name = f"capture{index:02d}.npz"
+        source_path = source_root / cache_name
+        poison_path = poison_cache / cache_name
+        source_path.write_bytes(f"source-{index}\n".encode("ascii"))
+        poison_path.write_bytes(f"poison-{index}\n".encode("ascii"))
+        inventory.append(
+            {
+                "cache_name": cache_name,
+                "size_bytes": source_path.stat().st_size,
+                "row_count": 0,
+                "cache_schema_version": 4,
+                "cache_sha256": VERIFIER.sha256_file(source_path),
+                "source_authority_verified": True,
+                "cache_field_schema_verified": True,
+            }
+        )
+
+    pre_consumption = remote_observation("PRE_CONSUMPTION", None)
+    post_consumption = remote_observation("POST_CONSUMPTION", consumption)
+    consumption_push = push_call(
+        ordinal=0,
+        phase="CONSUMPTION",
+        old_head=None,
+        new_head=consumption,
+        pre_observation_id="PRE_CONSUMPTION",
+        post_observation_id="POST_CONSUMPTION",
+    )
+    lock = {
+        "schema_version": 1,
+        "task_id": VERIFIER.TASK_ID,
+        "attempt_id": claim["attempt_id"],
+        "status": "CLAIMED_BEFORE_CACHE_READ",
+        "pid": 1,
+        "started_at_utc": "2026-08-30T00:00:00.000000Z",
+        "cwd": str(repo),
+        "argv": formal_argv,
+        "implementation_head": implementation,
+        "consumption_head": consumption,
+        "claimed_sha256": VERIFIER.sha256_file(claimed),
+        "repo_root": str(repo),
+        "source_cache_root": str(source_root),
+        "attempt_root": str(attempt),
+        "controller_remote": VERIFIER.CONTROLLER_REMOTE,
+        "controller_ref": VERIFIER.CONTROLLER_REF,
+        "controller_consumption_head": consumption,
+        "remote_observations": [pre_consumption, post_consumption],
+        "remote_transitions": [
+            {
+                "transition_id": "CONSUMPTION",
+                "old_head": None,
+                "new_head": consumption,
+                "derived_from": ["PRE_CONSUMPTION", "POST_CONSUMPTION"],
+            }
+        ],
+        "push_calls": [consumption_push],
+        "successful_push_count": 1,
+    }
+    write_json(attempt / "attempt-lock.json", lock)
+    write_json(push_root / "000-consumption.json", consumption_push)
+
+    feature_calls = []
+    field_accesses = []
+    raw_events = []
+    for build_label in VERIFIER.ROOT_LABELS:
+        for inventory_row in inventory:
+            cache_name = str(inventory_row["cache_name"])
+            capture_id = Path(cache_name).stem
+            input_path = (
+                source_root / cache_name
+                if build_label in {"A", "B"}
+                else poison_cache / cache_name
+            )
+            call_index = len(feature_calls)
+            output_sha = VERIFIER.canonical_sha(
+                ["features", capture_id, call_index % 29]
+            )
+            ipc_common = {
+                "header_sha256": VERIFIER.canonical_sha(["header", call_index]),
+                "payload_sha256": VERIFIER.canonical_sha(["payload", call_index]),
+                "payload_size_bytes": 0,
+                "frame_sha256": VERIFIER.canonical_sha(["frame", call_index]),
+                "frame_size_bytes": 8,
+            }
+            feature_calls.append(
+                {
+                    "call_index": call_index,
+                    "build_label": build_label,
+                    "unit_kind": "FULL",
+                    "capture_id": capture_id,
+                    "research_date": "2026-08-30",
+                    "slice_ordinal": None,
+                    "resolved_input_path": str(input_path.resolve()),
+                    "input_sha256": VERIFIER.sha256_file(input_path),
+                    "input_authority": (
+                        "CANONICAL" if build_label in {"A", "B"} else "POISON"
+                    ),
+                    "feature_output_sha256": output_sha,
+                    "sender_ipc": {
+                        **ipc_common,
+                        "sent_frame_count": 1,
+                        "send_end_closed": True,
+                    },
+                    "receiver_ipc": {
+                        **ipc_common,
+                        "received_frame_count": 1,
+                        "eof_observed": True,
+                        "unused_byte_count": 0,
+                    },
+                    "consumer_input_sha256": output_sha,
+                    "detector_exit_sha256": output_sha,
+                    "field_name_schema_access_count": 1,
+                    "consumed_value_access_count": 12,
+                    "forbidden_value_access_count": 0,
+                    "consumer_use_count": 1,
+                }
+            )
+            for field in sorted(VERIFIER.CONSUMED_FIELDS):
+                field_accesses.append(
+                    {
+                        "call_index": call_index,
+                        "build_label": build_label,
+                        "resolved_input_path": str(input_path.resolve()),
+                        "input_sha256": VERIFIER.sha256_file(input_path),
+                        "field": field,
+                        "value_access_count": 1,
+                        "authorization": "CONSUMED_VALUE",
+                    }
+                )
+            for phase, caller_path, caller_name in (
+                ("HASHER", VERIFIER.RUNNER_PATH, "sha256_file"),
+                ("LOADER", VERIFIER.FEATURE_AUTHORITY_PATH, "build_features"),
+            ):
+                raw_events.append(
+                    {
+                        "call_index": call_index,
+                        "build_label": build_label,
+                        "phase": phase,
+                        "event_type": "open",
+                        "resolved_path": str(input_path.resolve()),
+                        "operation": "READ_INPUT",
+                        "caller_path": caller_path.as_posix(),
+                        "caller_name": caller_name,
+                        "allowed": True,
+                    }
+                )
+    instrumentation = AUDIT.instrumentation_evidence(
+        attempt_id=str(claim["attempt_id"]),
+        feature_calls=feature_calls,
+        field_accesses=field_accesses,
+        raw_open_events=raw_events,
+    )
+    write_json(attempt / "instrumentation-evidence.json", instrumentation)
+    work_manifest = AUDIT.work_manifest_payload(
+        attempt_id=str(claim["attempt_id"]),
+        rows=[],
+    )
+    write_json(attempt / "work-manifest.json", work_manifest)
+
+    poison_rows = []
+    for inventory_row in inventory:
+        poison_rows.append(
+            {
+                "cache_name": inventory_row["cache_name"],
+                "unconsumed_fields": [
+                    {
+                        "field": field,
+                        "dtype": "<f8",
+                        "shape": [1],
+                        "source_value_sha256": VERIFIER.canonical_sha(
+                            [inventory_row["cache_name"], field, "source"]
+                        ),
+                        "poison_value_sha256": VERIFIER.canonical_sha(
+                            [inventory_row["cache_name"], field, "poison"]
+                        ),
+                    }
+                    for field in VERIFIER.UNCONSUMED_FIELDS
+                ],
+            }
+        )
+    poison_attestation = {
+        "task_id": "0829T003",
+        "hypothesis_id": "FIXED_CAUSAL_EPOCH_MSTATE_V2",
+        "poison_output_root": str(roots["P"].resolve()),
+        "source_inventory_sha256": VERIFIER.canonical_sha(inventory),
+        "cache_count": 29,
+        "unconsumed_fields": list(VERIFIER.UNCONSUMED_FIELDS),
+        "unconsumed_field_count": 15,
+        "nonempty_unconsumed_field_instance_count": 435,
+        "changed_unconsumed_field_instance_count": 435,
+        "consumed_field_mismatch_count": 0,
+        "caches": poison_rows,
+    }
+    write_json(attempt / "poison-attestation.json", poison_attestation)
+
+    identities = {}
+    for relative in (
+        VERIFIER.IDEA_PATH,
+        VERIFIER.PLAN_PATH,
+        VERIFIER.TASK_PATH,
+        VERIFIER.RUNNER_PATH,
+        VERIFIER.VERIFIER_PATH,
+        VERIFIER.TEST_PATH,
+    ):
+        identities[relative.as_posix()] = {
+            "path": relative.as_posix(),
+            "sha256": VERIFIER.sha256_file(repo / relative),
+            "git_blob_oid": git_output(
+                repo, "rev-parse", f"{implementation}:{relative.as_posix()}"
+            ),
+        }
+    tracked_files = list(identities.values()) + [
+        {
+            "path": VERIFIER.CLAIMED_PATH.as_posix(),
+            "sha256": VERIFIER.sha256_file(claimed),
+            "git_blob_oid": git_output(
+                repo,
+                "rev-parse",
+                f"{consumption}:{VERIFIER.CLAIMED_PATH.as_posix()}",
+            ),
+        }
+    ]
+    callable_rows = []
+    for name in VERIFIER.AUTHORITY_AST_SHA256:
+        feature = name == "build_features"
+        callable_rows.append(
+            {
+                "path": (
+                    VERIFIER.FEATURE_AUTHORITY_PATH
+                    if feature
+                    else VERIFIER.EPOCH_AUTHORITY_PATH
+                ).as_posix(),
+                "commit": (
+                    VERIFIER.FEATURE_AUTHORITY_COMMIT
+                    if feature
+                    else VERIFIER.EPOCH_AUTHORITY_COMMIT
+                ),
+                "git_blob_oid": (
+                    VERIFIER.FEATURE_AUTHORITY_BLOB
+                    if feature
+                    else VERIFIER.EPOCH_AUTHORITY_BLOB
+                ),
+                "file_sha256": (
+                    VERIFIER.FEATURE_AUTHORITY_SHA256
+                    if feature
+                    else VERIFIER.EPOCH_AUTHORITY_SHA256
+                ),
+                "callable_name": name,
+                "callable_ast_sha256": VERIFIER.AUTHORITY_AST_SHA256[name],
+                "direct_call_count": (
+                    1
+                    if name
+                    in {
+                        "materialize_poisoned_cache_set",
+                        "verify_poison_attestation",
+                    }
+                    else len(feature_calls)
+                ),
+            }
+        )
+    authority = {
+        "schema_version": 1,
+        "task_id": VERIFIER.TASK_ID,
+        "hypothesis_id": VERIFIER.HYPOTHESIS_ID,
+        "audit_id": VERIFIER.AUDIT_ID,
+        "baseline_tag": VERIFIER.BASELINE_TAG,
+        "baseline_commit": VERIFIER.BASELINE_COMMIT,
+        "implementation_tag": VERIFIER.IMPLEMENTATION_TAG,
+        "implementation_head": implementation,
+        "consumption_tag": VERIFIER.CONSUMPTION_TAG,
+        "consumption_head": consumption,
+        "tracked_files": tracked_files,
+        "callables": callable_rows,
+        "source_inventory_sha256": VERIFIER.canonical_sha(inventory),
+        "attempted_claim_sha256": VERIFIER.sha256_file(claimed),
+        "all_verified": True,
+    }
+    counter_rows = zero_counter_rows()
+    support_rows, variant_rows = VERIFIER.recompute_scientific_tables(counter_rows, [])
+    raw_tables = {
+        "support/source_cache_inventory.csv": inventory,
+        "support/channel_action_by_date.csv": [],
+        "support/epoch_support.csv": [],
+        "support/epoch_variant_counters.csv": counter_rows,
+        "support/slice_invariance.csv": [],
+        "support/support_by_date.csv": support_rows,
+        "support/trigger_ledger.csv": [],
+        "support/variant_summary.csv": variant_rows,
+    }
+    for root in roots.values():
+        AUDIT.write_json_no_replace(
+            root / "contracts/authority_binding.json", authority
+        )
+        AUDIT.write_json_no_replace(
+            root / "contracts/detector_contract.json",
+            AUDIT.detector_contract_payload(),
+        )
+        AUDIT.write_json_no_replace(
+            root / "contracts/fixed_epoch_contract.json",
+            AUDIT.fixed_epoch_contract_payload(),
+        )
+        for relative, rows in raw_tables.items():
+            AUDIT.write_csv_no_replace(
+                root / relative, rows, VERIFIER.CSV_HEADERS[relative]
+            )
+    integrity = {
+        "source_preflight_violation_count": 0,
+        "action_partition_violation_count": 0,
+        "unauthorized_ttl_refresh_count": 0,
+        "cross_segment_memory_carry_count": 0,
+        "conservation_violation_count": 0,
+        "fixed_epoch_violation_count": 0,
+        "slice_mismatch_count": 0,
+        "cross_segment_compared_checkpoint_count": 0,
+        "represented_slice_date_count": 4,
+        "distinct_comparable_epoch_count": 30,
+        "compared_support_checkpoint_count": 1,
+        "schema_violation_count": 0,
+        "numeric_violation_count": 0,
+    }
+    authority_state = {
+        "baseline_authority_verified": True,
+        "frozen_successor_identities_verified": True,
+        "direct_callable_bindings_verified": True,
+        "claim_and_lock_valid_before_cache": True,
+        "canonical_source_closure_exact": True,
+    }
+    poison_evidence = {
+        "cache_count": 29,
+        "unconsumed_field_count": 15,
+        "nonempty_unconsumed_field_instance_count": 435,
+        "changed_unconsumed_field_instance_count": 435,
+        "consumed_field_mismatch_count": 0,
+        "attestation_sha256": VERIFIER.sha256_file(attempt / "poison-attestation.json"),
+    }
+    sealed, comparisons = AUDIT.seal_roots(
+        roots=roots,
+        aggregate={"variant_rows": variant_rows},
+        authority_state=authority_state,
+        poison_evidence=poison_evidence,
+        integrity=integrity,
+        attempt_id=str(claim["attempt_id"]),
+        implementation_head=implementation,
+    )
+    root_tree_sha = {
+        label: VERIFIER.canonical_sha(
+            VERIFIER.manifest_rows(root, VERIFIER.FINAL_PATHS)
+        )
+        for label, root in roots.items()
+    }
+    root_rows = [
+        {
+            "label": label,
+            "path": str(roots[label]),
+            "artifact_count": 17,
+            "tree_sha256": root_tree_sha[label],
+            "manifest_sha256": VERIFIER.sha256_file(roots[label] / "run_manifest.json"),
+            "classification": sealed["classification"],
+        }
+        for label in VERIFIER.ROOT_LABELS
+    ]
+    attempt_result = {
+        "schema_version": 1,
+        "task_id": VERIFIER.TASK_ID,
+        "attempt_id": claim["attempt_id"],
+        "status": "COMPLETED",
+        "phase": "FINAL_17_CLOSED",
+        "exit_code": 0,
+        "finished_at_utc": "2026-08-30T00:00:02.000000Z",
+        "consumption_head": consumption,
+        "controller_ref": VERIFIER.CONTROLLER_REF,
+        "attempt_lock_sha256": VERIFIER.sha256_file(attempt / "attempt-lock.json"),
+        "claimed_sha256": VERIFIER.sha256_file(claimed),
+        "poison_attestation_sha256": VERIFIER.sha256_file(
+            attempt / "poison-attestation.json"
+        ),
+        "instrumentation_evidence_sha256": VERIFIER.sha256_file(
+            attempt / "instrumentation-evidence.json"
+        ),
+        "work_manifest_sha256": VERIFIER.sha256_file(attempt / "work-manifest.json"),
+        "work_tree_sha256": work_manifest["tree_sha256"],
+        "final_a_b": comparisons["final_a_b"],
+        "final_a_p": comparisons["final_a_p"],
+        "root_rows": root_rows,
+    }
+    write_json(attempt / "attempt-result.json", attempt_result)
+    receipt = {
+        "schema_version": 1,
+        "task_id": VERIFIER.TASK_ID,
+        "attempt_id": claim["attempt_id"],
+        "status": "COMPLETED",
+        "implementation_head": implementation,
+        "consumption_head": consumption,
+        "controller_remote": VERIFIER.CONTROLLER_REMOTE,
+        "controller_ref": VERIFIER.CONTROLLER_REF,
+        "attempt_result_sha256": VERIFIER.sha256_file(attempt / "attempt-result.json"),
+        "attempt_lock_sha256": attempt_result["attempt_lock_sha256"],
+        "poison_attestation_sha256": attempt_result["poison_attestation_sha256"],
+        "instrumentation_evidence_sha256": attempt_result[
+            "instrumentation_evidence_sha256"
+        ],
+        "work_manifest_sha256": attempt_result["work_manifest_sha256"],
+        "work_tree_sha256": attempt_result["work_tree_sha256"],
+        "root_rows": root_rows,
+        "sealed_at_utc": "2026-08-30T00:00:03.000000Z",
+    }
+    write_json(repo / VERIFIER.TERMINAL_RECEIPT_PATH, receipt)
+    subprocess.run(
+        ["git", "add", VERIFIER.TERMINAL_RECEIPT_PATH.as_posix()],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-q", "-m", VERIFIER.TERMINAL_MESSAGE],
+        cwd=repo,
+        check=True,
+    )
+    terminal = git_output(repo, "rev-parse", "HEAD")
+    for tag, head in (
+        (VERIFIER.IMPLEMENTATION_TAG, implementation),
+        (VERIFIER.CONSUMPTION_TAG, consumption),
+        (VERIFIER.TERMINAL_TAG, terminal),
+    ):
+        subprocess.run(
+            ["git", "tag", "-a", tag, "-m", tag, head],
+            cwd=repo,
+            check=True,
+        )
+    terminal_push = push_call(
+        ordinal=1,
+        phase="TERMINAL",
+        old_head=consumption,
+        new_head=terminal,
+        pre_observation_id="POST_CONSUMPTION",
+        post_observation_id="POST_TERMINAL",
+    )
+    write_json(push_root / "001-terminal.json", terminal_push)
+
+    result_out = repo / ".workflow/reports/0830T002-terminal-verifier.json"
+    args = SimpleNamespace(
+        repo_root=repo,
+        attempt_root=attempt,
+        result_out=result_out,
+        implementation_tag=VERIFIER.IMPLEMENTATION_TAG,
+        consumption_tag=VERIFIER.CONSUMPTION_TAG,
+        terminal_tag=VERIFIER.TERMINAL_TAG,
+    )
+    verifier_argv = [
+        VERIFIER.VERIFIER_PATH.as_posix(),
+        "--verify-terminal",
+        "--repo-root",
+        str(repo),
+        "--attempt-root",
+        str(attempt),
+        "--implementation-tag",
+        VERIFIER.IMPLEMENTATION_TAG,
+        "--consumption-tag",
+        VERIFIER.CONSUMPTION_TAG,
+        "--terminal-tag",
+        VERIFIER.TERMINAL_TAG,
+        "--result-out",
+        str(result_out),
+    ]
+    original_git = VERIFIER.git
+
+    def synthetic_git(
+        repo_root: Path, *git_args: str, check: bool = True
+    ) -> subprocess.CompletedProcess[str]:
+        if git_args[:3] == (
+            "ls-remote",
+            "--heads",
+            VERIFIER.CONTROLLER_REMOTE,
+        ):
+            return subprocess.CompletedProcess(
+                ("git", *git_args),
+                0,
+                f"{terminal}\t{VERIFIER.CONTROLLER_REF}\n",
+                "",
+            )
+        return original_git(repo_root, *git_args, check=check)
+
+    monkeypatch.chdir(repo)
+    monkeypatch.setattr(sys, "argv", verifier_argv)
+    monkeypatch.setattr(VERIFIER, "git", synthetic_git)
+    return {
+        "repo": repo,
+        "attempt": attempt,
+        "roots": roots,
+        "args": args,
+        "counter_rows": counter_rows,
+        "support_rows": support_rows,
+        "variant_rows": variant_rows,
+        "integrity": integrity,
+    }
+
+
+def run_checks_through(context: dict[str, object], target_index: int) -> None:
+    for index, check in enumerate(VERIFIER.CHECK_FUNCTIONS[: target_index + 1]):
+        if index == target_index:
+            with pytest.raises(VERIFIER.VerificationError):
+                check(context)
+        else:
+            check(context)
+
+
+def initial_verifier_context(package: dict[str, object]) -> dict[str, object]:
+    args = package["args"]
+    return {
+        "repo_root": package["repo"],
+        "attempt_root": package["attempt"],
+        "result_out": args.result_out,
+        "implementation_tag": VERIFIER.IMPLEMENTATION_TAG,
+        "consumption_tag": VERIFIER.CONSUMPTION_TAG,
+        "terminal_tag": VERIFIER.TERMINAL_TAG,
+    }
+
+
+def mutate_v07_scientific_outputs(package: dict[str, object]) -> None:
+    roots = package["roots"]
+    mutated_support = copy.deepcopy(package["support_rows"])
+    mutated_support[0]["raw_onset_count"] = 30
+    mutated_support[0]["veto_admitted_count"] = 30
+    mutated_support[0]["retained_count"] = 30
+    mutated_support[0]["confirmed_count"] = 30
+    mutated_support[0]["distinct_confirmed_cluster_count"] = 30
+    mutated_variants = copy.deepcopy(package["variant_rows"])
+    primary = next(
+        row for row in mutated_variants if row["variant"] == VERIFIER.PRIMARY_VARIANT
+    )
+    primary.update(
+        {
+            "raw_onset_count": 30,
+            "veto_admitted_count": 30,
+            "retained_count": 30,
+            "confirmed_count": 30,
+            "distinct_confirmed_cluster_count": 30,
+            "represented_date_count": 4,
+            "maximum_single_date_cluster_share": 0.25,
+            "support_prediction_passed": True,
+        }
+    )
+    values = passing_gate_values()
+    gates = AUDIT.build_gates(values)
+    classification = AUDIT.classify(gates)
+    for root in roots.values():
+        (root / "support/support_by_date.csv").write_bytes(
+            AUDIT.csv_bytes(
+                mutated_support,
+                VERIFIER.CSV_HEADERS["support/support_by_date.csv"],
+            )
+        )
+        (root / "support/variant_summary.csv").write_bytes(
+            AUDIT.csv_bytes(
+                mutated_variants,
+                VERIFIER.CSV_HEADERS["support/variant_summary.csv"],
+            )
+        )
+        gate_path = root / "contracts/gate_contract.json"
+        gate = VERIFIER.read_json(gate_path)
+        gate.update(
+            {
+                "gates": gates,
+                "first_failed_gate_id": None,
+                "classification": classification,
+            }
+        )
+        write_json(gate_path, gate)
+        summary_path = root / "reports/A_minus1_summary.json"
+        summary = VERIFIER.read_json(summary_path)
+        summary.update(
+            {
+                "variant_rows": mutated_variants,
+                "gates": gates,
+                "classification": classification,
+            }
+        )
+        write_json(summary_path, summary)
+        classification_path = root / "classification.json"
+        classification_payload = VERIFIER.read_json(classification_path)
+        classification_payload.update(
+            {
+                "classification": classification,
+                "first_failed_gate_id": None,
+                "gate_statuses": [row["status"] for row in gates],
+            }
+        )
+        write_json(classification_path, classification_payload)
+
+
+def apply_terminal_mutation(
+    package: dict[str, object],
+    target_index: int,
+) -> None:
+    repo = package["repo"]
+    attempt = package["attempt"]
+    roots = package["roots"]
+    if target_index == 0:
+        package["args"].result_out = repo / "wrong-result.json"
+    elif target_index == 1:
+        verifier_path = repo / VERIFIER.VERIFIER_PATH
+        verifier_path.write_bytes(verifier_path.read_bytes() + b"\n")
+    elif target_index == 2:
+        subprocess.run(["git", "config", "core.fsync", "none"], cwd=repo, check=True)
+    elif target_index == 3:
+        path = attempt / "attempt-lock.json"
+        payload = VERIFIER.read_json(path)
+        payload["source_cache_root"] = str(attempt / "wrong-source")
+        write_json(path, payload)
+    elif target_index == 4:
+        path = attempt / "push-ledger/001-terminal.json"
+        payload = VERIFIER.read_json(path)
+        payload["retry_allowed"] = True
+        write_json(path, payload)
+    elif target_index == 5:
+        path = attempt / "instrumentation-evidence.json"
+        payload = VERIFIER.read_json(path)
+        payload["feature_calls"][0]["receiver_ipc"]["eof_observed"] = False
+        write_json(path, payload)
+    elif target_index == 6:
+        path = attempt / "poison-attestation.json"
+        payload = VERIFIER.read_json(path)
+        field = payload["caches"][0]["unconsumed_fields"][0]
+        field["poison_value_sha256"] = field["source_value_sha256"]
+        write_json(path, payload)
+    elif target_index == 7:
+        mutate_v07_scientific_outputs(package)
+    elif target_index == 8:
+        path = roots["A"] / "run_manifest.json"
+        payload = VERIFIER.read_json(path)
+        payload["artifact_count"] = 15
+        write_json(path, payload)
+    elif target_index == 9:
+        evidence_path = roots["A"] / "contracts/execution_evidence.json"
+        evidence = VERIFIER.read_json(evidence_path)
+        evidence["raw_a_b"]["difference_count"] = 1
+        write_json(evidence_path, evidence)
+        manifest_path = roots["A"] / "run_manifest.json"
+        manifest = VERIFIER.read_json(manifest_path)
+        manifest["artifacts"] = VERIFIER.manifest_rows(
+            roots["A"],
+            tuple(path for path in VERIFIER.FINAL_PATHS if path != "run_manifest.json"),
+        )
+        write_json(manifest_path, manifest)
+    elif target_index == 10:
+        path = attempt / "attempt-result.json"
+        payload = VERIFIER.read_json(path)
+        payload["final_a_b"]["difference_count"] = 1
+        write_json(path, payload)
+    elif target_index == 11:
+        path = repo / VERIFIER.TERMINAL_RECEIPT_PATH
+        payload = VERIFIER.read_json(path)
+        payload["work_tree_sha256"] = "0" * 64
+        write_json(path, payload)
+    else:
+        raise AssertionError(target_index)
+
+
+def test_complete_synthetic_terminal_package_passes_v00_v12(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    exit_code, payload = VERIFIER.verify_terminal(package["args"])
+    assert exit_code == 0
+    assert payload["status"] == "PASS"
+    assert payload["first_failure_code"] is None
+    assert [row["status"] for row in payload["checks"]] == ["PASS"] * 13
+
+
+def test_v07_rejects_synchronized_scientific_summary_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    mutate_v07_scientific_outputs(package)
+    run_checks_through(initial_verifier_context(package), 7)
+
+
+@pytest.mark.parametrize("target_index", range(12))
+def test_complete_package_rejects_deep_v00_v11_mutations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    target_index: int,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    apply_terminal_mutation(package, target_index)
+    context = initial_verifier_context(package)
+    if target_index == 0:
+        context["result_out"] = package["args"].result_out
+    run_checks_through(context, target_index)
+
+
+def test_complete_package_rejects_post_v11_v12_root_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    context = initial_verifier_context(package)
+    for check in VERIFIER.CHECK_FUNCTIONS[:12]:
+        check(context)
+    path = package["roots"]["A"] / "classification.json"
+    payload = VERIFIER.read_json(path)
+    payload["classification"] = "post-seal-mutation"
+    write_json(path, payload)
+    with pytest.raises(
+        VERIFIER.VerificationError,
+        match="post_seal_root_drift:A",
+    ):
+        VERIFIER.check_v12(context)
 
 
 def test_production_v01_rejects_runner_artifact_mutation(

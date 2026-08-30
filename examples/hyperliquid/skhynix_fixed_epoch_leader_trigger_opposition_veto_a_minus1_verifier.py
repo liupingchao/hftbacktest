@@ -13,7 +13,7 @@ import os
 import re
 import subprocess
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Mapping, Sequence
@@ -1016,6 +1016,176 @@ def validate_candidate_links(tables: Mapping[str, list[dict[str, Any]]]) -> None
             and row["retained_count"] == int(expected_retained is not None),
             "counter_retained_candidate_identity",
         )
+        if expected_retained is not None:
+            trigger = next(
+                item
+                for item in trigger_rows
+                if (
+                    item["research_date"],
+                    item["capture_id"],
+                    item["epoch_id"],
+                    item["variant"],
+                    item["direction"],
+                )
+                == key
+            )
+            require(
+                row["confirmed_count"]
+                == int(trigger["confirmation_status"] == "CONFIRMED")
+                and row["cancelled_count"]
+                == int(trigger["confirmation_status"] == "CANCELLED"),
+                "counter_trigger_status_identity",
+            )
+        require(
+            row["raw_onset_count"]
+            == row["epoch_core_omitted_count"]
+            + row["confirmation_edge_omitted_count"]
+            + row["anchor_vetoed_count"]
+            + row["veto_admitted_count"]
+            and row["veto_admitted_count"]
+            == row["retained_count"] + row["same_key_suppressed_count"]
+            and row["retained_count"]
+            == row["confirmed_count"] + row["cancelled_count"],
+            "counter_conservation",
+        )
+
+
+def recompute_scientific_tables(
+    counter_rows: Sequence[Mapping[str, Any]],
+    trigger_rows: Sequence[Mapping[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    by_date: dict[tuple[str, str, int], Counter[str]] = defaultdict(Counter)
+    count_fields = (
+        "raw_onset_count",
+        "epoch_core_omitted_count",
+        "confirmation_edge_omitted_count",
+        "anchor_vetoed_count",
+        "veto_admitted_count",
+        "retained_count",
+        "same_key_suppressed_count",
+        "confirmed_count",
+        "cancelled_count",
+    )
+    for row in counter_rows:
+        key = (row["research_date"], row["variant"], row["direction"])
+        for field in count_fields:
+            by_date[key][field] += int(row[field])
+    confirmed_by_key: dict[tuple[str, str, int], list[Mapping[str, Any]]] = defaultdict(
+        list
+    )
+    for row in trigger_rows:
+        if row["confirmation_status"] == "CONFIRMED":
+            confirmed_by_key[
+                (row["research_date"], row["variant"], row["direction"])
+            ].append(row)
+    support_rows = []
+    for research_date in sorted({row["research_date"] for row in counter_rows}):
+        for variant in VARIANTS:
+            for direction in DIRECTIONS:
+                key = (research_date, variant, direction)
+                confirmed = confirmed_by_key[key]
+                counts = by_date[key]
+                support_rows.append(
+                    {
+                        "research_date": research_date,
+                        "variant": variant,
+                        "direction": direction,
+                        **{field: int(counts[field]) for field in count_fields},
+                        "distinct_confirmed_cluster_count": len(
+                            {row["dependence_cluster_id"] for row in confirmed}
+                        ),
+                        "support0_confirmed_count": sum(
+                            row["secondary_same_direction_count"] == 0
+                            for row in confirmed
+                        ),
+                        "support1_confirmed_count": sum(
+                            row["secondary_same_direction_count"] == 1
+                            for row in confirmed
+                        ),
+                        "support2_confirmed_count": sum(
+                            row["secondary_same_direction_count"] == 2
+                            for row in confirmed
+                        ),
+                    }
+                )
+    variant_rows = []
+    for variant in VARIANTS:
+        rows = [row for row in counter_rows if row["variant"] == variant]
+        confirmed = [
+            row
+            for row in trigger_rows
+            if row["variant"] == variant and row["confirmation_status"] == "CONFIRMED"
+        ]
+        clusters = {row["dependence_cluster_id"] for row in confirmed}
+        date_clusters: dict[str, set[str]] = defaultdict(set)
+        for row in confirmed:
+            date_clusters[row["research_date"]].add(row["dependence_cluster_id"])
+        share = (
+            max(len(values) for values in date_clusters.values()) / len(clusters)
+            if clusters
+            else None
+        )
+        represented = len(date_clusters)
+        variant_rows.append(
+            {
+                "variant": variant,
+                "is_primary": variant == PRIMARY_VARIANT,
+                "raw_onset_count": sum(int(row["raw_onset_count"]) for row in rows),
+                "veto_admitted_count": sum(
+                    int(row["veto_admitted_count"]) for row in rows
+                ),
+                "retained_count": sum(int(row["retained_count"]) for row in rows),
+                "confirmed_count": sum(int(row["confirmed_count"]) for row in rows),
+                "cancelled_count": sum(int(row["cancelled_count"]) for row in rows),
+                "distinct_confirmed_cluster_count": len(clusters),
+                "represented_date_count": represented,
+                "maximum_single_date_cluster_share": share,
+                "support_prediction_passed": bool(
+                    len(clusters) >= 30
+                    and represented >= 4
+                    and share is not None
+                    and share <= 0.50
+                ),
+            }
+        )
+    return support_rows, variant_rows
+
+
+def validate_scientific_derivations(
+    tables: Mapping[str, list[dict[str, Any]]],
+    gate: Mapping[str, Any],
+) -> None:
+    expected_support, expected_variants = recompute_scientific_tables(
+        tables["support/epoch_variant_counters.csv"],
+        tables["support/trigger_ledger.csv"],
+    )
+    require(
+        tables["support/support_by_date.csv"] == expected_support,
+        "support_by_date_derivation",
+    )
+    require(
+        tables["support/variant_summary.csv"] == expected_variants,
+        "variant_summary_derivation",
+    )
+    primary = next(
+        row for row in expected_variants if row["variant"] == PRIMARY_VARIANT
+    )
+    expected_actuals = {
+        "trade_led_confirmed_cluster_count": primary[
+            "distinct_confirmed_cluster_count"
+        ],
+        "trade_led_represented_date_count": primary["represented_date_count"],
+        "trade_led_maximum_single_date_share": primary[
+            "maximum_single_date_cluster_share"
+        ],
+    }
+    a_minus1_3 = next(row for row in gate["gates"] if row["gate_id"] == "A-1-3")
+    for condition in a_minus1_3["conditions"]:
+        if condition["status"] != "NOT_EVALUATED":
+            require(
+                condition["actual"] == expected_actuals[condition["condition"]],
+                f"primary_gate_actual:{condition['condition']}",
+            )
 
 
 def assert_no_symlink_components(path: Path) -> None:
@@ -1511,6 +1681,7 @@ def validate_final_root(root: Path, context: Mapping[str, Any]) -> dict[str, Any
     )
 
     gate = payloads["contracts/gate_contract.json"]
+    validate_scientific_derivations(tables, gate)
     summary = payloads["reports/A_minus1_summary.json"]
     classification = payloads["classification.json"]
     variant_rows = tables["support/variant_summary.csv"]
