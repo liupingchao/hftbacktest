@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 17, pre-execution
+Revision: 18, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -803,15 +803,16 @@ constructed exactly as follows:
    hash.
 
 No other path, field, value, row, count, order, size, or manifest identity is
-normalized. Missing or extra files remain differences. Malformed headers,
-missing or duplicated manifest slice rows, and any non-registered mutation
-fail closed. Semantically equivalent but non-canonical CSV quoting, escaping
-or line termination and non-canonical JSON whitespace, indentation, key order
-or trailing newline fail before normalization. Because the registered SHA
-substitutions are fixed-width 64-byte ASCII strings, normalized serialization
-must retain the physical file size; a size change cannot be hidden. The
-producer and terminal verifier independently recompute the same registered
-projection.
+normalized. Missing or extra RAW files fail the pre-classification exact-path
+closure; missing or extra SEALED/FINAL files fail post-classification package
+closure. Malformed headers, missing or duplicated manifest slice rows, and
+any non-registered mutation fail closed. Semantically equivalent but
+non-canonical CSV quoting, escaping or line termination and non-canonical
+JSON whitespace, indentation, key order or trailing newline fail before
+normalization. Because the registered SHA substitutions are fixed-width
+64-byte ASCII strings, normalized serialization must retain the physical file
+size; a size change cannot be hidden. The producer and terminal verifier
+independently recompute the same registered projection.
 
 Canonical serialization defects are execution-integrity failures, not A-1-1
 scientific evidence. Their lifecycle ownership is phase-specific:
@@ -837,12 +838,43 @@ failure is `V09_COMPARISON_CLOSURE`; if the producer stops before
 `attempt-result.json` and the terminal receipt exist, the precommitted claim
 state proves `INTERRUPTED_TERMINAL`.
 
-A-1-1 owns only A/P `RAW_11` missing/extra paths and producer-canonical
-`RAW_11` comparison rows whose registered semantic hashes are unequal.
-`SEALED_15` and `FINAL_17` are post-classification package-closure domains:
-all A/B and A/P comparison `difference_count` values must be zero. Any
-nonzero value terminates package closure without rewriting the already formed
-scientific classification.
+A/B/P must each contain the exact `RAW_11` path set before scientific
+comparison. A missing, extra or non-regular RAW path is a pre-classification
+execution-integrity failure, not A-1-0 or A-1-1 evidence. A-1-0 owns only
+producer-canonical A/B `RAW_11` rows whose hashes are unequal. A-1-1 owns only
+producer-canonical A/P `RAW_11` rows whose registered semantic hashes are
+unequal.
+
+`SEALED_15` and `FINAL_17` are post-classification package-closure domains.
+They use exact inherited-row lineage instead of a blanket zero-difference
+rule:
+
+```text
+SEALED_15:
+  each RAW_11 ComparisonRow equals the corresponding frozen RAW_11 row;
+  the four added dynamic paths are equal;
+  difference path set and difference_count equal RAW_11 exactly.
+
+FINAL_17:
+  each SEALED_15 ComparisonRow equals the corresponding frozen SEALED_15 row;
+  execution_evidence.json is equal;
+  run_manifest.json is equal iff RAW_11 difference_count is zero;
+  run_manifest.json is unequal iff RAW_11 difference_count is positive;
+  difference path set =
+    RAW_11 difference path set
+    union {"run_manifest.json"} iff RAW_11 has any difference;
+  difference_count =
+    RAW_11 difference_count + int(RAW_11 difference_count > 0).
+```
+
+Each root's physical manifest must first pass exact self-excluding artifact
+closure. The registered A/P manifest projection then normalizes only the
+physical slice identity already defined above. A manifest difference is
+authorized only as the deterministic one-row derivation of an inherited RAW
+difference. Any new SEALED/FINAL difference, missing/extra path, changed
+inherited row, equal manifest despite a RAW difference, or unequal manifest
+without a RAW difference terminates package closure without rewriting the
+already formed scientific classification.
 
 The physical A/B/P slice and manifest bytes remain permanent evidence.
 Same-build `slice_source_sha256`, WorkRow SHA, SLICE FeatureCall input
@@ -880,7 +912,7 @@ Every retained slice is also no-replace published and fsynced.
 `attempt-result.json` and the tracked terminal receipt. Work evidence is
 permanent for this task and may not be cleaned after claim consumption.
 
-Canonical A/B `RAW_11` differences belong only to A-1-0.
+Producer-canonical A/B `RAW_11` differences belong only to A-1-0.
 Producer-canonical A/P `RAW_11` differences under the registered
 poison-normalized comparison belong only to A-1-1. Such a RAW mismatch is
 retained as negative outcome-boundary evidence; it does not prevent final
@@ -1984,8 +2016,12 @@ At minimum:
 - attempted unconsumed/alternate-loader reads, alias import, proxy early
   restore and post-entry array mutation are terminal failures;
 - every unconsumed poison value changes and consumed values do not;
-- A/B `RAW_11` missing, extra and byte mutations fail A-1-0;
-- A/P `RAW_11` missing and extra paths produce A-1-1 negative evidence;
+- A/B/P `RAW_11` missing, extra or non-regular paths terminate before
+  classification as execution-integrity failures;
+- producer-canonical A/B `RAW_11` byte mutations produce A-1-0 negative
+  evidence and still complete the exact inherited-lineage package;
+- producer-canonical A/P `RAW_11` byte/value mutations produce A-1-1 negative
+  evidence and still complete the exact inherited-lineage package;
 - producer-canonical A/P byte/value mutations outside the two registered
   normalized fields in `RAW_11` produce A-1-1 negative evidence;
 - A/P `slice_invariance.csv` header/row/order/non-source-field mutations fail,
@@ -2001,8 +2037,12 @@ At minimum:
   failure; a completed mutated package first-fails terminal verification at
   `V09_COMPARISON_CLOSURE`;
 - synchronized producer-canonical `SEALED_15` or `FINAL_17` A/B or A/P
-  inequality is a post-classification package failure and cannot be accepted
-  merely because comparison evidence was updated consistently;
+  new inequality outside inherited RAW rows and the deterministic manifest
+  row is a post-classification package failure and cannot be accepted merely
+  because comparison evidence was updated consistently;
+- a nonzero RAW comparison must preserve the same rows through SEALED and add
+  exactly one derived manifest difference in FINAL; zero RAW difference must
+  produce zero SEALED and FINAL differences;
 - attestation mutation fails;
 - all 17 schemas, typed sentinels, sorting and manifest self-exclusion;
 - zero, negative, NaN, infinity and wrong-type gate mutations;
