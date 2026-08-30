@@ -1509,27 +1509,28 @@ def zero_counter_rows() -> list[dict[str, object]]:
     rows = []
     for date_index in range(4):
         research_date = f"2026-08-{date_index + 1:02d}"
-        for variant in VERIFIER.VARIANTS:
-            for direction in VERIFIER.DIRECTIONS:
-                rows.append(
-                    {
-                        "research_date": research_date,
-                        "capture_id": f"capture{date_index:02d}",
-                        "epoch_id": 0,
-                        "variant": variant,
-                        "direction": direction,
-                        "raw_onset_count": 0,
-                        "epoch_core_omitted_count": 0,
-                        "anchor_vetoed_count": 0,
-                        "confirmation_edge_omitted_count": 0,
-                        "veto_admitted_count": 0,
-                        "retained_count": 0,
-                        "same_key_suppressed_count": 0,
-                        "confirmed_count": 0,
-                        "cancelled_count": 0,
-                        "retained_candidate_id": None,
-                    }
-                )
+        for epoch_id in range(3, 11):
+            for variant in VERIFIER.VARIANTS:
+                for direction in VERIFIER.DIRECTIONS:
+                    rows.append(
+                        {
+                            "research_date": research_date,
+                            "capture_id": f"capture{date_index:02d}",
+                            "epoch_id": epoch_id,
+                            "variant": variant,
+                            "direction": direction,
+                            "raw_onset_count": 0,
+                            "epoch_core_omitted_count": 0,
+                            "anchor_vetoed_count": 0,
+                            "confirmation_edge_omitted_count": 0,
+                            "veto_admitted_count": 0,
+                            "retained_count": 0,
+                            "same_key_suppressed_count": 0,
+                            "confirmed_count": 0,
+                            "cancelled_count": 0,
+                            "retained_candidate_id": None,
+                        }
+                    )
     return rows
 
 
@@ -1693,87 +1694,161 @@ def synthetic_terminal_package(
     feature_calls = []
     field_accesses = []
     raw_events = []
-    for build_label in VERIFIER.ROOT_LABELS:
-        for inventory_row in inventory:
-            cache_name = str(inventory_row["cache_name"])
-            capture_id = Path(cache_name).stem
-            input_path = (
-                source_root / cache_name
-                if build_label in {"A", "B"}
-                else poison_cache / cache_name
-            )
-            call_index = len(feature_calls)
-            output_sha = VERIFIER.canonical_sha(
-                ["features", capture_id, call_index % 29]
-            )
-            ipc_common = {
-                "header_sha256": VERIFIER.canonical_sha(["header", call_index]),
-                "payload_sha256": VERIFIER.canonical_sha(["payload", call_index]),
-                "payload_size_bytes": 0,
-                "frame_sha256": VERIFIER.canonical_sha(["frame", call_index]),
-                "frame_size_bytes": 8,
+    work_rows = []
+
+    def append_feature_call(
+        *,
+        build_label: str,
+        unit_kind: str,
+        capture_id: str,
+        research_date: str,
+        input_path: Path,
+        input_authority: str,
+        slice_ordinal: int | None,
+        full_input_path: Path | None = None,
+    ) -> None:
+        call_index = len(feature_calls)
+        output_sha = VERIFIER.canonical_sha(
+            ["features", capture_id, unit_kind, slice_ordinal]
+        )
+        ipc_common = {
+            "header_sha256": VERIFIER.canonical_sha(["header", call_index]),
+            "payload_sha256": VERIFIER.canonical_sha(["payload", call_index]),
+            "payload_size_bytes": 0,
+            "frame_sha256": VERIFIER.canonical_sha(["frame", call_index]),
+            "frame_size_bytes": 8,
+        }
+        input_sha = VERIFIER.sha256_file(input_path)
+        feature_calls.append(
+            {
+                "call_index": call_index,
+                "build_label": build_label,
+                "unit_kind": unit_kind,
+                "capture_id": capture_id,
+                "research_date": research_date,
+                "slice_ordinal": slice_ordinal,
+                "resolved_input_path": str(input_path.resolve()),
+                "input_sha256": input_sha,
+                "input_authority": input_authority,
+                "feature_output_sha256": output_sha,
+                "sender_ipc": {
+                    **ipc_common,
+                    "sent_frame_count": 1,
+                    "send_end_closed": True,
+                },
+                "receiver_ipc": {
+                    **ipc_common,
+                    "received_frame_count": 1,
+                    "eof_observed": True,
+                    "unused_byte_count": 0,
+                },
+                "consumer_input_sha256": output_sha,
+                "detector_exit_sha256": output_sha,
+                "field_name_schema_access_count": 1,
+                "consumed_value_access_count": 12,
+                "forbidden_value_access_count": 0,
+                "consumer_use_count": 1,
             }
-            feature_calls.append(
+        )
+        for field in sorted(VERIFIER.CONSUMED_FIELDS):
+            field_accesses.append(
                 {
                     "call_index": call_index,
                     "build_label": build_label,
-                    "unit_kind": "FULL",
-                    "capture_id": capture_id,
-                    "research_date": "2026-08-30",
-                    "slice_ordinal": None,
                     "resolved_input_path": str(input_path.resolve()),
-                    "input_sha256": VERIFIER.sha256_file(input_path),
-                    "input_authority": (
-                        "CANONICAL" if build_label in {"A", "B"} else "POISON"
-                    ),
-                    "feature_output_sha256": output_sha,
-                    "sender_ipc": {
-                        **ipc_common,
-                        "sent_frame_count": 1,
-                        "send_end_closed": True,
-                    },
-                    "receiver_ipc": {
-                        **ipc_common,
-                        "received_frame_count": 1,
-                        "eof_observed": True,
-                        "unused_byte_count": 0,
-                    },
-                    "consumer_input_sha256": output_sha,
-                    "detector_exit_sha256": output_sha,
-                    "field_name_schema_access_count": 1,
-                    "consumed_value_access_count": 12,
-                    "forbidden_value_access_count": 0,
-                    "consumer_use_count": 1,
+                    "input_sha256": input_sha,
+                    "field": field,
+                    "value_access_count": 1,
+                    "authorization": "CONSUMED_VALUE",
                 }
             )
-            for field in sorted(VERIFIER.CONSUMED_FIELDS):
-                field_accesses.append(
-                    {
-                        "call_index": call_index,
-                        "build_label": build_label,
-                        "resolved_input_path": str(input_path.resolve()),
-                        "input_sha256": VERIFIER.sha256_file(input_path),
-                        "field": field,
-                        "value_access_count": 1,
-                        "authorization": "CONSUMED_VALUE",
-                    }
-                )
-            for phase, caller_path, caller_name in (
-                ("HASHER", VERIFIER.RUNNER_PATH, "sha256_file"),
-                ("LOADER", VERIFIER.FEATURE_AUTHORITY_PATH, "build_features"),
+        for phase, caller_path, caller_name in (
+            ("HASHER", VERIFIER.RUNNER_PATH, "sha256_file"),
+            ("LOADER", VERIFIER.FEATURE_AUTHORITY_PATH, "build_features"),
+        ):
+            raw_events.append(
+                {
+                    "call_index": call_index,
+                    "build_label": build_label,
+                    "phase": phase,
+                    "event_type": "open",
+                    "resolved_path": str(input_path.resolve()),
+                    "operation": "READ_INPUT",
+                    "caller_path": caller_path.as_posix(),
+                    "caller_name": caller_name,
+                    "allowed": True,
+                }
+            )
+        if unit_kind == "SLICE":
+            assert full_input_path is not None
+            for resolved_path, operation in (
+                (full_input_path, "READ_INPUT"),
+                (input_path, "WRITE_SLICE"),
             ):
                 raw_events.append(
                     {
                         "call_index": call_index,
                         "build_label": build_label,
-                        "phase": phase,
+                        "phase": "SLICE_MATERIALIZER",
                         "event_type": "open",
-                        "resolved_path": str(input_path.resolve()),
-                        "operation": "READ_INPUT",
-                        "caller_path": caller_path.as_posix(),
-                        "caller_name": caller_name,
+                        "resolved_path": str(resolved_path.resolve()),
+                        "operation": operation,
+                        "caller_path": VERIFIER.RUNNER_PATH.as_posix(),
+                        "caller_name": "materialize_slice",
                         "allowed": True,
                     }
+                )
+
+    for build_label in VERIFIER.ROOT_LABELS:
+        for cache_index, inventory_row in enumerate(inventory):
+            cache_name = str(inventory_row["cache_name"])
+            capture_id = Path(cache_name).stem
+            full_input_path = (
+                source_root / cache_name
+                if build_label in {"A", "B"}
+                else poison_cache / cache_name
+            )
+            research_date = f"2026-08-{cache_index % 4 + 1:02d}"
+            append_feature_call(
+                build_label=build_label,
+                unit_kind="FULL",
+                capture_id=capture_id,
+                research_date=research_date,
+                input_path=full_input_path,
+                input_authority=(
+                    "CANONICAL" if build_label in {"A", "B"} else "POISON"
+                ),
+                slice_ordinal=None,
+            )
+            if cache_index < 4:
+                slice_path = work_root / build_label / cache_name / "slice_000000.npz"
+                slice_path.parent.mkdir(parents=True, exist_ok=True)
+                slice_path.write_bytes(
+                    f"slice-{build_label}-{cache_index}\n".encode("ascii")
+                )
+                work_rows.append(
+                    {
+                        "build_label": build_label,
+                        "cache_name": cache_name,
+                        "slice_ordinal": 0,
+                        "path": slice_path.relative_to(attempt).as_posix(),
+                        "size_bytes": slice_path.stat().st_size,
+                        "sha256": VERIFIER.sha256_file(slice_path),
+                    }
+                )
+                append_feature_call(
+                    build_label=build_label,
+                    unit_kind="SLICE",
+                    capture_id=capture_id,
+                    research_date=research_date,
+                    input_path=slice_path,
+                    input_authority=(
+                        "SLICED_CANONICAL"
+                        if build_label in {"A", "B"}
+                        else "SLICED_POISON"
+                    ),
+                    slice_ordinal=0,
+                    full_input_path=full_input_path,
                 )
     instrumentation = AUDIT.instrumentation_evidence(
         attempt_id=str(claim["attempt_id"]),
@@ -1784,7 +1859,7 @@ def synthetic_terminal_package(
     write_json(attempt / "instrumentation-evidence.json", instrumentation)
     work_manifest = AUDIT.work_manifest_payload(
         attempt_id=str(claim["attempt_id"]),
-        rows=[],
+        rows=work_rows,
     )
     write_json(attempt / "work-manifest.json", work_manifest)
 
@@ -1908,12 +1983,108 @@ def synthetic_terminal_package(
     }
     counter_rows = zero_counter_rows()
     support_rows, variant_rows = VERIFIER.recompute_scientific_tables(counter_rows, [])
+    channel_rows = []
+    epoch_rows = []
+    slice_rows = []
+    a_work_by_cache = {
+        row["cache_name"]: row for row in work_rows if row["build_label"] == "A"
+    }
+    for date_index in range(4):
+        research_date = f"2026-08-{date_index + 1:02d}"
+        capture_id = f"capture{date_index:02d}"
+        for channel in sorted(VERIFIER.CHANNELS):
+            channel_rows.append(
+                {
+                    "research_date": research_date,
+                    "channel": channel,
+                    "total_action_count": 0,
+                    "global_invalid_action_count": 0,
+                    "new_invalid_action_count": 0,
+                    "new_pos_action_count": 0,
+                    "new_neg_action_count": 0,
+                    "new_neutral_action_count": 0,
+                    "no_update_action_count": 0,
+                    "observed_new_evidence_count": 0,
+                    "expiry_count": 0,
+                    "neutral_overwrite_count": 0,
+                    "unauthorized_ttl_refresh_count": 0,
+                    "cross_segment_memory_carry_count": 0,
+                    "maximum_memory_age_ms": -1,
+                    "action_partition_exact": True,
+                }
+            )
+        for epoch_id in range(3, 11):
+            epoch_start = epoch_id * VERIFIER.EPOCH_NS
+            epoch_rows.append(
+                {
+                    "research_date": research_date,
+                    "capture_id": capture_id,
+                    "epoch_id": epoch_id,
+                    "epoch_start_ns": epoch_start,
+                    "epoch_end_ns": epoch_start + VERIFIER.EPOCH_NS,
+                    "core_open_ns": epoch_start + 15_000_000_000,
+                    "core_close_ns": epoch_start + 45_000_000_000,
+                    "segment_id": 0,
+                    "segment_count": 1,
+                    "segment_ids_json": [0],
+                    "segment_set_sha256": VERIFIER.canonical_sha([0]),
+                    "disposition": "eligible",
+                    "observed_checkpoint_count": 3000,
+                    "unique_timestamp_count": 3000,
+                    "duplicate_timestamp_count": 0,
+                    "off_grid_timestamp_count": 0,
+                    "missing_expected_timestamp_count": 0,
+                    "grid_exact": True,
+                }
+            )
+        identity_sha = VERIFIER.canonical_sha(["slice", capture_id, "identity"])
+        empty_sha = VERIFIER.canonical_sha([])
+        slice_rows.append(
+            {
+                "research_date": research_date,
+                "capture_id": capture_id,
+                "segment_id": 0,
+                "nominal_start_ts_ns": 0,
+                "actual_start_ts_ns": 0,
+                "comparison_floor_ns": VERIFIER.SLICE_GUARD_NS,
+                "first_comparable_epoch_id": 3,
+                "slice_source_sha256": a_work_by_cache[f"{capture_id}.npz"]["sha256"],
+                "comparable_epoch_count": 8,
+                "expected_epoch_disposition_count": 8,
+                "actual_epoch_disposition_count": 8,
+                "expected_epoch_disposition_sha256": identity_sha,
+                "actual_epoch_disposition_sha256": identity_sha,
+                "epoch_disposition_exact": True,
+                "expected_counter_count": 48,
+                "actual_counter_count": 48,
+                "expected_counter_sha256": identity_sha,
+                "actual_counter_sha256": identity_sha,
+                "counter_exact": True,
+                "expected_retained_count": 0,
+                "actual_retained_count": 0,
+                "expected_retained_sha256": empty_sha,
+                "actual_retained_sha256": empty_sha,
+                "retained_exact": True,
+                "expected_status_count": 0,
+                "actual_status_count": 0,
+                "expected_status_sha256": empty_sha,
+                "actual_status_sha256": empty_sha,
+                "status_exact": True,
+                "expected_support_count": 72_000,
+                "actual_support_count": 72_000,
+                "expected_support_sha256": identity_sha,
+                "actual_support_sha256": identity_sha,
+                "support_exact": True,
+                "cross_segment_checkpoint_count": 0,
+                "mismatch_reason": "none",
+            }
+        )
     raw_tables = {
         "support/source_cache_inventory.csv": inventory,
-        "support/channel_action_by_date.csv": [],
-        "support/epoch_support.csv": [],
+        "support/channel_action_by_date.csv": channel_rows,
+        "support/epoch_support.csv": epoch_rows,
         "support/epoch_variant_counters.csv": counter_rows,
-        "support/slice_invariance.csv": [],
+        "support/slice_invariance.csv": slice_rows,
         "support/support_by_date.csv": support_rows,
         "support/trigger_ledger.csv": [],
         "support/variant_summary.csv": variant_rows,
@@ -1936,18 +2107,9 @@ def synthetic_terminal_package(
             )
     integrity = {
         "source_preflight_violation_count": 0,
-        "action_partition_violation_count": 0,
-        "unauthorized_ttl_refresh_count": 0,
-        "cross_segment_memory_carry_count": 0,
-        "conservation_violation_count": 0,
-        "fixed_epoch_violation_count": 0,
-        "slice_mismatch_count": 0,
-        "cross_segment_compared_checkpoint_count": 0,
-        "represented_slice_date_count": 4,
-        "distinct_comparable_epoch_count": 30,
-        "compared_support_checkpoint_count": 1,
-        "schema_violation_count": 0,
-        "numeric_violation_count": 0,
+        **VERIFIER.recompute_a_minus1_2_actuals(
+            raw_tables, work_manifest, instrumentation
+        ),
     }
     authority_state = {
         "baseline_authority_verified": True,
@@ -2118,6 +2280,9 @@ def synthetic_terminal_package(
         "attempt": attempt,
         "roots": roots,
         "args": args,
+        "instrumentation": instrumentation,
+        "work_manifest": work_manifest,
+        "raw_tables": raw_tables,
         "counter_rows": counter_rows,
         "support_rows": support_rows,
         "variant_rows": variant_rows,
@@ -2125,25 +2290,36 @@ def synthetic_terminal_package(
     }
 
 
-def run_checks_through(context: dict[str, object], target_index: int) -> None:
-    for index, check in enumerate(VERIFIER.CHECK_FUNCTIONS[: target_index + 1]):
-        if index == target_index:
-            with pytest.raises(VERIFIER.VerificationError):
-                check(context)
-        else:
-            check(context)
-
-
-def initial_verifier_context(package: dict[str, object]) -> dict[str, object]:
-    args = package["args"]
-    return {
-        "repo_root": package["repo"],
-        "attempt_root": package["attempt"],
-        "result_out": args.result_out,
-        "implementation_tag": VERIFIER.IMPLEMENTATION_TAG,
-        "consumption_tag": VERIFIER.CONSUMPTION_TAG,
-        "terminal_tag": VERIFIER.TERMINAL_TAG,
+def assert_verify_terminal_failure(
+    package: dict[str, object],
+    target_index: int,
+) -> None:
+    exit_code, payload = VERIFIER.verify_terminal(package["args"])
+    assert exit_code == 2
+    assert payload["status"] == "FAIL"
+    assert payload["first_failure_code"] == VERIFIER.CHECK_IDS[target_index]
+    assert len(payload["checks"]) == len(VERIFIER.CHECK_IDS) == 13
+    assert [row["check_id"] for row in payload["checks"]] == list(VERIFIER.CHECK_IDS)
+    assert [row["status"] for row in payload["checks"][:target_index]] == [
+        "PASS"
+    ] * target_index
+    assert all(
+        row["actual"] == "true" and row["required"] == "true"
+        for row in payload["checks"][:target_index]
+    )
+    failed = payload["checks"][target_index]
+    assert failed == {
+        "check_id": VERIFIER.CHECK_IDS[target_index],
+        "status": "FAIL",
+        "actual": f"false:{VERIFIER.CHECK_IDS[target_index]}",
+        "required": "true",
     }
+    assert all(
+        row["status"] == "NOT_EVALUATED"
+        and row["actual"] == ""
+        and row["required"] == "true"
+        for row in payload["checks"][target_index + 1 :]
+    )
 
 
 def mutate_v07_scientific_outputs(package: dict[str, object]) -> None:
@@ -2218,6 +2394,58 @@ def mutate_v07_scientific_outputs(package: dict[str, object]) -> None:
         write_json(classification_path, classification_payload)
 
 
+def mutate_to_empty_slice_evidence(package: dict[str, object]) -> None:
+    attempt = package["attempt"]
+    instrumentation = VERIFIER.read_json(attempt / "instrumentation-evidence.json")
+    full_calls = [
+        copy.deepcopy(row)
+        for row in instrumentation["feature_calls"]
+        if row["unit_kind"] == "FULL"
+    ]
+    old_to_new = {
+        row["call_index"]: new_index for new_index, row in enumerate(full_calls)
+    }
+    for new_index, row in enumerate(full_calls):
+        row["call_index"] = new_index
+    full_accesses = []
+    for row in instrumentation["field_accesses"]:
+        if row["call_index"] in old_to_new:
+            copied = copy.deepcopy(row)
+            copied["call_index"] = old_to_new[row["call_index"]]
+            full_accesses.append(copied)
+    full_events = []
+    for row in instrumentation["raw_open_events"]:
+        if row["call_index"] in old_to_new:
+            copied = {
+                key: copy.deepcopy(value)
+                for key, value in row.items()
+                if key != "event_index"
+            }
+            copied["call_index"] = old_to_new[row["call_index"]]
+            full_events.append(copied)
+    rebuilt = AUDIT.instrumentation_evidence(
+        attempt_id=instrumentation["attempt_id"],
+        feature_calls=full_calls,
+        field_accesses=full_accesses,
+        raw_open_events=full_events,
+    )
+    write_json(attempt / "instrumentation-evidence.json", rebuilt)
+    write_json(
+        attempt / "work-manifest.json",
+        AUDIT.work_manifest_payload(
+            attempt_id=instrumentation["attempt_id"],
+            rows=[],
+        ),
+    )
+    for root in package["roots"].values():
+        (root / "support/slice_invariance.csv").write_bytes(
+            AUDIT.csv_bytes(
+                [],
+                VERIFIER.CSV_HEADERS["support/slice_invariance.csv"],
+            )
+        )
+
+
 def apply_terminal_mutation(
     package: dict[str, object],
     target_index: int,
@@ -2245,7 +2473,10 @@ def apply_terminal_mutation(
     elif target_index == 5:
         path = attempt / "instrumentation-evidence.json"
         payload = VERIFIER.read_json(path)
-        payload["feature_calls"][0]["receiver_ipc"]["eof_observed"] = False
+        slice_call = next(
+            row for row in payload["feature_calls"] if row["unit_kind"] == "SLICE"
+        )
+        slice_call["input_authority"] = "CANONICAL"
         write_json(path, payload)
     elif target_index == 6:
         path = attempt / "poison-attestation.json"
@@ -2291,8 +2522,39 @@ def test_complete_synthetic_terminal_package_passes_v00_v12(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     package = synthetic_terminal_package(tmp_path, monkeypatch)
+    assert package["work_manifest"]["row_count"] == 12
+    assert package["work_manifest"]["per_build_slice_count"] == 4
+    assert (
+        sum(
+            row["unit_kind"] == "SLICE"
+            for row in package["instrumentation"]["feature_calls"]
+        )
+        == 12
+    )
+    assert (
+        sum(
+            row["phase"] == "SLICE_MATERIALIZER"
+            for row in package["instrumentation"]["raw_open_events"]
+        )
+        == 24
+    )
+    assert package["integrity"] == {
+        "source_preflight_violation_count": 0,
+        "action_partition_violation_count": 0,
+        "unauthorized_ttl_refresh_count": 0,
+        "cross_segment_memory_carry_count": 0,
+        "conservation_violation_count": 0,
+        "fixed_epoch_violation_count": 0,
+        "slice_mismatch_count": 0,
+        "cross_segment_compared_checkpoint_count": 0,
+        "represented_slice_date_count": 4,
+        "distinct_comparable_epoch_count": 32,
+        "compared_support_checkpoint_count": 288_000,
+        "schema_violation_count": 0,
+        "numeric_violation_count": 0,
+    }
     exit_code, payload = VERIFIER.verify_terminal(package["args"])
-    assert exit_code == 0
+    assert exit_code == 0, payload
     assert payload["status"] == "PASS"
     assert payload["first_failure_code"] is None
     assert [row["status"] for row in payload["checks"]] == ["PASS"] * 13
@@ -2304,7 +2566,19 @@ def test_v07_rejects_synchronized_scientific_summary_mutation(
 ) -> None:
     package = synthetic_terminal_package(tmp_path, monkeypatch)
     mutate_v07_scientific_outputs(package)
-    run_checks_through(initial_verifier_context(package), 7)
+    assert_verify_terminal_failure(package, 7)
+
+
+def test_v07_rejects_empty_slice_evidence_with_handfilled_passing_actuals(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    mutate_to_empty_slice_evidence(package)
+    assert package["integrity"]["represented_slice_date_count"] == 4
+    assert package["integrity"]["distinct_comparable_epoch_count"] == 32
+    assert package["integrity"]["compared_support_checkpoint_count"] == 288_000
+    assert_verify_terminal_failure(package, 7)
 
 
 @pytest.mark.parametrize("target_index", range(12))
@@ -2315,10 +2589,53 @@ def test_complete_package_rejects_deep_v00_v11_mutations(
 ) -> None:
     package = synthetic_terminal_package(tmp_path, monkeypatch)
     apply_terminal_mutation(package, target_index)
-    context = initial_verifier_context(package)
-    if target_index == 0:
-        context["result_out"] = package["args"].result_out
-    run_checks_through(context, target_index)
+    assert_verify_terminal_failure(package, target_index)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "work_row_sha",
+        "slice_feature_call_authority",
+        "slice_raw_open_drop",
+    ),
+)
+def test_complete_package_rejects_v05_slice_evidence_mutations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    attempt = package["attempt"]
+    if mutation == "work_row_sha":
+        path = attempt / "work-manifest.json"
+        payload = VERIFIER.read_json(path)
+        payload["rows"][0]["sha256"] = "0" * 64
+        payload["tree_sha256"] = VERIFIER.canonical_sha(payload["rows"])
+        write_json(path, payload)
+    elif mutation == "slice_feature_call_authority":
+        path = attempt / "instrumentation-evidence.json"
+        payload = VERIFIER.read_json(path)
+        slice_call = next(
+            row for row in payload["feature_calls"] if row["unit_kind"] == "SLICE"
+        )
+        slice_call["input_authority"] = "CANONICAL"
+        write_json(path, payload)
+    elif mutation == "slice_raw_open_drop":
+        path = attempt / "instrumentation-evidence.json"
+        payload = VERIFIER.read_json(path)
+        event_index = next(
+            index
+            for index, row in enumerate(payload["raw_open_events"])
+            if row["phase"] == "SLICE_MATERIALIZER"
+        )
+        del payload["raw_open_events"][event_index]
+        for index, row in enumerate(payload["raw_open_events"]):
+            row["event_index"] = index
+        write_json(path, payload)
+    else:
+        raise AssertionError(mutation)
+    assert_verify_terminal_failure(package, 5)
 
 
 def test_complete_package_rejects_post_v11_v12_root_mutation(
@@ -2326,18 +2643,19 @@ def test_complete_package_rejects_post_v11_v12_root_mutation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     package = synthetic_terminal_package(tmp_path, monkeypatch)
-    context = initial_verifier_context(package)
-    for check in VERIFIER.CHECK_FUNCTIONS[:12]:
-        check(context)
-    path = package["roots"]["A"] / "classification.json"
-    payload = VERIFIER.read_json(path)
-    payload["classification"] = "post-seal-mutation"
-    write_json(path, payload)
-    with pytest.raises(
-        VERIFIER.VerificationError,
-        match="post_seal_root_drift:A",
-    ):
-        VERIFIER.check_v12(context)
+    production_v12 = VERIFIER.CHECK_FUNCTIONS[12]
+
+    def mutate_then_check_v12(context: dict[str, object]) -> None:
+        path = package["roots"]["A"] / "classification.json"
+        payload = VERIFIER.read_json(path)
+        payload["classification"] = "post-seal-mutation"
+        write_json(path, payload)
+        production_v12(context)
+
+    functions = list(VERIFIER.CHECK_FUNCTIONS)
+    functions[12] = mutate_then_check_v12
+    monkeypatch.setattr(VERIFIER, "CHECK_FUNCTIONS", tuple(functions))
+    assert_verify_terminal_failure(package, 12)
 
 
 def test_production_v01_rejects_runner_artifact_mutation(

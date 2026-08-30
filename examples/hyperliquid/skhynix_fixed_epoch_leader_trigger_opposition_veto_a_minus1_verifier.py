@@ -89,6 +89,8 @@ VARIANTS = ("TRADE_LED", "DEPLETION_LED", "OFI_LED")
 PRIMARY_VARIANT = "TRADE_LED"
 SENSITIVITY_VARIANTS = ("DEPLETION_LED", "OFI_LED")
 DIRECTIONS = (-1, 1)
+EPOCH_NS = 60_000_000_000
+SLICE_GUARD_NS = 122_000_000_000
 GATE_REQUIREMENTS = {
     "A-1-0": (
         ("baseline_authority_verified", "true"),
@@ -1036,18 +1038,6 @@ def validate_candidate_links(tables: Mapping[str, list[dict[str, Any]]]) -> None
                 == int(trigger["confirmation_status"] == "CANCELLED"),
                 "counter_trigger_status_identity",
             )
-        require(
-            row["raw_onset_count"]
-            == row["epoch_core_omitted_count"]
-            + row["confirmation_edge_omitted_count"]
-            + row["anchor_vetoed_count"]
-            + row["veto_admitted_count"]
-            and row["veto_admitted_count"]
-            == row["retained_count"] + row["same_key_suppressed_count"]
-            and row["retained_count"]
-            == row["confirmed_count"] + row["cancelled_count"],
-            "counter_conservation",
-        )
 
 
 def recompute_scientific_tables(
@@ -1151,9 +1141,183 @@ def recompute_scientific_tables(
     return support_rows, variant_rows
 
 
+def counter_conservation_violation_count(
+    counter_rows: Sequence[Mapping[str, Any]],
+) -> int:
+    return sum(
+        int(
+            row["raw_onset_count"]
+            != row["epoch_core_omitted_count"]
+            + row["confirmation_edge_omitted_count"]
+            + row["anchor_vetoed_count"]
+            + row["veto_admitted_count"]
+            or row["veto_admitted_count"]
+            != row["retained_count"] + row["same_key_suppressed_count"]
+            or row["retained_count"] != row["confirmed_count"] + row["cancelled_count"]
+        )
+        for row in counter_rows
+    )
+
+
+def numeric_violation_count(
+    variant_rows: Sequence[Mapping[str, Any]],
+    counter_rows: Sequence[Mapping[str, Any]],
+) -> int:
+    count_fields = (
+        "raw_onset_count",
+        "epoch_core_omitted_count",
+        "anchor_vetoed_count",
+        "confirmation_edge_omitted_count",
+        "veto_admitted_count",
+        "retained_count",
+        "same_key_suppressed_count",
+        "confirmed_count",
+        "cancelled_count",
+    )
+    violations = sum(
+        int(
+            isinstance(row[field], bool)
+            or not isinstance(row[field], int)
+            or row[field] < 0
+        )
+        for row in counter_rows
+        for field in count_fields
+    )
+    for row in variant_rows:
+        share = row["maximum_single_date_cluster_share"]
+        clusters = row["distinct_confirmed_cluster_count"]
+        if clusters == 0:
+            violations += int(share is not None)
+        else:
+            violations += int(
+                isinstance(share, bool)
+                or not isinstance(share, (int, float))
+                or not math.isfinite(float(share))
+                or not 0 <= float(share) <= 1
+            )
+    return violations
+
+
+def recompute_a_minus1_2_actuals(
+    tables: Mapping[str, list[dict[str, Any]]],
+    work: Mapping[str, Any],
+    instrumentation: Mapping[str, Any],
+) -> dict[str, int]:
+    channel_rows = tables["support/channel_action_by_date.csv"]
+    epoch_rows = tables["support/epoch_support.csv"]
+    counter_rows = tables["support/epoch_variant_counters.csv"]
+    variant_rows = tables["support/variant_summary.csv"]
+    slice_rows = tables["support/slice_invariance.csv"]
+
+    work_rows = work["rows"]
+    require(
+        work["per_build_slice_count"] == len(slice_rows),
+        "slice_work_count_identity",
+    )
+    a_work_rows = {
+        (row["cache_name"], row["slice_ordinal"]): row
+        for row in work_rows
+        if row["build_label"] == "A"
+    }
+    require(len(a_work_rows) == len(slice_rows), "slice_work_a_identity")
+    slice_calls = [
+        row for row in instrumentation["feature_calls"] if row["unit_kind"] == "SLICE"
+    ]
+    require(
+        len(slice_calls) == len(work_rows),
+        "slice_feature_call_count_identity",
+    )
+
+    comparable_keys: set[tuple[str, int]] = set()
+    rows_by_capture: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    for row in slice_rows:
+        rows_by_capture[row["capture_id"]].append(row)
+    for capture_id, capture_rows in rows_by_capture.items():
+        ordered = sorted(
+            capture_rows,
+            key=lambda row: (row["segment_id"], row["nominal_start_ts_ns"]),
+        )
+        for slice_ordinal, row in enumerate(ordered):
+            require(
+                row["comparison_floor_ns"] == row["actual_start_ts_ns"] + SLICE_GUARD_NS
+                and row["first_comparable_epoch_id"]
+                == (row["comparison_floor_ns"] + EPOCH_NS - 1) // EPOCH_NS,
+                "slice_comparison_boundary_identity",
+            )
+            cache_name = f"{capture_id}.npz"
+            work_row = a_work_rows.get((cache_name, slice_ordinal))
+            require(
+                work_row is not None
+                and row["slice_source_sha256"] == work_row["sha256"],
+                "slice_work_sha_identity",
+            )
+            comparable = {
+                (capture_id, epoch["epoch_id"])
+                for epoch in epoch_rows
+                if epoch["capture_id"] == capture_id
+                and epoch["disposition"] == "eligible"
+                and epoch["segment_id"] == row["segment_id"]
+                and epoch["epoch_id"] >= row["first_comparable_epoch_id"]
+            }
+            require(
+                len(comparable) == row["comparable_epoch_count"]
+                and row["expected_epoch_disposition_count"] == len(comparable)
+                and row["actual_epoch_disposition_count"] == len(comparable),
+                "slice_comparable_epoch_identity",
+            )
+            comparable_keys.update(comparable)
+
+    fixed_epoch_violations = 0
+    epochs_by_capture: dict[tuple[str, str], list[Mapping[str, Any]]] = defaultdict(
+        list
+    )
+    for row in epoch_rows:
+        epochs_by_capture[(row["research_date"], row["capture_id"])].append(row)
+    for rows in epochs_by_capture.values():
+        fixed_epoch_violations += int(
+            any(
+                row["grid_exact"] and row["observed_checkpoint_count"] != 3000
+                for row in rows
+            )
+        )
+
+    return {
+        "action_partition_violation_count": sum(
+            not row["action_partition_exact"] for row in channel_rows
+        ),
+        "unauthorized_ttl_refresh_count": sum(
+            row["unauthorized_ttl_refresh_count"] for row in channel_rows
+        ),
+        "cross_segment_memory_carry_count": sum(
+            row["cross_segment_memory_carry_count"] for row in channel_rows
+        ),
+        "conservation_violation_count": 3
+        * counter_conservation_violation_count(counter_rows),
+        "fixed_epoch_violation_count": 3 * fixed_epoch_violations,
+        "slice_mismatch_count": sum(
+            row["mismatch_reason"] != "none" for row in slice_rows
+        ),
+        "cross_segment_compared_checkpoint_count": sum(
+            row["cross_segment_checkpoint_count"] for row in slice_rows
+        ),
+        "represented_slice_date_count": len(
+            {row["research_date"] for row in slice_rows}
+        ),
+        "distinct_comparable_epoch_count": len(comparable_keys),
+        "compared_support_checkpoint_count": sum(
+            row["expected_support_count"] for row in slice_rows
+        ),
+        "schema_violation_count": 0,
+        "numeric_violation_count": numeric_violation_count(variant_rows, counter_rows),
+    }
+
+
 def validate_scientific_derivations(
     tables: Mapping[str, list[dict[str, Any]]],
     gate: Mapping[str, Any],
+    integrity: Mapping[str, Any],
+    work: Mapping[str, Any],
+    instrumentation: Mapping[str, Any],
 ) -> None:
     expected_support, expected_variants = recompute_scientific_tables(
         tables["support/epoch_variant_counters.csv"],
@@ -1185,6 +1349,18 @@ def validate_scientific_derivations(
             require(
                 condition["actual"] == expected_actuals[condition["condition"]],
                 f"primary_gate_actual:{condition['condition']}",
+            )
+    expected_integrity = {
+        "source_preflight_violation_count": 0,
+        **recompute_a_minus1_2_actuals(tables, work, instrumentation),
+    }
+    require(integrity == expected_integrity, "a_minus1_2_integrity_derivation")
+    a_minus1_2 = next(row for row in gate["gates"] if row["gate_id"] == "A-1-2")
+    for condition in a_minus1_2["conditions"]:
+        if condition["status"] != "NOT_EVALUATED":
+            require(
+                condition["actual"] == expected_integrity[condition["condition"]],
+                f"a_minus1_2_gate_actual:{condition['condition']}",
             )
 
 
@@ -1681,7 +1857,6 @@ def validate_final_root(root: Path, context: Mapping[str, Any]) -> dict[str, Any
     )
 
     gate = payloads["contracts/gate_contract.json"]
-    validate_scientific_derivations(tables, gate)
     summary = payloads["reports/A_minus1_summary.json"]
     classification = payloads["classification.json"]
     variant_rows = tables["support/variant_summary.csv"]
@@ -1704,6 +1879,13 @@ def validate_final_root(root: Path, context: Mapping[str, Any]) -> dict[str, Any
     require(
         all(is_int(value) and value >= 0 for value in summary["integrity"].values()),
         "integrity_values",
+    )
+    validate_scientific_derivations(
+        tables,
+        gate,
+        summary["integrity"],
+        context["work_manifest"],
+        context["instrumentation"],
     )
     require(
         summary["task_id"] == TASK_ID
