@@ -15,14 +15,29 @@ continuous conditional-risk research workflow under:
 - `.workflow/reports/`
 - `baselines/`
 
-Controller route as of `2026-08-20`:
+Controller route as of `2026-08-31`:
+
+- This route supersedes the `2026-08-20` next-task statement for this
+  worktree.
+- `0831T001 / TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1` is the
+  current and only formal task.
+- `0831T001` is synthetic Q0 software qualification only. It must not open
+  the formal historical cache root, future outcomes, private data or live
+  execution.
+- Implementation remains locked until independent plan review passes.
+- Formal Q0 remains locked until independent implementation readiness passes
+  and an exact armed claim is registered.
+- A-1a cannot be drafted until Q0 receives independent QA acceptance.
+
+Historical controller route as of `2026-08-20`:
 
 - The user approved the continuous conditional-risk v2 framework as the
   active master research goal.
 - Accepted v1 Ordered Research Queue Stages 1-4 remain immutable dependencies.
 - Undispatched v1 Stage 5 and later items are superseded and must not be
   dispatched under the old queue.
-- The Research Package Trust Kernel is the next mandatory prerequisite.
+- The Research Package Trust Kernel was the next mandatory prerequisite at
+  that historical point; it is not the current dispatch authority.
 - After independent QA accepts the kernel, execution proceeds through
   `Stage H0-A -> QA -> Stage H0-B -> QA`.
 

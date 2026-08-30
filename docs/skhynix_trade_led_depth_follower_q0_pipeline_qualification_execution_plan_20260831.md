@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_2_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_3_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -17,13 +17,13 @@ Frozen parent identity:
 
 ```text
 commit:
-  bbcb1bba1d48dc00f59bbbc21f502edbd6df56fb
+  2dcd1d95b7c6ff24cb5991e8dc1d3d97b2666b19
 
 SHA256:
-  8e51ce3c278a4da5e94d30e5443b89dd03c43e28bed673165dbb6514a81f8b62
+  4ac0772ae4f2bdf29e6572e22092108de293ec05deeaa77679d606cf1e4c0d40
 
 Git blob:
-  06d24e91589cc1e112e084ebba0c347c54ce5ca3
+  69c5cdf51b7fdf07d55170ed58bc791ff37bd0af
 ```
 
 Any parent-protocol byte drift fails before implementation or formal
@@ -166,10 +166,10 @@ The independent machine-readable oracle is:
 .workflow/contracts/0831T001-fixture-truth-v1.json
 
 SHA256:
-  f032af2f19888cb2198d1fa376222dbc58e1cf964956e2277140562540a8053a
+  1640b76a690e0e17a1ed2ff788b412a36f04f73e21e9f893aff6d7854cdae6b2
 
 Git blob:
-  8e17ce239a98095d96f41af61eb1633ce1c123b7
+  f4ca3b35d01bae9f10e0eb36fd75b3a87c8ce798
 ```
 
 It freezes:
@@ -192,7 +192,38 @@ tracked Git blob and SHA before opening any fixture output. Hostile tests must
 mutate the truth bytes and observed output independently; either mutation
 must fail closed.
 
-### 4.2 Accepted fixed-epoch authorities
+### 4.2 Surface contract authority
+
+The executable schema, formula, package and provenance authority is:
+
+```text
+.workflow/contracts/0831T001-q0-surface-contract-v1.json
+
+SHA256:
+  b4b6cd7bc5335e05746a26a677f29e03db42513668ace4a5bca69aec99cac64a
+
+Git blob:
+  4ef330fe363532079fc3b54a7fbd9fc25f9c1e90
+```
+
+It freezes:
+
+```text
+production cache schema v4
+rolling ratios and base eligibility
+canonical hash preimages
+57-call A/B/P instrumentation
+all JSON field sets
+allowed package directories
+hostile mutation recipes
+readiness comparison projection
+claim/lock/receipt/controller state machine
+```
+
+Where this prose and the surface contract differ, execution fails closed
+rather than selecting one interpretation.
+
+### 4.3 Accepted fixed-epoch authorities
 
 The new feature authority consumes exactly the raw fields registered in the
 master protocol:
@@ -218,13 +249,17 @@ ts_ns
 valid_book
 ```
 
-Extra raw fields may exist but their values cannot be read. Q0 instruments
-field access and proves that a mutation to an extra field does not change
-features, anchors, structural outcomes or package bytes.
+The production cache also contains the nine schema-v4 metadata fields frozen
+in the surface contract. Their names, dtypes and shapes are validated by the
+independent input verifier. Their values are not consumed by the production
+feature loader. QF10 changes only the existing
+`bin_boundary_violations` metadata value.
 
-The structural core directly calls the accepted fixed-epoch authorities for:
+The structural core directly calls the accepted authorities for:
 
 ```text
+build_features
+base_masks
 source_preflight
 channel_actions
 channel_memories
@@ -246,7 +281,29 @@ medium threshold = 0.25
 Q0 freezes source path, Git blob and callable AST identities for every reused
 authority.
 
-The accepted authority identity is:
+The accepted feature authority identity is:
+
+```text
+path:
+  examples/hyperliquid/skhynix_flow_coherence_a_minus1_audit.py
+
+commit:
+  45544ecc3901623ca7c2e34a059afca6c551d625
+
+Git blob:
+  494c203e7195f292e057f7708c99f52096259a02
+
+SHA256:
+  f7dc1565bf0a45363dadf3204d827e0d13687f6cc3307c2e7c5e77aeb321400c
+
+build_features AST:
+  e5cca6c2b7627ef8e3719e4fdecb5a540a42a2028e2fb141ea9fff4f7c246933
+
+base_masks AST:
+  bc2155a38bd1707fcdb77bdebea611da3889934a47d415bdfd0d5a95842d7114
+```
+
+The accepted fixed-epoch authority identity is:
 
 ```text
 commit:
@@ -275,46 +332,55 @@ epoch_support_ledger AST:
 
 ### 5.1 Exact raw schema
 
-Every required raw field is row-aligned with identical length `n`:
+The fixture cache is exact-isomorphic to production cache schema v4:
 
-| Field | dtype | rank | domain |
-|---|---|---:|---|
-| `activity` | `float64` | 1 | finite, `>=0` |
-| `ask_depletion` | `float64` | 1 | finite, `>=0` |
-| `ask_depth` | `float64` | 1 | finite, `>=0` |
-| `bid_depletion` | `float64` | 1 | finite, `>=0` |
-| `bid_depth` | `float64` | 1 | finite, `>=0` |
-| `event_seq` | `int64` | 1 | strictly increasing |
-| `midpoint` | `float64` | 1 | finite, `>0` |
-| `obi` | `float64` | 1 | finite, `[-1,1]` |
-| `ofi` | `float64` | 1 | finite |
-| `ofi_abs` | `float64` | 1 | finite, `>=abs(ofi)` |
-| `ready` | `bool` | 1 | boolean |
-| `segment_id` | `int32` | 1 | nonnegative, contiguous runs |
-| `spread_ticks` | `float64` | 1 | finite, `>=1` |
-| `tick_size` | `float64` | 1 | finite, `>0` |
-| `trade_signed` | `float64` | 1 | finite |
-| `trade_total` | `float64` | 1 | finite, `>=abs(trade_signed)` |
-| `ts_ns` | `int64` | 1 | strictly increasing |
-| `valid_book` | `bool` | 1 | boolean |
+```text
+18 row-aligned fields:
+  ts_ns int64[n]
+  event_seq int32[n]
+  segment_id int32[n]
+  valid_book bool[n]
+  ready bool[n]
+  activity int32[n]
+  trade_signed/trade_total float32[n]
+  ask_depletion/bid_depletion float32[n]
+  ofi/ofi_abs float32[n]
+  bid_depth/ask_depth float32[n]
+  obi/spread_ticks/midpoint/tick_size float32[n]
 
-The only permitted extra field is:
+9 metadata fields:
+  cache_schema_version int32[1] = 4
+  bin_boundary_violations int32[1]
+  initial_bridge_failure_count int32[1]
+  non_admitted_message_contributions int32[1]
+  quality_boundary_count int32[1]
+  reset_count int32[1]
+  sequence_gap_count int32[1]
+  segment_end_ids int32[segment_count]
+  segment_end_ts int64[segment_count]
+```
 
-| Field | dtype | rank | use |
-|---|---|---:|---|
-| `qualification_poison` | `uint64` | 1 | schema-visible, value access prohibited |
-
-No scalar metadata is permitted in V1. Any missing, additional, wrong-rank,
-wrong-dtype, unequal-length or domain-invalid field fails at `SOURCE_SCHEMA`,
-`SOURCE_CLOCK` or `SOURCE_DOMAIN` before feature construction.
+No additional field is permitted. Exact dtype strings, shapes and value
+domains are in `source_schema_v4` of the surface contract. Any mismatch fails
+before feature construction.
 
 `ts_ns` must follow the fixture authority's 20ms grid. `event_seq` is
 strictly increasing. Segment IDs may change only at a row boundary and may
 not return to a previously closed segment.
 
-The staged validator checks all 18 consumed fields before calling the
-accepted flow-only `source_preflight`; the accepted function is not treated
-as authority for OBI, spread, depth, midpoint, clock or segment validity.
+The independent input verifier checks all 27 physical arrays. The production
+loader sees the exact field-name schema but reads values from exactly 18 row
+fields:
+
+```text
+12 through accepted build_features
+6 through the new staged H0 extension
+0 metadata value reads
+```
+
+The new staged extension is a production adapter, not a synthetic-only
+schema. It appends OBI, spread, depth, midpoint and tick size to the accepted
+flow feature output.
 
 ### 5.2 Canonical fixture serialization
 
@@ -334,7 +400,7 @@ allow_pickle = false
 ```
 
 Canonical A and B cache bytes must match. QF10 P cache bytes must differ only
-through the `qualification_poison` NPY payload.
+through the existing `bin_boundary_violations` NPY payload.
 
 ### 5.3 Exact FeatureBundle schema
 
@@ -357,17 +423,19 @@ trailing_realized_volatility: float64[n]
 source_access_ledger: typed immutable rows
 ```
 
-Ratio and volatility unavailability is exactly IEEE `NaN`. Unknown memory is
-exactly `9`; unknown age is exactly `-1`. No other sentinel is permitted.
-
-Rolling windows are right-closed and left-open:
+Ratio, rolling, segment and base-eligibility formulas are exactly those in
+`feature_formulas` of the surface contract. In particular:
 
 ```text
-(t-window, t]
+100ms = five checkpoints
+500ms = 25 checkpoints
+rolling sums include current and available same-segment prefix rows
+activity_500 threshold = 44.0
+detector cooldown = 30s from segment start
 ```
 
-They reset at segment boundaries. A value requiring unavailable history is
-`NaN`, never backfilled across a boundary.
+Ratio and volatility unavailability is IEEE `NaN`. Unknown memory is `9`;
+unknown age is `-1`.
 
 Every production function receives `FeatureBundle` explicitly.
 `compare_slice(full_bundle, full_analysis, slice_bundle, slice_analysis)`
@@ -454,19 +522,25 @@ is descriptive only and cannot satisfy the follower endpoint.
 ## 7. Deterministic Fixture Matrix
 
 Every fixture is exactly three 60s epochs and 9,000 rows on the exact 20ms
-grid, as frozen in the fixture truth authority. The primary fixture anchor is
-at:
+grid, as frozen in the fixture truth authority. The primary non-reset fixture
+anchor is at:
 
 ```text
-index = 3750
-ts_ns = 75,000,000,000
+index = 4510
+ts_ns = 90,200,000,000
 epoch_id = 1
-event_seq = 3750
+event_seq = 4510
 ```
 
-The six leader-background checkpoints are indices `3744..3749`. Follower
-neutral memory is refreshed at index `3745`, so it is exactly 100ms old at
-the anchor and remains observable under the inherited inclusive TTL.
+Production eligibility needs both trade and depth observability before a
+neutral action can update memory. Every positive fixture therefore first
+completes the 30s cooldown measured from the 60s slice/segment boundary, seeds
+all three channels at index `4500`, refreshes trade neutral at `4504`,
+refreshes depletion and OFI neutral at `4506`, uses leader-background
+checkpoints `4504..4509`, and places the anchor at `4510`. Its anchor is
+therefore at `90.2s`. This makes the full/slice comparison non-vacuous while
+preventing the fixture oracle from assuming neutral memory that the production
+base mask would never admit.
 
 | Fixture | Registered expectation |
 |---|---|
@@ -500,6 +574,20 @@ half-open range patch:
 The verifier independently reconstructs the expected raw arrays from the
 authority and compares every element and dtype with each physical A/B/P
 cache. The runner may not derive expected labels from observed outputs.
+
+For QF07, QF08 and QF15, the truth authority freezes exact full/slice:
+
+```text
+anchor rows
+common epoch disposition rows
+structural outcome rows
+suppression/reset rows
+canonical semantic preimage SHA256
+```
+
+For QF13 it freezes all 14 model-input values and the exact causal access
+row ranges. Equality without matching these independent values is not a
+qualification result.
 
 The expected anchor ID format is exact:
 
@@ -633,7 +721,7 @@ Process IDs are evidence-only and excluded from deterministic structural
 package bytes.
 
 The field-access ledger names every consumed field and has no row for
-`qualification_poison`. The verifier independently opens each retained
+`bin_boundary_violations`. The verifier independently opens each retained
 physical input, recomputes file/array hashes and checks that every production
 call is bound to the corresponding A, B or P root. A missing call, reused A
 path, copied A package without B/P calls, or mismatched input hash fails
@@ -641,6 +729,19 @@ path, copied A package without B/P calls, or mismatched input hash fails
 
 Fixture-cache hashes and process evidence remain outside the structural
 subpackages whose A/B/P bytes are compared.
+
+Hash preimages, NaN normalization, frame encoding, loader/detector FD
+boundaries, child receipts and exact call cardinality are frozen in the
+surface contract:
+
+```text
+15 FULL + 4 SLICE calls per build
+19 calls per build
+57 calls total
+```
+
+The accepted `build_features` call reads 12 fields and the staged extension
+reads six. A loader metadata-value read is a forbidden access.
 
 ## 10. Package Contract
 
@@ -692,6 +793,9 @@ The complete terminal artifact count is therefore:
 
 No extra path, directory artifact, symlink, FIFO, socket or device is
 permitted below the package root.
+
+The exact 17 allowed directory paths are the `package_directories` array in
+the surface contract. Any other directory is `PACKAGE_PATH_SET_EXTRA`.
 
 ### 10.1 CSV schemas
 
@@ -786,6 +890,24 @@ Empty optional values use the ASCII token `NONE`. Booleans use only
 All JSON uses sorted keys, ASCII, compact separators and one trailing
 newline. All CSV uses the registered headers, ASCII and `\n`.
 
+The exact field sets for:
+
+```text
+authority_binding.json
+feature_contract.json
+state_contract.json
+qualification_summary.json
+formal_identity.json
+fixture_truth_binding.json
+abp_comparison.json
+fixture_source_evidence.json
+```
+
+are the `json_schemas` object in the surface contract. Missing or additional
+keys fail `PACKAGE_SCHEMA`. Values are independently derived from frozen
+authorities, physical inputs, observed rows and manifests; the verifier does
+not trust producer copies.
+
 Manifest preimages are exact:
 
 ```text
@@ -850,7 +972,7 @@ NONCANONICAL_CSV
   -> PACKAGE_CANONICAL_CSV
 
 SYNCHRONIZED_LINEAGE_MUTATION
-  -> PACKAGE_LINEAGE_HASH
+  -> FIXTURE_TRUTH_OBSERVED_MISMATCH
 
 RESET_IDENTITY_MISMATCH
   -> RESET_IDENTITY_MISMATCH
@@ -887,6 +1009,10 @@ A negative probe passes only when exit code is `2`, `first_error` equals the
 registered code, all earlier gates are `PASS` and all later gates are
 `NOT_EVALUATED`. A generic later failure is insufficient.
 
+Mutation target, operation, replacement bytes/injection checkpoint and clean
+baseline precondition are exact in `hostile_mutations` of the surface
+contract. No additional formal hostile probe is permitted in V1.
+
 ## 12. Formal Run
 
 Development tests may be repeated before implementation freeze. After
@@ -904,8 +1030,20 @@ readiness output:
 This happens before claim consumption. It is repeatable software readiness,
 not the formal Q0 attempt. The readiness worktree checks out the exact
 implementation commit in detached state, regenerates the synthetic package,
-runs the verifier and compares package bytes with the primary implementation
-workspace readiness package.
+runs the verifier and compares only the frozen deterministic projection:
+
+```text
+builds/A/structural
+builds/B/structural
+builds/P/structural
+abp_comparison.json
+```
+
+Both readiness evidence packages must independently verify. Their normalized
+evidence projection drops only `sender_process_id` and replaces exact roots
+with `ROOT`; every other evidence value must match. Complete package byte
+equality is not claimed because PID and root evidence is intentionally
+physical.
 
 Formal identities are:
 
@@ -955,6 +1093,21 @@ the no-replace attempt root and O_EXCL attempt-lock are created
 the consumption commit and annotated tag are created
 the local controller ref moves from absent to consumption commit exactly once
 ```
+
+Exact claim, attempt-lock, push-receipt and terminal-receipt fields; Git fsync
+configuration; commit/tag messages; transition commands; crash-state
+classification and retry policy are the `one_shot` object in the surface
+contract.
+
+The only retryable state is:
+
+```text
+failure before no-replace attempt-root creation
+```
+
+Any state at or after successful no-replace attempt-root creation is terminal
+for this task, even if attempt-lock, claim rename, commit, tag or controller
+update did not complete.
 
 The exact formal cwd is:
 
@@ -1106,15 +1259,21 @@ Q0-6:
   A/B/P physical input and consumer binding
 
 Q0-7:
-  A/B and A/P structural byte identity
+  package root/path/kind closure
 
 Q0-8:
-  package path set, schemas, canonical bytes and lineage
+  package schemas, canonical bytes and lineage
 
 Q0-9:
-  registered hostile mutation first-error matrix
+  fixture-truth observed semantics
 
 Q0-10:
+  A/B and A/P structural byte identity
+
+Q0-11:
+  registered hostile mutation first-error matrix
+
+Q0-12:
   terminal closure
 ```
 
@@ -1123,7 +1282,7 @@ If gate `Q0-k` fails:
 ```text
 Q0-0..Q0-(k-1) = PASS
 Q0-k = FAIL
-Q0-(k+1)..Q0-10 = NOT_EVALUATED
+Q0-(k+1)..Q0-12 = NOT_EVALUATED
 classification = Q0_PIPELINE_NOT_QUALIFIED
 ```
 

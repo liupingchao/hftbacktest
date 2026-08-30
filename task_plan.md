@@ -11,17 +11,24 @@
   trailing midpoint volatility.
 - Revision 1 independent review failed at `P0/P1/P2/P3=0/7/3/0`; no
   implementation or formal execution was authorized.
-- Revision 2 adds a tracked fixture-truth authority, exact raw/FeatureBundle
+- Revision 2 independent review failed at `P0/P1/P2/P3=0/8/1/0`; no
+  implementation or formal execution was authorized.
+- Revision 3 adds a tracked fixture-truth authority, production-isomorphic
+  schema-v4 adapter, accepted build_features/base_masks formulas,
   schemas, distinct causal/outcome stage entry points, non-vacuous
   slice/reset fixtures, typed A/B/P physical-input ledgers, exact package
-  schemas, verifier precedence and one-shot provenance.
+  schemas, hash/instrumentation preimages, hostile mutation recipes,
+  verifier precedence and one-shot provenance.
 - Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
   negative boundaries, causal access proof, terminal verification and
   pre-consumption detached-worktree readiness.
+- Freeze positive fixture anchors at 90.2s so a 60s independent slice can
+  complete cooldown, establish causal prestate and reproduce a nonempty
+  anchor.
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
 - Implementation and formal execution remain locked pending independent plan
-  review of Revision 2.
+  review of Revision 3.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 

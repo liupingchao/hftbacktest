@@ -1,0 +1,625 @@
+{
+  "authority_id": "TRADE_LED_DEPTH_FOLLOWER_Q0_SURFACE_CONTRACT_V1",
+  "canonical_hashes": {
+    "array_bundle_sha256": {
+      "field_order": "ASCII ascending",
+      "header_encoding": "canonical compact ASCII JSON plus LF",
+      "header_fields": [
+        "dtype_str",
+        "name",
+        "payload_size_bytes",
+        "shape"
+      ],
+      "negative_zero": "normalize to positive zero",
+      "payload": "little-endian C-contiguous bytes",
+      "quiet_nan_float32_hex": "0000c07f",
+      "quiet_nan_float64_hex": "000000000000f87f"
+    },
+    "canonical_json_sha256": {
+      "encoding": "ASCII",
+      "ensure_ascii": true,
+      "separators": [
+        ",",
+        ":"
+      ],
+      "sort_keys": true,
+      "trailing_lf": false
+    },
+    "file_sha256": "exact regular-file bytes",
+    "semantic_identity_sha256": "canonical_json_sha256 over the frozen semantic_preimage object"
+  },
+  "feature_formulas": {
+    "activity_500": "per-segment rolling_sum(activity, 25 checkpoints), current checkpoint included",
+    "base_eligible": "ready AND valid_book AND elapsed_from_segment_start_ns >= 30000000000 AND activity_500 >= 44.0 AND finite(ratios_100.trade) AND any finite(ratios_100.depletion, ratios_100.ofi) AND finite(ratios_500.trade) AND any finite(ratios_500.depletion, ratios_500.ofi)",
+    "depletion_ratio": "(rolling_sum(ask_depletion)-rolling_sum(bid_depletion))/(rolling_sum(ask_depletion)+rolling_sum(bid_depletion)); NaN iff denominator <= 0",
+    "ofi_ratio": "rolling_sum(ofi)/rolling_sum(ofi_abs); NaN iff denominator <= 0",
+    "rolling_boundary": "reset at segment change; first rows use available same-segment prefix without cross-segment backfill",
+    "rolling_counts": {
+      "100ms": 5,
+      "500ms": 25
+    },
+    "segment_start_ts": "minimum ts_ns for the current contiguous segment run",
+    "trade_ratio": "rolling_sum(trade_signed)/rolling_sum(trade_total); NaN iff denominator <= 0",
+    "trailing_realized_volatility": "sqrt(sum(diff(log(midpoint))^2)) over the 51 checkpoints in [t-1s,t], NaN until all 51 same-segment finite positive midpoint values exist"
+  },
+  "fixture_call_contract": {
+    "build_labels": [
+      "A",
+      "B",
+      "P"
+    ],
+    "full_fixture_count_per_build": 15,
+    "slice_fixture_ids": [
+      "QF07",
+      "QF08",
+      "QF12",
+      "QF15"
+    ],
+    "slice_fixture_count_per_build": 4,
+    "total_feature_calls": 57,
+    "total_feature_calls_per_build": 19,
+    "unit_order_per_build": "fixture authority order; FULL before the fixture's SLICE",
+    "value_reads_per_feature_call": {
+      "accepted_build_features": [
+        "activity",
+        "ask_depletion",
+        "bid_depletion",
+        "event_seq",
+        "ofi",
+        "ofi_abs",
+        "ready",
+        "segment_id",
+        "trade_signed",
+        "trade_total",
+        "ts_ns",
+        "valid_book"
+      ],
+      "new_staged_extension": [
+        "ask_depth",
+        "bid_depth",
+        "midpoint",
+        "obi",
+        "spread_ticks",
+        "tick_size"
+      ]
+    }
+  },
+  "hostile_mutations": [
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "PACKAGE_PATH_SET_MISSING",
+      "mutation": "unlink builds/A/structural/support/fixture_summary.csv",
+      "probe_id": "QF11_MISSING_ARTIFACT"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "PACKAGE_PATH_SET_EXTRA",
+      "mutation": "create zero-byte regular file unexpected.txt",
+      "probe_id": "QF11_EXTRA_ARTIFACT"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "PACKAGE_LINEAGE_ORDER",
+      "mutation": "swap manifest row ordinals 0 and 1 in builds/A/structural/raw_manifest.json without any other byte change",
+      "probe_id": "QF11_REORDERED_MANIFEST"
+    },
+    {
+      "baseline": "QF12 slice worker with no destination path present",
+      "expected_first_error": "SLICE_PUBLICATION_ABSENT",
+      "mutation": "SIGKILL worker after temporary file fsync and before no-replace publication",
+      "probe_id": "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION"
+    },
+    {
+      "baseline": "QF12 slice worker with published slice and no terminal package",
+      "expected_first_error": "TERMINAL_CLOSURE_ABSENT",
+      "mutation": "SIGKILL orchestrator after slice parent-directory fsync and before structural package creation",
+      "probe_id": "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION"
+    },
+    {
+      "baseline": "QF13 CausalView at anchor index 4510",
+      "expected_first_error": "CAUSAL_ACCESS_BOUNDARY",
+      "mutation": "invoke CausalView.read(field=trade_signed,index=4511)",
+      "probe_id": "QF13_CAUSAL_PREFIX_MUTATION"
+    },
+    {
+      "baseline": "clean A input root",
+      "expected_first_error": "SOURCE_PATH_KIND_SYMLINK",
+      "mutation": "replace inputs/A directory with a symlink to the original directory",
+      "probe_id": "ROOT_SYMLINK"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "PACKAGE_PATH_KIND_FIFO",
+      "mutation": "replace builds/A/structural/support/fixture_summary.csv with a FIFO",
+      "probe_id": "ARTIFACT_FIFO"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "PACKAGE_CANONICAL_JSON",
+      "mutation": "insert one ASCII space before LF in builds/A/structural/qualification_summary.json",
+      "probe_id": "NONCANONICAL_JSON"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "PACKAGE_CANONICAL_CSV",
+      "mutation": "replace every LF with CRLF in builds/A/structural/support/fixture_summary.csv",
+      "probe_id": "NONCANONICAL_CSV"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "FIXTURE_TRUTH_OBSERVED_MISMATCH",
+      "mutation": "change QF02 observed cause to EXPLICIT_CONTRADICTION and recompute every affected raw/sealed/evidence/terminal manifest hash consistently",
+      "probe_id": "SYNCHRONIZED_LINEAGE_MUTATION"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "RESET_IDENTITY_MISMATCH",
+      "mutation": "change QF15 observed_identity_sha256 to 64 ASCII zeroes and recompute every affected manifest hash",
+      "probe_id": "RESET_IDENTITY_MISMATCH"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "CROSS_SEGMENT_CARRY_NONZERO",
+      "mutation": "change QF15 reset cross_segment_carry_count from 0 to 1 and recompute every affected manifest hash",
+      "probe_id": "CROSS_SEGMENT_CARRY_NONZERO"
+    }
+  ],
+  "json_schemas": {
+    "abp_comparison.json": [
+      "a_raw_root_sha256",
+      "a_sealed_root_sha256",
+      "ab_raw_difference_count",
+      "ab_sealed_difference_count",
+      "ap_raw_difference_count",
+      "ap_sealed_difference_count",
+      "b_raw_root_sha256",
+      "b_sealed_root_sha256",
+      "comparison_projection_paths",
+      "p_raw_root_sha256",
+      "p_sealed_root_sha256",
+      "schema_version"
+    ],
+    "authority_binding.json": [
+      "accepted_authority_commit",
+      "accepted_authority_path",
+      "accepted_authority_sha256",
+      "callable_ast_sha256",
+      "fixture_truth_blob",
+      "fixture_truth_sha256",
+      "master_blob",
+      "master_commit",
+      "master_sha256",
+      "plan_blob",
+      "plan_sha256",
+      "schema_version",
+      "surface_contract_blob",
+      "surface_contract_sha256",
+      "task_blob",
+      "task_sha256"
+    ],
+    "feature_contract.json": [
+      "base_eligible_formula_id",
+      "feature_bundle_fields",
+      "hash_contract_id",
+      "raw_metadata_fields",
+      "raw_row_fields",
+      "rolling_formula_id",
+      "schema_version",
+      "sentinels"
+    ],
+    "fixture_source_evidence.json": [
+      "a_b_canonical_file_difference_count",
+      "a_p_poison_file_difference_count",
+      "fixture_count_per_build",
+      "physical_input_verification_passed",
+      "schema_version",
+      "total_feature_calls",
+      "unconsumed_poison_field",
+      "unconsumed_poison_value_read_count"
+    ],
+    "fixture_truth_binding.json": [
+      "authority_id",
+      "fixture_count",
+      "fixture_order",
+      "git_blob",
+      "schema_version",
+      "sha256"
+    ],
+    "formal_identity.json": [
+      "attempt_root",
+      "claim_sha256",
+      "consumption_commit",
+      "consumption_tag",
+      "controller_pre_sha",
+      "controller_ref",
+      "controller_repo",
+      "cwd",
+      "implementation_commit",
+      "implementation_tag",
+      "package_root",
+      "schema_version",
+      "task_id"
+    ],
+    "qualification_summary.json": [
+      "ab_difference_count",
+      "ap_difference_count",
+      "causal_future_read_count",
+      "classification",
+      "fixture_failure_count",
+      "fixture_pass_count",
+      "forbidden_value_read_count",
+      "hidden_feature_payload_dependency_count",
+      "schema_version",
+      "slice_mismatch_count"
+    ],
+    "state_contract.json": [
+      "anchor_core",
+      "channel_memory_ttl_ms",
+      "checkpoint_ms",
+      "contradiction_tie_precedence",
+      "epoch_ms",
+      "fast_threshold",
+      "leader_prestate_ms",
+      "medium_threshold",
+      "schema_version",
+      "structural_horizon_ms"
+    ]
+  },
+  "json_value_derivations": {
+    "abp_comparison.json": "derive structural raw/sealed root hashes from independently verified A/B/P structural manifests and compare the exact registered projection",
+    "authority_binding.json": "derive every commit/blob/SHA/AST value from Git objects and normalized current callable AST; no producer-supplied identity is trusted",
+    "feature_contract.json": "exact projection of source_schema_v4, feature_formulas, canonical_hashes and FeatureBundle sentinel constants",
+    "fixture_source_evidence.json": "derive from independently opened physical cache bytes, feature-call receipts and field-access rows",
+    "fixture_truth_binding.json": "derive from tracked truth bytes, Git blob and parsed fixture_order",
+    "formal_identity.json": "derive from claimed bytes, attempt-lock, consumption Git identity and controller pre/post observations",
+    "qualification_summary.json": "derive counts from fixture, slice, access and A/B/P artifacts; classification is Q0_PIPELINE_QUALIFIED iff every registered gate passes",
+    "state_contract.json": "derive exact constants from frozen master and accepted authority callables"
+  },
+  "manifest_schema": {
+    "fields": [
+      "manifest_kind",
+      "rows",
+      "schema_version"
+    ],
+    "manifest_kind_domain": [
+      "RAW",
+      "SEALED",
+      "EVIDENCE",
+      "TERMINAL"
+    ],
+    "row_fields": [
+      "path",
+      "sha256",
+      "size_bytes"
+    ],
+    "row_order": "relative ASCII path ascending"
+  },
+  "one_shot": {
+    "annotated_tag_messages": {
+      "consumption": "0831T001 Q0 claim consumed",
+      "implementation": "0831T001 Q0 implementation frozen",
+      "terminal": "0831T001 Q0 terminal result sealed"
+    },
+    "armed_claim_fields": [
+      "argv",
+      "attempt_root",
+      "controller_ref",
+      "controller_repo",
+      "cwd",
+      "historical_cache_authorized",
+      "implementation_commit",
+      "implementation_tag",
+      "master_sha256",
+      "outcome_access_authorized",
+      "package_root",
+      "plan_sha256",
+      "runner_sha256",
+      "schema_version",
+      "surface_contract_sha256",
+      "task_id",
+      "task_sha256",
+      "tests_sha256",
+      "truth_sha256",
+      "verifier_sha256"
+    ],
+    "attempt_lock_fields": [
+      "armed_claim_sha256",
+      "attempt_root",
+      "created_unix_ns",
+      "implementation_commit",
+      "pid",
+      "schema_version",
+      "task_id"
+    ],
+    "consumption_commit_message": "audit: consume 0831T001 Q0 attempt",
+    "crash_states": {
+      "after_attempt_root_before_lock": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_attempt_lock": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_claim_rename": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_consumption_commit": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_consumption_controller_update": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "before_attempt_root": "UNCONSUMED_RETRY_ALLOWED"
+    },
+    "git_config": {
+      "commit.gpgSign": "false",
+      "core.fsync": "committed,loose-object,batch,reference",
+      "core.fsyncMethod": "fsync"
+    },
+    "git_commands": {
+      "controller_config": [
+        "git --git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git config receive.denyNonFastForwards true",
+        "git --git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git config transfer.fsckObjects true"
+      ],
+      "controller_init": "git init --bare /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+      "controller_observe": "git ls-remote /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git refs/heads/codex/0831T001-controller-ledger",
+      "consumption_push": "git push --porcelain /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git <consumption_sha>:refs/heads/codex/0831T001-controller-ledger",
+      "terminal_push": "git push --porcelain /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git <terminal_sha>:refs/heads/codex/0831T001-controller-ledger"
+    },
+    "push_receipt_fields": [
+      "command",
+      "controller_ref",
+      "exit_code",
+      "new_sha",
+      "old_sha",
+      "post_ls_remote_sha",
+      "pre_ls_remote_sha",
+      "schema_version",
+      "stderr_sha256",
+      "stdout_sha256",
+      "transition_kind"
+    ],
+    "terminal_commit_message": "audit: seal 0831T001 Q0 result",
+    "terminal_receipt_fields": [
+      "classification",
+      "consumption_commit",
+      "formal_exit_code",
+      "package_terminal_manifest_sha256",
+      "schema_version",
+      "terminal_verifier_exit_code",
+      "terminal_verifier_result_sha256"
+    ],
+    "transition_order": [
+      "preflight",
+      "create attempt root with mkdir no-replace",
+      "create attempt-lock.json with O_CREAT|O_EXCL and fsync",
+      "rename armed claim to claimed and fsync parent",
+      "create consumption commit whose only tracked delta is armed-to-claimed rename",
+      "create annotated consumption tag",
+      "observe controller ref absent",
+      "push consumption commit to controller ref",
+      "record consumption push receipt",
+      "run one formal producer",
+      "run one terminal verifier",
+      "copy accepted package bytes to tracked baseline",
+      "create terminal receipt and execution report",
+      "create terminal commit descendant of consumption commit",
+      "create annotated terminal tag",
+      "observe controller ref at consumption commit",
+      "push terminal commit as fast-forward",
+      "record terminal push receipt"
+    ]
+  },
+  "package_directories": [
+    "builds",
+    "builds/A",
+    "builds/A/evidence",
+    "builds/A/structural",
+    "builds/A/structural/contracts",
+    "builds/A/structural/support",
+    "builds/B",
+    "builds/B/evidence",
+    "builds/B/structural",
+    "builds/B/structural/contracts",
+    "builds/B/structural/support",
+    "builds/P",
+    "builds/P/evidence",
+    "builds/P/structural",
+    "builds/P/structural/contracts",
+    "builds/P/structural/support",
+    "contracts"
+  ],
+  "production_instrumentation": {
+    "detector_boundary": "spawned detector receives one feature frame, closes sender, observes EOF, clears environment, changes cwd to /, and rejects inherited regular/directory FDs",
+    "feature_frame": "4-byte big-endian header length + canonical compact JSON header + concatenated normalized feature payloads",
+    "hasher": "independent spawned process hashes the exact regular non-symlink input before loader start",
+    "loader": "spawned loader wraps numpy.load; exact input path only; first accepted build_features call reads 12 frozen fields; second staged extension reads six H0 fields; any metadata value read is forbidden",
+    "per_call_receipt_fields": [
+      "build_label",
+      "call_index",
+      "consumer_input_sha256",
+      "detector_exit_sha256",
+      "detector_exitcode",
+      "field_access_sha256",
+      "fixture_id",
+      "forbidden_value_read_count",
+      "frame_sha256",
+      "hasher_exitcode",
+      "input_file_sha256",
+      "loader_exitcode",
+      "receiver_eof_observed",
+      "sender_closed",
+      "unit_kind"
+    ]
+  },
+  "readiness_comparison": {
+    "exact_byte_projection": [
+      "builds/A/structural",
+      "builds/B/structural",
+      "builds/P/structural",
+      "abp_comparison.json"
+    ],
+    "evidence_normalization": "drop sender_process_id and replace exact cwd/input/output roots with ROOT before canonical CSV/JSON comparison",
+    "physical_evidence_requirement": "both primary and detached readiness evidence packages independently pass verifier before normalized comparison",
+    "post_formal_regeneration": false
+  },
+  "schema_version": 1,
+  "source_schema_v4": {
+    "metadata_fields": {
+      "bin_boundary_violations": {
+        "dtype": "<i4",
+        "shape": [
+          1
+        ]
+      },
+      "cache_schema_version": {
+        "dtype": "<i4",
+        "shape": [
+          1
+        ],
+        "value": 4
+      },
+      "initial_bridge_failure_count": {
+        "dtype": "<i4",
+        "shape": [
+          1
+        ]
+      },
+      "non_admitted_message_contributions": {
+        "dtype": "<i4",
+        "shape": [
+          1
+        ]
+      },
+      "quality_boundary_count": {
+        "dtype": "<i4",
+        "shape": [
+          1
+        ]
+      },
+      "reset_count": {
+        "dtype": "<i4",
+        "shape": [
+          1
+        ]
+      },
+      "segment_end_ids": {
+        "dtype": "<i4",
+        "shape": [
+          "segment_count"
+        ]
+      },
+      "segment_end_ts": {
+        "dtype": "<i8",
+        "shape": [
+          "segment_count"
+        ]
+      },
+      "sequence_gap_count": {
+        "dtype": "<i4",
+        "shape": [
+          1
+        ]
+      }
+    },
+    "row_fields": {
+      "activity": {
+        "dtype": "<i4",
+        "shape": [
+          "n"
+        ]
+      },
+      "ask_depletion": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "ask_depth": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "bid_depletion": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "bid_depth": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "event_seq": {
+        "dtype": "<i4",
+        "shape": [
+          "n"
+        ]
+      },
+      "midpoint": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "obi": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "ofi": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "ofi_abs": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "ready": {
+        "dtype": "|b1",
+        "shape": [
+          "n"
+        ]
+      },
+      "segment_id": {
+        "dtype": "<i4",
+        "shape": [
+          "n"
+        ]
+      },
+      "spread_ticks": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "tick_size": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "trade_signed": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "trade_total": {
+        "dtype": "<f4",
+        "shape": [
+          "n"
+        ]
+      },
+      "ts_ns": {
+        "dtype": "<i8",
+        "shape": [
+          "n"
+        ]
+      },
+      "valid_book": {
+        "dtype": "|b1",
+        "shape": [
+          "n"
+        ]
+      }
+    }
+  }
+}

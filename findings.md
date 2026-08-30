@@ -24,6 +24,29 @@
 - Fresh-worktree regeneration is readiness before claim consumption.
   Post-formal activity is verifier-only plus byte-for-byte baseline
   publication, avoiding an implicit second formal run.
+- Revision 2 was independently rejected at `0/8/1/0`: its synthetic raw
+  schema was not production-isomorphic, accepted ratio/base formulas were not
+  bound, evidence hashes could still be producer-authored, and complete
+  package byte comparison conflicted with PID/root evidence.
+- Revision 3 uses the actual schema-v4 row/metadata layout and the accepted
+  `build_features`/`base_masks` callables. QF10 poisons the existing
+  unconsumed `bin_boundary_violations` metadata field.
+- Readiness compares deterministic structural bytes and a separately
+  normalized evidence projection; physical evidence still verifies
+  independently in both worktrees.
+- Production-mask simulation found that the earlier fixture neutral rows were
+  not admitted because trade and depth observability had not yet coexisted.
+  Revision 3 now uses an earlier joint neutral seed plus channel-specific
+  refreshes.
+- The former 75s anchor was valid in a full build but disappeared in a slice
+  starting at 60s because the slice must independently satisfy the 30s
+  cooldown. All positive fixtures now anchor at 90.2s, after cooldown plus
+  120ms prestate, and the four registered slice fixtures have nonempty exact
+  retained-anchor identity.
+- QF08 now contains a mechanically detected negative raw onset at 45.2s,
+  outside the retained anchor core and before the 60s slice boundary. Its
+  full/slice equality therefore tests exclusion of real prior state rather
+  than an empty-history case.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 
