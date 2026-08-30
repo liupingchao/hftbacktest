@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 13, pre-execution
+Revision: 14, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -774,11 +774,14 @@ preimage is constructed exactly as follows:
 1. decode the file as ASCII CSV;
 2. require the exact registered header;
 3. retain the original row order, row count and every parsed string value;
-4. replace only each row's `slice_source_sha256` value with 64 ASCII zeroes;
-5. encode the resulting list of row objects with
-   `json.dumps(value, sort_keys=True, separators=(",", ":"),
-   ensure_ascii=True).encode("ascii")`;
-6. use SHA256 of those bytes as the `ComparisonRow` hash.
+4. serialize those unmodified rows with the registered producer CSV
+   serializer: exact registered field order, `csv.DictWriter`,
+   `extrasaction="raise"`, `lineterminator="\n"`, minimal quoting and ASCII;
+5. require the serialized unmodified bytes to equal the original file bytes
+   exactly; otherwise fail before comparison;
+6. replace only each row's `slice_source_sha256` value with 64 ASCII zeroes;
+7. serialize the normalized rows with the same registered CSV serializer;
+8. use SHA256 of those exact normalized CSV bytes as the `ComparisonRow` hash.
 
 For A/P comparison of `run_manifest.json`, the semantic hash preimage is
 constructed exactly as follows:
@@ -786,17 +789,29 @@ constructed exactly as follows:
 1. decode the file as ASCII JSON;
 2. require `artifacts` to be a list with exactly one row whose `path` is
    `support/slice_invariance.csv`;
-3. preserve every key, value, list order and artifact row;
-4. replace only that row's `sha256` with the poison-normalized semantic SHA256
+3. serialize the unmodified object with the registered producer JSON
+   serializer:
+   `json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True) + "\n"`;
+4. require the serialized unmodified bytes to equal the original file bytes
+   exactly; otherwise fail before comparison;
+5. preserve every key, value, list order and artifact row;
+6. replace only that row's `sha256` with the poison-normalized semantic SHA256
    of the same root's `support/slice_invariance.csv`;
-5. encode the full JSON object with the same canonical JSON rule above;
-6. use SHA256 of those bytes as the `ComparisonRow` hash.
+7. serialize the normalized full object with the same registered producer
+   JSON serializer;
+8. use SHA256 of those exact normalized JSON bytes as the `ComparisonRow`
+   hash.
 
 No other path, field, value, row, count, order, size, or manifest identity is
 normalized. Missing or extra files remain differences. Malformed headers,
 missing or duplicated manifest slice rows, and any non-registered mutation
-fail closed. The producer and terminal verifier independently recompute the
-same registered projection.
+fail closed. Semantically equivalent but non-canonical CSV quoting, escaping
+or line termination and non-canonical JSON whitespace, indentation, key order
+or trailing newline fail before normalization. Because the registered SHA
+substitutions are fixed-width 64-byte ASCII strings, normalized serialization
+must retain the physical file size; a size change cannot be hidden. The
+producer and terminal verifier independently recompute the same registered
+projection.
 
 The physical A/B/P slice and manifest bytes remain permanent evidence.
 Same-build `slice_source_sha256`, WorkRow SHA, SLICE FeatureCall input
@@ -1945,6 +1960,11 @@ At minimum:
 - A/P `run_manifest.json` structure/order/non-slice-artifact mutations fail,
   while only the slice artifact SHA derived from the registered normalized
   slice comparison is normalized;
+- A/P `slice_invariance.csv` equivalent-value `QUOTE_ALL`, CRLF or alternate
+  escaping fails canonical serialization before normalization;
+- A/P `run_manifest.json` equivalent-object compact JSON, alternate key order,
+  whitespace or trailing-newline mutation fails canonical serialization
+  before normalization;
 - attestation mutation fails;
 - all 17 schemas, typed sentinels, sorting and manifest self-exclusion;
 - zero, negative, NaN, infinity and wrong-type gate mutations;
