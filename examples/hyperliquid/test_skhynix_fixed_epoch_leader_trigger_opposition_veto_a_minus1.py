@@ -1,0 +1,1128 @@
+from __future__ import annotations
+
+import ast
+import copy
+import json
+import subprocess
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+from examples.hyperliquid import (
+    skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1 as AUDIT,
+)
+from examples.hyperliquid import (
+    skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_verifier as VERIFIER,
+)
+
+
+def synthetic_features(
+    *,
+    epochs: int = 1,
+    segment_start_ns: int = 0,
+) -> dict[str, np.ndarray]:
+    length = epochs * AUDIT.EXPECTED_EPOCH_CHECKPOINTS
+    ts = np.arange(length, dtype=np.int64) * AUDIT.CHECKPOINT_NS
+    zeros = np.zeros(length, dtype=np.float64)
+    ones = np.ones(length, dtype=np.float64)
+    return {
+        "ts_ns": ts,
+        "event_seq": np.arange(length, dtype=np.int64),
+        "segment_id": np.zeros(length, dtype=np.int32),
+        "segment_start_ts": np.full(length, segment_start_ns, dtype=np.int64),
+        "ready": np.ones(length, dtype=bool),
+        "valid_book": np.ones(length, dtype=bool),
+        "activity_500": np.full(length, 100.0),
+        "ratios_100": np.zeros((length, 3), dtype=np.float64),
+        "ratios_500": np.zeros((length, 3), dtype=np.float64),
+        "trade_total": ones.copy(),
+        "trade_signed": zeros.copy(),
+        "bid_depletion": ones.copy(),
+        "ask_depletion": ones.copy(),
+        "ofi": zeros.copy(),
+        "ofi_abs": ones.copy(),
+    }
+
+
+def set_direction(
+    features: dict[str, np.ndarray],
+    index: int,
+    channel: int,
+    direction: int,
+    *,
+    fast: float = 0.50,
+    medium: float = 0.25,
+) -> None:
+    features["ratios_100"][index, channel] = direction * fast
+    features["ratios_500"][index, channel] = direction * medium
+
+
+def confirmed_trade_fixture(index: int = 1510) -> dict[str, np.ndarray]:
+    features = synthetic_features()
+    set_direction(features, index, 0, 1)
+    set_direction(features, index + 1, 0, 1)
+    return features
+
+
+def analyze(features: dict[str, np.ndarray]) -> dict[str, object]:
+    return AUDIT.analyze_features(
+        capture_id="fixture",
+        research_date="2026-08-30",
+        features=features,
+    )
+
+
+def primary_trigger(result: dict[str, object]) -> dict[str, object]:
+    rows = [row for row in result["trigger_rows"] if row["variant"] == "TRADE_LED"]
+    assert len(rows) == 1
+    return rows[0]
+
+
+def passing_gate_values() -> dict[str, object]:
+    return {
+        "baseline_authority_verified": True,
+        "frozen_successor_identities_verified": True,
+        "direct_callable_bindings_verified": True,
+        "claim_and_lock_valid_before_cache": True,
+        "canonical_source_closure_exact": True,
+        "source_preflight_violation_count": 0,
+        "raw_a_b_difference_count": 0,
+        "poison_cache_count": 29,
+        "poison_unconsumed_field_count": 15,
+        "poison_changed_field_instance_count": 435,
+        "poison_consumed_field_mismatch_count": 0,
+        "raw_a_p_difference_count": 0,
+        "action_partition_violation_count": 0,
+        "unauthorized_ttl_refresh_count": 0,
+        "cross_segment_memory_carry_count": 0,
+        "conservation_violation_count": 0,
+        "fixed_epoch_violation_count": 0,
+        "slice_mismatch_count": 0,
+        "cross_segment_compared_checkpoint_count": 0,
+        "represented_slice_date_count": 4,
+        "distinct_comparable_epoch_count": 30,
+        "compared_support_checkpoint_count": 1,
+        "schema_violation_count": 0,
+        "numeric_violation_count": 0,
+        "trade_led_confirmed_cluster_count": 30,
+        "trade_led_represented_date_count": 4,
+        "trade_led_maximum_single_date_share": 0.50,
+    }
+
+
+def raw_cache_payload(length: int = 80) -> dict[str, np.ndarray]:
+    result: dict[str, np.ndarray] = {}
+    row_fields = AUDIT.epoch_authority.ROW_ALIGNED_CACHE_FIELDS
+    for index, name in enumerate(sorted(AUDIT.feature_authority.ALLOWED_CACHE_FIELDS)):
+        if name in row_fields:
+            if name == "ts_ns":
+                value = np.arange(length, dtype=np.int64) * AUDIT.CHECKPOINT_NS
+            elif name == "event_seq":
+                value = np.arange(length, dtype=np.int64)
+            elif name == "segment_id":
+                value = np.zeros(length, dtype=np.int32)
+            elif name in {"ready", "valid_book"}:
+                value = np.ones(length, dtype=bool)
+            else:
+                value = np.full(length, index + 1, dtype=np.float64)
+        elif name == "cache_schema_version":
+            value = np.asarray([4], dtype=np.int32)
+        elif name in {"segment_end_ids", "segment_end_ts"}:
+            value = np.asarray([0], dtype=np.int64)
+        else:
+            value = np.asarray([index + 1], dtype=np.float64)
+        result[name] = value
+    return result
+
+
+def write_raw_cache(path: Path, length: int = 80) -> dict[str, np.ndarray]:
+    payload = raw_cache_payload(length)
+    np.savez_compressed(path, **payload)
+    return payload
+
+
+def test_frozen_identity_and_exact_output_domains() -> None:
+    assert AUDIT.IDEA_SHA256 == (
+        "a916717f21e1714298520e69f8e2702920f4cd54308f5d554691d4364a1cc997"
+    )
+    assert AUDIT.PLAN_SHA256 == (
+        "8171a7bed7b216527fed468dbcff8f31ab1f48ec871bb2eee9b0ae7ad123f79c"
+    )
+    assert len(AUDIT.RAW_11) == 11
+    assert len(AUDIT.SEALED_15) == 15
+    assert len(AUDIT.EVIDENCED_16) == 16
+    assert len(AUDIT.FINAL_17) == 17
+    assert len(set(AUDIT.FINAL_17)) == 17
+
+
+def test_authority_files_and_all_eight_callables_are_frozen() -> None:
+    repo = Path(__file__).resolve().parents[2]
+    rows = AUDIT.verify_authority_bindings(repo)
+    assert [row["callable_name"] for row in rows] == [
+        "build_features",
+        "source_preflight",
+        "base_eligibility",
+        "channel_actions",
+        "channel_memories",
+        "epoch_support_ledger",
+        "materialize_poisoned_cache_set",
+        "verify_poison_attestation",
+    ]
+
+
+def test_analyze_features_directly_calls_six_scientific_authorities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called: list[str] = []
+    names = (
+        "source_preflight",
+        "base_eligibility",
+        "channel_actions",
+        "channel_memories",
+        "epoch_support_ledger",
+    )
+    for name in names:
+        original = getattr(AUDIT.epoch_authority, name)
+
+        def wrapper(*args: object, _name=name, _original=original, **kwargs: object):
+            called.append(_name)
+            return _original(*args, **kwargs)
+
+        monkeypatch.setattr(AUDIT.epoch_authority, name, wrapper)
+    analyze(confirmed_trade_fixture())
+    assert called == list(names)
+
+
+@pytest.mark.parametrize(
+    ("fast", "medium", "qualifies"),
+    [
+        (0.50, 0.25, True),
+        (-0.50, -0.25, True),
+        (0.499999, 0.25, False),
+        (0.50, 0.249999, False),
+    ],
+)
+def test_threshold_boundaries_are_inclusive(
+    fast: float, medium: float, qualifies: bool
+) -> None:
+    features = synthetic_features()
+    index = 1510
+    direction = 1 if fast > 0 else -1
+    set_direction(
+        features,
+        index,
+        0,
+        direction,
+        fast=abs(fast),
+        medium=abs(medium),
+    )
+    actions = AUDIT.epoch_authority.channel_actions(
+        features=features,
+        base_eligible=np.ones(len(features["ts_ns"]), dtype=bool),
+        event_masks={
+            "trade": np.ones(len(features["ts_ns"]), dtype=bool),
+            "depletion": np.ones(len(features["ts_ns"]), dtype=bool),
+            "ofi": np.ones(len(features["ts_ns"]), dtype=bool),
+        },
+        margin=0.0,
+    )
+    expected = (
+        AUDIT.epoch_authority.NEW_POS
+        if direction == 1
+        else AUDIT.epoch_authority.NEW_NEG
+    )
+    assert bool(actions[index, 0] == expected) is qualifies
+
+
+def test_ttl_100ms_is_fresh_and_120ms_is_stale() -> None:
+    actions = np.full((8, 3), AUDIT.NO_UPDATE, dtype=np.int8)
+    actions[0, 0] = AUDIT.NEW_POS
+    ts = np.arange(8, dtype=np.int64) * AUDIT.CHECKPOINT_NS
+    states, ages, _ = AUDIT.epoch_authority.channel_memories(
+        actions=actions,
+        ts_ns=ts,
+        segments=np.zeros(8, dtype=np.int32),
+        ttl_ms=100,
+    )
+    assert states[5, 0] == 1
+    assert ages[5, 0] == 100
+    assert states[6, 0] == 9
+    assert ages[6, 0] == -1
+
+
+def test_six_point_prestate_excludes_current_checkpoint() -> None:
+    features = confirmed_trade_fixture()
+    result = analyze(features)
+    assert primary_trigger(result)["candidate_event_seq"] == 1510
+    features = confirmed_trade_fixture()
+    set_direction(features, 1509, 0, 1)
+    assert 1510 not in [
+        row["candidate_event_seq"]
+        for row in analyze(features)["trigger_rows"]
+        if row["variant"] == "TRADE_LED"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("index", "expected_raw", "expected_omitted"),
+    [(750, 1, 0), (2250, 1, 1)],
+)
+def test_core_is_half_open(
+    index: int, expected_raw: int, expected_omitted: int
+) -> None:
+    features = synthetic_features(segment_start_ns=-30_000_000_000)
+    set_direction(features, index, 0, 1)
+    set_direction(features, min(index + 1, 2999), 0, 1)
+    result = analyze(features)
+    row = next(
+        row
+        for row in result["counter_rows"]
+        if row["variant"] == "TRADE_LED" and row["direction"] == 1
+    )
+    assert row["raw_onset_count"] == expected_raw
+    assert row["epoch_core_omitted_count"] == expected_omitted
+
+
+@pytest.mark.parametrize(
+    ("index", "retained", "edge_omitted"),
+    [(2240, 1, 0), (2241, 0, 1)],
+)
+def test_confirmation_close_equality_and_plus_20ms(
+    index: int, retained: int, edge_omitted: int
+) -> None:
+    features = synthetic_features(segment_start_ns=-30_000_000_000)
+    set_direction(features, index, 0, 1)
+    if index + 1 < len(features["ts_ns"]):
+        set_direction(features, index + 1, 0, 1)
+    result = analyze(features)
+    row = next(
+        row
+        for row in result["counter_rows"]
+        if row["variant"] == "TRADE_LED" and row["direction"] == 1
+    )
+    assert row["retained_count"] == retained
+    assert row["confirmation_edge_omitted_count"] == edge_omitted
+
+
+def test_same_checkpoint_neutral_clears_old_opposite_before_veto() -> None:
+    features = confirmed_trade_fixture()
+    set_direction(features, 1509, 1, -1)
+    features["ratios_100"][1510, 1] = 0.0
+    features["ratios_500"][1510, 1] = 0.0
+    trigger = primary_trigger(analyze(features))
+    assert trigger["secondary_opposite_count"] == 0
+
+
+def test_same_checkpoint_new_opposite_is_visible_to_veto() -> None:
+    features = confirmed_trade_fixture()
+    set_direction(features, 1510, 1, -1)
+    result = analyze(features)
+    row = next(
+        row
+        for row in result["counter_rows"]
+        if row["variant"] == "TRADE_LED" and row["direction"] == 1
+    )
+    assert row["anchor_vetoed_count"] == 1
+    assert row["retained_count"] == 0
+
+
+def test_vetoed_onset_does_not_occupy_thinning_key() -> None:
+    features = synthetic_features()
+    first, second = 1510, 1525
+    set_direction(features, first, 0, 1)
+    set_direction(features, first, 1, -1)
+    set_direction(features, second, 0, 1)
+    set_direction(features, second + 1, 0, 1)
+    trigger = primary_trigger(analyze(features))
+    assert trigger["candidate_event_seq"] == second
+
+
+def test_earliest_retained_failure_suppresses_later_confirmable_trigger() -> None:
+    features = synthetic_features()
+    first, second = 1510, 1525
+    set_direction(features, first, 0, 1)
+    set_direction(features, second, 0, 1)
+    set_direction(features, second + 1, 0, 1)
+    result = analyze(features)
+    trigger = primary_trigger(result)
+    assert trigger["candidate_event_seq"] == first
+    assert trigger["confirmation_status"] == "CANCELLED"
+    row = next(
+        row
+        for row in result["counter_rows"]
+        if row["variant"] == "TRADE_LED" and row["direction"] == 1
+    )
+    assert row["same_key_suppressed_count"] == 1
+    assert row["retained_count"] == 1
+
+
+def test_opposite_directions_and_variants_share_epoch_cluster() -> None:
+    features = synthetic_features()
+    set_direction(features, 1510, 0, 1)
+    set_direction(features, 1511, 0, 1)
+    set_direction(features, 1530, 0, -1)
+    set_direction(features, 1531, 0, -1)
+    set_direction(features, 1550, 1, 1)
+    set_direction(features, 1551, 1, 1)
+    rows = analyze(features)["trigger_rows"]
+    clusters = {
+        row["dependence_cluster_id"]
+        for row in rows
+        if row["variant"] in {"TRADE_LED", "DEPLETION_LED"}
+    }
+    assert clusters == {"fixture:0"}
+
+
+def test_confirmation_records_first_update_but_waits_until_close() -> None:
+    trigger = primary_trigger(analyze(confirmed_trade_fixture()))
+    assert trigger["first_additional_same_update_ts_ns"] == 30_220_000_000
+    assert trigger["confirmation_window_close_ts_ns"] == 30_400_000_000
+    assert (
+        trigger["first_additional_same_update_ts_ns"]
+        < trigger["confirmation_window_close_ts_ns"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutator", "reason"),
+    [
+        (
+            lambda features: set_direction(features, 1512, 2, -1),
+            "explicit_opposite_update",
+        ),
+        (
+            lambda features: None,
+            "no_additional_same_leader_update",
+        ),
+    ],
+)
+def test_cancellation_atoms_and_reason_precedence(mutator: object, reason: str) -> None:
+    features = synthetic_features()
+    set_direction(features, 1510, 0, 1)
+    mutator(features)
+    trigger = primary_trigger(analyze(features))
+    assert trigger["cancel_reason"] == reason
+    assert trigger[reason] is True
+
+
+def test_confirmation_segment_boundary_atom_is_independent() -> None:
+    features = synthetic_features()
+    set_direction(features, 1510, 0, 1)
+    features["segment_id"][1511:1521] = 1
+    invalid, masks = AUDIT.epoch_authority.source_preflight(features)
+    assert invalid == 0
+    _, _, base = AUDIT.epoch_authority.base_eligibility(
+        features, AUDIT.feature_authority
+    )
+    actions = AUDIT.epoch_authority.channel_actions(
+        features=features,
+        base_eligible=base,
+        event_masks=masks,
+        margin=0.0,
+    )
+    status = AUDIT._confirmation_status(
+        trigger_index=1510,
+        direction=1,
+        leader_index=0,
+        features=features,
+        actions=actions,
+    )
+    assert status["confirmation_segment_boundary"] is True
+    assert status["cancel_reason"] == "confirmation_segment_boundary"
+
+
+def test_conservation_holds_for_every_epoch_variant_direction() -> None:
+    result = analyze(confirmed_trade_fixture())
+    assert result["conservation_violation_count"] == 0
+    for row in result["counter_rows"]:
+        assert row["raw_onset_count"] == (
+            row["epoch_core_omitted_count"]
+            + row["confirmation_edge_omitted_count"]
+            + row["anchor_vetoed_count"]
+            + row["veto_admitted_count"]
+        )
+        assert row["veto_admitted_count"] == (
+            row["retained_count"] + row["same_key_suppressed_count"]
+        )
+        assert row["retained_count"] == (
+            row["confirmed_count"] + row["cancelled_count"]
+        )
+
+
+def test_source_invalid_fails_before_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    features = confirmed_trade_fixture()
+    features["trade_signed"][0] = np.nan
+    called = False
+
+    def forbidden(*args: object, **kwargs: object) -> object:
+        nonlocal called
+        called = True
+        raise AssertionError
+
+    monkeypatch.setattr(AUDIT.epoch_authority, "channel_actions", forbidden)
+    with pytest.raises(AUDIT.SourcePreflightError):
+        analyze(features)
+    assert called is False
+
+
+def test_feature_frame_roundtrip_and_typed_arithmetic() -> None:
+    features = {
+        "scalar": np.asarray(7, dtype=np.int16),
+        "empty": np.empty((2, 0), dtype=np.float64),
+        "vector": np.asarray([1, 2, 3], dtype=np.int32),
+    }
+    frame, sender, rows = AUDIT.pack_feature_frame(
+        call_index=0, features=features, field_access_rows=[]
+    )
+    restored, header, receiver = AUDIT.unpack_feature_frame(frame)
+    assert sender == receiver
+    assert header["feature_key_count"] == 3
+    assert rows[0]["offset_bytes"] == 0
+    assert rows[-1]["offset_bytes"] + rows[-1]["length_bytes"] == len(
+        frame
+    ) - 8 - int.from_bytes(frame[:8], "big")
+    for name in features:
+        assert np.array_equal(restored[name], features[name])
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["trailing", "payload", "offset", "dtype", "negative_shape"],
+)
+def test_feature_frame_hostile_mutations_fail(mutation: str) -> None:
+    features = {"x": np.asarray([1, 2], dtype=np.int32)}
+    frame, _, _ = AUDIT.pack_feature_frame(
+        call_index=0, features=features, field_access_rows=[]
+    )
+    header_len = int.from_bytes(frame[:8], "big")
+    header = json.loads(frame[8 : 8 + header_len])
+    payload = frame[8 + header_len :]
+    if mutation == "trailing":
+        bad = frame + b"x"
+    elif mutation == "payload":
+        bad = frame[:-1] + bytes([frame[-1] ^ 1])
+    else:
+        if mutation == "offset":
+            header["arrays"][0]["offset_bytes"] = 1
+        elif mutation == "dtype":
+            header["arrays"][0]["dtype_str"] = "<i8"
+        else:
+            header["arrays"][0]["shape"] = [-1]
+        encoded = AUDIT.canonical_bytes(header)
+        bad = len(encoded).to_bytes(8, "big") + encoded + payload
+    with pytest.raises(AUDIT.AuditError):
+        AUDIT.unpack_feature_frame(bad)
+
+
+def test_instrumented_builder_reads_exact_consumed_fields(
+    tmp_path: Path,
+) -> None:
+    cache = tmp_path / "fixture.npz"
+    write_raw_cache(cache)
+    features, accesses, schema_count, forbidden_count = (
+        AUDIT.build_features_instrumented(
+            cache_path=cache,
+            call_index=0,
+            build_label="A",
+            input_sha256=AUDIT.sha256_file(cache),
+        )
+    )
+    assert schema_count == 1
+    assert forbidden_count == 0
+    assert [row["field"] for row in accesses] == sorted(
+        AUDIT.feature_authority.CONSUMED_CACHE_FIELDS
+    )
+    assert AUDIT.feature_sha256(features)
+
+
+def test_full_loader_detector_subprocess_boundary(
+    tmp_path: Path,
+) -> None:
+    cache = tmp_path / "fixture.npz"
+    write_raw_cache(cache)
+    analysis, call, accesses, events = AUDIT.execute_feature_call(
+        cache_path=cache,
+        call_index=0,
+        build_label="A",
+        unit_kind="FULL",
+        capture_id="fixture",
+        research_date="2026-08-30",
+        slice_ordinal=None,
+        input_authority="CANONICAL",
+    )
+    assert call["feature_output_sha256"] == call["consumer_input_sha256"]
+    assert call["consumer_input_sha256"] == call["detector_exit_sha256"]
+    assert call["sender_ipc"]["sent_frame_count"] == 1
+    assert call["receiver_ipc"]["received_frame_count"] == 1
+    assert call["receiver_ipc"]["eof_observed"] is True
+    assert len(accesses) == 12
+    assert [row["phase"] for row in events] == ["HASHER", "LOADER"]
+    assert "_slice_specs" in analysis
+    assert not any(isinstance(value, np.ndarray) for value in analysis.values())
+
+
+def test_slice_materializer_runs_in_separate_process_and_ledgers_io(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.npz"
+    write_raw_cache(source, 100)
+    target = tmp_path / "work" / "slice_000000.npz"
+    result, events = AUDIT.materialize_slice_subprocess(
+        input_path=source,
+        output_path=target,
+        segment_id=0,
+        nominal_start_ts_ns=20 * AUDIT.CHECKPOINT_NS,
+        call_index=1,
+        build_label="A",
+    )
+    assert result["actual_start_ts_ns"] == 20 * AUDIT.CHECKPOINT_NS
+    assert [(row["operation"], row["caller_name"]) for row in events] == [
+        ("READ_INPUT", "materialize_slice"),
+        ("WRITE_SLICE", "materialize_slice"),
+    ]
+
+
+def test_instrumentation_requires_exact_raw_event_matrix(
+    tmp_path: Path,
+) -> None:
+    cache = tmp_path / "fixture.npz"
+    write_raw_cache(cache)
+    _, call, accesses, events = AUDIT.execute_feature_call(
+        cache_path=cache,
+        call_index=0,
+        build_label="A",
+        unit_kind="FULL",
+        capture_id="fixture",
+        research_date="2026-08-30",
+        slice_ordinal=None,
+        input_authority="CANONICAL",
+    )
+    payload = AUDIT.instrumentation_evidence(
+        attempt_id="attempt",
+        feature_calls=[call],
+        field_accesses=accesses,
+        raw_open_events=events,
+    )
+    assert [row["event_index"] for row in payload["raw_open_events"]] == [0, 1]
+    assert all(row["allowed"] for row in payload["raw_open_events"])
+    with pytest.raises(AUDIT.AuditError, match="raw_open_event_duplicate"):
+        AUDIT.instrumentation_evidence(
+            attempt_id="attempt",
+            feature_calls=[call],
+            field_accesses=accesses,
+            raw_open_events=[*events, events[0]],
+        )
+
+
+def test_runner_has_zero_np_load_attribute_call_sites() -> None:
+    tree = ast.parse(Path(AUDIT.__file__).read_text(encoding="ascii"))
+    callsites = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "np"
+        and node.attr == "load"
+    ]
+    assert callsites == []
+
+
+def test_materialized_slice_rebuilds_raw_and_is_no_replace(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.npz"
+    raw = write_raw_cache(source, 100)
+    target = tmp_path / "work" / "slice_000000.npz"
+    result = AUDIT.materialize_slice(
+        input_path=source,
+        output_path=target,
+        segment_id=0,
+        nominal_start_ts_ns=20 * AUDIT.CHECKPOINT_NS,
+    )
+    assert result["actual_start_ts_ns"] == 20 * AUDIT.CHECKPOINT_NS
+    with np.load(target, allow_pickle=False) as handle:
+        assert np.array_equal(handle["ts_ns"], raw["ts_ns"][20:])
+    with pytest.raises(AUDIT.AuditError, match="slice_exists"):
+        AUDIT.materialize_slice(
+            input_path=source,
+            output_path=target,
+            segment_id=0,
+            nominal_start_ts_ns=0,
+        )
+
+
+def test_slice_identity_mutations_fail_each_surface() -> None:
+    full = analyze(confirmed_trade_fixture())
+    sliced = copy.deepcopy(full)
+    full["_features"] = confirmed_trade_fixture()
+    sliced["_features"] = confirmed_trade_fixture()
+    base = AUDIT.slice_invariance_row(
+        full_analysis=full,
+        sliced_analysis=sliced,
+        segment_id=0,
+        nominal_start_ts_ns=0,
+        actual_start_ts_ns=-AUDIT.SLICE_GUARD_NS,
+        slice_source_sha256="a" * 64,
+    )
+    assert base["mismatch_reason"] == "none"
+    surfaces = (
+        ("epoch_rows", "disposition", "counter"),
+        ("counter_rows", "raw_onset_count", "counter"),
+        ("trigger_rows", "candidate_event_seq", "retained"),
+        ("trigger_rows", "cancel_reason", "status"),
+        ("support_rows", "memory_int", "support"),
+    )
+    for collection, field, expected in surfaces:
+        mutated = copy.deepcopy(sliced)
+        if mutated[collection]:
+            value = mutated[collection][0][field]
+            mutated[collection][0][field] = (
+                value + 1 if isinstance(value, int) else f"{value}_mutated"
+            )
+        row = AUDIT.slice_invariance_row(
+            full_analysis=full,
+            sliced_analysis=mutated,
+            segment_id=0,
+            nominal_start_ts_ns=0,
+            actual_start_ts_ns=-AUDIT.SLICE_GUARD_NS,
+            slice_source_sha256="a" * 64,
+        )
+        if mutated[collection]:
+            assert row["mismatch_reason"] in {expected, "epoch_disposition"}
+
+
+def test_slice_comparable_epochs_stay_in_artificial_start_segment() -> None:
+    features = synthetic_features(epochs=2, segment_start_ns=-30_000_000_000)
+    features["segment_id"][3000:] = 1
+    features["segment_start_ts"][3000:] = features["ts_ns"][3000]
+    full = analyze(features)
+    sliced = copy.deepcopy(full)
+    comparable = AUDIT.comparable_epoch_ids(
+        full_analysis=full,
+        sliced_analysis=sliced,
+        actual_start_ts_ns=-AUDIT.SLICE_GUARD_NS,
+        segment_id=0,
+    )
+    assert comparable == {0}
+
+
+def test_synthetic_raw_build_and_exact_17_path_seal(
+    tmp_path: Path,
+) -> None:
+    cache_root = tmp_path / "cache"
+    cache_root.mkdir()
+    cache_name = "2026-08-30_fixture.npz"
+    cache = cache_root / cache_name
+    write_raw_cache(cache)
+    inventory = [
+        {
+            "cache_name": cache_name,
+            "size_bytes": cache.stat().st_size,
+            "row_count": 80,
+            "cache_schema_version": 4,
+            "cache_sha256": AUDIT.sha256_file(cache),
+            "source_authority_verified": True,
+            "cache_field_schema_verified": True,
+        }
+    ]
+    results = {}
+    call_index = 0
+    roots = {}
+    for label in ("A", "B", "P"):
+        root = tmp_path / label
+        roots[label] = root
+        results[label] = AUDIT.build_raw_output(
+            repo_root=Path(__file__).resolve().parents[2],
+            build_label=label,
+            input_cache_root=cache_root,
+            canonical_inventory=inventory,
+            output_root=root,
+            work_root=tmp_path / "work",
+            start_call_index=call_index,
+            input_authority="CANONICAL",
+            authority_binding_factory=lambda count: {
+                "schema_version": 1,
+                "direct_call_count": count,
+            },
+        )
+        call_index = results[label]["next_call_index"]
+        assert {
+            path.relative_to(root).as_posix()
+            for path in root.rglob("*")
+            if path.is_file()
+        } == set(AUDIT.RAW_11)
+    aggregate = results["A"]["aggregate"]
+    slice_rows = results["A"]["slice_rows"]
+    integrity = {
+        "source_preflight_violation_count": 0,
+        "action_partition_violation_count": 0,
+        "unauthorized_ttl_refresh_count": 0,
+        "cross_segment_memory_carry_count": 0,
+        "conservation_violation_count": 0,
+        "fixed_epoch_violation_count": 0,
+        "slice_mismatch_count": sum(
+            row["mismatch_reason"] != "none" for row in slice_rows
+        ),
+        "cross_segment_compared_checkpoint_count": 0,
+        "represented_slice_date_count": 1,
+        "distinct_comparable_epoch_count": 0,
+        "compared_support_checkpoint_count": 0,
+        "schema_violation_count": 0,
+        "numeric_violation_count": 0,
+    }
+    sealed, comparisons = AUDIT.seal_roots(
+        roots=roots,
+        aggregate=aggregate,
+        authority_state={
+            "baseline_authority_verified": True,
+            "frozen_successor_identities_verified": True,
+            "direct_callable_bindings_verified": True,
+            "claim_and_lock_valid_before_cache": True,
+            "canonical_source_closure_exact": False,
+        },
+        poison_evidence={
+            "cache_count": 29,
+            "unconsumed_field_count": 15,
+            "nonempty_unconsumed_field_instance_count": 435,
+            "changed_unconsumed_field_instance_count": 435,
+            "consumed_field_mismatch_count": 0,
+            "attestation_sha256": "a" * 64,
+        },
+        integrity=integrity,
+        attempt_id="synthetic",
+        implementation_head="b" * 40,
+    )
+    assert sealed["classification"] == "Aminus1_authority_or_source_failed"
+    assert comparisons["final_a_b"]["difference_count"] == 0
+    assert comparisons["final_a_p"]["difference_count"] == 0
+    for root in roots.values():
+        assert {
+            path.relative_to(root).as_posix()
+            for path in root.rglob("*")
+            if path.is_file()
+        } == set(AUDIT.FINAL_17)
+        manifest = json.loads((root / "run_manifest.json").read_text(encoding="ascii"))
+        assert manifest["artifact_count"] == 16
+        assert all(row["path"] != "run_manifest.json" for row in manifest["artifacts"])
+
+
+def test_gate_success_and_exact_classification() -> None:
+    gates = AUDIT.build_gates(passing_gate_values())
+    assert [row["status"] for row in gates] == ["PASS"] * 4
+    assert AUDIT.classify(gates) == "Aminus1_trade_led_recurrent_structural_candidate"
+
+
+@pytest.mark.parametrize(
+    ("field", "classification"),
+    [
+        ("source_preflight_violation_count", "Aminus1_authority_or_source_failed"),
+        ("raw_a_p_difference_count", "Aminus1_outcome_boundary_violated"),
+        ("slice_mismatch_count", "Aminus1_detector_integrity_failed"),
+        (
+            "trade_led_confirmed_cluster_count",
+            "Aminus1_trade_led_structural_support_not_estimable",
+        ),
+        (
+            "trade_led_maximum_single_date_share",
+            "Aminus1_trade_led_structure_date_concentrated",
+        ),
+    ],
+)
+def test_gate_failure_precedence(field: str, classification: str) -> None:
+    values = passing_gate_values()
+    values[field] = (
+        1
+        if field
+        not in {
+            "trade_led_confirmed_cluster_count",
+            "trade_led_maximum_single_date_share",
+        }
+        else 0
+        if field == "trade_led_confirmed_cluster_count"
+        else 0.51
+    )
+    gates = AUDIT.build_gates(values)
+    assert AUDIT.classify(gates) == classification
+    failed_index = next(
+        index for index, row in enumerate(gates) if row["status"] == "FAIL"
+    )
+    assert all(row["status"] == "NOT_EVALUATED" for row in gates[failed_index + 1 :])
+
+
+def test_a_minus1_3_count_and_date_short_circuit() -> None:
+    values = passing_gate_values()
+    values["trade_led_confirmed_cluster_count"] = 0
+    gate = AUDIT.build_gates(values)[3]
+    assert [row["status"] for row in gate["conditions"]] == [
+        "FAIL",
+        "NOT_EVALUATED",
+        "NOT_EVALUATED",
+    ]
+    assert all(
+        row["actual"] is None and row["passed"] is None
+        for row in gate["conditions"][1:]
+    )
+    values = passing_gate_values()
+    values["trade_led_represented_date_count"] = 3
+    gate = AUDIT.build_gates(values)[3]
+    assert [row["status"] for row in gate["conditions"]] == [
+        "PASS",
+        "FAIL",
+        "NOT_EVALUATED",
+    ]
+
+
+def test_sensitivity_cannot_rescue_primary() -> None:
+    values = passing_gate_values()
+    values["trade_led_confirmed_cluster_count"] = 2
+    assert (
+        AUDIT.classify(AUDIT.build_gates(values))
+        == "Aminus1_trade_led_structural_support_not_estimable"
+    )
+    assert not any(
+        "depletion" in condition["condition"] or "ofi" in condition["condition"]
+        for gate in AUDIT.build_gates(values)
+        for condition in gate["conditions"]
+    )
+
+
+@pytest.mark.parametrize("bad", [-1, float("nan"), float("inf"), True])
+def test_numeric_gate_mutations_fail_closed(bad: object) -> None:
+    values = passing_gate_values()
+    values["slice_mismatch_count"] = bad
+    gates = AUDIT.build_gates(values)
+    assert gates[2]["status"] == "FAIL"
+
+
+def test_manifest_self_exclusion_and_comparison_missing_extra(
+    tmp_path: Path,
+) -> None:
+    left, right = tmp_path / "a", tmp_path / "b"
+    for root in (left, right):
+        for relative in AUDIT.RAW_11:
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(relative + "\n", encoding="ascii")
+    exact = AUDIT.comparison("RAW_11:A_vs_B", left, right, AUDIT.RAW_11)
+    assert exact["difference_count"] == 0
+    (right / AUDIT.RAW_11[0]).unlink()
+    missing = AUDIT.comparison("RAW_11:A_vs_B", left, right, AUDIT.RAW_11)
+    assert missing["difference_count"] == 1
+    rows = AUDIT.manifest_rows(left, AUDIT.RAW_11)
+    assert [row["path"] for row in rows] == sorted(AUDIT.RAW_11)
+
+
+def test_work_manifest_rejects_duplicate_path_and_key() -> None:
+    row = {
+        "build_label": "A",
+        "cache_name": "x.npz",
+        "slice_ordinal": 0,
+        "path": "work/A/x.npz/slice_000000.npz",
+        "size_bytes": 1,
+        "sha256": "a" * 64,
+    }
+    with pytest.raises(AUDIT.AuditError, match="work_duplicate_path"):
+        AUDIT.work_manifest_payload(attempt_id="attempt", rows=[row, dict(row)])
+
+
+def test_no_replace_publication_rejects_second_write(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "artifact.json"
+    AUDIT.write_json_no_replace(path, {"schema_version": 1})
+    with pytest.raises(AUDIT.AuditError, match="no_replace_exists"):
+        AUDIT.write_json_no_replace(path, {"schema_version": 1})
+
+
+def test_push_once_writes_exact_receipt_and_rejects_duplicate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    attempt = tmp_path / "attempt"
+    (attempt / "push-ledger").mkdir(parents=True)
+    old = None
+    new = "a" * 40
+
+    def fake_run(*args: object, **kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(returncode=0, stdout="ok\n", stderr="")
+
+    monkeypatch.setattr(AUDIT.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        AUDIT,
+        "ls_remote_observation",
+        lambda repo, observation_id: {
+            "observation_id": observation_id,
+            "command": ["git", "ls-remote", "--heads", "origin", AUDIT.CONTROLLER_REF],
+            "exit_code": 0,
+            "stdout": f"{new}\t{AUDIT.CONTROLLER_REF}\n",
+            "stderr": "",
+            "observed_head": new,
+        },
+    )
+    row, _ = AUDIT.push_once(
+        repo_root=tmp_path,
+        attempt_root=attempt,
+        ordinal=0,
+        phase="CONSUMPTION",
+        expected_old_head=old,
+        expected_new_head=new,
+        pre_observation_id="PRE_CONSUMPTION",
+        post_observation_id="POST_CONSUMPTION",
+    )
+    assert row["ordinal"] == 0
+    assert row["retry_allowed"] is False
+    with pytest.raises(AUDIT.AuditError, match="push_receipt_exists"):
+        AUDIT.push_once(
+            repo_root=tmp_path,
+            attempt_root=attempt,
+            ordinal=0,
+            phase="CONSUMPTION",
+            expected_old_head=old,
+            expected_new_head=new,
+            pre_observation_id="PRE_CONSUMPTION",
+            post_observation_id="POST_CONSUMPTION",
+        )
+
+
+def test_failed_push_is_terminal_and_cannot_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    attempt = tmp_path / "attempt"
+    (attempt / "push-ledger").mkdir(parents=True)
+
+    def failed_run(*args: object, **kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(returncode=1, stdout="", stderr="failed")
+
+    monkeypatch.setattr(AUDIT.subprocess, "run", failed_run)
+    kwargs = {
+        "repo_root": tmp_path,
+        "attempt_root": attempt,
+        "ordinal": 0,
+        "phase": "CONSUMPTION",
+        "expected_old_head": None,
+        "expected_new_head": "a" * 40,
+        "pre_observation_id": "PRE_CONSUMPTION",
+        "post_observation_id": "POST_CONSUMPTION",
+    }
+    with pytest.raises(AUDIT.AuditError, match="push_failed"):
+        AUDIT.push_once(**kwargs)
+    receipt = attempt / "push-ledger/000-consumption.json"
+    assert json.loads(receipt.read_text(encoding="ascii"))["exit_code"] == 1
+    with pytest.raises(AUDIT.AuditError, match="push_receipt_exists"):
+        AUDIT.push_once(**kwargs)
+
+
+def test_verifier_check_ids_and_exit_row_encoding() -> None:
+    assert len(VERIFIER.CHECK_IDS) == 13
+    assert len(set(VERIFIER.CHECK_IDS)) == 13
+    assert VERIFIER.CHECK_IDS[0] == "V00_CLI_AND_ROOTS"
+    assert VERIFIER.CHECK_IDS[-1] == "V12_POST_SEAL_DRIFT"
+
+
+def test_verifier_comparison_validation_detects_mutation(
+    tmp_path: Path,
+) -> None:
+    left, right = tmp_path / "a", tmp_path / "b"
+    left.mkdir()
+    right.mkdir()
+    (left / "x").write_text("same", encoding="ascii")
+    (right / "x").write_text("same", encoding="ascii")
+    payload = VERIFIER.comparison("RAW_11:A_vs_B", left, right, ("x",))
+    VERIFIER.validate_comparison(payload)
+    payload["difference_count"] = 1
+    with pytest.raises(VERIFIER.VerificationError):
+        VERIFIER.validate_comparison(payload)
+
+
+@pytest.mark.parametrize(
+    ("target", "field", "value"),
+    [
+        ("sender_ipc", "sent_frame_count", 2),
+        ("receiver_ipc", "eof_observed", False),
+        ("receiver_ipc", "frame_sha256", "b" * 64),
+    ],
+)
+def test_verifier_rejects_ipc_endpoint_mutations(
+    target: str,
+    field: str,
+    value: object,
+) -> None:
+    common = {
+        "header_sha256": "a" * 64,
+        "payload_sha256": "b" * 64,
+        "payload_size_bytes": 4,
+        "frame_sha256": "c" * 64,
+        "frame_size_bytes": 24,
+    }
+    call = {
+        "sender_ipc": {
+            **common,
+            "sent_frame_count": 1,
+            "send_end_closed": True,
+        },
+        "receiver_ipc": {
+            **common,
+            "received_frame_count": 1,
+            "eof_observed": True,
+            "unused_byte_count": 0,
+        },
+    }
+    VERIFIER.validate_ipc_endpoints(call)
+    call[target][field] = value
+    with pytest.raises(VERIFIER.VerificationError):
+        VERIFIER.validate_ipc_endpoints(call)
+
+
+def test_verifier_rejects_manifest_self_inclusion(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+    for relative in AUDIT.EVIDENCED_16:
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}\n", encoding="ascii")
+    rows = VERIFIER.manifest_rows(root, AUDIT.EVIDENCED_16)
+    assert len(rows) == 16
+    assert all(row["path"] != "run_manifest.json" for row in rows)
+
+
+def test_parse_args_rejects_nonformal_modes() -> None:
+    with pytest.raises(SystemExit):
+        AUDIT.parse_args([])
+    args = AUDIT.parse_args(
+        [
+            "--formal-attempt",
+            "--repo-root",
+            "/repo",
+            "--source-cache-root",
+            "/source",
+            "--attempt-root",
+            "/attempt",
+        ]
+    )
+    assert args.formal_attempt is True
+
+
+@pytest.mark.parametrize(
+    "script",
+    [
+        AUDIT.RUNNER_PATH,
+        AUDIT.VERIFIER_PATH,
+    ],
+)
+def test_frozen_cli_entrypoints_import_from_repo_root(script: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    result = subprocess.run(
+        [sys.executable, str(repo_root / script), "--help"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "usage:" in result.stdout
