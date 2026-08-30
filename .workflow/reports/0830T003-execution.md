@@ -84,7 +84,7 @@ blockers：
 - 本任务不能产生新的正式科学执行。
 
 commit：
-- 待本报告提交后填写。
+- `80cfb93abb41350ab35f1cf9191d8f82529a020b`
 
 提交信息：
 - `report: record interrupted 0830T003 formal attempt`
