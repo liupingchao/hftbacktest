@@ -5,7 +5,7 @@ Date: 2026-08-30
 Hypothesis ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1`
 
-Revision: 2, pre-execution
+Revision: 3, pre-execution
 
 ## 1. Starting Evidence
 
@@ -43,8 +43,10 @@ with:
 
 ```text
 one registered leader onset_d
--> fixed-epoch admission and thinning
+-> fixed-epoch/core admission
+-> confirmation-edge admission
 -> explicit-opposition veto
+-> fixed-epoch thinning
 -> explicit-evidence confirmation
 ```
 
@@ -108,6 +110,10 @@ materialize_poisoned_cache_set
 verify_poison_attestation
 ```
 
+Full-cache and sliced-cache features must also directly call the single bound
+`build_features` authority described in the execution plan. The same callable
+must build A, B, P and every artificial slice.
+
 New-evidence masks are therefore exactly:
 
 ```text
@@ -134,9 +140,10 @@ At checkpoint `t`, the order is:
 4. leader prestate reads only `t-120ms ... t-20ms`, never `t`;
 5. raw leader onset is evaluated from the leader's `NEW_d` action at `t`;
 6. fixed-epoch eligibility and core membership are evaluated;
-7. anchor-time support and opposition read post-action memory at `t`;
-8. veto-admitted triggers enter fixed-epoch thinning;
-9. only the retained trigger enters confirmation.
+7. confirmation-edge admission requires `t+200ms <= core_close_ns`;
+8. anchor-time support and opposition read post-action memory at `t`;
+9. veto-admitted triggers enter fixed-epoch thinning;
+10. only the retained trigger enters confirmation.
 
 Consequences:
 
@@ -152,7 +159,8 @@ The mutually auditable layers are:
 
 ```text
 raw leader onset
--> epoch/core omitted OR anchor-time vetoed OR veto-admitted trigger
+-> epoch/core omitted OR confirmation-edge omitted
+   OR anchor-time vetoed OR veto-admitted trigger
 -> retained trigger OR same-key suppressed trigger
 -> confirmed retained trigger OR cancelled retained trigger
 ```
@@ -161,7 +169,8 @@ Per `(capture, epoch, variant, direction)`:
 
 ```text
 raw_onset
-  = epoch_core_omitted + anchor_vetoed + veto_admitted
+  = epoch_core_omitted + confirmation_edge_omitted
+  + anchor_vetoed + veto_admitted
 
 veto_admitted
   = retained + same_key_suppressed
@@ -196,8 +205,17 @@ complete single-segment grid = 3,000 checkpoints
 eligible core = [epoch_start + 15s, epoch_start + 45s)
 ```
 
-A raw onset outside a structurally eligible core is
-`epoch_core_omitted`.
+A raw onset outside a structurally eligible core is `epoch_core_omitted`.
+
+An onset inside the core but with:
+
+```text
+t + 200ms > core_close_ns
+```
+
+is `confirmation_edge_omitted`. It is removed before anchor veto and thinning,
+does not occupy a thinning key, and never receives a retained-trigger row.
+Equality is admitted: `t+200ms == core_close_ns` proceeds to veto.
 
 For an onset inside the eligible core, support/veto reads post-action
 memories at `t`:
@@ -252,12 +270,10 @@ For retained trigger time `t`, confirmation checkpoints are exactly:
 t+20ms, t+40ms, ..., t+200ms
 ```
 
-The entire window must:
-
-- exist;
-- remain in the trigger segment;
-- remain inside the same eligible epoch core, including
-  `t+200ms <= core_close_ns`.
+Confirmation-edge admission already guarantees the registered close lies in
+the core. The retained window must still exist and remain in the trigger
+segment. Missing rows or a segment change are cancellation conditions, not a
+new admission decision.
 
 The decision is completed only at `t+200ms`, never at the first additional
 update.
@@ -318,8 +334,10 @@ is authorized.
 
 ## 14. Post-Execution Immutability
 
-The formal one-shot attempt creates an atomic lock receipt before reading any
-cache. From that point:
+The formal one-shot attempt consumes a precommitted tracked `armed` claim
+before reading any cache. The missing tracked claim makes the worktree dirty,
+so an interrupted or deleted attempt cannot silently appear to be a first
+attempt. From that point:
 
 - this idea is immutable;
 - the execution plan is immutable;

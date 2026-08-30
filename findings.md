@@ -21,6 +21,12 @@
 - Slice invariance must compare retained failures and counters, not only
   confirmed anchors; otherwise two different earliest triggers can both
   cancel and produce a vacuous identity match.
+- A poison mismatch must belong to the outcome-boundary gate, not the earlier
+  authority gate; otherwise the registered negative classification is
+  unreachable.
+- Final tree comparison must be closed by an external sibling receipt.
+  Embedding a file's own SHA in its in-tree evidence creates an impossible
+  self-reference.
 
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 

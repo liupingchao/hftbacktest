@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 2, pre-execution
+Revision: 3, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -67,9 +67,35 @@ materialize_poisoned_cache_set
 verify_poison_attestation
 ```
 
-The baseline manifest supplies exact authority file SHA256, Git blob OID and
-callable AST SHA256. Formal tests must prove direct invocation; a local
+The baseline manifest supplies the epoch authority file SHA256, Git blob OID
+and callable AST SHA256. Formal tests must prove direct invocation; a local
 reimplementation is forbidden.
+
+The raw-to-feature authority is independently frozen:
+
+```text
+path:
+  examples/hyperliquid/skhynix_flow_coherence_a_minus1_audit.py
+commit:
+  45544ecc3901623ca7c2e34a059afca6c551d625
+blob_oid:
+  494c203e7195f292e057f7708c99f52096259a02
+file_sha256:
+  f7dc1565bf0a45363dadf3204d827e0d13687f6cc3307c2e7c5e77aeb321400c
+callable:
+  build_features
+callable_ast_sha256:
+  e5cca6c2b7627ef8e3719e4fdecb5a540a42a2028e2fb141ea9fff4f7c246933
+```
+
+Build A, Build B, Build P and every sliced raw cache must directly invoke
+this exact callable. A wrapper may count and attest calls but may not replace
+the callable body. Expected direct calls equal:
+
+```text
+3 * canonical cache count
++ total artificial slice build count across A/B/P
+```
 
 `source_preflight` must complete for all rows before action, memory, trigger
 or output construction. Its failure is uniquely A-1-0.
@@ -98,11 +124,12 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 2 definitions are normative:
+The idea document's Revision 3 definitions are normative, in this only order:
 
 - checkpoint-exact causal order;
 - raw onset;
 - epoch/core omission;
+- confirmation-edge omission;
 - anchor-time veto;
 - support counts;
 - fixed-epoch thinning;
@@ -151,6 +178,10 @@ Confirmation must close inside the core. Core-close equality is allowed:
 candidate_ts_ns + 200ms <= core_close_ns
 ```
 
+An otherwise valid raw onset with `candidate_ts_ns + 200ms > core_close_ns`
+is `confirmation_edge_omitted` before veto and thinning. It does not occupy a
+key. Equality is admitted; a candidate 20ms later is omitted.
+
 ## 6. Conservation Contract
 
 For each `(date,capture,epoch,variant,direction)`:
@@ -158,6 +189,7 @@ For each `(date,capture,epoch,variant,direction)`:
 ```text
 raw_onset_count
   = epoch_core_omitted_count
+  + confirmation_edge_omitted_count
   + anchor_vetoed_count
   + veto_admitted_count
 
@@ -182,7 +214,7 @@ guard = 122s
 ```
 
 Every slice is rebuilt from sliced raw cache via the authority feature
-builder. No derived feature reuse is permitted.
+builder frozen in Section 2. No derived feature reuse is permitted.
 
 Comparable epochs:
 
@@ -209,6 +241,7 @@ Epoch/variant counter identity:
 ```text
 (capture_id,epoch_id,variant,direction,
  raw_onset_count,epoch_core_omitted_count,anchor_vetoed_count,
+ confirmation_edge_omitted_count,
  veto_admitted_count,retained_count,same_key_suppressed_count,
  confirmed_count,cancelled_count,retained_candidate_id_or_empty)
 ```
@@ -263,7 +296,7 @@ distinct comparable epochs >= 30
 positive support checkpoint count
 ```
 
-## 8. One-Shot Formal Attempt
+## 8. Durable One-Shot Claim
 
 The only formal command is:
 
@@ -278,6 +311,47 @@ python \
     /Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate/local_live_analysis/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_0830T002_formal_v1
 ```
 
+Implementation freeze creates an annotated tag:
+
+```text
+skhynix-fixed-epoch-leader-trigger-a-minus1-implementation-v1
+```
+
+and commits exactly one tracked armed claim:
+
+```text
+.workflow/attempt-claims/0830T002.armed.json
+```
+
+The claimed path is:
+
+```text
+.workflow/attempt-claims/0830T002.claimed.json
+```
+
+Before any `.npz` open, the orchestrator must:
+
+1. use lexical absolute registered roots and reject symlinks in every existing
+   path component with `lstat`;
+2. require a clean worktree, exact formal argv/cwd, and
+   `HEAD == implementation-tag`;
+3. verify idea, plan, task, runner, tests, armed claim, authority files,
+   callable ASTs and baseline tags;
+4. require armed present, claimed absent and attempt root absent;
+5. create claimed as a hard link to armed, which fails if claimed exists;
+6. `fsync` claimed, `fsync` the claim directory, unlink armed, then `fsync`
+   the claim directory again;
+7. create the attempt root with `mkdir`, then `fsync` its parent directory;
+8. create and `fsync` `attempt-lock.json` through a same-directory temporary
+   file, hard-link no-replace publish, temporary unlink and parent `fsync`;
+9. only then open source caches.
+
+After step 6, the tracked armed file is missing. Therefore the worktree cannot
+return to the required clean pre-attempt state merely because ignored outputs
+were deleted. A missing result means `INTERRUPTED_TERMINAL`; it is not
+recoverable or replaceable in this task. Restoring or deleting claim state is
+explicitly outside the registered protocol.
+
 Exact attempt children:
 
 ```text
@@ -290,41 +364,60 @@ poison-attestation.json
 attempt-result.json
 ```
 
-Before any source cache opens, the orchestrator must:
+## 9. Build Sequence and Comparison Domains
 
-1. require clean Git working tree;
-2. require HEAD equals the task-frozen implementation commit;
-3. require idea/plan/task/runner/tests SHA256 and Git blob identities;
-4. require baseline verifier success;
-5. atomically create the absent attempt root with no replacement;
-6. atomically write and fsync `attempt-lock.json`;
-7. record exact argv, cwd, PID, start time, roots and identities.
-
-An existing attempt root or any non-empty output child fails closed. A failed
-or interrupted attempt may not be replaced by another attempt in this task.
-
-## 9. Build and Poison Sequence
-
-The one-shot attempt performs:
+The one-shot process performs:
 
 1. Build A over canonical caches into empty `canonical_a`;
-2. Build B in a fresh process over the identical canonical bytes into empty
+2. Build B in a fresh subprocess over the same canonical bytes into empty
    `canonical_b`;
-3. materialize poison caches from canonical authority:
-   - all allowed-minus-consumed fields;
-   - same field names, dtypes and shapes;
-   - every non-empty unconsumed field value changes;
-   - every consumed field remains byte-identical;
-4. write required sibling `poison-attestation.json`;
-5. Build P over poison caches into empty `poison_p`, while source inventory
-   authority remains canonical;
-6. compare A/B/P preseal outputs;
-7. write identical pending evidence to all three roots and compare;
-8. write identical final evidence, outcome ledger, gates, classification and
-   manifests to all roots and compare;
-9. atomically write and fsync `attempt-result.json`.
+3. materialize poison caches by direct authority call;
+4. write and verify sibling `poison-attestation.json`;
+5. Build P over poison caches into empty `poison_p`, while inventory authority
+   remains canonical;
+6. compare the exact `RAW_11` projection;
+7. derive one global gate/classification payload from A plus A/B and A/P
+   comparison evidence, and write identical dynamic bytes into A/B/P;
+8. compare exact `SEALED_15`;
+9. write identical `execution_evidence.json`;
+10. write each self-excluding manifest;
+11. compare exact `FINAL_17` externally;
+12. publish and fsync sibling `attempt-result.json`.
 
-Frozen poison expectations from the 29-cache authority:
+Exact projections:
+
+```text
+RAW_11 =
+  authority_binding.json
+  detector_contract.json
+  fixed_epoch_contract.json
+  eight support CSV files
+
+SEALED_15 =
+  RAW_11
+  + outcome_access_ledger.json
+  + gate_contract.json
+  + A_minus1_summary.json
+  + classification.json
+
+EVIDENCED_16 =
+  SEALED_15
+  + execution_evidence.json
+
+FINAL_17 =
+  EVIDENCED_16
+  + run_manifest.json
+```
+
+`execution_evidence.json` contains only `RAW_11` and `SEALED_15` comparison
+rows. It never hashes itself or either manifest. `attempt-result.json` is the
+external terminal closure over `FINAL_17` plus all sibling artifacts.
+
+Canonical A/B differences belong only to A-1-0. A/P differences belong only
+to A-1-1. An A/P mismatch is retained as negative outcome-boundary evidence;
+it does not prevent final package creation and is not reassigned to A-1-0.
+
+Frozen poison expectations:
 
 ```text
 cache_count = 29
@@ -334,58 +427,7 @@ changed field instances = 435
 consumed mismatch = 0
 ```
 
-The sibling attestation SHA is referenced identically by A/B/P outcome
-ledgers.
-
-## 10. Determinism Stages
-
-Each stage has exact equal non-cache path sets:
-
-```text
-preseal:
-  stage=preseal
-  preseal_difference_count=null
-  pending_difference_count=null
-  final_difference_count=null
-
-pending:
-  stage=pending
-  preseal_difference_count=0
-  pending_difference_count=null
-  final_difference_count=null
-
-final:
-  stage=final
-  preseal_difference_count=0
-  pending_difference_count=0
-  final_difference_count=0
-```
-
-The final 17-path output namespace is identical across A/B/P. Dynamic files
-are rewritten in this order:
-
-```text
-execution_evidence.json
-outcome_access_ledger.json
-gate_contract.json
-A_minus1_summary.json
-classification.json
-run_manifest.json last
-```
-
-## 11. Required Sibling Artifacts
-
-Outside A/B/P but inside the attempt:
-
-```text
-attempt-lock.json
-poison-attestation.json
-attempt-result.json
-```
-
-They are required and SHA-bound by `attempt-result.json`.
-
-## 12. Exact 17 Output Paths
+## 10. Exact 17 Output Paths
 
 Each A/B/P root contains:
 
@@ -412,7 +454,7 @@ support/variant_summary.csv
 `run_manifest.json` excludes itself and lists exactly 16 unique entries with
 path, size and SHA256. Missing, extra, duplicate or cache payload paths fail.
 
-## 13. Common Serialization
+## 11. Common Serialization
 
 JSON:
 
@@ -446,7 +488,7 @@ empty string for N/A identity
 
 No NaN or infinity may be emitted.
 
-## 14. CSV Schemas
+## 12. CSV Schemas
 
 ### source_cache_inventory.csv
 
@@ -454,7 +496,7 @@ Row grain: one canonical cache, sorted by `cache_name`.
 
 ```text
 cache_name,size_bytes,row_count,cache_schema_version,cache_sha256,
-paired_determinism_verified,cache_field_schema_verified
+source_authority_verified,cache_field_schema_verified
 ```
 
 ### channel_action_by_date.csv
@@ -472,7 +514,8 @@ action_partition_exact
 
 ### epoch_support.csv
 
-Use the authority epoch-ledger exact ordered fields and typed ordering:
+This is the exact successor projection of the authority epoch ledger; no
+other authority fields are emitted:
 
 ```text
 research_date,capture_id,epoch_id,epoch_start_ns,epoch_end_ns,
@@ -492,7 +535,8 @@ Row grain: every enumerated
 ```text
 research_date,capture_id,epoch_id,variant,direction,
 raw_onset_count,epoch_core_omitted_count,anchor_vetoed_count,
-veto_admitted_count,retained_count,same_key_suppressed_count,
+confirmation_edge_omitted_count,veto_admitted_count,retained_count,
+same_key_suppressed_count,
 confirmed_count,cancelled_count,retained_candidate_id
 ```
 
@@ -533,7 +577,8 @@ Row grain: `(research_date,variant,direction)`.
 
 ```text
 research_date,variant,direction,raw_onset_count,epoch_core_omitted_count,
-anchor_vetoed_count,veto_admitted_count,retained_count,
+confirmation_edge_omitted_count,anchor_vetoed_count,veto_admitted_count,
+retained_count,
 same_key_suppressed_count,confirmed_count,cancelled_count,
 distinct_confirmed_cluster_count,support0_confirmed_count,
 support1_confirmed_count,support2_confirmed_count
@@ -572,7 +617,8 @@ expected_support_sha256,actual_support_sha256,support_exact,
 cross_segment_checkpoint_count,mismatch_reason
 ```
 
-`mismatch_reason` is `none` or first failed exact flag in this order:
+`mismatch_reason` is always `none` or the first failed item in this exact
+precedence:
 
 ```text
 epoch_disposition
@@ -581,82 +627,250 @@ retained
 status
 support
 cross_segment
-multiple
 ```
 
-## 15. JSON Contracts
+## 13. Exact JSON and Sibling Schemas
 
-### authority_binding.json
-
-Contains:
-
-- baseline IDs/tags/commits;
-- successor HEAD/runner/tests/task/idea/plan paths, SHA256 and Git blobs;
-- direct-call authority function AST hashes;
-- source inventory SHA;
-- attempt-lock SHA.
-
-### detector_contract.json
-
-Contains exact variants, channel indexes, thresholds, TTL boundary, prestate,
-checkpoint order, veto, thinning, confirmation and cancellation semantics.
-
-### fixed_epoch_contract.json
-
-Byte-equivalent semantic values to the authority fixed-epoch contract plus
-the successor variant dimension in the thinning key.
-
-### execution_evidence.json
-
-Contains exact stage, A/B/P path sets, per-file comparison rows, difference
-counts, successor identity and sibling artifact SHA values.
-
-### outcome_access_ledger.json
-
-Contains:
+Schema notation:
 
 ```text
-future_target_accessed=false
-future_price_accessed=false
-fill_fee_pnl_accessed=false
-consumed_cache_fields=sorted exact set
-poisoned_unconsumed_fields_change_output=false only at final
-poison_attestation_sha256
-cache_count=29
-unconsumed_field_count=15
-changed_field_instance_count=435
-consumed_field_mismatch_count=0
+str = nonempty ASCII string
+int = base-10 integer, bool forbidden
+number = finite JSON number, bool forbidden
+bool = true/false
+sha256 = 64 lowercase hex
+sha1 = 40 lowercase hex
+nullable[T] = T or null
+list[T] = ordered JSON array
+object{...} = exactly listed keys; additional keys forbidden
 ```
 
-### gate_contract.json
-
-Contains all four gates and every condition row, even after earlier failure.
-Condition fields:
+Named records:
 
 ```text
-condition,status,passed,actual,required
+FileIdentity = object{
+  path:str,sha256:sha256,git_blob_oid:sha1
+}
+
+CallableIdentity = object{
+  path:str,commit:sha1,git_blob_oid:sha1,file_sha256:sha256,
+  callable_name:str,callable_ast_sha256:sha256,direct_call_count:int
+}
+
+ComparisonRow = object{
+  path:str,a_sha256:nullable[sha256],other_sha256:nullable[sha256],
+  equal:bool
+}
+
+Comparison = object{
+  domain:str,expected_path_count:int,a_path_count:int,other_path_count:int,
+  difference_count:int,rows:list[ComparisonRow]
+}
+
+GateCondition = object{
+  condition:str,status:str,passed:nullable[bool],
+  actual:nullable[int|bool|str|number],required:str
+}
+
+Gate = object{
+  gate_id:str,status:str,passed:nullable[bool],
+  conditions:list[GateCondition]
+}
+
+VariantRow = object{
+  variant:str,is_primary:bool,raw_onset_count:int,
+  veto_admitted_count:int,retained_count:int,confirmed_count:int,
+  cancelled_count:int,distinct_confirmed_cluster_count:int,
+  represented_date_count:int,
+  maximum_single_date_cluster_share:nullable[number],
+  support_prediction_passed:bool
+}
+
+Integrity = object{
+  source_preflight_violation_count:int,
+  action_partition_violation_count:int,
+  unauthorized_ttl_refresh_count:int,
+  cross_segment_memory_carry_count:int,
+  conservation_violation_count:int,fixed_epoch_violation_count:int,
+  slice_mismatch_count:int,cross_segment_compared_checkpoint_count:int,
+  represented_slice_date_count:int,distinct_comparable_epoch_count:int,
+  compared_support_checkpoint_count:int,schema_violation_count:int,
+  numeric_violation_count:int
+}
+
+ManifestRow = object{
+  path:str,size_bytes:int,sha256:sha256
+}
+
+RootRow = object{
+  label:str,path:str,artifact_count:int,tree_sha256:sha256,
+  manifest_sha256:sha256,classification:str
+}
 ```
 
-Later gates:
+Every JSON file has `schema_version=1` and exactly these remaining keys:
 
 ```text
-status=NOT_EVALUATED
-passed=null
-actual=null
-required remains frozen
+contracts/authority_binding.json = object{
+  schema_version:int,task_id:str,hypothesis_id:str,audit_id:str,
+  baseline_tag:str,baseline_commit:sha1,implementation_tag:str,
+  implementation_head:sha1,tracked_files:list[FileIdentity],
+  callables:list[CallableIdentity],source_inventory_sha256:sha256,
+  attempted_claim_sha256:sha256,all_verified:bool
+}
+
+contracts/detector_contract.json = object{
+  schema_version:int,hypothesis_id:str,variant_order:list[str],
+  channel_order:list[str],fast_threshold:number,medium_threshold:number,
+  margin:number,ttl_ms:int,ttl_inclusive:bool,prestate_ms:int,
+  prestate_checkpoint_count:int,confirmation_ms:int,
+  confirmation_checkpoint_count:int,causal_order:list[str],
+  onset_rule:str,confirmation_edge_rule:str,veto_rule:str,
+  thinning_rule:str,confirmation_rule:str,cancel_reason_precedence:list[str]
+}
+
+contracts/fixed_epoch_contract.json = object{
+  schema_version:int,epoch_origin_ns:int,epoch_width_ns:int,
+  checkpoint_ns:int,expected_checkpoint_count:int,core_open_offset_ns:int,
+  core_close_offset_ns:int,core_half_open:bool,
+  confirmation_close_equality_admitted:bool,thinning_key:list[str],
+  tie_break:list[str],cluster_key:list[str]
+}
+
+contracts/outcome_access_ledger.json = object{
+  schema_version:int,future_target_accessed:bool,
+  future_price_accessed:bool,fill_fee_pnl_accessed:bool,
+  forbidden_access_count:int,consumed_cache_fields:list[str],
+  cache_count:int,unconsumed_field_count:int,
+  nonempty_unconsumed_field_instance_count:int,
+  changed_unconsumed_field_instance_count:int,
+  consumed_field_mismatch_count:int,poison_attestation_sha256:sha256,
+  raw_a_p_difference_count:int,outcome_boundary_preserved:bool
+}
+
+contracts/gate_contract.json = object{
+  schema_version:int,gate_order:list[str],gates:list[Gate],
+  first_failed_gate_id:nullable[str],classification:str
+}
+
+reports/A_minus1_summary.json = object{
+  schema_version:int,task_id:str,hypothesis_id:str,audit_id:str,
+  idea_sha256:sha256,plan_sha256:sha256,implementation_head:sha1,
+  classification:str,primary_variant:str,sensitivity_variants:list[str],
+  variant_rows:list[VariantRow],integrity:Integrity,gates:list[Gate],
+  future_outcomes_authorized:bool,a0_authorized:bool,
+  live_trading_authorized:bool
+}
+
+classification.json = object{
+  schema_version:int,task_id:str,hypothesis_id:str,audit_id:str,
+  classification:str,first_failed_gate_id:nullable[str],
+  gate_statuses:list[str],future_outcomes_authorized:bool,
+  a0_authorized:bool,live_trading_authorized:bool
+}
+
+contracts/execution_evidence.json = object{
+  schema_version:int,attempt_id:str,implementation_head:sha1,
+  raw_a_b:Comparison,raw_a_p:Comparison,
+  sealed_a_b:Comparison,sealed_a_p:Comparison
+}
+
+run_manifest.json = object{
+  schema_version:int,artifact_count:int,
+  artifacts:list[ManifestRow]
+}
 ```
 
-### A_minus1_summary.json
+The summary's `variant_rows` are exact JSON projections of
+`variant_summary.csv`, using `null` for empty share. Its `integrity` object has
+the exact `Integrity` schema above.
 
-Contains task/hypothesis/audit IDs, exact plan/idea/successor identities,
-variant summaries, integrity counters, sibling evidence, gates,
-classification and all authorization flags.
+Gate enums are exact:
 
-### classification.json
+```text
+gate_id in {"A-1-0","A-1-1","A-1-2","A-1-3"}
+status in {"PASS","FAIL","NOT_EVALUATED"}
+condition status in {"PASS","FAIL","NOT_EVALUATED"}
+```
 
-Contains only registered classification, gates and authorization flags.
+Exact sibling schemas:
 
-## 16. Numeric Semantics
+```text
+.workflow/attempt-claims/0830T002.{armed,claimed}.json = object{
+  schema_version:int,task_id:str,attempt_id:str,implementation_tag:str,
+  formal_argv:list[str],repo_root:str,source_cache_root:str,attempt_root:str,
+  idea_sha256:sha256,plan_sha256:sha256,task_sha256:sha256,
+  runner_sha256:sha256,tests_sha256:sha256,status:str
+}
+```
+
+Armed and claimed bytes are identical and `status="ARMED_FOR_SINGLE_USE"`.
+
+```text
+attempt-lock.json = object{
+  schema_version:int,task_id:str,attempt_id:str,status:str,pid:int,
+  started_at_utc:str,cwd:str,argv:list[str],implementation_head:sha1,
+  claimed_sha256:sha256,repo_root:str,source_cache_root:str,attempt_root:str
+}
+```
+
+`status="CLAIMED_BEFORE_CACHE_READ"`.
+
+The direct poison authority first writes its derived helper path, direct
+verification reads that path, and the verified bytes are then renamed without
+content change to sibling `poison-attestation.json`. Its exact schema is:
+
+```text
+poison-attestation.json = object{
+  task_id:str,hypothesis_id:str,poison_output_root:str,
+  source_inventory_sha256:sha256,cache_count:int,
+  unconsumed_fields:list[str],unconsumed_field_count:int,
+  nonempty_unconsumed_field_instance_count:int,
+  changed_unconsumed_field_instance_count:int,
+  consumed_field_mismatch_count:int,caches:list[PoisonCache]
+}
+
+PoisonCache = object{
+  cache_name:str,unconsumed_fields:list[PoisonField]
+}
+
+PoisonField = object{
+  field:str,dtype:str,shape:list[int],
+  source_value_sha256:sha256,poison_value_sha256:sha256
+}
+```
+
+The frozen authority values inside the attestation are:
+
+```text
+task_id = "0829T003"
+hypothesis_id = "FIXED_CAUSAL_EPOCH_MSTATE_V2"
+```
+
+```text
+attempt-result.json = object{
+  schema_version:int,task_id:str,attempt_id:str,status:str,
+  phase:str,exit_code:int,finished_at_utc:str,
+  attempt_lock_sha256:sha256,claimed_sha256:sha256,
+  poison_attestation_sha256:sha256,
+  final_a_b:Comparison,final_a_p:Comparison,
+  root_rows:list[RootRow]
+}
+```
+
+For a completed one-shot sequence, `status="COMPLETED"`,
+`phase="FINAL_17_CLOSED"` and `exit_code=0`. If the process dies before this
+receipt, the precommitted claim state itself proves
+`INTERRUPTED_TERMINAL`; no synthetic result file is added later.
+
+Missing/unknown keys, wrong types, wrong enum values, duplicate paths,
+unsorted rows or malformed hashes are schema violations.
+
+All path rows sort by path ASCII. A tree hash is SHA256 of the canonical JSON
+array of `ManifestRow` records sorted by path. `Comparison.rows` is the sorted
+union of both path sets; a missing side uses null SHA and `equal=false`.
+
+## 14. Numeric Semantics
 
 All counts are non-negative integers, not booleans.
 
@@ -674,7 +888,7 @@ cluster_count > 0:
 Any negative, non-finite, wrong type, inconsistent share, failed conservation
 or malformed SHA is A-1-2.
 
-## 17. Sequential Gates and Classification
+## 15. Sequential Gates and Classification
 
 ### A-1-0 Authority and Source
 
@@ -686,7 +900,7 @@ Conditions:
 - clean one-shot attempt receipt;
 - exact 29-cache source closure;
 - source preflight violations zero;
-- A/B/P final path/SHA difference count zero.
+- canonical A/B `RAW_11` difference zero.
 
 Failure:
 
@@ -701,7 +915,7 @@ Conditions:
 - forbidden access count zero;
 - poison 29/15/435 identities exact;
 - consumed mismatch zero;
-- final A/P difference zero.
+- A/P `RAW_11` difference zero.
 
 Failure:
 
@@ -721,7 +935,7 @@ Conditions:
 - represented slice dates >=4;
 - distinct comparable epochs >=30;
 - positive compared support count;
-- numeric/schema/manifest violations zero.
+- numeric/schema violations zero.
 
 Any sensitivity integrity defect fails this gate.
 
@@ -740,6 +954,11 @@ TRADE_LED cluster count >=30
 TRADE_LED represented dates >=4
 TRADE_LED maximum single-date share <=0.50
 ```
+
+Within A-1-3, evaluation is sequential. If cluster count fails, date and share
+rows are `NOT_EVALUATED` with `passed=null`, `actual=null`. If count passes but
+date fails, only share is `NOT_EVALUATED`. A zero-cluster share remains null
+and is never compared.
 
 If count or date coverage fails:
 
@@ -764,7 +983,58 @@ Sensitivities are absent from A-1-3.
 Every gate after the first failed gate is retained as exact
 `NOT_EVALUATED`.
 
-## 18. Frozen Hostile-Test Minimum
+Exact condition IDs, order and required strings:
+
+```text
+A-1-0:
+  baseline_authority_verified             required "true"
+  frozen_successor_identities_verified    required "true"
+  direct_callable_bindings_verified       required "true"
+  claim_and_lock_valid_before_cache       required "true"
+  canonical_source_closure_exact          required "29 exact caches"
+  source_preflight_violation_count        required "0"
+  raw_a_b_difference_count                required "0"
+
+A-1-1:
+  forbidden_access_count                  required "0"
+  poison_cache_count                      required "29"
+  poison_unconsumed_field_count           required "15"
+  poison_changed_field_instance_count     required "435"
+  poison_consumed_field_mismatch_count    required "0"
+  raw_a_p_difference_count                required "0"
+
+A-1-2:
+  action_partition_violation_count        required "0"
+  unauthorized_ttl_refresh_count          required "0"
+  cross_segment_memory_carry_count        required "0"
+  conservation_violation_count            required "0"
+  fixed_epoch_violation_count             required "0"
+  slice_mismatch_count                    required "0"
+  cross_segment_compared_checkpoint_count required "0"
+  represented_slice_date_count            required ">=4"
+  distinct_comparable_epoch_count         required ">=30"
+  compared_support_checkpoint_count       required ">0"
+  schema_violation_count                  required "0"
+  numeric_violation_count                 required "0"
+
+A-1-3:
+  trade_led_confirmed_cluster_count        required ">=30"
+  trade_led_represented_date_count         required ">=4"
+  trade_led_maximum_single_date_share      required "<=0.50"
+```
+
+For evaluated rows, `actual` is the exact bool/int/finite number and status is
+`PASS` or `FAIL`. For any condition after an earlier failed condition inside
+the same gate, and for every later gate after the first failed gate:
+
+```text
+status = "NOT_EVALUATED"
+passed = null
+actual = null
+required = the frozen string above
+```
+
+## 16. Frozen Hostile-Test Minimum
 
 At minimum:
 
@@ -772,9 +1042,11 @@ At minimum:
 - TTL age 100ms fresh and 120ms stale;
 - six-point prestate excludes `t`;
 - core open included, core close excluded for trigger;
-- confirmation close equality allowed and +20ms rejected;
+- confirmation close equality admitted and +20ms classified exactly as
+  `confirmation_edge_omitted` before veto/thinning;
 - same-checkpoint neutral clears old opposite before veto;
 - same-checkpoint new opposite is visible to veto;
+- an earlier vetoed onset does not occupy a thinning key;
 - reset clears memory and invalidates epoch before trigger;
 - raw/veto/admitted/retained/suppressed/confirmed conservation;
 - earliest retained failure suppresses a later confirmable trigger;
@@ -785,36 +1057,46 @@ At minimum:
 - independent cancellation booleans and reason precedence;
 - slice epoch/counter/retained/status/support hash mutations fail;
 - slice cannot reuse derived full features;
+- full/slice/poison direct-call `build_features` identity and call counts;
 - source invalid fails before action;
 - every unconsumed poison value changes and consumed values do not;
-- A/B/P missing, extra and byte mutations fail;
+- A/B missing, extra and byte mutations fail A-1-0;
+- A/P missing, extra and byte mutations produce A-1-1 negative evidence;
 - attestation mutation fails;
 - all 17 schemas, typed sentinels, sorting and manifest self-exclusion;
 - zero, negative, NaN, infinity and wrong-type gate mutations;
 - later `NOT_EVALUATED` rows preserve required values;
+- A-1-3 zero/count/date/concentration short-circuit bytes;
 - sensitivity cannot rescue primary;
-- dirty worktree, wrong HEAD, wrong CLI/root, existing attempt root and
-  successor identity mutations fail before cache read;
-- interrupted/failed attempt cannot be replaced.
+- dirty worktree, wrong tag/HEAD, wrong CLI/root, symlink, armed/claimed
+  mutation, existing attempt root and successor identity mutations fail
+  before cache read;
+- claim hard-link/unlink/parent-fsync order and interrupted non-replacement;
+- RAW_11/SEALED_15/FINAL_17 projection and self-reference exclusions;
+- exact JSON, sibling and authority poison schemas.
 
-## 19. Pre-Execution Locks
+## 17. Pre-Execution Locks
 
 Before formal execution:
 
 ```text
 independent idea/plan review = 0/0/0/0
 idea and plan SHA frozen in task
-implementation commit and runner/tests SHA/blob frozen in task
+runner/tests implementation commit created
+task updated with implementation commit and runner/tests SHA/blob, then committed
+armed claim created from the committed task and exact formal identities
+armed claim committed without further task/runner/tests changes
+implementation tag attached to that final clean commit
 independent readiness review confirms command/receipt/test contract
 focused and inherited tests pass
 ```
 
 Until then, 29-cache execution is locked.
 
-## 20. Post-Build-A Rule
+## 18. Post-Claim Rule
 
-Atomic `attempt-lock.json` creation is the start of formal execution and
-occurs before any cache read.
+Consumption of the tracked armed claim is the start of formal execution and
+occurs before attempt-root creation and before any cache read.
 
 After it exists, only the already registered one-shot sequence may continue.
 No repair, diagnosis, replacement attempt, code/plan/test change or
