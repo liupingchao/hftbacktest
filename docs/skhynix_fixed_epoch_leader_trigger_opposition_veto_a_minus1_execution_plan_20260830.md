@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 14, pre-execution
+Revision: 15, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -813,6 +813,22 @@ must retain the physical file size; a size change cannot be hidden. The
 producer and terminal verifier independently recompute the same registered
 projection.
 
+Canonical serialization defects are pre-classification execution-integrity
+failures, not A-1-1 scientific evidence. The exact runner/verifier failure
+codes are:
+
+```text
+poison_slice_comparison_noncanonical
+poison_manifest_comparison_noncanonical
+```
+
+Such a failure occurs before a valid `ComparisonRow`,
+`raw_a_p_difference_count`, gate payload or scientific classification can be
+formed. It terminates the one-shot attempt as an execution failure; no
+scientific classification is synthesized. A-1-1 owns only A/P missing/extra
+paths and producer-canonical comparison rows whose registered semantic hashes
+are unequal.
+
 The physical A/B/P slice and manifest bytes remain permanent evidence.
 Same-build `slice_source_sha256`, WorkRow SHA, SLICE FeatureCall input
 authority, work-manifest closure, consumer feature-output equality and
@@ -849,10 +865,12 @@ Every retained slice is also no-replace published and fsynced.
 `attempt-result.json` and the tracked terminal receipt. Work evidence is
 permanent for this task and may not be cleaned after claim consumption.
 
-Canonical A/B differences belong only to A-1-0. A/P differences under the
-registered poison-normalized comparison belong only to A-1-1. An A/P
-mismatch is retained as negative outcome-boundary evidence; it does not
-prevent final package creation and is not reassigned to A-1-0.
+Canonical A/B differences belong only to A-1-0. Producer-canonical A/P
+differences under the registered poison-normalized comparison belong only to
+A-1-1. Such an A/P mismatch is retained as negative outcome-boundary evidence;
+it does not prevent final package creation and is not reassigned to A-1-0.
+Non-canonical serialization has the separate pre-classification terminal
+semantics defined above.
 
 Frozen poison expectations:
 
@@ -1952,8 +1970,8 @@ At minimum:
 - every unconsumed poison value changes and consumed values do not;
 - A/B missing, extra and byte mutations fail A-1-0;
 - A/P missing and extra paths produce A-1-1 negative evidence;
-- A/P byte mutations outside the two registered normalized fields produce
-  A-1-1 negative evidence;
+- producer-canonical A/P byte/value mutations outside the two registered
+  normalized fields produce A-1-1 negative evidence;
 - A/P `slice_invariance.csv` header/row/order/non-source-field mutations fail,
   while a same-build-valid `slice_source_sha256` physical identity difference
   alone is normalized;
@@ -1961,10 +1979,11 @@ At minimum:
   while only the slice artifact SHA derived from the registered normalized
   slice comparison is normalized;
 - A/P `slice_invariance.csv` equivalent-value `QUOTE_ALL`, CRLF or alternate
-  escaping fails canonical serialization before normalization;
+  escaping terminal-fails with
+  `poison_slice_comparison_noncanonical` before classification;
 - A/P `run_manifest.json` equivalent-object compact JSON, alternate key order,
-  whitespace or trailing-newline mutation fails canonical serialization
-  before normalization;
+  whitespace or trailing-newline mutation terminal-fails with
+  `poison_manifest_comparison_noncanonical` before classification;
 - attestation mutation fails;
 - all 17 schemas, typed sentinels, sorting and manifest self-exclusion;
 - zero, negative, NaN, infinity and wrong-type gate mutations;
