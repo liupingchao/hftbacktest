@@ -1,5 +1,17 @@
 # Progress
 
+## 2026-08-30 0830T002 Leader Trigger A-1 Drafted
+
+- Created successor worktree from
+  `skhynix-fixed-epoch-research-kit-v1` at `45afe244`.
+- Drafted separate research-idea and execution-plan documents.
+- Registered `TRADE_LED` as unique primary and depletion/OFI-led variants as
+  non-rescue sensitivities.
+- Fixed epoch geometry and directional amplitude thresholds remain frozen.
+- Formal data execution is locked pending independent review.
+- Once Build A begins, no result-driven repair, diagnosis, parameter change
+  or plan revision is allowed.
+
 ## 2026-08-30 0830T001 Baseline Preparation Started
 
 - Accepted fixed-epoch authority is

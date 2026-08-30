@@ -1,5 +1,21 @@
 # Findings
 
+## 2026-08-30 Leader Trigger Opposition Veto Design
+
+- The predecessor's least-strict F000 cancellation was dominated by
+  `persistence_abstain=1040` and `consensus_lost=1135`; only 9 candidates had
+  explicit opposite consensus.
+- F010 was selected in all nine folds because its null rate was zero, but it
+  retained only two clusters. Null-only selection can prefer silence.
+- The new task isolates logical conjunction and persistence semantics while
+  preserving directional amplitude and fixed epoch geometry.
+- Depletion and OFI are both depth-derived; a 2-of-3 quorum would not provide
+  three independent votes.
+- The primary prediction is structural support only. Even a pass does not
+  establish economic precision or directional alpha.
+- Post-result immutability is load-bearing: a contradictory result must remain
+  visible rather than being converted into a remediation cycle.
+
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 
 - The accepted source, plan, tests and QA are tracked, but formal

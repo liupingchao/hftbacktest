@@ -1,5 +1,20 @@
 # Task Plan
 
+## 2026-08-30 0830T002 Leader Trigger Opposition Veto A-1
+
+- `0830T002 / FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
+  is `执行中`.
+- Unique primary is `TRADE_LED`; depletion-led and OFI-led are non-rescue
+  sensitivities.
+- Keep 60s fixed epoch suppression and 0.50/0.25 directional thresholds.
+- Replace three-channel hard AND with leader trigger, explicit opposition
+  veto and explicit-evidence 200ms confirmation.
+- Data execution is locked pending independent review and implementation
+  freeze.
+- The first formal Build A command freezes plan/code/tests; contradictory
+  results must be recorded without repair, diagnosis or plan revision.
+- Future outcomes, A0 and live/private/order execution remain unauthorized.
+
 ## 2026-08-30 0830T001 Fixed Epoch Suppression Baseline
 
 - `0830T001 / SKHYNIX_FIXED_EPOCH_SUPPRESSION_V1_BASELINE` is `已通过`.
