@@ -1,5 +1,20 @@
 # Findings
 
+## 2026-08-31 Q0 Qualification Boundary
+
+- The predecessor `_features` exception shows that passing unit tests and
+  implementation review did not exercise the complete formal slice path.
+- The successor must pass feature data explicitly between production
+  functions; hidden analysis-dictionary payloads are prohibited.
+- `BACKGROUND`, explicit `NEUTRAL` and stale state were not executable
+  without a frozen memory horizon. The accepted fixed-epoch authority's
+  100ms inclusive memory is now explicit in the master protocol.
+- Q0 must separate deterministic structural package bytes from fixture-source
+  evidence so the intentional A/P raw-cache mutation does not make poison
+  invariance impossible by construction.
+- Q0 is software evidence only. Its fixture truth cannot be interpreted as
+  market support.
+
 ## 2026-08-30 0830T003 Formal Execution Finding
 
 - The replacement closed the known missing-keyword failure: baseline authority

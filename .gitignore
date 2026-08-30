@@ -18,6 +18,8 @@ baselines/*
 !baselines/research_package_trust_kernel/**
 !baselines/skhynix_fixed_epoch_suppression_v1/
 !baselines/skhynix_fixed_epoch_suppression_v1/**
+!baselines/skhynix_trade_led_depth_follower_q0_v1/
+!baselines/skhynix_trade_led_depth_follower_q0_v1/**
 local_live_analysis*/
 .claude/
 .codex

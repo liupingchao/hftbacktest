@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-08-31 0831T001 Q0 Candidate Registered
+
+- Created the complete
+  `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
+- Registered `0831T001` as a non-scientific Q0 pipeline qualification task.
+- The candidate Q0 plan freezes QF01-QF13, explicit feature-bundle passing,
+  fixed-epoch authority reuse, A/B/P closure, exact negative boundaries and
+  fresh-worktree reproduction.
+- The master protocol now makes the inherited 100ms causal channel memory
+  explicit; thresholds and scientific hypothesis are unchanged.
+- No formal historical cache or future outcome is authorized.
+- Implementation is locked pending independent plan review.
+
 ## 2026-08-30 0830T003 Formal Replacement Started
 
 - Created independent worktree

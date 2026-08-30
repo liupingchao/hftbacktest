@@ -1,5 +1,22 @@
 # Task Plan
 
+## 2026-08-31 0831T001 Trade-Led Depth-Follower Q0
+
+- Register `0831T001 / TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
+  as the current unique formal task.
+- Qualify the exact future production path on deterministic synthetic
+  fixtures only.
+- Bind the accepted fixed-epoch action, 100ms memory and epoch authorities;
+  add a new staged feature authority for current OBI, spread, depth and
+  trailing midpoint volatility.
+- Require QF01-QF13, full/slice identity, A/B/P byte identity, exact negative
+  boundaries, causal-prefix invariance, terminal verification and fresh
+  detached-worktree reproduction.
+- Keep the formal 29-cache source root, all future outcomes and all live or
+  private execution prohibited.
+- Implementation and formal execution remain locked pending independent plan
+  review.
+
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 
 - `0830T003 / FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`

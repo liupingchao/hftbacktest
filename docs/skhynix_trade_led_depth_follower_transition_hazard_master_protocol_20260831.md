@@ -324,6 +324,50 @@ The unique primary M-state is `TRADE_LED`.
 For direction `d` in `{-1,+1}`, checkpoint `t` is a primary causal M-state
 iff all conditions hold.
 
+### 9.0 Channel action and memory semantics
+
+The accepted fixed-epoch channel-state authority is inherited unchanged:
+
+```text
+channel evidence is new only when the corresponding raw contribution mask
+is active at the current 20ms checkpoint
+
+NEW_POS:
+  fast ratio >= +0.50 and medium ratio >= +0.25
+
+NEW_NEG:
+  fast ratio <= -0.50 and medium ratio <= -0.25
+
+NEW_NEUTRAL:
+  a valid new contribution that satisfies neither directional condition
+
+NO_UPDATE:
+  an observable checkpoint with no new contribution for that channel
+```
+
+Each channel carries its last `NEW_POS`, `NEW_NEG` or `NEW_NEUTRAL` state for
+exactly:
+
+```text
+100ms, inclusive
+```
+
+After 100ms without a new contribution it is stale/unknown. Segment
+boundaries, invalid source state and invalid derived evidence clear the
+memory immediately. `NEW_NEUTRAL` overwrites an older directional state.
+`NO_UPDATE` does not refresh memory age.
+
+For this protocol:
+
+```text
+BACKGROUND = fresh memory whose last explicit update was NEW_NEUTRAL
+directional = fresh NEW_POS or NEW_NEG memory
+stale/unknown = no fresh valid memory
+```
+
+The Q0 implementation must call the accepted action/memory authority rather
+than reimplementing these semantics.
+
 ### 9.1 Leader onset
 
 ```text
