@@ -1,0 +1,29 @@
+{
+  "attempt_id": "0830T002-formal-v1",
+  "attempt_root": "/Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate/local_live_analysis/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_0830T002_formal_v1",
+  "controller_ref": "refs/heads/codex/0830T002-controller-ledger",
+  "controller_remote": "origin",
+  "controller_url": "git@github.com:liupingchao/hftbacktest.git",
+  "formal_argv": [
+    "examples/hyperliquid/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py",
+    "--formal-attempt",
+    "--repo-root",
+    "/Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate",
+    "--source-cache-root",
+    "/Users/liu/Documents/hftbacktest-0829t003-fixed-causal-epoch-mstate-a-minus1/local_live_analysis/skhynix_fixed_causal_epoch_mstate_a_minus1_0829T003/cache",
+    "--attempt-root",
+    "/Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate/local_live_analysis/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_0830T002_formal_v1"
+  ],
+  "idea_sha256": "a916717f21e1714298520e69f8e2702920f4cd54308f5d554691d4364a1cc997",
+  "implementation_tag": "skhynix-fixed-epoch-leader-trigger-a-minus1-implementation-v1",
+  "plan_sha256": "8171a7bed7b216527fed468dbcff8f31ab1f48ec871bb2eee9b0ae7ad123f79c",
+  "repo_root": "/Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate",
+  "runner_sha256": "d3651d107181bf2c02d90f8e4c4208d734607e97343ec4ae849079e308b4aa3d",
+  "schema_version": 1,
+  "source_cache_root": "/Users/liu/Documents/hftbacktest-0829t003-fixed-causal-epoch-mstate-a-minus1/local_live_analysis/skhynix_fixed_causal_epoch_mstate_a_minus1_0829T003/cache",
+  "status": "ARMED_FOR_SINGLE_USE",
+  "task_id": "0830T002",
+  "task_sha256": "12bb9103983a53cae0fe7d3a88db782c1669436b4e20361269693cb22a379811",
+  "tests_sha256": "1f3f3213effc7baaea8684795954f4aa39319baaabd04a923681373db70f04f1",
+  "verifier_sha256": "f53a81cb3b9bdded771bb8a7ebf022cbe40715c8bde8deeb7caf8fced4d3ee5f"
+}
