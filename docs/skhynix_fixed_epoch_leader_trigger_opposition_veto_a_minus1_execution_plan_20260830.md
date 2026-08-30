@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 11, pre-execution
+Revision: 12, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -239,7 +239,7 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 11 definitions and the task-frozen idea SHA are
+The idea document's Revision 12 definitions and the task-frozen idea SHA are
 normative, in this only order:
 
 - checkpoint-exact causal order;
@@ -751,7 +751,20 @@ FINAL_17 =
 
 `execution_evidence.json` contains only `RAW_11` and `SEALED_15` comparison
 rows. It never hashes itself or either manifest. `attempt-result.json` is the
-external terminal closure over `FINAL_17` plus all sibling artifacts.
+pre-terminal closure over `FINAL_17` plus exactly:
+
+```text
+claimed attempt file
+attempt-lock.json
+push-ledger/000-consumption.json
+poison-attestation.json
+instrumentation-evidence.json
+work-manifest.json
+work tree
+```
+
+It explicitly excludes `push-ledger/001-terminal.json`, which does not exist
+until after terminal push.
 
 Every FINAL_17 file, poison attestation and `attempt-result.json` is written
 once using same-directory temporary creation, file fsync, hard-link
@@ -1615,9 +1628,11 @@ classification.gate_statuses:
   count/order = 4 in ["A-1-0","A-1-1","A-1-2","A-1-3"] order
 ```
 
-All lists reject duplicates. `attempt-result` closes claimed, attempt-lock,
-poison attestation and the three FINAL_17 roots, but excludes itself.
-The tracked terminal receipt then closes `attempt-result` itself.
+All lists reject duplicates. The tracked terminal receipt closes
+`attempt-result` itself but also precedes terminal push and therefore excludes
+`push-ledger/001-terminal.json`. The post-terminal verifier exclusively closes
+that second push receipt, online terminal head and completed exact attempt
+child set. It never rewrites attempt-result or terminal receipt.
 
 All UTC strings use exactly:
 

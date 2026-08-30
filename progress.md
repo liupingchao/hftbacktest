@@ -49,6 +49,9 @@
 - Independent Round 10 review failed at `P0/P1/P2/P3=0/0/1/0`.
 - Revision 11 adds per-call push receipts so failed retries and extra push
   attempts are no longer hidden behind an aggregate count.
+- Independent Round 11 review failed at `P0/P1/P2/P3=0/0/1/0`.
+- Revision 12 assigns the post-terminal push receipt exclusively to the
+  verifier closure, avoiding another pre-terminal self-reference.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 
