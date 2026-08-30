@@ -5,7 +5,7 @@ Date: 2026-08-30
 Hypothesis ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1`
 
-Revision: 10, pre-execution
+Revision: 11, pre-execution
 
 ## 1. Starting Evidence
 

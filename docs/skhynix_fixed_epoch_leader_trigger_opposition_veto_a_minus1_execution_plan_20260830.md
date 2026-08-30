@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 10, pre-execution
+Revision: 11, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -239,7 +239,7 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 10 definitions and the task-frozen idea SHA are
+The idea document's Revision 11 definitions and the task-frozen idea SHA are
 normative, in this only order:
 
 - checkpoint-exact causal order;
@@ -550,6 +550,39 @@ terminal to be one commit and requires terminal parent exactly consumption.
 Any nonzero `ls-remote` exit code is terminal failure regardless of stdout;
 empty stdout is interpreted as absence only when exit code is exactly zero.
 
+Push-call ledger:
+
+```text
+push-ledger/000-consumption.json:
+  exactly one PushCall
+  ordinal=0
+  phase="CONSUMPTION"
+  exact registered consumption argv/refspec
+  expected_old_head=null
+  expected_new_head=consumption_head
+  pre/post IDs PRE_CONSUMPTION/POST_CONSUMPTION
+  retry_allowed=false
+
+push-ledger/001-terminal.json:
+  exactly one PushCall
+  ordinal=1
+  phase="TERMINAL"
+  exact registered terminal argv/refspec
+  expected_old_head=consumption_head
+  expected_new_head=terminal_head
+  pre/post IDs POST_CONSUMPTION/POST_TERMINAL
+  retry_allowed=false
+```
+
+Each file is exact `PushCall` JSON, written once with the common no-replace
+protocol. Attempt-lock `push_calls` contains only the byte-identical
+consumption row. Verifier `push_calls` contains the two byte-identical rows in
+ordinal order. Both exit codes must be zero; any nonzero call is terminal and
+cannot be retried. Exact completed child closure requires precisely these two
+files and rejects a third file, duplicate ordinal, up-to-date repush or any
+unledgered push call. The runner/verifier AST permits remote push only through
+the single `push_once` wrapper that always publishes one receipt.
+
 Threat model:
 
 - protects against local worktree/object-store deletion, reset, crash,
@@ -633,10 +666,11 @@ Before any `.npz` open, the orchestrator must:
 9. commit the exact same-blob armed-to-claimed rename as the only tree delta,
    create the annotated consumption tag, verify its parent is the
    implementation tag, run `git fsck --full`, and reverify Git fsync settings;
-10. push the consumption commit to the external controller ledger without
-    force and verify
-    the remote ref exactly;
-11. create the attempt root with `mkdir`, then `fsync` its parent directory;
+10. create the attempt root and `push-ledger/` with `mkdir`, then `fsync`
+    their parent directories;
+11. push the consumption commit to the external controller ledger without
+    force, verify the remote ref exactly, and no-replace publish
+    `push-ledger/000-consumption.json`;
 12. create and `fsync` `attempt-lock.json` through a same-directory temporary
    file, hard-link no-replace publish, temporary unlink and parent `fsync`;
 13. only then open source caches.
@@ -656,6 +690,7 @@ poison_cache/
 poison_p/
 poison-attestation.json
 instrumentation-evidence.json
+push-ledger/
 work/
 work-manifest.json
 attempt-result.json
@@ -686,8 +721,8 @@ The one-shot process performs:
     create the annotated terminal tag and verify its parent is the consumption
     commit; run `git fsck --full` and reverify Git fsync settings;
 15. push the terminal commit without force as the only controller-ledger
-    fast-forward and
-    verify the remote ref exactly.
+    fast-forward, verify the remote ref exactly, and no-replace publish
+    `push-ledger/001-terminal.json`.
 
 Exact projections:
 
@@ -1015,6 +1050,14 @@ RemoteTransition = object{
   derived_from:list[str]
 }
 
+PushCall = object{
+  ordinal:int,phase:str,argv:list[str],refspec:str,
+  expected_old_head:nullable[sha1],expected_new_head:sha1,
+  exit_code:int,stdout:text,stderr:text,
+  pre_observation_id:str,post_observation_id:str,
+  started_at_utc:str,finished_at_utc:str,retry_allowed:bool
+}
+
 FieldAccess = object{
   call_index:int,build_label:str,resolved_input_path:str,
   input_sha256:sha256,field:str,value_access_count:int,
@@ -1196,7 +1239,7 @@ attempt-lock.json = object{
   controller_ref:str,controller_consumption_head:sha1,
   remote_observations:list[RemoteObservation],
   remote_transitions:list[RemoteTransition],
-  successful_push_count:int
+  push_calls:list[PushCall],successful_push_count:int
 }
 ```
 
@@ -1290,7 +1333,7 @@ instrumentation-evidence.json = object{
   observed_remote_head:sha1,
   remote_observations:list[RemoteObservation],
   remote_transitions:list[RemoteTransition],
-  successful_push_count:int,
+  push_calls:list[PushCall],successful_push_count:int,
   checked_repo_root:str,checked_attempt_root:str,
   first_failure_code:nullable[str],checks:list[VerifierCheck],
   result_created_at_utc:str
@@ -1864,6 +1907,8 @@ At minimum:
 - `ls-remote` nonzero exit with empty stdout, stderr mutation, pre-existing
   equal ref, wrong URL/refspec, wrong pre/post full SHA, transition
   derived-from mutation and abbreviated SHA substitution.
+- failed push then retry, up-to-date repush, duplicate ordinal, missing push
+  receipt, third push file, unledgered direct push and push wrapper bypass.
 
 ## 17. Pre-Execution Locks
 

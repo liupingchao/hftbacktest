@@ -46,6 +46,9 @@
 - Independent Round 9 review failed at `P0/P1/P2/P3=0/1/2/0`.
 - Revision 10 closes command-exit and empty-string schema ambiguity and
   enumerates the new hostile mutations. Data remains untouched.
+- Independent Round 10 review failed at `P0/P1/P2/P3=0/0/1/0`.
+- Revision 11 adds per-call push receipts so failed retries and extra push
+  attempts are no longer hidden behind an aggregate count.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 
