@@ -37,6 +37,9 @@
 - Revision 7 removes all pre-terminal terminal-head fields and uses the
   external GitHub origin ledger under an explicit non-adversarial-admin threat
   model. No cache has been read.
+- Independent Round 7 review failed at `P0/P1/P2/P3=0/2/2/0`.
+- Revision 8 freezes exact remote transitions and binds the actual single IPC
+  frame, not merely semantic feature hashes. Data remains untouched.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 

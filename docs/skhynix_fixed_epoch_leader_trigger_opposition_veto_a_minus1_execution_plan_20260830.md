@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 7, pre-execution
+Revision: 8, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -166,7 +166,7 @@ DETECTOR:
   every .npz/raw open event is forbidden
 ```
 
-Audited event types are exactly `open`, `os.open` and `mmap.__new__`.
+Canonical audited event types are exactly `open` and `mmap.__new__`.
 LOADER allows one read-open authority chain rooted at the bound
 `build_features`; HASHER and SLICE_MATERIALIZER have separately frozen caller
 functions. `zipfile`, `io.open`, `NpzFile` and aliases still emit one of the
@@ -239,7 +239,7 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 7 definitions and the task-frozen idea SHA are
+The idea document's Revision 8 definitions and the task-frozen idea SHA are
 normative, in this only order:
 
 - checkpoint-exact causal order;
@@ -471,15 +471,55 @@ external ledger and requires `git ls-remote` to equal the consumption head.
 Formal completion pushes the terminal commit as the ledger's only
 fast-forward and requires the remote ref to equal the terminal head.
 
+Exact remote protocol:
+
+```text
+remote URL checks:
+  git remote get-url --all origin
+  git remote get-url --push --all origin
+  each returns exactly one line:
+    git@github.com:liupingchao/hftbacktest.git
+
+pre-consumption observation:
+  git ls-remote --heads origin \
+    refs/heads/codex/0830T002-controller-ledger
+  stdout must be empty
+
+consumption push:
+  git push --porcelain origin \
+    <consumption_head>:refs/heads/codex/0830T002-controller-ledger
+  expected old/new = 0000000000000000000000000000000000000000 /
+                     <consumption_head>
+
+post-consumption observation:
+  same ls-remote command
+  exactly "<consumption_head>\\t<ledger_ref>\\n"
+
+terminal push:
+  git push --porcelain origin \
+    <terminal_head>:refs/heads/codex/0830T002-controller-ledger
+  expected old/new = <consumption_head> / <terminal_head>
+
+post-terminal and verifier observation:
+  same ls-remote command
+  exactly "<terminal_head>\\t<ledger_ref>\\n"
+```
+
+Pre-existing equal refs are forbidden; the first observation must be empty.
+Any additional fetch/push URL, push attempt, refspec, output line or observed
+old/new tuple is terminal failure.
+
 Threat model:
 
 - protects against local worktree/object-store deletion, reset, crash,
-  accidental rerun and ordinary protocol deviation;
-- does not claim resistance to an actor who deliberately uses GitHub
-  repository-administration credentials to delete or rewrite the external
-  ledger;
-- such remote-admin tampering is outside this scientific execution protocol
-  and must be treated as invalidating the study, not as a supported recovery.
+  accidental rerun and deviations by the formal runner from its exact command
+  sequence;
+- does not claim resistance to any actor, admin or ordinary writer, who holds
+  remote write credentials and deliberately force-pushes, deletes, appends a
+  third commit or otherwise changes the ledger outside the exact two-push
+  protocol;
+- any such remote-writer action is outside the model and invalidates the
+  study; it is never a supported recovery or replacement attempt.
 
 and commits exactly one tracked armed claim:
 
@@ -900,6 +940,7 @@ FeatureCall = object{
   research_date:str,slice_ordinal:nullable[int],resolved_input_path:str,
   input_sha256:sha256,input_authority:str,feature_output_sha256:sha256,
   ipc_envelope_sha256:sha256,consumer_input_sha256:sha256,
+  ipc_frame_sha256:sha256,ipc_frame_size_bytes:int,
   detector_exit_sha256:sha256,field_name_schema_access_count:int,
   consumed_value_access_count:int,forbidden_value_access_count:int,
   consumer_use_count:int
@@ -1173,6 +1214,8 @@ instrumentation-evidence.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,
   verifier_sha256:sha256,verifier_git_blob_oid:sha1,
   implementation_head:sha1,consumption_head:sha1,terminal_head:sha1,
+  controller_remote:str,controller_url:str,controller_ref:str,
+  observed_remote_head:sha1,
   checked_repo_root:str,checked_attempt_root:str,
   first_failure_code:nullable[str],checks:list[VerifierCheck],
   result_created_at_utc:str
@@ -1336,7 +1379,7 @@ RawOpenEvent:
   call_index references one FeatureCall
   build_label in {"A","B","P"}
   phase order/enums = {"HASHER","SLICE_MATERIALIZER","LOADER"}
-  event_type in {"open","os.open","mmap.__new__"}
+  event_type in {"open","mmap.__new__"}
   operation in {"READ_INPUT","WRITE_SLICE"}
   caller_path is repo-relative authority source path
   caller_name is the authority-root function, not immediate library frame
@@ -1346,15 +1389,70 @@ RawOpenEvent:
   duplicate full rows forbidden
 
 IPC envelope exact canonical JSON:
-  object{
+  header object{
     schema_version=1,
     call_index,
-    feature_output_sha256,
+    arrays=list[object{
+      name,dtype,shape,offset_bytes,length_bytes,value_sha256
+    }],
+    payload_size_bytes,
+    payload_sha256,
     field_access_sha256,
     feature_key_count
   }
-  serialized sort_keys=true,separators=(",",":"),ensure_ascii=true
-  SHA256 equals FeatureCall.ipc_envelope_sha256
+  array order = feature name ASCII
+  payload = exact concatenation of each C-contiguous array bytes
+  offsets start at 0 and are contiguous with no gap/overlap/trailing bytes
+  payload_size_bytes = sum(length_bytes) = len(payload)
+  payload_sha256 = SHA256(payload)
+  header serialization:
+    sort_keys=true,separators=(",",":"),ensure_ascii=true
+  frame =
+    uint64 big-endian header-byte length
+    + header bytes
+    + payload bytes
+  ipc_envelope_sha256 = SHA256(header bytes)
+  ipc_frame_sha256 = SHA256(frame)
+  ipc_frame_size_bytes = len(frame)
+  loader sends exactly one frame with send_bytes
+  detector receives exactly one frame, validates every table/hash/length,
+  then requires EOF and no second frame/unused byte
+
+field_access_sha256:
+  preimage = exactly the 12 FieldAccess rows for this call_index
+  order = field ASCII
+  projection = full FieldAccess objects
+  duplicates or foreign call_index rejected
+  serialization sort_keys=true,separators=(",",":"),ensure_ascii=true
+
+feature_key_count:
+  equals len(header.arrays)
+  equals loader feature dictionary key count
+  equals canonical feature-hash row count
+  equals detector reconstructed dictionary key count
+
+RawOpenEvent phase authority matrix:
+  HASHER:
+    operation READ_INPUT
+    resolved_path = FeatureCall.resolved_input_path
+    caller_name = sha256_file
+  SLICE_MATERIALIZER:
+    READ_INPUT path = registered full authority input
+    WRITE_SLICE path = registered WorkRow path
+    caller_name = materialize_slice
+  LOADER:
+    operation READ_INPUT
+    resolved_path = FeatureCall.resolved_input_path
+    caller_name = build_features
+  DETECTOR:
+    no row permitted
+
+Python native audit normalization:
+  native "open" from builtins.open, io.open or os.open
+    -> event_type "open"
+  native "mmap.__new__"
+    -> event_type "mmap.__new__"
+  canonical event_type "os.open" is removed and forbidden
 
 Comparison.domain exact values:
   "RAW_11:A_vs_B"

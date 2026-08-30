@@ -51,6 +51,9 @@
 - External durability claims need an explicit threat model. This task protects
   against local deletion and accidental rerun, not an administrator
   deliberately rewriting the external Git host.
+- Semantic equality of decoded features does not prove an IPC channel carried
+  no extra bytes. The exact frame, array table, payload size and EOF must be
+  closed independently.
 
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 
