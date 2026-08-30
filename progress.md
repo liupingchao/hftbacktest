@@ -14,8 +14,9 @@
   `P0/P1/P2/P3=0/0/0/0`.
 - Replacement implementation commit is `65b0e553`; focused tests passed at
   `152 passed`, inherited tests at `156 passed, 1 skipped`.
-- Formal cache execution remains locked pending claim/tag freeze and
-  independent implementation readiness acceptance.
+- Independent implementation readiness passed at
+  `P0/P1/P2/P3=0/0/0/0`; the armed claim remains `UNCONSUMED`.
+- The data lock is released only for the claim's exact one-shot formal argv.
 
 ## 2026-08-30 0830T002 Formal Attempt Interrupted
 
