@@ -12,6 +12,7 @@ import json
 import math
 import os
 import re
+import stat
 import subprocess
 import sys
 from collections import Counter, defaultdict
@@ -1902,6 +1903,10 @@ def validate_final_root(
     *,
     build_label: str,
 ) -> dict[str, Any]:
+    require(
+        root.exists() and not root.is_symlink() and stat.S_ISDIR(root.lstat().st_mode),
+        "final17_root",
+    )
     require(
         all(not path.is_symlink() for path in root.rglob("*")),
         "final17_symlink",

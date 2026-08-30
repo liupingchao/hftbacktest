@@ -1910,6 +1910,10 @@ def comparison_path_sha(
 
 
 def require_exact_projection(root: Path, paths: Sequence[str], code: str) -> None:
+    require(
+        root.exists() and not root.is_symlink() and stat.S_ISDIR(root.lstat().st_mode),
+        f"{code}:root",
+    )
     entries = list(root.rglob("*"))
     require(all(not entry.is_symlink() for entry in entries), f"{code}:symlink")
     produced = {

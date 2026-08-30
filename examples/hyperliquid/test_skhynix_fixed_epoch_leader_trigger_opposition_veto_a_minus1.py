@@ -955,6 +955,18 @@ def test_exact_projection_rejects_nonregular_or_wrong_path_set(
         AUDIT.require_exact_projection(root, AUDIT.RAW_11, "raw11_path_set")
 
 
+def test_exact_projection_rejects_symlink_root(tmp_path: Path) -> None:
+    physical = tmp_path / "physical"
+    for relative in AUDIT.RAW_11:
+        path = physical / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative + "\n", encoding="ascii")
+    root = tmp_path / "root"
+    root.symlink_to(physical, target_is_directory=True)
+    with pytest.raises(AUDIT.AuditError, match="raw11_path_set:root"):
+        AUDIT.require_exact_projection(root, AUDIT.RAW_11, "raw11_path_set")
+
+
 def test_work_manifest_rejects_duplicate_path_and_key() -> None:
     row = {
         "build_label": "A",
@@ -2927,18 +2939,77 @@ def test_poison_comparison_rejects_alternate_manifest_serialization(
         )
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    ("compact", "key_order", "indent", "trailing_newline"),
+)
 def test_complete_package_noncanonical_manifest_first_fails_v09(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
 ) -> None:
     package = synthetic_terminal_package(tmp_path, monkeypatch)
     path = package["roots"]["P"] / "run_manifest.json"
     payload = VERIFIER.read_json(path)
-    path.write_text(
-        json.dumps(payload, sort_keys=True, separators=(",", ":")),
-        encoding="ascii",
+    if mutation == "compact":
+        changed = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
+            "ascii"
+        )
+    elif mutation == "key_order":
+        reordered = {key: payload[key] for key in reversed(tuple(payload))}
+        changed = (json.dumps(reordered, indent=2, ensure_ascii=True) + "\n").encode(
+            "ascii"
+        )
+    elif mutation == "indent":
+        changed = (
+            json.dumps(payload, indent=4, sort_keys=True, ensure_ascii=True) + "\n"
+        ).encode("ascii")
+    elif mutation == "trailing_newline":
+        changed = path.read_bytes() + b"\n"
+    else:
+        raise AssertionError(mutation)
+    path.write_bytes(changed)
+    assert_verify_terminal_failure(package, 9)
+
+
+def test_complete_package_synchronized_sealed_difference_first_fails_v09(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    root = package["roots"]["P"]
+    summary_path = root / "reports/A_minus1_summary.json"
+    summary = VERIFIER.read_json(summary_path)
+    assert summary["variant_rows"][0]["raw_onset_count"] == 0
+    summary["variant_rows"][0]["raw_onset_count"] = 0.0
+    write_json(summary_path, summary)
+    manifest_path = root / "run_manifest.json"
+    write_json(
+        manifest_path,
+        {
+            "schema_version": 1,
+            "artifact_count": 16,
+            "artifacts": VERIFIER.manifest_rows(
+                root,
+                tuple(
+                    path for path in VERIFIER.FINAL_PATHS if path != "run_manifest.json"
+                ),
+            ),
+        },
     )
     assert_verify_terminal_failure(package, 9)
+
+
+def test_complete_package_root_symlink_first_fails_v07(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    root = package["roots"]["A"]
+    physical = tmp_path / "canonical_a_physical"
+    root.rename(physical)
+    root.symlink_to(physical, target_is_directory=True)
+    assert_verify_terminal_failure(package, 7)
 
 
 def synthetic_comparison(
