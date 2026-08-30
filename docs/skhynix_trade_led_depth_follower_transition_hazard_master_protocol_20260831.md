@@ -6,7 +6,7 @@ Protocol ID:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
 
 Status:
-`MASTER_PROTOCOL_DRAFT`
+`REGISTERED_MASTER_PROTOCOL`
 
 Immediate execution authorization:
 `Q0_ONLY`
@@ -104,9 +104,15 @@ The protocol permits only the following ordered claims.
 ### Q0 claim
 
 ```text
-the exact research pipeline can complete its registered evidence package
-on non-scientific qualification fixtures
+the shared causal feature, anchor, structural-outcome, slice and package core
+can complete its registered evidence package on non-scientific qualification
+fixtures
 ```
+
+Q0 does not qualify A-1a matching, overlap, fold or support logic, and it does
+not qualify A-1b model fitting, permutation, bootstrap or statistical
+classification. Those stage-specific production paths require their own
+qualification before their formal execution.
 
 ### A-1a claim
 
