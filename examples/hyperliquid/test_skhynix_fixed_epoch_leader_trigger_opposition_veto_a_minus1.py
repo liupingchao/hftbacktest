@@ -2983,20 +2983,66 @@ def test_complete_package_synchronized_sealed_difference_first_fails_v09(
     assert summary["variant_rows"][0]["raw_onset_count"] == 0
     summary["variant_rows"][0]["raw_onset_count"] = 0.0
     write_json(summary_path, summary)
-    manifest_path = root / "run_manifest.json"
-    write_json(
-        manifest_path,
-        {
-            "schema_version": 1,
-            "artifact_count": 16,
-            "artifacts": VERIFIER.manifest_rows(
-                root,
-                tuple(
-                    path for path in VERIFIER.FINAL_PATHS if path != "run_manifest.json"
-                ),
-            ),
-        },
+    evidence = VERIFIER.read_json(
+        package["roots"]["A"] / "contracts/execution_evidence.json"
     )
+    evidence["raw_a_b"] = VERIFIER.comparison(
+        "RAW_11:A_vs_B",
+        package["roots"]["A"],
+        package["roots"]["B"],
+        VERIFIER.RAW_PATHS,
+    )
+    evidence["raw_a_p"] = VERIFIER.comparison(
+        "RAW_11:A_vs_P",
+        package["roots"]["A"],
+        package["roots"]["P"],
+        VERIFIER.RAW_PATHS,
+        poison_normalize_slice_source=True,
+    )
+    evidence["sealed_a_b"] = VERIFIER.comparison(
+        "SEALED_15:A_vs_B",
+        package["roots"]["A"],
+        package["roots"]["B"],
+        VERIFIER.SEALED_PATHS,
+    )
+    evidence["sealed_a_p"] = VERIFIER.comparison(
+        "SEALED_15:A_vs_P",
+        package["roots"]["A"],
+        package["roots"]["P"],
+        VERIFIER.SEALED_PATHS,
+        poison_normalize_slice_source=True,
+    )
+    for build_root in package["roots"].values():
+        write_json(build_root / "contracts/execution_evidence.json", evidence)
+    for build_root in package["roots"].values():
+        write_json(
+            build_root / "run_manifest.json",
+            {
+                "schema_version": 1,
+                "artifact_count": 16,
+                "artifacts": VERIFIER.manifest_rows(
+                    build_root,
+                    tuple(
+                        path
+                        for path in VERIFIER.FINAL_PATHS
+                        if path != "run_manifest.json"
+                    ),
+                ),
+            },
+        )
+    final_a_p = VERIFIER.comparison(
+        "FINAL_17:A_vs_P",
+        package["roots"]["A"],
+        package["roots"]["P"],
+        VERIFIER.FINAL_PATHS,
+        poison_normalize_slice_source=True,
+    )
+    with pytest.raises(VERIFIER.VerificationError, match="sealed_comparison_lineage"):
+        VERIFIER.require_projection_lineage(
+            evidence["raw_a_p"],
+            evidence["sealed_a_p"],
+            final_a_p,
+        )
     assert_verify_terminal_failure(package, 9)
 
 
