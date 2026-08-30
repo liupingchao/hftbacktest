@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 5, pre-execution
+Revision: 6, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -141,6 +141,45 @@ The successor's detector callables are AST-rejected if they contain or alias
 loader, raw open, feature mutation or boundary-ledger defect is terminal
 execution failure, not A-1-1.
 
+Enforcement uses fresh subprocesses with `close_fds=True`:
+
+```text
+HASHER:
+  may byte-read exactly one registered input and returns only SHA256
+
+SLICE_MATERIALIZER:
+  may read exactly one canonical/poison input
+  may write exactly one registered work slice
+  returns only output path/SHA
+
+LOADER:
+  receives exactly one registered path
+  installs permanent sys.addaudithook before any input open
+  allowed raw read stack must terminate in the exact bound build_features
+  proxy; returns only serialized feature arrays and access ledger
+  process exits immediately after send
+
+DETECTOR:
+  separate process receives serialized features only
+  receives no raw/work/source/poison path
+  all inherited descriptors except stdio/control pipe are closed
+  every .npz/raw open event is forbidden
+```
+
+Audited event types are exactly `open`, `os.open` and `mmap.__new__`.
+LOADER allows one read-open authority chain rooted at the bound
+`build_features`; HASHER and SLICE_MATERIALIZER have separately frozen caller
+functions. `zipfile`, `io.open`, `NpzFile` and aliases still emit one of the
+audited events and are rejected outside the exact authority chain.
+
+The static AST/import closure covers the entire successor runner, verifier,
+worker entry points and orchestrator. Raw-reader call sites are allowed only
+inside exact named `sha256_file`, `materialize_slice`, the imported bound
+builder and imported poison authority. Dynamic import/eval/exec and audit-hook
+replacement are forbidden. A successful formal package has only
+`RawOpenEvent.allowed=true`, zero DETECTOR raw events, and zero raw handles,
+NPZ objects, mmap objects or raw-byte buffers crossing a process boundary.
+
 Input SHA is the SHA256 of exact input file bytes. Feature SHA is SHA256 of a
 canonical JSON array sorted by feature name, with each row:
 
@@ -200,7 +239,7 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 5 definitions and the task-frozen idea SHA are
+The idea document's Revision 6 definitions and the task-frozen idea SHA are
 normative, in this only order:
 
 - checkpoint-exact causal order;
@@ -412,8 +451,43 @@ tracked receipt:
 commit message:
   audit: seal 0830T002 formal attempt result
 annotated tag:
-  skhynix-fixed-epoch-leader-trigger-a-minus1-terminal-v1
+skhynix-fixed-epoch-leader-trigger-a-minus1-terminal-v1
 ```
+
+The protected controller authority is outside the formal worktree:
+
+```text
+bare repo:
+  /Users/liu/Documents/.codex-research-controller/0830T002.git
+remote name:
+  0830T002-controller
+ledger ref:
+  refs/heads/0830T002-ledger
+```
+
+Implementation freeze creates this bare repo with:
+
+```text
+receive.denyDeletes=true
+receive.denyNonFastForwards=true
+core.fsync=all
+core.fsyncMethod=fsync
+```
+
+and a frozen `pre-receive` hook. The hook accepts only:
+
+1. absent ref -> exact consumption commit whose parent is the implementation
+   tag and whose only tree delta is armed-to-claimed same-blob rename;
+2. consumption commit -> exact terminal commit whose only tree delta is the
+   terminal receipt;
+3. rejects deletion, non-fast-forward, extra commits, extra refs and every
+   third update.
+
+The hook path/SHA256 and bare-repo config are frozen in task/armed claim.
+Before any cache read, the source repo pushes the consumption commit to the
+controller ledger and requires the remote ref to equal the consumption head.
+Formal completion pushes the terminal commit as the ledger's only
+fast-forward and requires the remote ref to equal the terminal head.
 
 and commits exactly one tracked armed claim:
 
@@ -486,10 +560,12 @@ Before any `.npz` open, the orchestrator must:
 9. commit the exact same-blob armed-to-claimed rename as the only tree delta,
    create the annotated consumption tag, verify its parent is the
    implementation tag, run `git fsck --full`, and reverify Git fsync settings;
-10. create the attempt root with `mkdir`, then `fsync` its parent directory;
-11. create and `fsync` `attempt-lock.json` through a same-directory temporary
+10. push the consumption commit to the protected controller ledger and verify
+    the remote ref exactly;
+11. create the attempt root with `mkdir`, then `fsync` its parent directory;
+12. create and `fsync` `attempt-lock.json` through a same-directory temporary
    file, hard-link no-replace publish, temporary unlink and parent `fsync`;
-12. only then open source caches.
+13. only then open source caches.
 
 The independent verifier requires the consumption tag and exact commit/tree
 transition. Restoring armed and deleting claimed/root cannot erase that
@@ -505,6 +581,7 @@ canonical_b/
 poison_cache/
 poison_p/
 poison-attestation.json
+instrumentation-evidence.json
 work/
 work-manifest.json
 attempt-result.json
@@ -528,11 +605,14 @@ The one-shot process performs:
 9. write identical `execution_evidence.json`;
 10. write each self-excluding manifest;
 11. compare exact `FINAL_17` externally;
-12. publish and fsync sibling `work-manifest.json`;
+12. publish and fsync siblings `instrumentation-evidence.json` and
+    `work-manifest.json`;
 13. publish and fsync sibling `attempt-result.json`;
 14. create the exact tracked terminal receipt, commit only that receipt,
     create the annotated terminal tag and verify its parent is the consumption
-    commit; run `git fsck --full` and reverify Git fsync settings.
+    commit; run `git fsck --full` and reverify Git fsync settings;
+15. push the terminal commit as the only controller-ledger fast-forward and
+    verify the remote ref exactly.
 
 Exact projections:
 
@@ -836,6 +916,12 @@ FieldAccess = object{
   authorization:str
 }
 
+RawOpenEvent = object{
+  event_index:int,build_label:str,phase:str,event_type:str,
+  resolved_path:str,operation:str,caller_path:str,caller_name:str,
+  allowed:bool
+}
+
 ComparisonRow = object{
   path:str,a_sha256:nullable[sha256],other_sha256:nullable[sha256],
   equal:bool
@@ -905,8 +991,7 @@ contracts/authority_binding.json = object{
   implementation_head:sha1,consumption_tag:str,consumption_head:sha1,
   tracked_files:list[FileIdentity],
   callables:list[CallableIdentity],source_inventory_sha256:sha256,
-  attempted_claim_sha256:sha256,successor_np_load_callsite_count:int,
-  all_verified:bool
+  attempted_claim_sha256:sha256,all_verified:bool
 }
 
 contracts/detector_contract.json = object{
@@ -930,13 +1015,12 @@ contracts/fixed_epoch_contract.json = object{
 contracts/outcome_access_ledger.json = object{
   schema_version:int,future_target_accessed:bool,
   future_price_accessed:bool,fill_fee_pnl_accessed:bool,
-  forbidden_access_count:int,consumed_cache_fields:list[str],
+  consumed_cache_fields:list[str],
   cache_count:int,unconsumed_field_count:int,
   nonempty_unconsumed_field_instance_count:int,
   changed_unconsumed_field_instance_count:int,
   consumed_field_mismatch_count:int,poison_attestation_sha256:sha256,
-  raw_a_p_difference_count:int,feature_calls:list[FeatureCall],
-  field_accesses:list[FieldAccess],outcome_boundary_preserved:bool
+  raw_a_p_difference_count:int,outcome_boundary_preserved:bool
 }
 
 contracts/gate_contract.json = object{
@@ -991,7 +1075,9 @@ Exact sibling schemas:
   schema_version:int,task_id:str,attempt_id:str,implementation_tag:str,
   formal_argv:list[str],repo_root:str,source_cache_root:str,attempt_root:str,
   idea_sha256:sha256,plan_sha256:sha256,task_sha256:sha256,
-  runner_sha256:sha256,verifier_sha256:sha256,tests_sha256:sha256,status:str
+  runner_sha256:sha256,verifier_sha256:sha256,tests_sha256:sha256,
+  controller_repo:str,controller_ref:str,controller_hook_sha256:sha256,
+  controller_config_sha256:sha256,status:str
 }
 ```
 
@@ -1002,7 +1088,8 @@ attempt-lock.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,pid:int,
   started_at_utc:str,cwd:str,argv:list[str],implementation_head:sha1,
   consumption_head:sha1,claimed_sha256:sha256,repo_root:str,
-  source_cache_root:str,attempt_root:str
+  source_cache_root:str,attempt_root:str,controller_repo:str,
+  controller_ref:str,controller_consumption_head:sha1
 }
 ```
 
@@ -1043,8 +1130,10 @@ hypothesis_id = "FIXED_CAUSAL_EPOCH_MSTATE_V2"
 attempt-result.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,
   phase:str,exit_code:int,finished_at_utc:str,consumption_head:sha1,
+  controller_ref:str,controller_terminal_head:sha1,
   attempt_lock_sha256:sha256,claimed_sha256:sha256,
-  poison_attestation_sha256:sha256,work_manifest_sha256:sha256,
+  poison_attestation_sha256:sha256,instrumentation_evidence_sha256:sha256,
+  work_manifest_sha256:sha256,
   work_tree_sha256:sha256,
   final_a_b:Comparison,final_a_p:Comparison,
   root_rows:list[RootRow]
@@ -1059,11 +1148,25 @@ work-manifest.json = object{
 ```
 
 ```text
+instrumentation-evidence.json = object{
+  schema_version:int,attempt_id:str,status:str,
+  successor_np_load_callsite_count:int,feature_calls:list[FeatureCall],
+  field_accesses:list[FieldAccess],raw_open_events:list[RawOpenEvent],
+  loader_boundary_violation_count:int,detector_boundary_violation_count:int,
+  feature_mutation_violation_count:int
+}
+```
+
+```text
 .workflow/attempt-receipts/0830T002.terminal.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,
   implementation_head:sha1,consumption_head:sha1,
+  terminal_head:sha1,controller_repo:str,controller_ref:str,
+  controller_terminal_head:sha1,
   attempt_result_sha256:sha256,attempt_lock_sha256:sha256,
-  poison_attestation_sha256:sha256,work_manifest_sha256:sha256,
+  poison_attestation_sha256:sha256,
+  instrumentation_evidence_sha256:sha256,
+  work_manifest_sha256:sha256,
   work_tree_sha256:sha256,root_rows:list[RootRow],
   sealed_at_utc:str
 }
@@ -1103,6 +1206,39 @@ Checks after the first failure have `status="NOT_EVALUATED"`,
 `actual=""`, and retain their exact required string. There are always 13
 unique check rows for exit 0 or 2.
 
+For all 13 rows, `required` is exactly `"true"`. Evaluated encodings are:
+
+```text
+PASS row:
+  status = "PASS"
+  actual = "true"
+
+first FAIL row:
+  status = "FAIL"
+  actual = "false:<check_id>"
+
+later row:
+  status = "NOT_EVALUATED"
+  actual = ""
+```
+
+Global equalities:
+
+```text
+exit 0
+iff status="PASS"
+and first_failure_code=null
+and all 13 rows are PASS
+
+exit 2
+iff status="FAIL"
+and first_failure_code equals the first FAIL row's check_id
+and that row actual equals "false:<check_id>"
+and every later row is NOT_EVALUATED
+```
+
+`check_id` itself is the failure code; no alternate code vocabulary exists.
+
 For a completed one-shot sequence, `status="COMPLETED"`,
 `phase="FINAL_17_CLOSED"` and `exit_code=0`. If the process dies before this
 receipt, the precommitted claim state itself proves
@@ -1115,6 +1251,12 @@ All path rows sort by path ASCII. A tree hash is SHA256 of the canonical JSON
 array of `ManifestRow` records sorted by path. `Comparison.rows` is the sorted
 union of both path sets; a missing side uses null SHA and `equal=false`.
 
+The only exception is `work_tree_sha256`: its preimage is the full
+`WorkRow` array, not a `ManifestRow` projection, sorted by build order A/B/P,
+cache name ASCII and slice ordinal numeric, serialized with
+`sort_keys=true,separators=(",",":"),ensure_ascii=true`. Duplicate path or
+duplicate `(build_label,cache_name,slice_ordinal)` is rejected before hashing.
+
 Exact list domains:
 
 ```text
@@ -1125,7 +1267,8 @@ tracked_files count/order:
   4 examples/hyperliquid/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py
   5 examples/hyperliquid/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_verifier.py
   6 examples/hyperliquid/test_skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py
-  7 .workflow/attempt-claims/0830T002.claimed.json
+  7 .workflow/controller-hooks/0830T002-pre-receive
+  8 .workflow/attempt-claims/0830T002.claimed.json
 
 callables count/order:
   1 build_features
@@ -1245,7 +1388,8 @@ A-1-0:
   canonical A/B RAW_11 mismatch
 
 A-1-1:
-  outcome_access_ledger.json semantic/schema defects
+  outcome_access_ledger.json exact future/outcome flags, poison identity
+  and A/P comparison fields only
   poison attestation defects
   A/P RAW_11 mismatch
 
@@ -1263,6 +1407,7 @@ A-1-2:
 
 terminal verifier only, scientific classification unchanged:
   feature-call/field-access/boundary defects
+  instrumentation-evidence.json semantic/schema defects
   gate_contract.json
   A_minus1_summary.json
   classification.json

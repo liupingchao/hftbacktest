@@ -28,6 +28,10 @@
 - Revision 5 seals retained slice inputs, makes raw-boundary violations
   terminal rather than scientific classifications, and freezes one verifier
   command/result contract. Data execution remains locked.
+- Independent Round 5 review failed at `P0/P1/P2/P3=0/3/2/0`.
+- Revision 6 moves single-use authority to a protected controller bare repo
+  outside the worktree and closes the remaining instrumentation/hash/verifier
+  ambiguities. No cache has been read.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 

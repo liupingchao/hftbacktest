@@ -39,6 +39,12 @@
   execution failures.
 - Per-call input hashes are independently verifiable only if ephemeral sliced
   inputs are retained and included in the terminal closure.
+- Reflogs and unreachable objects are detection aids, not append-only
+  authority. A single-use claim needs a protected controller ledger outside
+  the formal worktree.
+- Instrumentation evidence should be a terminal-only artifact when boundary
+  violations prevent a complete scientific build; placing it inside a
+  scientific gate file creates conflicting ownership.
 
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 
