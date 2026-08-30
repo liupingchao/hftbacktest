@@ -54,6 +54,8 @@
 - Semantic equality of decoded features does not prove an IPC channel carried
   no extra bytes. The exact frame, array table, payload size and EOF must be
   closed independently.
+- Push porcelain text is not full-SHA transition authority. Remote old/new
+  identity must be derived from exact pre/post `ls-remote` observations.
 
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 

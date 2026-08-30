@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 8, pre-execution
+Revision: 9, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -239,7 +239,7 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 8 definitions and the task-frozen idea SHA are
+The idea document's Revision 9 definitions and the task-frozen idea SHA are
 normative, in this only order:
 
 - checkpoint-exact causal order;
@@ -506,8 +506,44 @@ post-terminal and verifier observation:
 ```
 
 Pre-existing equal refs are forbidden; the first observation must be empty.
-Any additional fetch/push URL, push attempt, refspec, output line or observed
-old/new tuple is terminal failure.
+Any additional fetch/push URL, push attempt, refspec or observed old/new tuple
+is terminal failure.
+
+`git push --porcelain` stdout/stderr is diagnostic only; it is not old/new
+authority. Exit code must be zero. Full old/new tuples are derived only from
+the registered pre/post `ls-remote` observations:
+
+```text
+attempt-lock remote_observations:
+  PRE_CONSUMPTION: stdout="", observed_head=null
+  POST_CONSUMPTION: stdout exact full line,
+                    observed_head=consumption_head
+
+attempt-lock remote_transitions:
+  CONSUMPTION:
+    old_head=null
+    new_head=consumption_head
+    derived_from=["PRE_CONSUMPTION","POST_CONSUMPTION"]
+
+attempt-lock successful_push_count=1
+
+verifier remote_observations:
+  exact copies of PRE_CONSUMPTION and POST_CONSUMPTION from attempt-lock
+  POST_TERMINAL: online ls-remote exact full line,
+                 observed_head=terminal_head
+
+verifier remote_transitions:
+  CONSUMPTION as above
+  TERMINAL:
+    old_head=consumption_head
+    new_head=terminal_head
+    derived_from=["POST_CONSUMPTION","POST_TERMINAL"]
+
+verifier successful_push_count=2
+```
+
+The verifier also requires the external ref history from consumption to
+terminal to be one commit and requires terminal parent exactly consumption.
 
 Threat model:
 
@@ -939,11 +975,38 @@ FeatureCall = object{
   call_index:int,build_label:str,unit_kind:str,capture_id:str,
   research_date:str,slice_ordinal:nullable[int],resolved_input_path:str,
   input_sha256:sha256,input_authority:str,feature_output_sha256:sha256,
-  ipc_envelope_sha256:sha256,consumer_input_sha256:sha256,
-  ipc_frame_sha256:sha256,ipc_frame_size_bytes:int,
+  sender_ipc:IPCSender,receiver_ipc:IPCReceiver,
+  consumer_input_sha256:sha256,
   detector_exit_sha256:sha256,field_name_schema_access_count:int,
   consumed_value_access_count:int,forbidden_value_access_count:int,
   consumer_use_count:int
+}
+
+IPCArrayRow = object{
+  name:str,dtype_str:str,shape:list[int],offset_bytes:int,
+  length_bytes:int,value_sha256:sha256
+}
+
+IPCSender = object{
+  header_sha256:sha256,payload_sha256:sha256,payload_size_bytes:int,
+  frame_sha256:sha256,frame_size_bytes:int,sent_frame_count:int,
+  send_end_closed:bool
+}
+
+IPCReceiver = object{
+  header_sha256:sha256,payload_sha256:sha256,payload_size_bytes:int,
+  frame_sha256:sha256,frame_size_bytes:int,received_frame_count:int,
+  eof_observed:bool,unused_byte_count:int
+}
+
+RemoteObservation = object{
+  observation_id:str,command:list[str],stdout:str,
+  observed_head:nullable[sha1]
+}
+
+RemoteTransition = object{
+  transition_id:str,old_head:nullable[sha1],new_head:sha1,
+  derived_from:list[str]
 }
 
 FieldAccess = object{
@@ -1124,7 +1187,10 @@ attempt-lock.json = object{
   started_at_utc:str,cwd:str,argv:list[str],implementation_head:sha1,
   consumption_head:sha1,claimed_sha256:sha256,repo_root:str,
   source_cache_root:str,attempt_root:str,controller_remote:str,
-  controller_ref:str,controller_consumption_head:sha1
+  controller_ref:str,controller_consumption_head:sha1,
+  remote_observations:list[RemoteObservation],
+  remote_transitions:list[RemoteTransition],
+  successful_push_count:int
 }
 ```
 
@@ -1216,6 +1282,9 @@ instrumentation-evidence.json = object{
   implementation_head:sha1,consumption_head:sha1,terminal_head:sha1,
   controller_remote:str,controller_url:str,controller_ref:str,
   observed_remote_head:sha1,
+  remote_observations:list[RemoteObservation],
+  remote_transitions:list[RemoteTransition],
+  successful_push_count:int,
   checked_repo_root:str,checked_attempt_root:str,
   first_failure_code:nullable[str],checks:list[VerifierCheck],
   result_created_at_utc:str
@@ -1392,9 +1461,7 @@ IPC envelope exact canonical JSON:
   header object{
     schema_version=1,
     call_index,
-    arrays=list[object{
-      name,dtype,shape,offset_bytes,length_bytes,value_sha256
-    }],
+    arrays=list[IPCArrayRow],
     payload_size_bytes,
     payload_sha256,
     field_access_sha256,
@@ -1411,9 +1478,6 @@ IPC envelope exact canonical JSON:
     uint64 big-endian header-byte length
     + header bytes
     + payload bytes
-  ipc_envelope_sha256 = SHA256(header bytes)
-  ipc_frame_sha256 = SHA256(frame)
-  ipc_frame_size_bytes = len(frame)
   loader sends exactly one frame with send_bytes
   detector receives exactly one frame, validates every table/hash/length,
   then requires EOF and no second frame/unused byte
@@ -1430,6 +1494,32 @@ feature_key_count:
   equals loader feature dictionary key count
   equals canonical feature-hash row count
   equals detector reconstructed dictionary key count
+
+IPCArrayRow exact arithmetic:
+  dtype_str = array.dtype.str
+  shape is the exact list of non-negative integer dimensions
+  bool is forbidden for every integer field
+  itemsize = numpy.dtype(dtype_str).itemsize
+  length_bytes = product(shape) * itemsize
+  zero-dimensional shape [] has product 1
+  any zero dimension gives length_bytes 0
+  first offset_bytes = 0
+  each next offset = prior offset + prior length
+  final offset + length = payload_size_bytes
+  value_sha256 = SHA256(payload[offset:offset+length])
+  projection (name,dtype_str,shape,value_sha256) equals the canonical
+  feature-hash row exactly
+
+Endpoint evidence:
+  sender and receiver independently hash their local bytes
+  sender.sent_frame_count = 1
+  sender.send_end_closed = true before receiver EOF check
+  receiver.received_frame_count = 1
+  receiver.eof_observed = true
+  receiver.unused_byte_count = 0
+  sender header/payload/frame hashes and sizes equal receiver values
+  sender/receiver payload SHA equals header.payload_sha256
+  sender/receiver frame SHA equals SHA256(the exact frame)
 
 RawOpenEvent phase authority matrix:
   HASHER:
