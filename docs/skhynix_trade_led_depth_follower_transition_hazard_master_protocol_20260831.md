@@ -752,7 +752,7 @@ log_visible_depth
   = log1p(max(0, bid_depth(t)) + max(0, ask_depth(t)))
 
 log_activity
-  = log1p(sum(activity over [t-500ms, t]))
+  = log1p(sum(activity over (t-500ms, t]))
 
 trailing_realized_volatility
   = sqrt(sum of squared log-midpoint changes over (t-1s, t])
