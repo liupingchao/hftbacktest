@@ -16,7 +16,9 @@
 - 是
 
 QA说明：
-- 无
+- 2026-08-30 15:04 CST 独立 QA 通过，
+  `P0/P1/P2/P3=0/0/0/0`；详见
+  `.workflow/reports/0830T001-qa.md`。
 
 files：
 - `.gitignore`
@@ -60,6 +62,9 @@ verify：
   `13019e3afbbbd47d0b7dfa2cc6820d69548e0f72`。
 - Authority tag peeled target：
   `f06eb5cb012cb62b2a778ad90d433c4083f9ba14`。
+- 从 authority tag 创建全新 detached worktree，并在恢复节点运行
+  fixed-epoch + predecessor regression：`68 passed`；随后安全移除该
+  临时 worktree。
 
 done：
 - Exact accepted authority 已有独立 immutable tag。
@@ -68,7 +73,7 @@ done：
 - Future successor 可创建新 runner 并以 commit/blob/AST identity 绑定
   fixed epoch suppression，不需要修改 0829T003 文件。
 - Research-kit tag 尚未创建；等待 QA 通过后指向包含 baseline、verifier
-  与 QA 的 commit。
+  与 QA 的 workflow closure commit。
 - A0、future outcome 与 live/private/order 权限保持关闭。
 
 blockers：

@@ -15,8 +15,11 @@
   `74 passed`, and live A/B/P difference count is zero.
 - Annotated tag `skhynix-fixed-epoch-suppression-v1` peels exactly to the
   accepted authority.
-- Task is `待验收`; the research-kit tag remains deliberately uncreated until
-  independent QA accepts the preparation package.
+- Independent QA passed at `P0/P1/P2/P3=0/0/0/0`.
+- A detached worktree restored from the authority tag passed the original
+  fixed-epoch and predecessor suites with `68 passed`.
+- Task is `已通过`; the workflow closure commit is the target for the
+  annotated research-kit tag.
 
 ## 2026-08-29 0829T002 Fresh-Channel Consensus M-State Drafted
 
