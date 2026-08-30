@@ -23,7 +23,7 @@
   "source_cache_root": "/Users/liu/Documents/hftbacktest-0829t003-fixed-causal-epoch-mstate-a-minus1/local_live_analysis/skhynix_fixed_causal_epoch_mstate_a_minus1_0829T003/cache",
   "status": "ARMED_FOR_SINGLE_USE",
   "task_id": "0830T003",
-  "task_sha256": "441e72ba0b04e3326ef5ab73aa1ed25ea59a0b166582ddd41b733c36cf0e3ee4",
+  "task_sha256": "3f0d49f6992c011197380f5f75f68b7eeebd1dce7bebd3e133291fcb8a5b5cd2",
   "tests_sha256": "2f9b57a5555ea0a3514ad98d833d40b4d97b0ce5bbe0562d29f12623c8cd41de",
   "verifier_sha256": "3cd83cf50cbaa6277c8a6bee59ec301be4e8abe347692d83e518bae790733fc0"
 }
