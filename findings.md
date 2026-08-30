@@ -33,6 +33,12 @@
 - Scientific gate ownership must end before terminal packaging. Post-gate
   manifest or receipt defects are execution-integrity failures and must not
   rewrite an already observed scientific classification.
+- A fail-closed instrumentation exception cannot simultaneously be represented
+  as a completed scientific negative package unless failed-call schemas are
+  registered. Here it is cleaner to classify such defects as terminal
+  execution failures.
+- Per-call input hashes are independently verifiable only if ephemeral sliced
+  inputs are retained and included in the terminal closure.
 
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 

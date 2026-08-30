@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 4, pre-execution
+Revision: 5, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -118,9 +118,28 @@ the bound feature builder. The proxy:
 
 The builder return is immediately hashed, passed as the sole `features`
 argument to the detector, and hashed again at detector entry. A mismatch,
-discarded return, alternate feature object or second consumer fails A-1-1.
+discarded return, alternate feature object or second consumer is a terminal
+execution failure: no scientific classification is synthesized.
 Poison materialization runs in the orchestrator outside this detector proxy
 and is measured by the frozen poison attestation.
+
+Each build worker has two phases:
+
+```text
+LOADER:
+  exact raw path is available only to bound build_features + load proxy
+DETECTOR:
+  raw path references are deleted
+  all feature arrays are writeable=False
+  an audit hook rejects every .npz/raw open
+  detector exit feature hash must equal entry hash
+```
+
+The successor's detector callables are AST-rejected if they contain or alias
+`open`, `Path.open`, `os.open`, `numpy.load`, `NpzFile`, `zipfile`,
+`importlib`, `__import__`, `eval` or `exec`. Proxy early restore, alternate
+loader, raw open, feature mutation or boundary-ledger defect is terminal
+execution failure, not A-1-1.
 
 Input SHA is the SHA256 of exact input file bytes. Feature SHA is SHA256 of a
 canonical JSON array sorted by feature name, with each row:
@@ -129,15 +148,30 @@ canonical JSON array sorted by feature name, with each row:
 name,dtype.str,shape,value_sha256
 ```
 
-`value_sha256` hashes the C-contiguous array bytes. Full and sliced inputs use
-deterministic registered paths under:
+`value_sha256` hashes the C-contiguous array bytes. FULL inputs use:
 
 ```text
-attempt_root/work/{A|B|P}/{cache_name}/
+A/B:
+  source_cache_root/{cache_name}
+P:
+  attempt_root/poison_cache/{cache_name}
 ```
 
-with slice names `slice_{slice_ordinal:06d}.npz`. No random temporary path is
-permitted in a formal build.
+SLICED inputs use retained paths:
+
+```text
+attempt_root/work/{A|B|P}/{cache_name}/slice_{slice_ordinal:06d}.npz
+```
+
+No random temporary path is permitted. Global `call_index` is the contiguous
+zero-based range `0 .. analyzed_unit_count-1`.
+
+Let `S` be the independently verified slice-row count for one build in
+`work-manifest.json`. A, B and P each have exactly `S` slice rows:
+
+```text
+analyzed_unit_count = 3 * 29 + 3 * S
+```
 
 `source_preflight` must complete for all rows before action, memory, trigger
 or output construction. Its failure is uniquely A-1-0.
@@ -166,7 +200,8 @@ output.
 
 ## 4. Frozen Detector
 
-The idea document's Revision 3 definitions are normative, in this only order:
+The idea document's Revision 5 definitions and the task-frozen idea SHA are
+normative, in this only order:
 
 - checkpoint-exact causal order;
 - raw onset;
@@ -397,6 +432,33 @@ It has no detector-building authority. It independently recomputes Git
 transitions, schemas, path sets, manifests, comparisons, tree hashes, sibling
 hashes and terminal receipt closure.
 
+Its only command is:
+
+```bash
+python \
+  examples/hyperliquid/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_verifier.py \
+  --verify-terminal \
+  --repo-root /Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate \
+  --attempt-root /Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate/local_live_analysis/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_0830T002_formal_v1 \
+  --implementation-tag skhynix-fixed-epoch-leader-trigger-a-minus1-implementation-v1 \
+  --consumption-tag skhynix-fixed-epoch-leader-trigger-a-minus1-consumed-v1 \
+  --terminal-tag skhynix-fixed-epoch-leader-trigger-a-minus1-terminal-v1 \
+  --result-out /Users/liu/Documents/hftbacktest-0830t002-fixed-epoch-relaxed-mstate/.workflow/reports/0830T002-terminal-verifier.json
+```
+
+CWD is the repo root. Exit codes are exactly:
+
+```text
+0 = PASS result written
+2 = verification FAIL result written
+64 = CLI/usage failure, no result written
+```
+
+The verifier is read-only except for one no-replace result file. It may read
+Git objects/refs, source cache bytes, poison cache bytes, retained work bytes,
+the three output roots and siblings. It must not use `np.load`, inspect future
+outcomes, execute A0 or modify any research artifact.
+
 The claimed path is:
 
 ```text
@@ -407,21 +469,27 @@ Before any `.npz` open, the orchestrator must:
 
 1. use lexical absolute registered roots and reject symlinks in every existing
    path component with `lstat`;
-2. require a clean worktree, exact formal argv/cwd,
+2. require Git local configuration exactly `core.fsync=all`,
+   `core.fsyncMethod=fsync`, `core.logAllRefUpdates=always`;
+3. require a clean worktree, exact formal argv/cwd,
    `HEAD == implementation-tag`, and absence of consumption/terminal tags;
-3. verify idea, plan, task, runner, tests, armed claim, authority files,
+4. scan all refs, all reflogs and
+   `git fsck --full --unreachable --no-reflogs`; reject any prior exact
+   claim-transition blob/tree, consumption commit message, terminal receipt
+   path/blob or terminal commit message;
+5. verify idea, plan, task, runner, verifier, tests, armed claim, authority files,
    callable ASTs and baseline tags;
-4. require armed present, claimed absent and attempt root absent;
-5. create claimed as a hard link to armed, which fails if claimed exists;
-6. `fsync` claimed, `fsync` the claim directory, unlink armed, then `fsync`
+6. require armed present, claimed absent and attempt root absent;
+7. create claimed as a hard link to armed, which fails if claimed exists;
+8. `fsync` claimed, `fsync` the claim directory, unlink armed, then `fsync`
    the claim directory again;
-7. commit the exact same-blob armed-to-claimed rename as the only tree delta,
+9. commit the exact same-blob armed-to-claimed rename as the only tree delta,
    create the annotated consumption tag, verify its parent is the
-   implementation tag, and fsync Git ref/log directories;
-8. create the attempt root with `mkdir`, then `fsync` its parent directory;
-9. create and `fsync` `attempt-lock.json` through a same-directory temporary
+   implementation tag, run `git fsck --full`, and reverify Git fsync settings;
+10. create the attempt root with `mkdir`, then `fsync` its parent directory;
+11. create and `fsync` `attempt-lock.json` through a same-directory temporary
    file, hard-link no-replace publish, temporary unlink and parent `fsync`;
-10. only then open source caches.
+12. only then open source caches.
 
 The independent verifier requires the consumption tag and exact commit/tree
 transition. Restoring armed and deleting claimed/root cannot erase that
@@ -437,6 +505,8 @@ canonical_b/
 poison_cache/
 poison_p/
 poison-attestation.json
+work/
+work-manifest.json
 attempt-result.json
 ```
 
@@ -458,10 +528,11 @@ The one-shot process performs:
 9. write identical `execution_evidence.json`;
 10. write each self-excluding manifest;
 11. compare exact `FINAL_17` externally;
-12. publish and fsync sibling `attempt-result.json`;
-13. create the exact tracked terminal receipt, commit only that receipt,
+12. publish and fsync sibling `work-manifest.json`;
+13. publish and fsync sibling `attempt-result.json`;
+14. create the exact tracked terminal receipt, commit only that receipt,
     create the annotated terminal tag and verify its parent is the consumption
-    commit.
+    commit; run `git fsck --full` and reverify Git fsync settings.
 
 Exact projections:
 
@@ -497,6 +568,11 @@ once using same-directory temporary creation, file fsync, hard-link
 no-replace publication, temporary unlink and parent-directory fsync. After all
 children publish, each A/B/P directory and the attempt root are fsynced before
 `attempt-result.json` publication.
+
+Every retained slice is also no-replace published and fsynced.
+`work-manifest.json` lists every work file and is bound by
+`attempt-result.json` and the tracked terminal receipt. Work evidence is
+permanent for this task and may not be cleaned after claim consumption.
 
 Canonical A/B differences belong only to A-1-0. A/P differences belong only
 to A-1-1. An A/P mismatch is retained as negative outcome-boundary evidence;
@@ -809,6 +885,15 @@ RootRow = object{
   label:str,path:str,artifact_count:int,tree_sha256:sha256,
   manifest_sha256:sha256,classification:str
 }
+
+WorkRow = object{
+  build_label:str,cache_name:str,slice_ordinal:int,path:str,
+  size_bytes:int,sha256:sha256
+}
+
+VerifierCheck = object{
+  check_id:str,status:str,actual:str,required:str
+}
 ```
 
 Every JSON file has `schema_version=1` and exactly these remaining keys:
@@ -959,9 +1044,17 @@ attempt-result.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,
   phase:str,exit_code:int,finished_at_utc:str,consumption_head:sha1,
   attempt_lock_sha256:sha256,claimed_sha256:sha256,
-  poison_attestation_sha256:sha256,
+  poison_attestation_sha256:sha256,work_manifest_sha256:sha256,
+  work_tree_sha256:sha256,
   final_a_b:Comparison,final_a_p:Comparison,
   root_rows:list[RootRow]
+}
+```
+
+```text
+work-manifest.json = object{
+  schema_version:int,attempt_id:str,row_count:int,
+  per_build_slice_count:int,rows:list[WorkRow],tree_sha256:sha256
 }
 ```
 
@@ -970,10 +1063,45 @@ attempt-result.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,
   implementation_head:sha1,consumption_head:sha1,
   attempt_result_sha256:sha256,attempt_lock_sha256:sha256,
-  poison_attestation_sha256:sha256,root_rows:list[RootRow],
+  poison_attestation_sha256:sha256,work_manifest_sha256:sha256,
+  work_tree_sha256:sha256,root_rows:list[RootRow],
   sealed_at_utc:str
 }
 ```
+
+```text
+.workflow/reports/0830T002-terminal-verifier.json = object{
+  schema_version:int,task_id:str,attempt_id:str,status:str,
+  verifier_sha256:sha256,verifier_git_blob_oid:sha1,
+  implementation_head:sha1,consumption_head:sha1,terminal_head:sha1,
+  checked_repo_root:str,checked_attempt_root:str,
+  first_failure_code:nullable[str],checks:list[VerifierCheck],
+  result_created_at_utc:str
+}
+```
+
+Verifier `status` is `PASS` or `FAIL`. Exact check order and first-failure
+codes:
+
+```text
+V00_CLI_AND_ROOTS
+V01_VERIFIER_IDENTITY
+V02_GIT_TRANSITIONS_AND_FSYNC_CONFIG
+V03_CLAIM_AND_LOCK
+V04_EXACT_ATTEMPT_CHILDREN
+V05_WORK_MANIFEST_AND_FEATURE_INPUTS
+V06_POISON_ATTESTATION
+V07_FINAL17_SCHEMAS_AND_PATHS
+V08_MANIFESTS_AND_TREE_HASHES
+V09_COMPARISON_CLOSURE
+V10_ATTEMPT_RESULT
+V11_TERMINAL_RECEIPT_AND_TAG
+V12_POST_SEAL_DRIFT
+```
+
+Checks after the first failure have `status="NOT_EVALUATED"`,
+`actual=""`, and retain their exact required string. There are always 13
+unique check rows for exit 0 or 2.
 
 For a completed one-shot sequence, `status="COMPLETED"`,
 `phase="FINAL_17_CLOSED"` and `exit_code=0`. If the process dies before this
@@ -1069,6 +1197,13 @@ Comparison.domain exact values:
 root_rows:
   count/order/labels = 3, ["A","B","P"]
 
+work rows:
+  count = 3 * per_build_slice_count
+  order = build label A/B/P, cache_name ASCII, slice_ordinal numeric
+  slice_ordinal starts at 0 and is contiguous within each build/cache
+  every path is relative to attempt_root and starts with "work/"
+  no duplicate path or (build_label,cache_name,slice_ordinal)
+
 classification.gate_statuses:
   count/order = 4 in ["A-1-0","A-1-1","A-1-2","A-1-3"] order
 ```
@@ -1111,7 +1246,6 @@ A-1-0:
 
 A-1-1:
   outcome_access_ledger.json semantic/schema defects
-  feature-call/field-access defects
   poison attestation defects
   A/P RAW_11 mismatch
 
@@ -1128,6 +1262,7 @@ A-1-2:
   in-memory scientific payload
 
 terminal verifier only, scientific classification unchanged:
+  feature-call/field-access/boundary defects
   gate_contract.json
   A_minus1_summary.json
   classification.json
@@ -1167,9 +1302,6 @@ Aminus1_authority_or_source_failed
 
 Conditions:
 
-- forbidden access count zero;
-- feature-call ledger exact;
-- field-access ledger exact;
 - poison 29/15/435 identities exact;
 - consumed mismatch zero;
 - A/P `RAW_11` difference zero.
@@ -1253,9 +1385,6 @@ A-1-0:
   raw_a_b_difference_count                required "0"
 
 A-1-1:
-  forbidden_access_count                  required "0"
-  feature_call_ledger_exact               required "true"
-  field_access_ledger_exact                required "true"
   poison_cache_count                      required "29"
   poison_unconsumed_field_count           required "15"
   poison_changed_field_instance_count     required "435"
@@ -1318,10 +1447,11 @@ At minimum:
 - slice cannot reuse derived full features;
 - full/slice/poison direct-call `build_features` identity and call counts;
 - feature-call wrong root, discarded return, canonical input for P, full
-  feature reuse for slice and cross-build memoization fail closed;
+  feature reuse for slice and cross-build memoization are terminal failures;
 - exact-boundary, boundary-20ms, equality and boundary+20ms integer ceiling;
 - source invalid fails before action;
-- an attempted unconsumed field read fails even if the value is discarded;
+- attempted unconsumed/alternate-loader reads, alias import, proxy early
+  restore and post-entry array mutation are terminal failures;
 - every unconsumed poison value changes and consumed values do not;
 - A/B missing, extra and byte mutations fail A-1-0;
 - A/P missing, extra and byte mutations produce A-1-1 negative evidence;
@@ -1338,12 +1468,18 @@ At minimum:
   non-replacement;
 - restore-armed plus delete-claimed/root still fails because consumption tag
   and transition commit remain;
+- delete tags + reset branch + delete root still fails via reflog/unreachable
+  transition scan; simulated Git object/ref loss fails `git fsck`;
+- missing/mutated/extra work input, work-manifest mismatch and FeatureCall
+  input-SHA/path-authority mismatch fail terminal verification;
 - FINAL_17/attestation/result no-replace publication, directory fsync,
   terminal receipt commit/tag and post-seal tree-drift detection;
 - RAW_11/SEALED_15/FINAL_17 projection and self-reference exclusions;
 - exact JSON, sibling and authority poison schemas.
 - exact UTC microsecond-Z timestamps, A/B/P root-row order and `-1`
   maximum-memory-age sentinel.
+- verifier wrong CLI/root/tag, verifier self-mutation, missing work evidence,
+  post-seal mutation, exact exit code and 13-row result schema.
 
 ## 17. Pre-Execution Locks
 

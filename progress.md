@@ -24,6 +24,10 @@
   detector semantics passed review, but execution evidence authority did not.
 - Revision 4 moves claim consumption and terminal sealing into auditable Git
   commits/tags and adds an independent verifier. No cache has been read.
+- Independent Round 4 review failed at `P0/P1/P2/P3=0/5/2/0`.
+- Revision 5 seals retained slice inputs, makes raw-boundary violations
+  terminal rather than scientific classifications, and freezes one verifier
+  command/result contract. Data execution remains locked.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 
