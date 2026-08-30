@@ -11,6 +11,12 @@
   archive identity, optional live A/B/P equality and recovery tags.
 - No detector, threshold, epoch geometry, scientific result or outcome
   permission is being changed.
+- Baseline implementation commit is `256f3d67`; combined regression is
+  `74 passed`, and live A/B/P difference count is zero.
+- Annotated tag `skhynix-fixed-epoch-suppression-v1` peels exactly to the
+  accepted authority.
+- Task is `待验收`; the research-kit tag remains deliberately uncreated until
+  independent QA accepts the preparation package.
 
 ## 2026-08-29 0829T002 Fresh-Channel Consensus M-State Drafted
 
