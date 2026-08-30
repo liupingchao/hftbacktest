@@ -1,5 +1,23 @@
 # Progress
 
+## 2026-08-30 0830T002 Formal Attempt Interrupted
+
+- Revision 18 plan passed independent plan review at
+  `P0/P1/P2/P3=0/0/0/0`.
+- Implementation readiness Round 10 passed at `0/0/0/0`.
+- The single-use formal claim was consumed at commit
+  `62ad926337c8ec581f56b864a674c3ccfaaa92af` and pushed to
+  `refs/heads/codex/0830T002-controller-ledger`.
+- The frozen runner then exited `1` before Build A because the baseline
+  authority verifier call omitted required keyword-only argument
+  `check_working_tree`.
+- Terminal state is `INTERRUPTED_TERMINAL`; no terminal receipt/tag/verifier
+  result exists.
+- Scientific classification is `NONE` and the registered prediction is
+  `NOT_EVALUATED`.
+- The post-claim contract forbids repair, rerun, replacement execution or
+  plan/code/test changes in this task.
+
 ## 2026-08-30 0830T002 Leader Trigger A-1 Drafted
 
 - Created successor worktree from

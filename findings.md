@@ -1,5 +1,18 @@
 # Findings
 
+## 2026-08-30 0830T002 Formal Execution Finding
+
+- The one-shot execution did not reach Build A and produced no scientific
+  support result.
+- The observed terminal state is `INTERRUPTED_TERMINAL`, not an A-1 support
+  pass or failure.
+- The exact frozen-runner exception is a missing required keyword-only
+  `check_working_tree` argument in the baseline authority verifier call.
+- Claim consumption, consumption tag and the remote controller ledger make
+  the attempt non-replaceable.
+- No inference about `TRADE_LED`, `DEPLETION_LED`, `OFI_LED`, confirmed
+  clusters, represented dates or concentration is authorized from this run.
+
 ## 2026-08-30 Leader Trigger Opposition Veto Design
 
 - The predecessor's least-strict F000 cancellation was dominated by
