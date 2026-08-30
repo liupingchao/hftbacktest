@@ -18,6 +18,22 @@
   `P0/P1/P2/P3=0/0/0/0`; the armed claim remains `UNCONSUMED`.
 - The data lock is released only for the claim's exact one-shot formal argv.
 
+## 2026-08-30 0830T003 Formal Attempt Interrupted
+
+- The exact one-shot formal argv was executed after both independent reviews
+  passed.
+- Claim consumption completed at
+  `108378d86b547fdf2f7c9bd7e26f2522681d8c28` and the remote controller ref
+  points to the same commit.
+- The replacement passed the baseline authority preflight and entered Build
+  A, then exited `1` during slice-invariance construction.
+- Terminal exception is `KeyError: '_features'`, wrapped as
+  `AuditError: build_subprocess_failed:A`.
+- Build A did not complete; Build B/P and terminal packaging did not start.
+- Scientific classification is `NONE`; prediction is `NOT_EVALUATED`.
+- The post-claim contract prohibits repair, diagnosis, code/plan/test changes
+  or another attempt in `0830T003`.
+
 ## 2026-08-30 0830T002 Formal Attempt Interrupted
 
 - Revision 18 plan passed independent plan review at

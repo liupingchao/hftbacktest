@@ -1,5 +1,22 @@
 # Findings
 
+## 2026-08-30 0830T003 Formal Execution Finding
+
+- The replacement closed the known missing-keyword failure: baseline authority
+  preflight completed and execution entered Build A.
+- The one-shot attempt then stopped before Build A publication with the raw
+  terminal exception `KeyError: '_features'`, wrapped by
+  `AuditError: build_subprocess_failed:A`.
+- The only partial work input is one materialized A slice. There is no complete
+  canonical A package, no B/P build and no terminal result.
+- No support count, date coverage, concentration or scientific classification
+  is available. `NONE` / `NOT_EVALUATED` is an execution state, not evidence
+  for or against the leader-trigger hypothesis.
+- Claim consumption, tag and remote ledger make the attempt terminal and
+  non-replaceable within `0830T003`.
+- This record intentionally does not infer the cause of the exception or
+  propose a repair.
+
 ## 2026-08-30 0830T003 Replacement Boundary
 
 - `0830T002` generated no observed support statistics, so the replacement
