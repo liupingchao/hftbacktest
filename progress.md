@@ -20,6 +20,10 @@
 - Independent Round 2 review failed at `P0/P1/P2/P3=0/8/3/0`; no cache was
   read and no research build was executed.
 - Revision 3 contract work started; the formal data lock remains closed.
+- Independent Round 3 review failed at `P0/P1/P2/P3=0/6/3/0`; scientific
+  detector semantics passed review, but execution evidence authority did not.
+- Revision 4 moves claim consumption and terminal sealing into auditable Git
+  commits/tags and adds an independent verifier. No cache has been read.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 

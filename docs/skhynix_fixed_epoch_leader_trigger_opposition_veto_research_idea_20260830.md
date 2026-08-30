@@ -5,7 +5,7 @@ Date: 2026-08-30
 Hypothesis ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1`
 
-Revision: 3, pre-execution
+Revision: 4, pre-execution
 
 ## 1. Starting Evidence
 
@@ -334,10 +334,10 @@ is authorized.
 
 ## 14. Post-Execution Immutability
 
-The formal one-shot attempt consumes a precommitted tracked `armed` claim
-before reading any cache. The missing tracked claim makes the worktree dirty,
-so an interrupted or deleted attempt cannot silently appear to be a first
-attempt. From that point:
+The formal one-shot attempt consumes a precommitted tracked `armed` claim and
+creates an audited claim-consumption commit/tag before reading any cache.
+Completion creates a separate terminal-receipt commit/tag binding the final
+tree and result hashes. From claim-consumption commit creation:
 
 - this idea is immutable;
 - the execution plan is immutable;

@@ -10,7 +10,7 @@ Hypothesis ID:
 Audit ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
 
-Revision: 3, pre-execution
+Revision: 4, pre-execution
 
 ## 1. Objective and Prediction
 
@@ -96,6 +96,48 @@ the callable body. Expected direct calls equal:
 3 * canonical cache count
 + total artificial slice build count across A/B/P
 ```
+
+Every call is bound by a formal feature-call row containing build, input path,
+input SHA, output feature SHA and consumer-input SHA. The last two hashes must
+be equal. Builds A, B and P are separate subprocesses with no shared Python
+state.
+
+The detector receives only the exact feature dictionary returned by the bound
+builder. The successor runner itself has zero `np.load` call sites and no raw
+cache value interface. The poison authority is the only component allowed to
+read unconsumed raw values.
+
+Each build subprocess installs a fail-closed `numpy.load` proxy only around
+the bound feature builder. The proxy:
+
+1. permits field-name enumeration for exact schema validation;
+2. permits `__getitem__` only for the 12 consumed fields;
+3. records every permitted value access;
+4. raises before returning any unconsumed value;
+5. restores the original loader before control returns.
+
+The builder return is immediately hashed, passed as the sole `features`
+argument to the detector, and hashed again at detector entry. A mismatch,
+discarded return, alternate feature object or second consumer fails A-1-1.
+Poison materialization runs in the orchestrator outside this detector proxy
+and is measured by the frozen poison attestation.
+
+Input SHA is the SHA256 of exact input file bytes. Feature SHA is SHA256 of a
+canonical JSON array sorted by feature name, with each row:
+
+```text
+name,dtype.str,shape,value_sha256
+```
+
+`value_sha256` hashes the C-contiguous array bytes. Full and sliced inputs use
+deterministic registered paths under:
+
+```text
+attempt_root/work/{A|B|P}/{cache_name}/
+```
+
+with slice names `slice_{slice_ordinal:06d}.npz`. No random temporary path is
+permitted in a formal build.
 
 `source_preflight` must complete for all rows before action, memory, trigger
 or output construction. Its failure is uniquely A-1-0.
@@ -219,7 +261,8 @@ builder frozen in Section 2. No derived feature reuse is permitted.
 Comparable epochs:
 
 ```text
-epoch_id >= ceil((actual_start_ts_ns + 122s)/60s)
+epoch_id >=
+  (actual_start_ts_ns + 122_000_000_000 + EPOCH_NS - 1) // EPOCH_NS
 eligible in both full and slice
 same artificial-start segment
 ```
@@ -317,11 +360,42 @@ Implementation freeze creates an annotated tag:
 skhynix-fixed-epoch-leader-trigger-a-minus1-implementation-v1
 ```
 
+Claim consumption creates:
+
+```text
+commit message:
+  audit: consume 0830T002 formal attempt claim
+annotated tag:
+  skhynix-fixed-epoch-leader-trigger-a-minus1-consumed-v1
+```
+
+Formal completion creates:
+
+```text
+tracked receipt:
+  .workflow/attempt-receipts/0830T002.terminal.json
+commit message:
+  audit: seal 0830T002 formal attempt result
+annotated tag:
+  skhynix-fixed-epoch-leader-trigger-a-minus1-terminal-v1
+```
+
 and commits exactly one tracked armed claim:
 
 ```text
 .workflow/attempt-claims/0830T002.armed.json
 ```
+
+The independent terminal verifier is:
+
+```text
+examples/hyperliquid/
+skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_verifier.py
+```
+
+It has no detector-building authority. It independently recomputes Git
+transitions, schemas, path sets, manifests, comparisons, tree hashes, sibling
+hashes and terminal receipt closure.
 
 The claimed path is:
 
@@ -333,24 +407,26 @@ Before any `.npz` open, the orchestrator must:
 
 1. use lexical absolute registered roots and reject symlinks in every existing
    path component with `lstat`;
-2. require a clean worktree, exact formal argv/cwd, and
-   `HEAD == implementation-tag`;
+2. require a clean worktree, exact formal argv/cwd,
+   `HEAD == implementation-tag`, and absence of consumption/terminal tags;
 3. verify idea, plan, task, runner, tests, armed claim, authority files,
    callable ASTs and baseline tags;
 4. require armed present, claimed absent and attempt root absent;
 5. create claimed as a hard link to armed, which fails if claimed exists;
 6. `fsync` claimed, `fsync` the claim directory, unlink armed, then `fsync`
    the claim directory again;
-7. create the attempt root with `mkdir`, then `fsync` its parent directory;
-8. create and `fsync` `attempt-lock.json` through a same-directory temporary
+7. commit the exact same-blob armed-to-claimed rename as the only tree delta,
+   create the annotated consumption tag, verify its parent is the
+   implementation tag, and fsync Git ref/log directories;
+8. create the attempt root with `mkdir`, then `fsync` its parent directory;
+9. create and `fsync` `attempt-lock.json` through a same-directory temporary
    file, hard-link no-replace publish, temporary unlink and parent `fsync`;
-9. only then open source caches.
+10. only then open source caches.
 
-After step 6, the tracked armed file is missing. Therefore the worktree cannot
-return to the required clean pre-attempt state merely because ignored outputs
-were deleted. A missing result means `INTERRUPTED_TERMINAL`; it is not
-recoverable or replaceable in this task. Restoring or deleting claim state is
-explicitly outside the registered protocol.
+The independent verifier requires the consumption tag and exact commit/tree
+transition. Restoring armed and deleting claimed/root cannot erase that
+authority. A missing terminal tag or result after consumption means
+`INTERRUPTED_TERMINAL`; it is not recoverable or replaceable in this task.
 
 Exact attempt children:
 
@@ -382,7 +458,10 @@ The one-shot process performs:
 9. write identical `execution_evidence.json`;
 10. write each self-excluding manifest;
 11. compare exact `FINAL_17` externally;
-12. publish and fsync sibling `attempt-result.json`.
+12. publish and fsync sibling `attempt-result.json`;
+13. create the exact tracked terminal receipt, commit only that receipt,
+    create the annotated terminal tag and verify its parent is the consumption
+    commit.
 
 Exact projections:
 
@@ -412,6 +491,12 @@ FINAL_17 =
 `execution_evidence.json` contains only `RAW_11` and `SEALED_15` comparison
 rows. It never hashes itself or either manifest. `attempt-result.json` is the
 external terminal closure over `FINAL_17` plus all sibling artifacts.
+
+Every FINAL_17 file, poison attestation and `attempt-result.json` is written
+once using same-directory temporary creation, file fsync, hard-link
+no-replace publication, temporary unlink and parent-directory fsync. After all
+children publish, each A/B/P directory and the attempt root are fsynced before
+`attempt-result.json` publication.
 
 Canonical A/B differences belong only to A-1-0. A/P differences belong only
 to A-1-1. An A/P mismatch is retained as negative outcome-boundary evidence;
@@ -511,6 +596,9 @@ expiry_count,neutral_overwrite_count,unauthorized_ttl_refresh_count,
 cross_segment_memory_carry_count,maximum_memory_age_ms,
 action_partition_exact
 ```
+
+`maximum_memory_age_ms` is an integer. If no memory was established for the
+date/channel, its only sentinel is `-1`; otherwise it is non-negative.
 
 ### epoch_support.csv
 
@@ -657,6 +745,21 @@ CallableIdentity = object{
   callable_name:str,callable_ast_sha256:sha256,direct_call_count:int
 }
 
+FeatureCall = object{
+  call_index:int,build_label:str,unit_kind:str,capture_id:str,
+  research_date:str,slice_ordinal:nullable[int],resolved_input_path:str,
+  input_sha256:sha256,input_authority:str,feature_output_sha256:sha256,
+  consumer_input_sha256:sha256,field_name_schema_access_count:int,
+  consumed_value_access_count:int,forbidden_value_access_count:int,
+  consumer_use_count:int
+}
+
+FieldAccess = object{
+  call_index:int,build_label:str,resolved_input_path:str,
+  input_sha256:sha256,field:str,value_access_count:int,
+  authorization:str
+}
+
 ComparisonRow = object{
   path:str,a_sha256:nullable[sha256],other_sha256:nullable[sha256],
   equal:bool
@@ -714,9 +817,11 @@ Every JSON file has `schema_version=1` and exactly these remaining keys:
 contracts/authority_binding.json = object{
   schema_version:int,task_id:str,hypothesis_id:str,audit_id:str,
   baseline_tag:str,baseline_commit:sha1,implementation_tag:str,
-  implementation_head:sha1,tracked_files:list[FileIdentity],
+  implementation_head:sha1,consumption_tag:str,consumption_head:sha1,
+  tracked_files:list[FileIdentity],
   callables:list[CallableIdentity],source_inventory_sha256:sha256,
-  attempted_claim_sha256:sha256,all_verified:bool
+  attempted_claim_sha256:sha256,successor_np_load_callsite_count:int,
+  all_verified:bool
 }
 
 contracts/detector_contract.json = object{
@@ -745,7 +850,8 @@ contracts/outcome_access_ledger.json = object{
   nonempty_unconsumed_field_instance_count:int,
   changed_unconsumed_field_instance_count:int,
   consumed_field_mismatch_count:int,poison_attestation_sha256:sha256,
-  raw_a_p_difference_count:int,outcome_boundary_preserved:bool
+  raw_a_p_difference_count:int,feature_calls:list[FeatureCall],
+  field_accesses:list[FieldAccess],outcome_boundary_preserved:bool
 }
 
 contracts/gate_contract.json = object{
@@ -800,7 +906,7 @@ Exact sibling schemas:
   schema_version:int,task_id:str,attempt_id:str,implementation_tag:str,
   formal_argv:list[str],repo_root:str,source_cache_root:str,attempt_root:str,
   idea_sha256:sha256,plan_sha256:sha256,task_sha256:sha256,
-  runner_sha256:sha256,tests_sha256:sha256,status:str
+  runner_sha256:sha256,verifier_sha256:sha256,tests_sha256:sha256,status:str
 }
 ```
 
@@ -810,7 +916,8 @@ Armed and claimed bytes are identical and `status="ARMED_FOR_SINGLE_USE"`.
 attempt-lock.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,pid:int,
   started_at_utc:str,cwd:str,argv:list[str],implementation_head:sha1,
-  claimed_sha256:sha256,repo_root:str,source_cache_root:str,attempt_root:str
+  consumption_head:sha1,claimed_sha256:sha256,repo_root:str,
+  source_cache_root:str,attempt_root:str
 }
 ```
 
@@ -850,11 +957,21 @@ hypothesis_id = "FIXED_CAUSAL_EPOCH_MSTATE_V2"
 ```text
 attempt-result.json = object{
   schema_version:int,task_id:str,attempt_id:str,status:str,
-  phase:str,exit_code:int,finished_at_utc:str,
+  phase:str,exit_code:int,finished_at_utc:str,consumption_head:sha1,
   attempt_lock_sha256:sha256,claimed_sha256:sha256,
   poison_attestation_sha256:sha256,
   final_a_b:Comparison,final_a_p:Comparison,
   root_rows:list[RootRow]
+}
+```
+
+```text
+.workflow/attempt-receipts/0830T002.terminal.json = object{
+  schema_version:int,task_id:str,attempt_id:str,status:str,
+  implementation_head:sha1,consumption_head:sha1,
+  attempt_result_sha256:sha256,attempt_lock_sha256:sha256,
+  poison_attestation_sha256:sha256,root_rows:list[RootRow],
+  sealed_at_utc:str
 }
 ```
 
@@ -869,6 +986,102 @@ unsorted rows or malformed hashes are schema violations.
 All path rows sort by path ASCII. A tree hash is SHA256 of the canonical JSON
 array of `ManifestRow` records sorted by path. `Comparison.rows` is the sorted
 union of both path sets; a missing side uses null SHA and `equal=false`.
+
+Exact list domains:
+
+```text
+tracked_files count/order:
+  1 docs/skhynix_fixed_epoch_leader_trigger_opposition_veto_research_idea_20260830.md
+  2 docs/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_execution_plan_20260830.md
+  3 .workflow/tasks/0830T002.md
+  4 examples/hyperliquid/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py
+  5 examples/hyperliquid/skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_verifier.py
+  6 examples/hyperliquid/test_skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py
+  7 .workflow/attempt-claims/0830T002.claimed.json
+
+callables count/order:
+  1 build_features
+    path examples/hyperliquid/skhynix_flow_coherence_a_minus1_audit.py
+  2 source_preflight
+    path examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py
+  3 base_eligibility
+    path examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py
+  4 channel_actions
+    path examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py
+  5 channel_memories
+    path examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py
+  6 epoch_support_ledger
+    path examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py
+  7 materialize_poisoned_cache_set
+    path examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py
+  8 verify_poison_attestation
+    path examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py
+
+direct call counts:
+  build_features = analyzed_unit_count
+  source_preflight = analyzed_unit_count
+  base_eligibility = analyzed_unit_count
+  channel_actions = analyzed_unit_count
+  channel_memories = analyzed_unit_count
+  epoch_support_ledger = analyzed_unit_count
+  materialize_poisoned_cache_set = 1
+  verify_poison_attestation = 1
+
+feature_calls:
+  count = analyzed_unit_count
+  order = build A, build B, build P;
+          then cache_name ASCII;
+          FULL before SLICE;
+          slice_ordinal numeric
+
+field_accesses:
+  exactly 12 rows per feature call
+  field order ASCII over:
+    activity,ask_depletion,bid_depletion,event_seq,ofi,ofi_abs,
+    ready,segment_id,trade_signed,trade_total,ts_ns,valid_book
+  value_access_count = 1
+  authorization = "CONSUMED_VALUE"
+
+outcome_access_ledger.consumed_cache_fields count/order:
+  12, ASCII order:
+    activity,ask_depletion,bid_depletion,event_seq,ofi,ofi_abs,
+    ready,segment_id,trade_signed,trade_total,ts_ns,valid_book
+
+FeatureCall enums:
+  build_label in {"A","B","P"}
+  unit_kind in {"FULL","SLICE"}
+  input_authority in {"CANONICAL","POISON","SLICED_CANONICAL",
+                      "SLICED_POISON"}
+  field_name_schema_access_count = 1
+  consumed_value_access_count = 12
+  forbidden_value_access_count = 0
+  consumer_use_count = 1
+  feature_output_sha256 = consumer_input_sha256
+
+Comparison.domain exact values:
+  "RAW_11:A_vs_B"
+  "RAW_11:A_vs_P"
+  "SEALED_15:A_vs_B"
+  "SEALED_15:A_vs_P"
+  "FINAL_17:A_vs_B"
+  "FINAL_17:A_vs_P"
+
+root_rows:
+  count/order/labels = 3, ["A","B","P"]
+
+classification.gate_statuses:
+  count/order = 4 in ["A-1-0","A-1-1","A-1-2","A-1-3"] order
+```
+
+All lists reject duplicates. `attempt-result` closes claimed, attempt-lock,
+poison attestation and the three FINAL_17 roots, but excludes itself.
+The tracked terminal receipt then closes `attempt-result` itself.
+
+All UTC strings use exactly:
+
+```text
+YYYY-MM-DDTHH:MM:SS.ffffffZ
+```
 
 ## 14. Numeric Semantics
 
@@ -886,7 +1099,49 @@ cluster_count > 0:
 ```
 
 Any negative, non-finite, wrong type, inconsistent share, failed conservation
-or malformed SHA is A-1-2.
+or malformed scientific value in the A-1-2 domain is A-1-2.
+
+First-failure ownership is exact:
+
+```text
+A-1-0:
+  authority_binding.json semantic/schema defects
+  source_cache_inventory.csv authority/source defects
+  canonical A/B RAW_11 mismatch
+
+A-1-1:
+  outcome_access_ledger.json semantic/schema defects
+  feature-call/field-access defects
+  poison attestation defects
+  A/P RAW_11 mismatch
+
+A-1-2:
+  detector_contract.json
+  fixed_epoch_contract.json
+  channel_action_by_date.csv
+  epoch_support.csv
+  epoch_variant_counters.csv
+  slice_invariance.csv
+  support_by_date.csv
+  trigger_ledger.csv
+  variant_summary.csv
+  in-memory scientific payload
+
+terminal verifier only, scientific classification unchanged:
+  gate_contract.json
+  A_minus1_summary.json
+  classification.json
+  execution_evidence.json
+  run_manifest.json
+  attempt-lock.json
+  attempt-result.json
+  terminal receipt
+  post-gate sorting/hash/path/tree/commit/tag defects
+```
+
+`schema_violation_count` in A-1-2 covers only its listed A-1-2 domain.
+Terminal-verifier failure is execution-package rejection; it never rewrites a
+scientific classification after observation.
 
 ## 15. Sequential Gates and Classification
 
@@ -913,6 +1168,8 @@ Aminus1_authority_or_source_failed
 Conditions:
 
 - forbidden access count zero;
+- feature-call ledger exact;
+- field-access ledger exact;
 - poison 29/15/435 identities exact;
 - consumed mismatch zero;
 - A/P `RAW_11` difference zero.
@@ -997,6 +1254,8 @@ A-1-0:
 
 A-1-1:
   forbidden_access_count                  required "0"
+  feature_call_ledger_exact               required "true"
+  field_access_ledger_exact                required "true"
   poison_cache_count                      required "29"
   poison_unconsumed_field_count           required "15"
   poison_changed_field_instance_count     required "435"
@@ -1058,7 +1317,11 @@ At minimum:
 - slice epoch/counter/retained/status/support hash mutations fail;
 - slice cannot reuse derived full features;
 - full/slice/poison direct-call `build_features` identity and call counts;
+- feature-call wrong root, discarded return, canonical input for P, full
+  feature reuse for slice and cross-build memoization fail closed;
+- exact-boundary, boundary-20ms, equality and boundary+20ms integer ceiling;
 - source invalid fails before action;
+- an attempted unconsumed field read fails even if the value is discarded;
 - every unconsumed poison value changes and consumed values do not;
 - A/B missing, extra and byte mutations fail A-1-0;
 - A/P missing, extra and byte mutations produce A-1-1 negative evidence;
@@ -1071,9 +1334,16 @@ At minimum:
 - dirty worktree, wrong tag/HEAD, wrong CLI/root, symlink, armed/claimed
   mutation, existing attempt root and successor identity mutations fail
   before cache read;
-- claim hard-link/unlink/parent-fsync order and interrupted non-replacement;
+- claim hard-link/unlink/commit/tag/fsync order and interrupted
+  non-replacement;
+- restore-armed plus delete-claimed/root still fails because consumption tag
+  and transition commit remain;
+- FINAL_17/attestation/result no-replace publication, directory fsync,
+  terminal receipt commit/tag and post-seal tree-drift detection;
 - RAW_11/SEALED_15/FINAL_17 projection and self-reference exclusions;
 - exact JSON, sibling and authority poison schemas.
+- exact UTC microsecond-Z timestamps, A/B/P root-row order and `-1`
+  maximum-memory-age sentinel.
 
 ## 17. Pre-Execution Locks
 
@@ -1087,6 +1357,7 @@ task updated with implementation commit and runner/tests SHA/blob, then committe
 armed claim created from the committed task and exact formal identities
 armed claim committed without further task/runner/tests changes
 implementation tag attached to that final clean commit
+independent verifier SHA/blob frozen in task and armed claim
 independent readiness review confirms command/receipt/test contract
 focused and inherited tests pass
 ```

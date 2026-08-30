@@ -27,6 +27,12 @@
 - Final tree comparison must be closed by an external sibling receipt.
   Embedding a file's own SHA in its in-tree evidence creates an impossible
   self-reference.
+- A correct callable identity and aggregate call count do not prove that its
+  return drove the detector. Input/output/consumer hashes and restricted field
+  access must be ledgered per invocation.
+- Scientific gate ownership must end before terminal packaging. Post-gate
+  manifest or receipt defects are execution-integrity failures and must not
+  rewrite an already observed scientific classification.
 
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 
