@@ -16,6 +16,8 @@ docs/_build
 baselines/*
 !baselines/research_package_trust_kernel/
 !baselines/research_package_trust_kernel/**
+!baselines/skhynix_fixed_epoch_suppression_v1/
+!baselines/skhynix_fixed_epoch_suppression_v1/**
 local_live_analysis*/
 .claude/
 .codex

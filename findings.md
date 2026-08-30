@@ -1,5 +1,21 @@
 # Findings
 
+## 2026-08-30 Fixed Epoch Suppression Baseline
+
+- The accepted source, plan, tests and QA are tracked, but formal
+  `local_live_analysis*` outputs are ignored and Build B/P live under `/tmp`.
+  Git recovery therefore needs a tracked compact evidence snapshot.
+- The validated runner is experiment-specific and should not be refactored
+  in place. Successors should create new runners and bind the authority by
+  commit, blob and callable AST identity.
+- Two recovery nodes are useful: an exact accepted authority tag and a later
+  research-kit tag containing documentation, verifier and evidence.
+- Full-epoch eligibility is an offline finalization condition. A live
+  successor must preserve provisional actions and count later invalidations;
+  it cannot delete them with ex-post structural validity.
+- Epoch width is part of hypothesis identity. Changing 60s or its core/offset
+  requires a successor version rather than mutation of this baseline.
+
 ## 2026-08-29 Fresh-Channel Consensus M-State Design
 
 - The previous failure should not be repaired by lowering amplitude or using

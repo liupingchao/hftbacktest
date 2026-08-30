@@ -1,5 +1,15 @@
 # Task Plan
 
+## 2026-08-30 0830T001 Fixed Epoch Suppression Baseline
+
+- `0830T001 / SKHYNIX_FIXED_EPOCH_SUPPRESSION_V1_BASELINE` is `执行中`.
+- Preserve accepted `0829T003` at authority commit `f06eb5cb`; do not edit
+  its frozen plan, runner, tests or workflow evidence.
+- Add a tracked canonical non-cache evidence snapshot, machine-readable
+  authority manifest, verifier, recovery documentation and immutable tags.
+- Future hypotheses must use new files and bind the frozen Git/AST authority.
+- Future outcomes, A0 and live/private/order execution remain unauthorized.
+
 ## 2026-08-29 0829T002 Fresh-Channel Consensus M-State V1
 
 - `0829T002 / FRESH_CHANNEL_CONSENSUS_MSTATE_V1_A_MINUS1` is `执行中`.

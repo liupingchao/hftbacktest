@@ -1,0 +1,93 @@
+{
+  "baseline_id": "SKHYNIX_FIXED_EPOCH_SUPPRESSION_V1",
+  "created_at": "2026-08-30T14:53:00+08:00",
+  "formal_evidence": {
+    "candidate_count": 2219,
+    "classification": "Aminus1_structural_support_not_estimable",
+    "expected_non_cache_artifact_count": 25,
+    "non_cache_tree_sha256": "2d5505b531b2da97a928284ce9fd80696d79ee9870cf290507cf37d94e63049f",
+    "poison_attestation_sha256": "3eaca61d3769f2dee6c50aea45a95109fc622b2ce557277451b504c8aca8942b",
+    "run_manifest_sha256": "3cf8b26781909ec39f47d4efcb72e64d500d19e2f0f682ac6cabf4966dc8a748",
+    "slice_invariance_mismatches": 0,
+    "slice_row_count": 186,
+    "summary_sha256": "67b5cc80baa086cd2c9e0f21eef47cc4f49c7949ebde00142d3c18098f8cfd85"
+  },
+  "frozen_callable_ast_sha256": {
+    "admitted_identity_set": "7b9b5ad3870b4fa8f502fb31739cd4d9943554f271a3bfd382991a11ae1134e8",
+    "build_gates": "931fb632ff3be2d12decc7da589bae103a049e6a9ce1f7dac42c8df226138702",
+    "common_candidate_ledger": "0e1f1e82e9f4ac9383ac2db899c6df6c21f124329aac398b118e42aef2d9290d",
+    "compare_triad": "ee416795b07da0bcf3a839f80efae219be1f29776e7231e8a80529f05429eb8a",
+    "epoch_support_ledger": "d76a80ef31b3f229eb23099f1f3b06cf6ab2e2a3f101a07c37c2286436f5b453",
+    "non_cache_artifact_paths": "7763c3b8eb7b4cbe57abf96488ba24b9a5d8eeca33fc873b7a1b665d7b7cae05",
+    "numeric_integrity_violations": "014d4fad522a1c409c14bb49caa464fd407918b069691b10f6595ec9fa34fcd8",
+    "slice_invariance_rows": "8dadcda5e2a076bc728488d455a87c8b89e5b69247641b242dead444c27fef16",
+    "support_identity": "afd9929868c4b22594bcbe218f9ba632447874d73ff305a918d4653f5c85165a"
+  },
+  "frozen_contract": {
+    "CHECKPOINT_NS": 20000000,
+    "CORE_CLOSE_NS": 45000000000,
+    "CORE_OPEN_NS": 15000000000,
+    "EPOCH_NS": 60000000000,
+    "EXPECTED_EPOCH_CHECKPOINTS": 3000,
+    "cluster_key": [
+      "capture_id",
+      "epoch_id"
+    ],
+    "thinning_key": [
+      "capture_id",
+      "epoch_id",
+      "direction"
+    ],
+    "tie_break": [
+      "candidate_ts_ns",
+      "candidate_event_seq"
+    ]
+  },
+  "git_authority": {
+    "accepted_workflow_commit": "f06eb5cb012cb62b2a778ad90d433c4083f9ba14",
+    "frozen_plan_commit": "f0110d40cf6eaf21f4e8972383a01b65c3f33f70",
+    "hostile_closure_commit": "b583d02b12a2464a9d58863c3b761fca6f37e8d3",
+    "implementation_commit": "781a7cd0fd1ccceee214c3292a86611ff02546cf",
+    "qa_acceptance_commit": "8463eae645a14f37532be35937c5c52ca2ce4941"
+  },
+  "recovery_tags": {
+    "research_kit": "skhynix-fixed-epoch-research-kit-v1",
+    "suppression_authority": "skhynix-fixed-epoch-suppression-v1"
+  },
+  "runner_path": "examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py",
+  "schema_version": 1,
+  "tracked_authority_files": {
+    ".workflow/reports/0829T003-execution.md": {
+      "blob_oid": "5ccdb247233b8a15d8feabc137a60a98140ed0d3",
+      "sha256": "163275d8e5377ec5379faf22ad3d8379f421466ccd4f16fa78bc419b2b506d3f"
+    },
+    ".workflow/reports/0829T003-qa.md": {
+      "blob_oid": "e10b991d65546a827ad714af4efdb6f0f6fe9ff1",
+      "sha256": "05abc279c3f9d4751a721c03827d707dc124a0a7cc8dc65228d03acf3945804f"
+    },
+    ".workflow/tasks/0829T003.md": {
+      "blob_oid": "31b778a4cc98b631d820bf3848d885d2e5555733",
+      "sha256": "a45ae3c27f9593387ef5bb8fdf7a03e8554fa37807512477669603ffc82cd08f"
+    },
+    "docs/skhynix_binance_precision_first_fixed_causal_epoch_mstate_v2_a_minus1_audit_plan_20260829.md": {
+      "blob_oid": "004cf2612b8b310033f1b421eead02b94a1b2a58",
+      "sha256": "682ea69016c472d5ae3adc255f974d05ef72d7d78e90e11b976b52589a501aba"
+    },
+    "examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py": {
+      "blob_oid": "5672a8ca9f6d4ced2b2deaaf5689e2e7bb7935da",
+      "sha256": "dfa8af1f4b8410370ec7ccd0bea30b63840ebe484d74446c8cbe2564918ac070"
+    },
+    "examples/hyperliquid/test_skhynix_fixed_causal_epoch_mstate_a_minus1.py": {
+      "blob_oid": "004ab9b839cfff668f4ca58ccfa788a8413e3713",
+      "sha256": "8a739018626e0864d8dbe7a0dc63fcc7c03ecaa45e2e2953fd627ab29834c6c6"
+    }
+  },
+  "tracked_snapshot_files": {
+    "baselines/skhynix_fixed_epoch_suppression_v1/evidence_noncache.tar.gz": {
+      "sha256": "c9167c59e518ac22b89c874aae80b6c2c99869a253296f73cbb21ef954ba5740"
+    },
+    "baselines/skhynix_fixed_epoch_suppression_v1/poison-attestation.json": {
+      "sha256": "3eaca61d3769f2dee6c50aea45a95109fc622b2ce557277451b504c8aca8942b"
+    }
+  }
+}

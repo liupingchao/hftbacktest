@@ -1,5 +1,17 @@
 # Progress
 
+## 2026-08-30 0830T001 Baseline Preparation Started
+
+- Accepted fixed-epoch authority is
+  `f06eb5cb012cb62b2a778ad90d433c4083f9ba14`.
+- The 0829T003 frozen files remain byte-identical to that authority.
+- Canonical 25-item non-cache evidence and poison attestation are being
+  moved from ignored/temporary locations into a tracked baseline snapshot.
+- A verifier will bind Git files/blobs, callable ASTs, fixed constants,
+  archive identity, optional live A/B/P equality and recovery tags.
+- No detector, threshold, epoch geometry, scientific result or outcome
+  permission is being changed.
+
 ## 2026-08-29 0829T002 Fresh-Channel Consensus M-State Drafted
 
 - Created clean worktree
