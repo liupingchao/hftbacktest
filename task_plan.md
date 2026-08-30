@@ -4,18 +4,24 @@
 
 - Register `0831T001 / TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
   as the current unique formal task.
-- Qualify the exact future production path on deterministic synthetic
-  fixtures only.
+- Qualify only the shared causal feature, anchor, structural-outcome, slice
+  and package core on deterministic synthetic fixtures.
 - Bind the accepted fixed-epoch action, 100ms memory and epoch authorities;
   add a new staged feature authority for current OBI, spread, depth and
   trailing midpoint volatility.
-- Require QF01-QF13, full/slice identity, A/B/P byte identity, exact negative
-  boundaries, causal-prefix invariance, terminal verification and fresh
-  detached-worktree reproduction.
+- Revision 1 independent review failed at `P0/P1/P2/P3=0/7/3/0`; no
+  implementation or formal execution was authorized.
+- Revision 2 adds a tracked fixture-truth authority, exact raw/FeatureBundle
+  schemas, distinct causal/outcome stage entry points, non-vacuous
+  slice/reset fixtures, typed A/B/P physical-input ledgers, exact package
+  schemas, verifier precedence and one-shot provenance.
+- Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
+  negative boundaries, causal access proof, terminal verification and
+  pre-consumption detached-worktree readiness.
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
 - Implementation and formal execution remain locked pending independent plan
-  review.
+  review of Revision 2.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 

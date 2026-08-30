@@ -1,0 +1,971 @@
+{
+  "authority_id": "TRADE_LED_DEPTH_FOLLOWER_Q0_FIXTURE_TRUTH_V1",
+  "clock": {
+    "anchor_core_close_ns": 45000000000,
+    "anchor_core_open_ns": 15000000000,
+    "checkpoint_ns": 20000000,
+    "epoch_ns": 60000000000,
+    "epoch_row_count": 3000,
+    "origin_ns": 0
+  },
+  "default_fixture": {
+    "defaults": {
+      "activity": 1.0,
+      "ask_depletion": 0.0,
+      "ask_depth": 100.0,
+      "bid_depletion": 0.0,
+      "bid_depth": 100.0,
+      "midpoint": 100.0,
+      "obi": 0.0,
+      "ofi": 0.0,
+      "ofi_abs": 0.0,
+      "qualification_poison": 0,
+      "ready": true,
+      "segment_id": 0,
+      "spread_ticks": 1.0,
+      "tick_size": 1.0,
+      "trade_signed": 0.0,
+      "trade_total": 0.0,
+      "valid_book": true
+    },
+    "epoch_count": 3,
+    "event_seq_rule": "event_seq[index] = index",
+    "row_count": 9000,
+    "timestamp_rule": "ts_ns[index] = index * 20000000"
+  },
+  "error_precedence": [
+    "SOURCE_ROOT_NOT_CLOSED",
+    "SOURCE_PATH_KIND",
+    "SOURCE_SCHEMA",
+    "SOURCE_CLOCK",
+    "SOURCE_DOMAIN",
+    "AUTHORITY_BINDING",
+    "FEATURE_SCHEMA",
+    "CAUSAL_ACCESS_BOUNDARY",
+    "ANCHOR_CONTRACT",
+    "OUTCOME_ACCESS_BOUNDARY",
+    "SLICE_PUBLICATION",
+    "SLICE_IDENTITY",
+    "BUILD_INPUT_BINDING",
+    "AB_IDENTITY",
+    "AP_IDENTITY",
+    "PACKAGE_PATH_SET",
+    "PACKAGE_SCHEMA",
+    "PACKAGE_CANONICAL_BYTES",
+    "PACKAGE_LINEAGE",
+    "TERMINAL_CLOSURE"
+  ],
+  "fixture_order": [
+    "QF01",
+    "QF02",
+    "QF03",
+    "QF04",
+    "QF05",
+    "QF06",
+    "QF07",
+    "QF08",
+    "QF09",
+    "QF10",
+    "QF11",
+    "QF12",
+    "QF13",
+    "QF14",
+    "QF15"
+  ],
+  "fixtures": [
+    {
+      "expected": {
+        "anchor_count": 0,
+        "cross_segment_carry_count": 0,
+        "epoch_dispositions": [
+          "eligible",
+          "eligible",
+          "eligible"
+        ],
+        "structural_outcome_count": 0
+      },
+      "fixture_id": "QF01",
+      "patches": [],
+      "purpose": "complete epochs with no anchor"
+    },
+    {
+      "expected": {
+        "anchor": {
+          "anchor_id": "QF02:1:1:0:75000000000:3750",
+          "direction": 1,
+          "epoch_id": 1,
+          "event_seq": 3750,
+          "segment_id": 0,
+          "ts_ns": 75000000000
+        },
+        "anchor_count": 1,
+        "cross_segment_carry_count": 0,
+        "outcome": {
+          "cause": "DEPTH_FOLLOWER_SAME",
+          "detail": "DEPLETION",
+          "event_seq": 3754,
+          "latency_ms": 80,
+          "ts_ns": 75080000000
+        }
+      },
+      "fixture_id": "QF02",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3754,
+          "value": 3.0
+        }
+      ],
+      "purpose": "trade-led anchor followed by same-direction depletion"
+    },
+    {
+      "expected": {
+        "anchor": {
+          "anchor_id": "QF03:1:1:0:75000000000:3750",
+          "direction": 1,
+          "epoch_id": 1,
+          "event_seq": 3750,
+          "segment_id": 0,
+          "ts_ns": 75000000000
+        },
+        "anchor_count": 1,
+        "outcome": {
+          "cause": "EXPLICIT_CONTRADICTION",
+          "detail": "TRADE",
+          "event_seq": 3752,
+          "latency_ms": 40,
+          "ts_ns": 75040000000
+        }
+      },
+      "fixture_id": "QF03",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3752,
+          "value": -5.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3752,
+          "value": 5.0
+        }
+      ],
+      "purpose": "trade-led anchor followed by explicit opposite trade"
+    },
+    {
+      "expected": {
+        "anchor": {
+          "anchor_id": "QF04:1:1:0:75000000000:3750",
+          "direction": 1,
+          "epoch_id": 1,
+          "event_seq": 3750,
+          "segment_id": 0,
+          "ts_ns": 75000000000
+        },
+        "anchor_count": 1,
+        "outcome": {
+          "cause": "CENSOR_60S",
+          "detail": "RIGHT_CENSOR",
+          "event_seq": 6750,
+          "latency_ms": 60000,
+          "ts_ns": 135000000000
+        }
+      },
+      "fixture_id": "QF04",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        }
+      ],
+      "purpose": "right censor at the registered 60s horizon"
+    },
+    {
+      "expected": {
+        "anchor": {
+          "anchor_id": "QF05:1:1:0:75000000000:3750",
+          "direction": 1,
+          "epoch_id": 1,
+          "event_seq": 3750,
+          "segment_id": 0,
+          "ts_ns": 75000000000
+        },
+        "anchor_count": 1,
+        "outcome": {
+          "cause": "EXPLICIT_CONTRADICTION",
+          "detail": "TRADE_OVER_DEPLETION_TIE",
+          "event_seq": 3751,
+          "latency_ms": 20,
+          "ts_ns": 75020000000
+        }
+      },
+      "fixture_id": "QF05",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3751,
+          "value": -5.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3751,
+          "value": 5.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3751,
+          "value": 3.0
+        }
+      ],
+      "purpose": "contradiction wins a same-checkpoint follower tie"
+    },
+    {
+      "expected": {
+        "anchor": {
+          "anchor_id": "QF06:1:1:0:75000000000:3750",
+          "direction": 1,
+          "epoch_id": 1,
+          "event_seq": 3750,
+          "segment_id": 0,
+          "ts_ns": 75000000000
+        },
+        "anchor_count": 1,
+        "epoch_dispositions": [
+          "eligible",
+          "eligible",
+          "segment_boundary"
+        ],
+        "outcome": {
+          "cause": "CENSOR_SEGMENT_BOUNDARY",
+          "detail": "SEGMENT_CHANGE",
+          "event_seq": 6050,
+          "latency_ms": 46000,
+          "ts_ns": 121000000000
+        }
+      },
+      "fixture_id": "QF06",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "segment_id",
+          "start": 6050,
+          "stop": 9000,
+          "value": 1
+        }
+      ],
+      "purpose": "post-anchor boundary in the next epoch censors the risk set"
+    },
+    {
+      "expected": {
+        "anchor_id": "QF07:1:1:0:75000000000:3750",
+        "anchor_count": 1,
+        "common_epoch_ids": [
+          1,
+          2
+        ],
+        "comparable_anchor_floor": 1,
+        "comparable_epoch_floor": 2,
+        "full_epoch_dispositions": [
+          "eligible",
+          "eligible",
+          "eligible"
+        ],
+        "slice_actual_start_ns": 60000000000,
+        "slice_epoch_dispositions": [
+          "eligible",
+          "eligible"
+        ],
+        "slice_nominal_start_ns": 60000000000
+      },
+      "fixture_id": "QF07",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3754,
+          "value": 3.0
+        }
+      ],
+      "purpose": "slice starts at the anchor epoch boundary"
+    },
+    {
+      "expected": {
+        "anchor_id": "QF08:1:1:0:75000000000:3750",
+        "anchor_count": 1,
+        "common_epoch_ids": [
+          1,
+          2
+        ],
+        "comparable_anchor_floor": 1,
+        "comparable_epoch_floor": 2,
+        "slice_actual_start_ns": 60000000000,
+        "slice_nominal_start_ns": 60000000000
+      },
+      "fixture_id": "QF08",
+      "patches": [
+        {
+          "field": "trade_signed",
+          "index": 1500,
+          "value": -1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 1500,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3754,
+          "value": 3.0
+        }
+      ],
+      "purpose": "slice excludes an unrelated old directional update"
+    },
+    {
+      "expected": {
+        "anchor_id": "QF09:1:1:0:75000000000:3750",
+        "anchor_count": 1,
+        "outcome": {
+          "cause": "DEPTH_FOLLOWER_SAME",
+          "detail": "DEPLETION_AND_OFI_TIE",
+          "event_seq": 3753,
+          "latency_ms": 60,
+          "ts_ns": 75060000000
+        }
+      },
+      "fixture_id": "QF09",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3753,
+          "value": 3.0
+        },
+        {
+          "field": "ofi",
+          "index": 3753,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3753,
+          "value": 1.0
+        }
+      ],
+      "purpose": "depletion and OFI jointly satisfy the follower cause"
+    },
+    {
+      "expected": {
+        "anchor_id": "QF10:1:1:0:75000000000:3750",
+        "anchor_count": 1,
+        "canonical_poison_array_sha_different": true,
+        "consumed_value_access_count": 18,
+        "forbidden_value_access_count": 0,
+        "poison_field": "qualification_poison",
+        "structural_package_equal": true
+      },
+      "fixture_id": "QF10",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3754,
+          "value": 3.0
+        }
+      ],
+      "poison_mutation": {
+        "field": "qualification_poison",
+        "rule": "poison[index] = index XOR 11936128518282651045"
+      },
+      "purpose": "unconsumed value poison"
+    },
+    {
+      "expected": {
+        "anchor_count": 0,
+        "negative_probe_ids": [
+          "QF11_MISSING_ARTIFACT",
+          "QF11_EXTRA_ARTIFACT",
+          "QF11_REORDERED_MANIFEST"
+        ]
+      },
+      "fixture_id": "QF11",
+      "patches": [],
+      "purpose": "package path and lineage hostile mutations"
+    },
+    {
+      "expected": {
+        "anchor_id": "QF12:1:1:0:75000000000:3750",
+        "negative_probe_ids": [
+          "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION",
+          "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION"
+        ],
+        "slice_actual_start_ns": 60000000000,
+        "slice_nominal_start_ns": 60000000000
+      },
+      "fixture_id": "QF12",
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        }
+      ],
+      "purpose": "slice worker interruption closure"
+    },
+    {
+      "expected": {
+        "anchor_id": "QF13:1:1:0:75000000000:3750",
+        "anchor_time_input_mismatch_count": 0,
+        "causal_access_violation_count": 0,
+        "mutated_domain_start_exclusive_ns": 75000000000
+      },
+      "fixture_id": "QF13",
+      "mutation_fields": [
+        "activity",
+        "ask_depletion",
+        "ask_depth",
+        "bid_depletion",
+        "bid_depth",
+        "midpoint",
+        "obi",
+        "ofi",
+        "ofi_abs",
+        "spread_ticks",
+        "tick_size",
+        "trade_signed",
+        "trade_total"
+      ],
+      "patches": [
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        }
+      ],
+      "post_anchor_mutation": {
+        "formulas": {
+          "activity": "2.0 + float(i % 3)",
+          "ask_depletion": "1.0 + float(i % 5)",
+          "ask_depth": "120.0 + float(i % 7)",
+          "bid_depletion": "0.5 + float(i % 3)",
+          "bid_depth": "80.0 + float(i % 11)",
+          "midpoint": "100.0 + 0.001 * float(i - 3750)",
+          "obi": "0.25 if i % 2 == 0 else -0.25",
+          "ofi": "1.0 if i % 2 == 0 else -1.0",
+          "ofi_abs": "2.0",
+          "spread_ticks": "2.0 + float(i % 2)",
+          "tick_size": "0.5",
+          "trade_signed": "1.0 if i % 2 == 0 else -1.0",
+          "trade_total": "2.0"
+        },
+        "start": 3751,
+        "stop": 9000
+      },
+      "purpose": "causal prefix and typed time-domain access"
+    },
+    {
+      "expected": {
+        "anchor_id": "QF14:1:1:1:75000000000:3750",
+        "anchor_count": 1,
+        "cross_segment_carry_count": 0,
+        "epoch_dispositions": [
+          "eligible",
+          "eligible",
+          "eligible"
+        ],
+        "memory_at_index_3000": [
+          9,
+          9,
+          9
+        ],
+        "segment_boundary_index": 3000
+      },
+      "fixture_id": "QF14",
+      "patches": [
+        {
+          "field": "trade_signed",
+          "index": 2999,
+          "value": -1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 2999,
+          "value": 1.0
+        },
+        {
+          "field": "segment_id",
+          "start": 3000,
+          "stop": 9000,
+          "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        }
+      ],
+      "purpose": "segment reset removes pre-boundary directional memory"
+    },
+    {
+      "expected": {
+        "anchor_id": "QF15:1:1:1:75000000000:3750",
+        "anchor_count": 1,
+        "common_epoch_ids": [
+          1,
+          2
+        ],
+        "comparable_anchor_floor": 1,
+        "comparable_epoch_floor": 2,
+        "cross_segment_carry_count": 0,
+        "negative_probe_ids": [
+          "RESET_IDENTITY_MISMATCH",
+          "CROSS_SEGMENT_CARRY_NONZERO"
+        ],
+        "slice_actual_start_ns": 60000000000,
+        "slice_nominal_start_ns": 60000000000
+      },
+      "fixture_id": "QF15",
+      "patches": [
+        {
+          "field": "trade_signed",
+          "index": 2999,
+          "value": -1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 2999,
+          "value": 1.0
+        },
+        {
+          "field": "segment_id",
+          "start": 3000,
+          "stop": 9000,
+          "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 3744,
+          "value": 1.0
+        },
+        {
+          "field": "bid_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ask_depletion",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "ofi_abs",
+          "index": 3745,
+          "value": 1.0
+        },
+        {
+          "field": "trade_signed",
+          "index": 3750,
+          "value": 1.0
+        },
+        {
+          "field": "trade_total",
+          "index": 3750,
+          "value": 1.0
+        }
+      ],
+      "purpose": "full/slice reset identity after an exact epoch-boundary slice"
+    }
+  ],
+  "negative_probe_order": [
+    {
+      "error_code": "PACKAGE_PATH_SET_MISSING",
+      "probe_id": "QF11_MISSING_ARTIFACT"
+    },
+    {
+      "error_code": "PACKAGE_PATH_SET_EXTRA",
+      "probe_id": "QF11_EXTRA_ARTIFACT"
+    },
+    {
+      "error_code": "PACKAGE_LINEAGE_ORDER",
+      "probe_id": "QF11_REORDERED_MANIFEST"
+    },
+    {
+      "error_code": "SLICE_PUBLICATION_ABSENT",
+      "probe_id": "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION"
+    },
+    {
+      "error_code": "TERMINAL_CLOSURE_ABSENT",
+      "probe_id": "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION"
+    },
+    {
+      "error_code": "CAUSAL_ACCESS_BOUNDARY",
+      "probe_id": "QF13_CAUSAL_PREFIX_MUTATION"
+    },
+    {
+      "error_code": "SOURCE_PATH_KIND_SYMLINK",
+      "probe_id": "ROOT_SYMLINK"
+    },
+    {
+      "error_code": "PACKAGE_PATH_KIND_FIFO",
+      "probe_id": "ARTIFACT_FIFO"
+    },
+    {
+      "error_code": "PACKAGE_CANONICAL_JSON",
+      "probe_id": "NONCANONICAL_JSON"
+    },
+    {
+      "error_code": "PACKAGE_CANONICAL_CSV",
+      "probe_id": "NONCANONICAL_CSV"
+    },
+    {
+      "error_code": "PACKAGE_LINEAGE_HASH",
+      "probe_id": "SYNCHRONIZED_LINEAGE_MUTATION"
+    },
+    {
+      "error_code": "RESET_IDENTITY_MISMATCH",
+      "probe_id": "RESET_IDENTITY_MISMATCH"
+    },
+    {
+      "error_code": "CROSS_SEGMENT_CARRY_NONZERO",
+      "probe_id": "CROSS_SEGMENT_CARRY_NONZERO"
+    }
+  ],
+  "schema_version": 1
+}

@@ -8,15 +8,32 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_2_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
 
+Frozen parent identity:
+
+```text
+commit:
+  bbcb1bba1d48dc00f59bbbc21f502edbd6df56fb
+
+SHA256:
+  8e51ce3c278a4da5e94d30e5443b89dd03c43e28bed673165dbb6514a81f8b62
+
+Git blob:
+  06d24e91589cc1e112e084ebba0c347c54ce5ca3
+```
+
+Any parent-protocol byte drift fails before implementation or formal
+qualification.
+
 ## 1. Purpose
 
-This task qualifies the exact software path intended for the later A-1a and
-A-1b structural studies without opening the formal historical cache root.
+This task qualifies the shared causal feature, anchor, structural-outcome,
+slice and package core intended for later structural studies without opening
+the formal historical cache root.
 
 It addresses the observed predecessor failure mode:
 
@@ -26,6 +43,11 @@ formal one-shot execution was used as an integration test
 -> a hidden `_features` dependency was absent
 -> the scientific attempt terminated before publication
 ```
+
+Q0 does not qualify A-1a control matching, overlap, folds or support gates. It
+does not qualify A-1b model fitting, permutation, bootstrap or statistical
+classification. Each later stage requires a separate qualification of those
+stage-specific entry points.
 
 Q0 does not test market support and cannot produce a scientific
 classification.
@@ -73,8 +95,10 @@ This module owns the functions intended for later scientific execution:
 
 ```text
 build_features
-analyze_features
-analyze_cache
+build_anchor_frame
+finalize_anchor_availability
+label_structural_outcomes
+analyze_cache_in_stage
 materialize_slice
 compare_slice
 build_raw_package
@@ -82,8 +106,23 @@ seal_package
 verify_package
 ```
 
-The Q0 runner and later A-1 tasks must call these functions directly.
-Test-only reimplementation is prohibited.
+The stage entry points are distinct:
+
+```text
+A_MINUS1A:
+  build_features
+  -> build_anchor_frame
+  -> finalize_anchor_availability
+
+A_MINUS1B:
+  accepted frozen anchor manifest
+  + build_features
+  -> label_structural_outcomes
+```
+
+`A_MINUS1A` cannot call `label_structural_outcomes`. The Q0 runner and later
+tasks must call these functions directly. Test-only reimplementation is
+prohibited.
 
 ### 3.2 Q0 runner
 
@@ -103,7 +142,9 @@ examples/hyperliquid/
 ```
 
 The verifier must reconstruct package hashes, schemas, fixture expectations
-and A/B/P identities without trusting the runner's PASS field.
+and A/B/P identities without trusting the runner's PASS field. It reads the
+frozen fixture truth authority directly and independently checks physical
+fixture arrays, not only runner-produced summaries.
 
 ### 3.4 Tests
 
@@ -116,6 +157,42 @@ Tests may construct fixtures but must invoke the production core for every
 scientific-state transition and package operation.
 
 ## 4. Bound Authorities
+
+### 4.1 Fixture truth authority
+
+The independent machine-readable oracle is:
+
+```text
+.workflow/contracts/0831T001-fixture-truth-v1.json
+
+SHA256:
+  f032af2f19888cb2198d1fa376222dbc58e1cf964956e2277140562540a8053a
+
+Git blob:
+  8e17ce239a98095d96f41af61eb1633ce1c123b7
+```
+
+It freezes:
+
+```text
+clock and default arrays
+exact patch coordinates and values
+fixture order
+expected anchor identity
+expected structural cause, detail and timestamp
+expected epoch dispositions
+exact slice starts and common epoch IDs
+non-vacuous comparison floors
+reset expectations
+negative-probe order and first error codes
+```
+
+The runner may not write or derive this authority. The verifier checks its
+tracked Git blob and SHA before opening any fixture output. Hostile tests must
+mutate the truth bytes and observed output independently; either mutation
+must fail closed.
+
+### 4.2 Accepted fixed-epoch authorities
 
 The new feature authority consumes exactly the raw fields registered in the
 master protocol:
@@ -169,30 +246,178 @@ medium threshold = 0.25
 Q0 freezes source path, Git blob and callable AST identities for every reused
 authority.
 
+The accepted authority identity is:
+
+```text
+commit:
+  f06eb5cb012cb62b2a778ad90d433c4083f9ba14
+
+source Git blob:
+  5672a8ca9f6d4ced2b2deaaf5689e2e7bb7935da
+
+source SHA256:
+  dfa8af1f4b8410370ec7ccd0bea30b63840ebe484d74446c8cbe2564918ac070
+
+source_preflight AST:
+  9089e2f348965c6601d23315be625f333558b688dda4318b034fff38d80d57a6
+
+channel_actions AST:
+  0dc86f04ff18fe490f6f7c2f6332acadc8d441c68deb798e4829bfae5d0277ab
+
+channel_memories AST:
+  5507a492a9984d0aec1f36ef16a9977ff2321af4c86e245fa3a0ddfe8c7e4df1
+
+epoch_support_ledger AST:
+  d76a80ef31b3f229eb23099f1f3b06cf6ab2e2a3f101a07c37c2286436f5b453
+```
+
 ## 5. Feature Contract
 
-`build_features(cache_path)` returns a typed `FeatureBundle`. Its arrays are
-explicit fields; no downstream function may rely on an undocumented
-dictionary key such as `_features`.
+### 5.1 Exact raw schema
+
+Every required raw field is row-aligned with identical length `n`:
+
+| Field | dtype | rank | domain |
+|---|---|---:|---|
+| `activity` | `float64` | 1 | finite, `>=0` |
+| `ask_depletion` | `float64` | 1 | finite, `>=0` |
+| `ask_depth` | `float64` | 1 | finite, `>=0` |
+| `bid_depletion` | `float64` | 1 | finite, `>=0` |
+| `bid_depth` | `float64` | 1 | finite, `>=0` |
+| `event_seq` | `int64` | 1 | strictly increasing |
+| `midpoint` | `float64` | 1 | finite, `>0` |
+| `obi` | `float64` | 1 | finite, `[-1,1]` |
+| `ofi` | `float64` | 1 | finite |
+| `ofi_abs` | `float64` | 1 | finite, `>=abs(ofi)` |
+| `ready` | `bool` | 1 | boolean |
+| `segment_id` | `int32` | 1 | nonnegative, contiguous runs |
+| `spread_ticks` | `float64` | 1 | finite, `>=1` |
+| `tick_size` | `float64` | 1 | finite, `>0` |
+| `trade_signed` | `float64` | 1 | finite |
+| `trade_total` | `float64` | 1 | finite, `>=abs(trade_signed)` |
+| `ts_ns` | `int64` | 1 | strictly increasing |
+| `valid_book` | `bool` | 1 | boolean |
+
+The only permitted extra field is:
+
+| Field | dtype | rank | use |
+|---|---|---:|---|
+| `qualification_poison` | `uint64` | 1 | schema-visible, value access prohibited |
+
+No scalar metadata is permitted in V1. Any missing, additional, wrong-rank,
+wrong-dtype, unequal-length or domain-invalid field fails at `SOURCE_SCHEMA`,
+`SOURCE_CLOCK` or `SOURCE_DOMAIN` before feature construction.
+
+`ts_ns` must follow the fixture authority's 20ms grid. `event_seq` is
+strictly increasing. Segment IDs may change only at a row boundary and may
+not return to a previously closed segment.
+
+The staged validator checks all 18 consumed fields before calling the
+accepted flow-only `source_preflight`; the accepted function is not treated
+as authority for OBI, spread, depth, midpoint, clock or segment validity.
+
+### 5.2 Canonical fixture serialization
+
+Fixture caches use canonical NPZ:
+
+```text
+ZIP_STORED
+entry order = ASCII field-name order
+entry name = <field>.npy
+ZIP timestamp = 1980-01-01 00:00:00
+create_system = 0
+external_attr = 0
+extra = empty
+comment = empty
+NumPy NPY version = 1.0
+allow_pickle = false
+```
+
+Canonical A and B cache bytes must match. QF10 P cache bytes must differ only
+through the `qualification_poison` NPY payload.
+
+### 5.3 Exact FeatureBundle schema
+
+`build_features(cache_path)` returns a frozen typed `FeatureBundle`. Its
+arrays are explicit attributes; no downstream function may rely on an
+undocumented dictionary key such as `_features`.
 
 The bundle contains:
 
 ```text
-raw causal arrays from the allowlist
-trade/depletion/OFI event masks
-100ms and 500ms signed ratios for all three channels
-base eligibility
-channel actions
-channel memories and ages
-trailing 1s realized volatility ending at the current checkpoint
+raw: the 18 consumed arrays, read-only, exact raw dtype
+event_masks: bool[n,3]
+ratios_100: float64[n,3]
+ratios_500: float64[n,3]
+base_eligible: bool[n]
+actions: int8[n,3]
+memories: int8[n,3]
+memory_ages_ms: int32[n,3]
+trailing_realized_volatility: float64[n]
+source_access_ledger: typed immutable rows
 ```
 
-Rolling windows reset at segment boundaries. A value requiring unavailable
-history is marked unavailable, never backfilled across a boundary.
+Ratio and volatility unavailability is exactly IEEE `NaN`. Unknown memory is
+exactly `9`; unknown age is exactly `-1`. No other sentinel is permitted.
 
-`analyze_features(bundle)` receives the bundle explicitly.
+Rolling windows are right-closed and left-open:
+
+```text
+(t-window, t]
+```
+
+They reset at segment boundaries. A value requiring unavailable history is
+`NaN`, never backfilled across a boundary.
+
+Every production function receives `FeatureBundle` explicitly.
 `compare_slice(full_bundle, full_analysis, slice_bundle, slice_analysis)`
 receives both bundles explicitly.
+
+### 5.4 Typed stage access boundary
+
+`build_anchor_frame` receives a `CausalView` that exposes, for anchor
+checkpoint `t`, directional and model-input arrays only at indices `<=t`.
+Every read records:
+
+```text
+call_id
+stage
+fixture_id
+anchor_ts_ns
+field
+minimum_index
+maximum_index
+authorization
+read_count
+```
+
+A read above `t` fails immediately with `CAUSAL_ACCESS_BOUNDARY`.
+
+`finalize_anchor_availability` receives a separate `AvailabilityView`. After
+`t` it may read only:
+
+```text
+ts_ns
+event_seq
+segment_id
+ready
+valid_book
+```
+
+`label_structural_outcomes` receives an `OutcomeView` only in
+`A_MINUS1B`. Q0 verifies this separate entry point, but A-1a cannot import or
+call it through its registered stage dispatcher.
+
+QF13 mutates every registered post-anchor non-availability field and requires
+both:
+
+```text
+anchor/model-input bytes unchanged
+causal access ledger maximum_index <= anchor_index
+```
+
+The negative probe directly attempts a future directional read through the
+same `CausalView` and must first fail `CAUSAL_ACCESS_BOUNDARY`.
 
 ## 6. Causal State Contract
 
@@ -228,8 +453,20 @@ is descriptive only and cannot satisfy the follower endpoint.
 
 ## 7. Deterministic Fixture Matrix
 
-Every fixture is one or two complete 60s epochs on the exact 20ms grid. The
-anchor is inside the fixed core unless the fixture tests exclusion.
+Every fixture is exactly three 60s epochs and 9,000 rows on the exact 20ms
+grid, as frozen in the fixture truth authority. The primary fixture anchor is
+at:
+
+```text
+index = 3750
+ts_ns = 75,000,000,000
+epoch_id = 1
+event_seq = 3750
+```
+
+The six leader-background checkpoints are indices `3744..3749`. Follower
+neutral memory is refreshed at index `3745`, so it is exactly 100ms old at
+the anchor and remains observable under the inherited inclusive TTL.
 
 | Fixture | Registered expectation |
 |---|---|
@@ -246,13 +483,50 @@ anchor is inside the fixed core unless the fixture tests exclusion.
 | QF11 | missing, extra and reordered artifact mutations are rejected |
 | QF12 | worker interruption before and after slice publication is rejected without terminal PASS |
 | QF13 | every post-anchor non-availability value mutation leaves anchor-time H0/H1 inputs unchanged |
+| QF14 | segment-boundary reset clears a pre-boundary opposite trade memory |
+| QF15 | full/slice reset state and cross-segment carry remain exact |
 
-Fixture truth is declared in a static table before execution. The runner may
-not derive expected labels from its own observed outputs.
+The JSON authority, not this prose table, is the fixture truth source. Its
+patches are applied in listed order. Each patch is either:
+
+```text
+point patch:
+  field, index, value
+
+half-open range patch:
+  field, start, stop, value
+```
+
+The verifier independently reconstructs the expected raw arrays from the
+authority and compares every element and dtype with each physical A/B/P
+cache. The runner may not derive expected labels from observed outputs.
+
+The expected anchor ID format is exact:
+
+```text
+<fixture_id>:<epoch_id>:<direction>:<segment_id>:<ts_ns>:<event_seq>
+```
+
+Hostile tests independently mutate:
+
+```text
+one fixture-truth byte
+one physical fixture value
+one observed anchor identity
+one observed structural cause
+```
+
+Each mutation must be rejected without changing the other surfaces.
 
 ## 8. Slice Contract
 
-QF07 and QF08 use deterministic artificial starts.
+QF07, QF08, QF12 and QF15 use:
+
+```text
+nominal_start_ns = 60,000,000,000
+actual_start_ns = 60,000,000,000
+segment_id = fixture-truth segment at index 3000
+```
 
 The materializer:
 
@@ -276,6 +550,23 @@ structural cause and event-time identity
 censor identity
 suppression counters
 ```
+
+The comparison universe is frozen:
+
+```text
+common_epoch_ids = [1,2]
+comparable_epoch_count >= 2
+comparable_anchor_count >= 1
+```
+
+The full and slice epoch dispositions for these IDs must be `eligible`.
+QF07/QF08/QF15 expected anchor identity is named in the truth authority.
+An empty common set, zero comparable anchors or a different epoch universe is
+`SLICE_IDENTITY_MISMATCH`, never a zero-mismatch pass.
+
+QF06 places its segment boundary at 121s, in the epoch after the anchor
+epoch. The anchor epoch therefore remains an accepted single-segment fixed
+epoch while the later boundary can exercise structural censoring.
 
 No analysis result may hide a required feature payload.
 
@@ -306,13 +597,55 @@ instrumented consumed-field access is exact
 unconsumed-field value access count = 0
 ```
 
-Fixture-cache hashes are kept in a separate qualification evidence layer so
-their intentional A/P difference cannot contaminate structural package
-identity.
+Build roots are exact:
+
+```text
+<attempt_root>/inputs/A
+<attempt_root>/inputs/B
+<attempt_root>/inputs/P
+<attempt_root>/builds/A
+<attempt_root>/builds/B
+<attempt_root>/builds/P
+```
+
+A and B are generated independently in separate spawned processes from the
+tracked truth authority. P is generated in a third process and applies only
+the registered QF10 poison rule.
+
+Every physical cache call produces typed evidence:
+
+```text
+build_label
+fixture_id
+unit_kind = FULL or SLICE
+call_index
+relative_input_path
+canonical_file_sha256
+canonical_array_sha256
+feature_output_sha256
+consumer_input_sha256
+consumed_field_count
+forbidden_field_count
+sender_process_id
+```
+
+Process IDs are evidence-only and excluded from deterministic structural
+package bytes.
+
+The field-access ledger names every consumed field and has no row for
+`qualification_poison`. The verifier independently opens each retained
+physical input, recomputes file/array hashes and checks that every production
+call is bound to the corresponding A, B or P root. A missing call, reused A
+path, copied A package without B/P calls, or mismatched input hash fails
+`BUILD_INPUT_BINDING`.
+
+Fixture-cache hashes and process evidence remain outside the structural
+subpackages whose A/B/P bytes are compared.
 
 ## 10. Package Contract
 
-Each production build contains:
+Each `builds/<label>/structural` directory contains exactly 11 regular,
+non-symlink files:
 
 ```text
 contracts/authority_binding.json
@@ -324,97 +657,363 @@ support/structural_outcomes.csv
 support/slice_invariance.csv
 support/model_inputs.csv
 raw_manifest.json
-```
-
-Sealing adds:
-
-```text
 qualification_summary.json
 sealed_manifest.json
 ```
 
-The terminal Q0 package adds:
+Each `builds/<label>/evidence` directory contains exactly five regular,
+non-symlink files:
 
 ```text
+input_inventory.csv
+feature_calls.csv
+field_accesses.csv
+slice_work.csv
+evidence_manifest.json
+```
+
+The terminal root contains exactly six additional regular, non-symlink
+files:
+
+```text
+contracts/formal_identity.json
+contracts/fixture_truth_binding.json
 abp_comparison.json
-negative_boundary_results.json
+negative_boundary_results.csv
 fixture_source_evidence.json
 terminal_manifest.json
 ```
 
-All JSON uses sorted keys, ASCII, compact separators and a trailing newline.
-All CSV files have fixed headers and deterministic row order. No timestamp,
-PID, temporary path or absolute worktree path may enter deterministic build
-bytes.
+The complete terminal artifact count is therefore:
+
+```text
+3 * (11 structural + 5 evidence) + 6 terminal = 54 files
+```
+
+No extra path, directory artifact, symlink, FIFO, socket or device is
+permitted below the package root.
+
+### 10.1 CSV schemas
+
+Schemas and sort keys are exact:
+
+```text
+support/fixture_summary.csv
+  fields:
+    fixture_id, expected_anchor_count, observed_anchor_count,
+    expected_cause, observed_cause, expected_event_ts_ns,
+    observed_event_ts_ns, passed
+  sort:
+    fixture authority order
+
+support/anchor_ledger.csv
+  fields:
+    fixture_id, anchor_id, epoch_id, segment_id, direction,
+    anchor_ts_ns, anchor_event_seq, dependence_cluster_id,
+    retained_rank, suppressed_count
+  sort:
+    fixture_id, anchor_ts_ns, anchor_event_seq, direction
+
+support/structural_outcomes.csv
+  fields:
+    fixture_id, anchor_id, cause, detail, event_ts_ns,
+    event_seq, latency_ms, censor_reason
+  sort:
+    fixture_id, anchor_id
+
+support/slice_invariance.csv
+  fields:
+    fixture_id, nominal_start_ns, actual_start_ns,
+    common_epoch_ids_json, comparable_epoch_count,
+    comparable_anchor_count, expected_identity_sha256,
+    observed_identity_sha256, mismatch_reason
+  sort:
+    fixture_id, nominal_start_ns
+
+support/model_inputs.csv
+  fields:
+    fixture_id, anchor_id, input_name, canonical_value,
+    causal_max_index, access_count
+  sort:
+    fixture_id, anchor_id, input_name
+
+evidence/input_inventory.csv
+  fields:
+    build_label, fixture_id, relative_path, canonical_file_sha256,
+    canonical_array_sha256, size_bytes, poison_status
+  sort:
+    build_label, fixture_id
+
+evidence/feature_calls.csv
+  fields:
+    build_label, call_index, fixture_id, unit_kind,
+    relative_input_path, canonical_file_sha256,
+    feature_output_sha256, consumer_input_sha256,
+    consumed_field_count, forbidden_field_count, sender_process_id
+  sort:
+    build_label, call_index
+
+evidence/field_accesses.csv
+  fields:
+    build_label, call_index, stage, fixture_id, anchor_ts_ns,
+    field, minimum_index, maximum_index, authorization, read_count
+  sort:
+    build_label, call_index, stage, anchor_ts_ns, field,
+    minimum_index, maximum_index
+
+evidence/slice_work.csv
+  fields:
+    build_label, fixture_id, slice_ordinal, relative_path,
+    nominal_start_ns, actual_start_ns, canonical_file_sha256,
+    publication_state
+  sort:
+    build_label, fixture_id, slice_ordinal
+
+negative_boundary_results.csv
+  fields:
+    probe_ordinal, probe_id, expected_first_error,
+    observed_first_error, verifier_exit_code, passed
+  sort:
+    probe_ordinal
+```
+
+Empty optional values use the ASCII token `NONE`. Booleans use only
+`true/false`. Integers have no decimal point. Finite floats use Python
+`repr(float)` and non-finite values are prohibited in package CSV.
+
+### 10.2 JSON and manifest contract
+
+All JSON uses sorted keys, ASCII, compact separators and one trailing
+newline. All CSV uses the registered headers, ASCII and `\n`.
+
+Manifest preimages are exact:
+
+```text
+raw_manifest.json:
+  hashes the eight contract/support files before itself
+
+sealed_manifest.json:
+  hashes the eight contract/support files, raw_manifest.json and
+  qualification_summary.json; excludes itself
+
+evidence_manifest.json:
+  hashes the four evidence CSV files; excludes itself
+
+terminal_manifest.json:
+  hashes all 53 preceding package files; excludes itself
+```
+
+Manifest rows are sorted by relative ASCII path and contain exactly:
+
+```text
+path
+size_bytes
+sha256
+```
+
+No timestamp, PID, absolute path or temporary root may enter structural
+bytes. PID and exact roots appear only in evidence/formal identity surfaces.
 
 ## 11. Negative Boundaries
 
-Every negative mutation declares one exact first error code.
-
-At minimum:
+The full formal negative set and first errors are:
 
 ```text
 QF11_MISSING_ARTIFACT
+  -> PACKAGE_PATH_SET_MISSING
+
 QF11_EXTRA_ARTIFACT
+  -> PACKAGE_PATH_SET_EXTRA
+
 QF11_REORDERED_MANIFEST
+  -> PACKAGE_LINEAGE_ORDER
+
 QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION
+  -> SLICE_PUBLICATION_ABSENT
+
 QF12_INTERRUPT_AFTER_SLICE_PUBLICATION
+  -> TERMINAL_CLOSURE_ABSENT
+
 QF13_CAUSAL_PREFIX_MUTATION
-FORBIDDEN_FIELD_READ
-FEATURE_SCHEMA_MISMATCH
-SLICE_IDENTITY_MISMATCH
-AB_DIFFERENCE
-AP_DIFFERENCE
+  -> CAUSAL_ACCESS_BOUNDARY
+
+ROOT_SYMLINK
+  -> SOURCE_PATH_KIND_SYMLINK
+
+ARTIFACT_FIFO
+  -> PACKAGE_PATH_KIND_FIFO
+
+NONCANONICAL_JSON
+  -> PACKAGE_CANONICAL_JSON
+
+NONCANONICAL_CSV
+  -> PACKAGE_CANONICAL_CSV
+
+SYNCHRONIZED_LINEAGE_MUTATION
+  -> PACKAGE_LINEAGE_HASH
+
+RESET_IDENTITY_MISMATCH
+  -> RESET_IDENTITY_MISMATCH
+
+CROSS_SEGMENT_CARRY_NONZERO
+  -> CROSS_SEGMENT_CARRY_NONZERO
 ```
 
-A negative probe passes only when the verifier rejects it at the registered
-first boundary. A generic later failure is not sufficient.
+Verifier gate precedence is the exact `error_precedence` array in the fixture
+truth authority. After the first failed gate, every later gate is
+`NOT_EVALUATED`.
+
+The verifier CLI emits one canonical JSON object to stdout:
+
+```text
+schema_version
+qualification_id
+package_root
+result
+first_error
+gate_rows
+verified_file_count
+```
+
+Exit codes are exact:
+
+```text
+0 = PASS
+2 = registered verification failure
+3 = invocation or internal verifier error
+```
+
+A negative probe passes only when exit code is `2`, `first_error` equals the
+registered code, all earlier gates are `PASS` and all later gates are
+`NOT_EVALUATED`. A generic later failure is insufficient.
 
 ## 12. Formal Run
 
 Development tests may be repeated before implementation freeze. After
-independent implementation readiness passes, the formal Q0 command runs once:
+implementation is committed, independent readiness first runs the complete
+qualification in a detached worktree:
 
 ```text
-python examples/hyperliquid/\
-skhynix_trade_led_depth_follower_q0_pipeline_qualification.py \
-  --output-root <fresh temporary root>
+readiness worktree:
+  /Users/liu/Documents/hftbacktest-0831t001-q0-readiness
+
+readiness output:
+  /Users/liu/Documents/hftbacktest-0831t001-q0-readiness-output
 ```
 
-The independent verifier then runs:
+This happens before claim consumption. It is repeatable software readiness,
+not the formal Q0 attempt. The readiness worktree checks out the exact
+implementation commit in detached state, regenerates the synthetic package,
+runs the verifier and compares package bytes with the primary implementation
+workspace readiness package.
+
+Formal identities are:
 
 ```text
-python examples/hyperliquid/\
-skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py \
-  --package-root <formal package root>
+implementation tag:
+  skhynix-trade-led-depth-follower-q0-implementation-v1
+
+consumption tag:
+  skhynix-trade-led-depth-follower-q0-consumed-v1
+
+terminal tag:
+  skhynix-trade-led-depth-follower-q0-terminal-v1
+
+armed claim:
+  .workflow/attempt-claims/0831T001.armed.json
+
+claimed path:
+  .workflow/attempt-claims/0831T001.claimed.json
+
+terminal receipt:
+  .workflow/attempt-receipts/0831T001.terminal.json
+
+attempt root:
+  /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1
+
+package root:
+  /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package
+
+controller bare repository:
+  /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git
+
+controller ref:
+  refs/heads/codex/0831T001-controller-ledger
 ```
 
-The accepted package is copied byte-for-byte to:
+Before any formal fixture is generated:
+
+```text
+the armed claim binds:
+  implementation commit and tag
+  parent/master/plan/task/truth/runner/verifier/tests hashes
+  exact cwd, roots and argv
+  zero historical/outcome authorization
+
+the claim is atomically renamed armed -> claimed
+the no-replace attempt root and O_EXCL attempt-lock are created
+the consumption commit and annotated tag are created
+the local controller ref moves from absent to consumption commit exactly once
+```
+
+The exact formal cwd is:
+
+```text
+/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol
+```
+
+The exact formal argv is:
+
+```text
+python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py --formal --claim .workflow/attempt-claims/0831T001.armed.json --attempt-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1
+```
+
+The runner consumes the armed claim before generating fixtures; the path
+argument remains the pre-consumption authority named by the claim and is
+renamed by the runner.
+
+After the formal producer stops, the only permitted package command is:
+
+```text
+python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package
+```
+
+No post-formal regeneration is permitted. If the verifier passes, the exact
+54 package files are copied byte-for-byte, without regeneration, to:
 
 ```text
 baselines/skhynix_trade_led_depth_follower_q0_v1/
 ```
 
-and verified again in a fresh detached worktree from the implementation
-commit.
+The baseline copy is checked against the accepted formal
+`terminal_manifest.json`. The terminal receipt, terminal commit/tag and
+controller-ref transition are then created.
 
 ## 13. Acceptance
 
 Q0 passes only if all hold:
 
 ```text
-all 13 fixture expectations match
+all 15 fixture expectations match
+fixture truth Git/SHA binding exact
+physical fixture arrays independently match truth
 all registered negative probes fail at their exact first boundary
 full/slice mismatch count = 0
+comparable epoch and anchor floors are nonzero and satisfied
 hidden feature-payload dependency count = 0
 A/B raw and sealed difference counts = 0
 A/P raw and sealed difference counts = 0
+all A/B/P physical inputs and calls are independently bound
 forbidden raw value access count = 0
 causal-prefix mismatch count = 0
+causal future-read count = 0
+cross-segment carry count = 0
 terminal verifier PASS
 focused tests PASS
 accepted fixed-epoch regression PASS
-fresh detached-worktree regeneration and verification PASS
+pre-consumption fresh detached-worktree readiness PASS
+formal package file count = 54
+baseline bytes equal the accepted formal package
 ```
 
 The terminal classification is exactly one of:
@@ -456,7 +1055,9 @@ candidate plan/task commit
 -> independent plan review
 -> implementation
 -> independent implementation readiness
+-> armed claim and implementation tag
 -> one formal Q0 run
+-> terminal verifier
 -> independent QA
 -> workflow closure
 ```
@@ -477,3 +1078,74 @@ QA writes the latest result to:
 .workflow/reports/0831T001-qa.md
 docs/qa-acceptance-report.md
 ```
+
+## 16. Exact Gate Ownership
+
+Formal gate order is:
+
+```text
+Q0-0:
+  source roots, path kinds, tracked authority bindings and claim
+
+Q0-1:
+  raw schema, clock, domain and canonical fixture truth
+
+Q0-2:
+  FeatureBundle schema and source field access
+
+Q0-3:
+  A_MINUS1A causal access boundary and anchor contract
+
+Q0-4:
+  A_MINUS1B outcome access boundary and structural cause contract
+
+Q0-5:
+  slice publication, reset and non-vacuous identity
+
+Q0-6:
+  A/B/P physical input and consumer binding
+
+Q0-7:
+  A/B and A/P structural byte identity
+
+Q0-8:
+  package path set, schemas, canonical bytes and lineage
+
+Q0-9:
+  registered hostile mutation first-error matrix
+
+Q0-10:
+  terminal closure
+```
+
+If gate `Q0-k` fails:
+
+```text
+Q0-0..Q0-(k-1) = PASS
+Q0-k = FAIL
+Q0-(k+1)..Q0-10 = NOT_EVALUATED
+classification = Q0_PIPELINE_NOT_QUALIFIED
+```
+
+No later package or report failure may rewrite an earlier observed gate.
+
+## 17. Prohibited Self-Proof
+
+The following are explicitly insufficient:
+
+```text
+runner PASS consumed as verifier truth
+tests importing runner expected rows
+verifier importing runner fixture generator
+verifier trusting runner input SHA fields without opening physical inputs
+B/P copying A structural package without independent calls
+zero slice mismatches with an empty comparable universe
+output invariance without typed access evidence
+manifest validation that trusts its own listed path set
+fresh-worktree verification performed only after the one-shot attempt
+```
+
+The verifier may import canonical serialization helpers from the structural
+core only if their normalized AST identity is frozen and hostile tests
+independently reject non-canonical bytes. It may not import fixture
+generation, expected-output or runner orchestration functions.

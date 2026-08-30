@@ -1,17 +1,21 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Candidate Registered
+## 2026-08-31 0831T001 Q0 Revision 2 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
 - Registered `0831T001` as a non-scientific Q0 pipeline qualification task.
-- The candidate Q0 plan freezes QF01-QF13, explicit feature-bundle passing,
-  fixed-epoch authority reuse, A/B/P closure, exact negative boundaries and
-  fresh-worktree reproduction.
+- Revision 1 independent review failed at `P0/P1/P2/P3=0/7/3/0`; historical
+  cache and outcome access remained `NONE`.
+- Registered the master protocol at commit `bbcb1bba` and narrowed Q0 to the
+  shared causal/structural core rather than complete A-1a/A-1b qualification.
+- Revision 2 freezes QF01-QF15 in a tracked machine-readable truth authority,
+  exact schemas, typed stage access, non-vacuous slice/reset support, A/B/P
+  physical consumer binding and exact one-shot provenance.
 - The master protocol now makes the inherited 100ms causal channel memory
   explicit; thresholds and scientific hypothesis are unchanged.
 - No formal historical cache or future outcome is authorized.
-- Implementation is locked pending independent plan review.
+- Implementation is locked pending independent Revision 2 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

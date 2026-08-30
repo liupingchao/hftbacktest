@@ -14,6 +14,16 @@
   invariance impossible by construction.
 - Q0 is software evidence only. Its fixture truth cannot be interpreted as
   market support.
+- Revision 1 was independently rejected at `0/7/3/0`: natural-language
+  fixture truth, output-only causal invariance, potentially empty slice
+  comparison and package equality without physical input binding were not
+  sufficient.
+- Revision 2 separates A-1a causal access from A-1b outcome access. The former
+  can read future availability only through a dedicated view; future
+  directional access fails at the access boundary.
+- Fresh-worktree regeneration is readiness before claim consumption.
+  Post-formal activity is verifier-only plus byte-for-byte baseline
+  publication, avoiding an implicit second formal run.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 
