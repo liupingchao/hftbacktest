@@ -799,6 +799,8 @@ def typed_csv_rows(path: Path, relative: str) -> list[dict[str, Any]]:
                 row[field] = None
             elif field == "maximum_memory_age_ms":
                 row[field] = parse_csv_int(text, field, minimum=-1)
+            elif field == "direction":
+                row[field] = parse_csv_int(text, field, minimum=-1)
             elif field.endswith("_sha256") or field in {
                 "candidate_id",
                 "retained_candidate_id",
@@ -900,9 +902,24 @@ def validate_csv_semantics(relative: str, rows: list[dict[str, Any]]) -> None:
             "trigger_rows_sort",
         )
         for row in rows:
+            expected_candidate_id = canonical_sha(
+                [
+                    row["capture_id"],
+                    row["variant"],
+                    row["epoch_id"],
+                    row["segment_id"],
+                    row["direction"],
+                    row["candidate_ts_ns"],
+                    row["candidate_event_seq"],
+                ]
+            )
             require(
                 row["variant"] in VARIANTS
                 and row["direction"] in DIRECTIONS
+                and row["segment_id"] is not None
+                and row["candidate_id"] == expected_candidate_id
+                and row["dependence_cluster_id"]
+                == f"{row['capture_id']}:{row['epoch_id']}"
                 and row["leader_channel"] in CHANNELS
                 and row["confirmation_status"] in {"CONFIRMED", "CANCELLED"}
                 and (
@@ -966,6 +983,38 @@ def validate_csv_semantics(relative: str, rows: list[dict[str, Any]]) -> None:
                 for row in rows
             ),
             "slice_rows_semantics",
+        )
+
+
+def validate_candidate_links(tables: Mapping[str, list[dict[str, Any]]]) -> None:
+    trigger_rows = tables["support/trigger_ledger.csv"]
+    retained_by_key = {
+        (
+            row["research_date"],
+            row["capture_id"],
+            row["epoch_id"],
+            row["variant"],
+            row["direction"],
+        ): row["candidate_id"]
+        for row in trigger_rows
+    }
+    require(
+        len(retained_by_key) == len(trigger_rows),
+        "trigger_candidate_key_unique",
+    )
+    for row in tables["support/epoch_variant_counters.csv"]:
+        key = (
+            row["research_date"],
+            row["capture_id"],
+            row["epoch_id"],
+            row["variant"],
+            row["direction"],
+        )
+        expected_retained = retained_by_key.get(key)
+        require(
+            row["retained_candidate_id"] == expected_retained
+            and row["retained_count"] == int(expected_retained is not None),
+            "counter_retained_candidate_identity",
         )
 
 
@@ -1303,6 +1352,7 @@ def validate_final_root(root: Path, context: Mapping[str, Any]) -> dict[str, Any
         tables[relative] = typed_csv_rows(root / relative, relative)
 
     inventory = tables["support/source_cache_inventory.csv"]
+    validate_candidate_links(tables)
     authority = payloads["contracts/authority_binding.json"]
     tracked_paths = (
         IDEA_PATH,

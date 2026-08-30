@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import csv
 import json
 import os
 import subprocess
@@ -1309,6 +1310,483 @@ def test_verifier_v00_rejects_tag_alias_before_resolution(tmp_path: Path) -> Non
     }
     with pytest.raises(VERIFIER.VerificationError, match="verifier_frozen_tags"):
         VERIFIER.check_v00(context)
+
+
+def write_typed_csv_row(
+    path: Path,
+    relative: str,
+    overrides: dict[str, str],
+) -> None:
+    header = VERIFIER.CSV_HEADERS[relative]
+    row: dict[str, str] = {}
+    for field in header:
+        if field in VERIFIER.CSV_BOOL_FIELDS:
+            row[field] = "False"
+        elif field in VERIFIER.CSV_JSON_FIELDS:
+            row[field] = "[]"
+        elif field in VERIFIER.CSV_OPTIONAL_FIELDS:
+            row[field] = ""
+        elif field.endswith("_sha256") or field in {
+            "candidate_id",
+            "retained_candidate_id",
+        }:
+            row[field] = "a" * 64
+        elif field in VERIFIER.CSV_TEXT_FIELDS:
+            row[field] = "x"
+        else:
+            row[field] = "0"
+    row.update(overrides)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="ascii") as handle:
+        writer = csv.DictWriter(handle, fieldnames=header, lineterminator="\n")
+        writer.writeheader()
+        writer.writerow(row)
+
+
+def canonical_trigger_row(
+    tmp_path: Path,
+) -> tuple[dict[str, object], dict[str, object]]:
+    candidate = VERIFIER.canonical_sha(
+        ["fixture", "TRADE_LED", 0, 0, -1, 30_200_000_000, 1510]
+    )
+    trigger_path = tmp_path / "trigger.csv"
+    write_typed_csv_row(
+        trigger_path,
+        "support/trigger_ledger.csv",
+        {
+            "research_date": "2026-08-30",
+            "capture_id": "fixture",
+            "variant": "TRADE_LED",
+            "epoch_id": "0",
+            "segment_id": "0",
+            "direction": "-1",
+            "candidate_id": candidate,
+            "candidate_ts_ns": "30200000000",
+            "candidate_event_seq": "1510",
+            "dependence_cluster_id": "fixture:0",
+            "leader_channel": "trade",
+            "confirmation_status": "CONFIRMED",
+            "cancel_reason": "none",
+        },
+    )
+    counter_path = tmp_path / "counter.csv"
+    write_typed_csv_row(
+        counter_path,
+        "support/epoch_variant_counters.csv",
+        {
+            "research_date": "2026-08-30",
+            "capture_id": "fixture",
+            "variant": "TRADE_LED",
+            "direction": "-1",
+            "retained_count": "1",
+            "confirmed_count": "1",
+            "retained_candidate_id": candidate,
+        },
+    )
+    trigger = VERIFIER.typed_csv_rows(trigger_path, "support/trigger_ledger.csv")[0]
+    counter = VERIFIER.typed_csv_rows(
+        counter_path, "support/epoch_variant_counters.csv"
+    )[0]
+    return trigger, counter
+
+
+def test_verifier_accepts_negative_direction_and_canonical_candidate(
+    tmp_path: Path,
+) -> None:
+    trigger, counter = canonical_trigger_row(tmp_path)
+    assert trigger["direction"] == -1
+    assert counter["direction"] == -1
+    VERIFIER.validate_candidate_links(
+        {
+            "support/trigger_ledger.csv": [trigger],
+            "support/epoch_variant_counters.csv": [counter],
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("candidate_id", "0" * 64),
+        ("dependence_cluster_id", "wrong:0"),
+    ],
+)
+def test_verifier_rejects_noncanonical_trigger_identity(
+    tmp_path: Path,
+    field: str,
+    value: str,
+) -> None:
+    trigger, _ = canonical_trigger_row(tmp_path)
+    trigger[field] = value
+    with pytest.raises(VERIFIER.VerificationError, match="trigger_rows_domain"):
+        VERIFIER.validate_csv_semantics("support/trigger_ledger.csv", [trigger])
+
+
+def test_verifier_rejects_counter_candidate_link_mutation(tmp_path: Path) -> None:
+    trigger, counter = canonical_trigger_row(tmp_path)
+    counter["retained_candidate_id"] = "0" * 64
+    with pytest.raises(
+        VERIFIER.VerificationError,
+        match="counter_retained_candidate_identity",
+    ):
+        VERIFIER.validate_candidate_links(
+            {
+                "support/trigger_ledger.csv": [trigger],
+                "support/epoch_variant_counters.csv": [counter],
+            }
+        )
+
+
+def write_ascii(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="ascii")
+
+
+def write_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(VERIFIER.pretty_json_bytes(payload))
+
+
+def test_production_v01_rejects_runner_artifact_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    init_git_repo(tmp_path)
+    idea = "idea\n"
+    plan = "plan\n"
+    runner = "import numpy as np\ndef raw_onset_indices():\n    return np.load('x')\n"
+    for path, content in (
+        (VERIFIER.IDEA_PATH, idea),
+        (VERIFIER.PLAN_PATH, plan),
+        (VERIFIER.TASK_PATH, "task\n"),
+        (VERIFIER.RUNNER_PATH, runner),
+        (VERIFIER.VERIFIER_PATH, "verifier\n"),
+        (VERIFIER.TEST_PATH, "tests\n"),
+    ):
+        write_ascii(tmp_path / path, content)
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "implementation"], cwd=tmp_path, check=True
+    )
+    head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True
+    ).strip()
+    monkeypatch.setattr(
+        VERIFIER, "IDEA_SHA256", VERIFIER.sha256_file(tmp_path / VERIFIER.IDEA_PATH)
+    )
+    monkeypatch.setattr(
+        VERIFIER, "PLAN_SHA256", VERIFIER.sha256_file(tmp_path / VERIFIER.PLAN_PATH)
+    )
+    with pytest.raises(
+        VERIFIER.VerificationError,
+        match="successor_np_load_callsite",
+    ):
+        VERIFIER.check_v01({"repo_root": tmp_path, "implementation_head": head})
+
+
+def test_production_v02_rejects_terminal_git_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    init_git_repo(tmp_path)
+    implementation, consumption, _ = commit_claim_transition(tmp_path)
+    write_json(tmp_path / VERIFIER.TERMINAL_RECEIPT_PATH, {"mutated": True})
+    subprocess.run(
+        ["git", "add", VERIFIER.TERMINAL_RECEIPT_PATH.as_posix()],
+        cwd=tmp_path,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "wrong terminal message"],
+        cwd=tmp_path,
+        check=True,
+    )
+    terminal = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True
+    ).strip()
+    for tag, head in (
+        (VERIFIER.IMPLEMENTATION_TAG, implementation),
+        (VERIFIER.CONSUMPTION_TAG, consumption),
+        (VERIFIER.TERMINAL_TAG, terminal),
+    ):
+        subprocess.run(
+            ["git", "tag", "-a", tag, "-m", tag, head],
+            cwd=tmp_path,
+            check=True,
+        )
+    with pytest.raises(
+        VERIFIER.VerificationError,
+        match="terminal_commit_message",
+    ):
+        VERIFIER.check_v02(
+            {
+                "repo_root": tmp_path,
+                "implementation_head": implementation,
+                "consumption_head": consumption,
+                "terminal_head": terminal,
+                "implementation_tag": VERIFIER.IMPLEMENTATION_TAG,
+                "consumption_tag": VERIFIER.CONSUMPTION_TAG,
+                "terminal_tag": VERIFIER.TERMINAL_TAG,
+            }
+        )
+
+
+def test_production_v03_rejects_claim_artifact_mutation(tmp_path: Path) -> None:
+    attempt = tmp_path / "attempt"
+    attempt.mkdir()
+    identity_sha = "a" * 64
+    claim = {
+        "schema_version": 1,
+        "task_id": VERIFIER.TASK_ID,
+        "attempt_id": "attempt",
+        "implementation_tag": VERIFIER.IMPLEMENTATION_TAG,
+        "formal_argv": ["mutated"],
+        "repo_root": str(tmp_path),
+        "source_cache_root": str(tmp_path / "source"),
+        "attempt_root": str(attempt),
+        "idea_sha256": VERIFIER.IDEA_SHA256,
+        "plan_sha256": VERIFIER.PLAN_SHA256,
+        "task_sha256": identity_sha,
+        "runner_sha256": identity_sha,
+        "verifier_sha256": identity_sha,
+        "tests_sha256": identity_sha,
+        "controller_remote": VERIFIER.CONTROLLER_REMOTE,
+        "controller_url": VERIFIER.CONTROLLER_URL,
+        "controller_ref": VERIFIER.CONTROLLER_REF,
+        "status": "ARMED_FOR_SINGLE_USE",
+    }
+    write_json(tmp_path / VERIFIER.CLAIMED_PATH, claim)
+    identities = {
+        path.as_posix(): {"sha256": identity_sha}
+        for path in (
+            VERIFIER.TASK_PATH,
+            VERIFIER.RUNNER_PATH,
+            VERIFIER.VERIFIER_PATH,
+            VERIFIER.TEST_PATH,
+        )
+    }
+    with pytest.raises(VERIFIER.VerificationError, match="claim_formal_argv"):
+        VERIFIER.check_v03(
+            {
+                "repo_root": tmp_path,
+                "attempt_root": attempt,
+                "consumption_head": "b" * 40,
+                "implementation_identities": identities,
+            }
+        )
+
+
+def test_production_v04_rejects_attempt_child_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    attempt = tmp_path / "attempt"
+    attempt.mkdir()
+    write_ascii(attempt / "unexpected", "mutation\n")
+    with pytest.raises(VERIFIER.VerificationError, match="attempt_children"):
+        VERIFIER.check_v04({"attempt_root": attempt})
+
+
+def test_production_v05_rejects_work_manifest_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    attempt = tmp_path / "attempt"
+    attempt.mkdir()
+    write_json(
+        attempt / "work-manifest.json",
+        {
+            "schema_version": 2,
+            "attempt_id": "attempt",
+            "row_count": 0,
+            "per_build_slice_count": 0,
+            "rows": [],
+            "tree_sha256": VERIFIER.canonical_sha([]),
+        },
+    )
+    with pytest.raises(
+        VERIFIER.VerificationError,
+        match="work_manifest_values",
+    ):
+        VERIFIER.check_v05(
+            {"attempt_root": attempt, "claim": {"attempt_id": "attempt"}}
+        )
+
+
+def test_production_v06_rejects_poison_attestation_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    attempt = tmp_path / "attempt"
+    attempt.mkdir()
+    write_json(
+        attempt / "poison-attestation.json",
+        {
+            "task_id": "mutated",
+            "hypothesis_id": "FIXED_CAUSAL_EPOCH_MSTATE_V2",
+            "poison_output_root": str((attempt / "poison_p").resolve()),
+            "source_inventory_sha256": "a" * 64,
+            "cache_count": 29,
+            "unconsumed_fields": list(VERIFIER.UNCONSUMED_FIELDS),
+            "unconsumed_field_count": 15,
+            "nonempty_unconsumed_field_instance_count": 435,
+            "changed_unconsumed_field_instance_count": 435,
+            "consumed_field_mismatch_count": 0,
+            "caches": [],
+        },
+    )
+    with pytest.raises(VERIFIER.VerificationError, match="poison_values"):
+        VERIFIER.check_v06({"attempt_root": attempt, "inventory": []})
+
+
+def test_production_v07_rejects_final17_artifact_mutation(tmp_path: Path) -> None:
+    roots = {}
+    for label in VERIFIER.ROOT_LABELS:
+        root = tmp_path / label
+        root.mkdir()
+        roots[label] = root
+    with pytest.raises(VERIFIER.VerificationError, match="final17_path_set"):
+        VERIFIER.check_v07({"roots": roots})
+
+
+def test_production_v08_rejects_manifest_artifact_mutation(tmp_path: Path) -> None:
+    root = tmp_path / "A"
+    for relative in VERIFIER.FINAL_PATHS:
+        write_ascii(root / relative, "artifact\n")
+    rows = VERIFIER.manifest_rows(
+        root,
+        tuple(path for path in VERIFIER.FINAL_PATHS if path != "run_manifest.json"),
+    )
+    write_json(
+        root / "run_manifest.json",
+        {"schema_version": 1, "artifact_count": 15, "artifacts": rows},
+    )
+    with pytest.raises(VERIFIER.VerificationError, match="manifest:A"):
+        VERIFIER.check_v08({"roots": {"A": root}})
+
+
+def test_production_v09_rejects_execution_evidence_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    roots = {label: tmp_path / label for label in VERIFIER.ROOT_LABELS}
+    for relative in VERIFIER.SEALED_PATHS:
+        for root in roots.values():
+            write_ascii(root / relative, f"{relative}\n")
+    evidence = {
+        "raw_a_b": VERIFIER.comparison(
+            "RAW_11:A_vs_B", roots["A"], roots["B"], VERIFIER.RAW_PATHS
+        ),
+        "raw_a_p": VERIFIER.comparison(
+            "RAW_11:A_vs_P", roots["A"], roots["P"], VERIFIER.RAW_PATHS
+        ),
+        "sealed_a_b": VERIFIER.comparison(
+            "SEALED_15:A_vs_B", roots["A"], roots["B"], VERIFIER.SEALED_PATHS
+        ),
+        "sealed_a_p": VERIFIER.comparison(
+            "SEALED_15:A_vs_P", roots["A"], roots["P"], VERIFIER.SEALED_PATHS
+        ),
+        "implementation_head": "mutated",
+    }
+    write_json(roots["A"] / "contracts/execution_evidence.json", evidence)
+    with pytest.raises(
+        VERIFIER.VerificationError,
+        match="execution_implementation",
+    ):
+        VERIFIER.check_v09({"roots": roots, "implementation_head": "a" * 40})
+
+
+def test_production_v10_rejects_attempt_result_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    attempt = tmp_path / "attempt"
+    attempt.mkdir()
+    write_json(
+        attempt / "attempt-result.json",
+        {
+            "schema_version": 1,
+            "task_id": "mutated",
+            "attempt_id": "attempt",
+            "status": "COMPLETED",
+            "phase": "FINAL_17_CLOSED",
+            "exit_code": 0,
+            "finished_at_utc": "2026-08-30T00:00:00.000000Z",
+            "consumption_head": "a" * 40,
+            "controller_ref": VERIFIER.CONTROLLER_REF,
+            "attempt_lock_sha256": "a" * 64,
+            "claimed_sha256": "a" * 64,
+            "poison_attestation_sha256": "a" * 64,
+            "instrumentation_evidence_sha256": "a" * 64,
+            "work_manifest_sha256": "a" * 64,
+            "work_tree_sha256": "a" * 64,
+            "final_a_b": {},
+            "final_a_p": {},
+            "root_rows": [],
+        },
+    )
+    with pytest.raises(VERIFIER.VerificationError, match="attempt_result_values"):
+        VERIFIER.check_v10(
+            {
+                "attempt_root": attempt,
+                "claim": {"attempt_id": "attempt"},
+            }
+        )
+
+
+def test_production_v11_rejects_terminal_receipt_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    write_json(
+        tmp_path / VERIFIER.TERMINAL_RECEIPT_PATH,
+        {
+            "schema_version": 1,
+            "task_id": "mutated",
+            "attempt_id": "attempt",
+            "status": "COMPLETED",
+            "implementation_head": "a" * 40,
+            "consumption_head": "b" * 40,
+            "controller_remote": VERIFIER.CONTROLLER_REMOTE,
+            "controller_ref": VERIFIER.CONTROLLER_REF,
+            "attempt_result_sha256": "a" * 64,
+            "attempt_lock_sha256": "a" * 64,
+            "poison_attestation_sha256": "a" * 64,
+            "instrumentation_evidence_sha256": "a" * 64,
+            "work_manifest_sha256": "a" * 64,
+            "work_tree_sha256": "a" * 64,
+            "root_rows": [],
+            "sealed_at_utc": "2026-08-30T00:00:00.000000Z",
+        },
+    )
+    with pytest.raises(
+        VERIFIER.VerificationError,
+        match="terminal_receipt_values",
+    ):
+        VERIFIER.check_v11(
+            {
+                "repo_root": tmp_path,
+                "attempt_result": {"attempt_id": "attempt"},
+            }
+        )
+
+
+def test_production_v12_rejects_post_seal_artifact_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempt = tmp_path / "attempt"
+    attempt.mkdir()
+    write_ascii(attempt / "unexpected", "mutation\n")
+    verifier_path = tmp_path / VERIFIER.VERIFIER_PATH
+    write_ascii(verifier_path, "verifier\n")
+    monkeypatch.setattr(VERIFIER, "git_text", lambda *args, **kwargs: "")
+    with pytest.raises(
+        VERIFIER.VerificationError,
+        match="post_seal_attempt_children",
+    ):
+        VERIFIER.check_v12(
+            {
+                "repo_root": tmp_path,
+                "attempt_root": attempt,
+                "verifier_sha256": VERIFIER.sha256_file(verifier_path),
+                "roots": {},
+                "root_tree_sha": {},
+            }
+        )
 
 
 def test_verifier_recomputes_gate_truth_and_precedence() -> None:
