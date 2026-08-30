@@ -15,6 +15,12 @@
   establish economic precision or directional alpha.
 - Post-result immutability is load-bearing: a contradictory result must remain
   visible rather than being converted into a remediation cycle.
+- A chat-level "do not repair" promise is insufficient. The formal attempt
+  must atomically bind successor identities and roots before any cache read,
+  and an interrupted attempt must remain terminal for the task.
+- Slice invariance must compare retained failures and counters, not only
+  confirmed anchors; otherwise two different earliest triggers can both
+  cancel and produce a vacuous identity match.
 
 ## 2026-08-30 Fixed Epoch Suppression Baseline
 

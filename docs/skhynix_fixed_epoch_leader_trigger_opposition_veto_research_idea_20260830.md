@@ -5,16 +5,15 @@ Date: 2026-08-30
 Hypothesis ID:
 `FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1`
 
+Revision: 2, pre-execution
+
 ## 1. Starting Evidence
 
-The accepted fixed-epoch baseline established:
+The accepted fixed-epoch baseline produced `2,219` common candidates. Its
+selected `F010` retained only `2` clusters, while the least strict `F000`
+retained `34`.
 
-- local onsets are not scarce: `2,219` common candidates;
-- fixed epoch thinning is deterministic and slice/reset invariant;
-- the selected `F010` retained only `2` clusters;
-- the least strict `F000` retained `34` clusters.
-
-The dominant cancellation reasons were not explicit opposite direction:
+The dominant cancellation reasons were:
 
 ```text
 F010:
@@ -28,35 +27,32 @@ F000:
   opposite_consensus  =     9
 ```
 
-The evidence therefore suggests that the previous detector mostly rejected
-candidates because all three channels did not remain simultaneously fresh
-and directional. It did not mostly reject candidates because the market
-produced explicit opposite evidence.
+The previous detector therefore rejected candidates mainly because all three
+channels did not remain simultaneously fresh and directional, not because
+the market produced explicit opposite evidence.
 
 ## 2. Research Idea
 
-Replace the symmetric three-channel hard intersection:
+Replace:
 
 ```text
 trade_d AND depletion_d AND ofi_d
 ```
 
-with an asymmetric and interpretable state:
+with:
 
 ```text
-one registered leader trigger_d
-AND no explicit opposite evidence
-WITH optional same-direction secondary support
+one registered leader onset_d
+-> fixed-epoch admission and thinning
+-> explicit-opposition veto
+-> explicit-evidence confirmation
 ```
 
-The leader channel defines why the event exists. Secondary channels may:
+Secondary channels may support or explicitly oppose the leader. Neutral,
+stale or absent secondary evidence does not automatically delete an event.
 
-- support the event;
-- explicitly veto it if they point in the opposite direction;
-- remain neutral, stale or absent without automatically deleting it.
-
-This is not a `2-of-3` vote. Depletion and OFI are both depth-derived and
-must not be treated as independent votes.
+This is not a `2-of-3` vote. Depletion and OFI are both depth-derived and are
+not independent votes.
 
 ## 3. Registered Variants
 
@@ -66,9 +62,6 @@ Unique primary:
 TRADE_LED
 ```
 
-The aggressive-trade channel is the leader. Depletion and OFI are optional
-support or explicit opposition veto.
-
 Non-rescue sensitivities:
 
 ```text
@@ -76,12 +69,12 @@ DEPLETION_LED
 OFI_LED
 ```
 
-Each sensitivity uses exactly the same state rules with a different leader.
-Neither sensitivity may rescue a failed `TRADE_LED` primary.
+Each variant is executed and reported. Only `TRADE_LED` enters the support
+gate. A sensitivity cannot rescue the primary.
 
-## 4. Fixed Directional Thresholds
+## 4. Frozen Thresholds
 
-The previous directional amplitude thresholds remain unchanged:
+All variants use:
 
 ```text
 fast 100ms ratio:
@@ -93,107 +86,245 @@ medium 500ms ratio:
   negative <= -0.25
 
 margin = 0.00
+TTL = 100ms, fresh iff age <= 100ms
+prestate = 120ms = six prior 20ms checkpoints
+confirmation window = 200ms = ten later checkpoints
 ```
 
-This version does not test whether weaker directional moves are useful. It
-tests only whether the three-channel conjunction and all-checkpoint
-persistence were unnecessarily destructive.
+This version does not lower directional amplitude. It isolates conjunction
+and persistence semantics.
 
-## 5. Leader Trigger
+## 5. Authority Primitives
 
-At checkpoint `t`, leader channel `c` produces trigger direction `d` iff:
-
-1. the leader receives a new explicit evidence update at `t`;
-2. the leader action is `NEW_POS` for `d=+1` or `NEW_NEG` for `d=-1`;
-3. the preceding six 20ms checkpoints are all observable leader
-   `BACKGROUND=0` in the same segment;
-4. no secondary channel has fresh memory equal to `-d` at `t`;
-5. `t` lies in a structurally eligible fixed-epoch core.
-
-Fresh same-direction secondary memories are recorded as support count
-`0, 1, 2`; they are not an admission requirement.
-
-## 6. Explicit-Evidence Persistence
-
-The retained leader trigger is confirmed over the following `200ms`:
+The successor must directly call the accepted authority for:
 
 ```text
-confirmation window = (t, t + 200ms]
+source_preflight
+base_eligibility
+channel_actions
+channel_memories
+epoch_support_ledger
+materialize_poisoned_cache_set
+verify_poison_attestation
 ```
 
-Confirmation requires:
+New-evidence masks are therefore exactly:
 
-1. at least one additional explicit `NEW_d` update from the leader;
-2. zero explicit `NEW_-d` updates from any of the three channels;
-3. complete same-segment checkpoint support through the window.
+```text
+trade:     trade_total > 0
+depletion: bid_depletion + ask_depletion > 0
+ofi:       ofi_abs > 0
+```
 
-`NO_UPDATE`, `NEW_NEUTRAL` and stale secondary memory do not automatically
-veto the candidate. They also do not count as confirmation.
+No successor reimplementation may supply source, action, TTL memory or epoch
+semantics.
 
-This differs from the predecessor requirement that every checkpoint remain
-in complete three-channel `SIGNAL_d`.
+## 6. Checkpoint-Exact Causal Order
 
-## 7. Fixed Epoch Infrastructure
+For the complete cache, raw source preflight runs before any action, memory,
+onset or trigger construction. Any source defect stops at A-1-0.
 
-The accepted baseline remains unchanged:
+At checkpoint `t`, the order is:
+
+1. authority base eligibility and channel actions process raw evidence at
+   `t`;
+2. authority channel memories process segment clear, global/new invalid,
+   neutral overwrite, directional update and expiry;
+3. memory age exactly `100ms` remains fresh;
+4. leader prestate reads only `t-120ms ... t-20ms`, never `t`;
+5. raw leader onset is evaluated from the leader's `NEW_d` action at `t`;
+6. fixed-epoch eligibility and core membership are evaluated;
+7. anchor-time support and opposition read post-action memory at `t`;
+8. veto-admitted triggers enter fixed-epoch thinning;
+9. only the retained trigger enters confirmation.
+
+Consequences:
+
+- `NEW_NEUTRAL` at `t` clears an older opposite memory before veto;
+- `NEW_-d` at `t` is visible to veto;
+- segment reset at `t` clears memory and makes the complete epoch
+  structurally ineligible;
+- the six-point prestate excludes all same-checkpoint updates.
+
+## 7. State Vocabulary
+
+The mutually auditable layers are:
+
+```text
+raw leader onset
+-> epoch/core omitted OR anchor-time vetoed OR veto-admitted trigger
+-> retained trigger OR same-key suppressed trigger
+-> confirmed retained trigger OR cancelled retained trigger
+```
+
+Per `(capture, epoch, variant, direction)`:
+
+```text
+raw_onset
+  = epoch_core_omitted + anchor_vetoed + veto_admitted
+
+veto_admitted
+  = retained + same_key_suppressed
+
+retained
+  = confirmed + cancelled
+```
+
+No object at a later layer may exist without its preceding layer.
+
+## 8. Raw Leader Onset
+
+For variant leader channel `c` and direction `d`, checkpoint `t` is a raw
+leader onset iff:
+
+1. leader action at `t` is `NEW_POS` for `d=+1` or `NEW_NEG` for `d=-1`;
+2. leader memory at each of the six prior checkpoints is exactly
+   `BACKGROUND=0`;
+3. those six checkpoints and `t` belong to one segment.
+
+Unknown, stale, directional or unavailable prestate does not qualify.
+
+## 9. Epoch/Core and Anchor-Time Veto
+
+The authority fixed-epoch contract remains:
 
 ```text
 checkpoint = 20ms
 epoch origin = Unix epoch 0
 epoch width = 60s
-eligible core = [15s,45s)
-thinning key = (capture_id, epoch_id, direction)
-retain earliest eligible trigger for each key
-cluster key = (capture_id, epoch_id)
+complete single-segment grid = 3,000 checkpoints
+eligible core = [epoch_start + 15s, epoch_start + 45s)
 ```
 
-Thinning occurs after anchor-time opposition veto and before persistence
-confirmation. A later same-epoch trigger cannot replace an earlier retained
-trigger that later fails confirmation.
+A raw onset outside a structurally eligible core is
+`epoch_core_omitted`.
 
-## 8. Implicit Prediction
-
-The idea predicts that `TRADE_LED` will produce non-vacuous recurrent
-confirmed structure:
+For an onset inside the eligible core, support/veto reads post-action
+memories at `t`:
 
 ```text
-confirmed distinct epoch clusters >= 30
+secondary_same_direction_count =
+  number of non-leader memories equal to d
+
+secondary_opposite_count =
+  number of non-leader memories equal to -d
+```
+
+If `secondary_opposite_count > 0`, the onset is `anchor_vetoed`. Otherwise it
+is a `veto_admitted trigger`.
+
+Same-direction support count `0,1,2` is descriptive, not an admission gate.
+
+## 10. Fixed-Epoch Thinning
+
+For every:
+
+```text
+(capture_id, epoch_id, variant, direction)
+```
+
+retain the earliest veto-admitted trigger by:
+
+```text
+(candidate_ts_ns, candidate_event_seq)
+```
+
+All later veto-admitted triggers in the same key are
+`same_key_suppressed`.
+
+Cluster identity remains:
+
+```text
+capture_id : epoch_id
+```
+
+Opposite directions and all variants in the same epoch share the same
+dependence cluster.
+
+Thinning precedes confirmation. A later trigger cannot replace an earlier
+retained trigger that later fails confirmation.
+
+## 11. Explicit-Evidence Confirmation
+
+For retained trigger time `t`, confirmation checkpoints are exactly:
+
+```text
+t+20ms, t+40ms, ..., t+200ms
+```
+
+The entire window must:
+
+- exist;
+- remain in the trigger segment;
+- remain inside the same eligible epoch core, including
+  `t+200ms <= core_close_ns`.
+
+The decision is completed only at `t+200ms`, never at the first additional
+update.
+
+Record separately:
+
+```text
+first_additional_same_update_ts_ns/event_seq
+confirmation_window_close_ts_ns/event_seq
+```
+
+Confirmation requires:
+
+1. at least one leader `NEW_d` action in the ten checkpoints;
+2. zero `NEW_-d` actions from any channel in the ten checkpoints.
+
+`NO_UPDATE`, `NEW_NEUTRAL` and stale secondary memory neither confirm nor
+veto.
+
+Cancellation booleans are independent:
+
+```text
+insufficient_confirmation_history
+confirmation_segment_boundary
+explicit_opposite_update
+no_additional_same_leader_update
+```
+
+Canonical primary cancel reason uses the first true atom in that exact order.
+If no atom is true, status is `CONFIRMED` and reason is `none`.
+
+## 12. Implicit Prediction
+
+The idea predicts that `TRADE_LED` confirmed structure satisfies:
+
+```text
+distinct epoch clusters >= 30
 represented research dates >= 4
 maximum single-date cluster share <= 0.50
 ```
 
-The prediction is intentionally stronger than "more than two events."
+The prediction is stronger than merely increasing the two selected F010
+clusters.
 
-If the primary does not satisfy these conditions, the result contradicts
-the idea's support prediction. The task must record that result and stop.
+If the primary fails, the result contradicts this registered support
+prediction. Sensitivities cannot rescue it.
 
-## 9. Claim Boundary
+## 13. Claim Boundary
 
-This idea can establish only:
+The strongest possible claim is:
 
 ```text
-historical outcome-blind recurrent structural support
+historical outcome-blind recurrent structural candidate
 ```
 
-It cannot establish:
+No future price, target, fill, fee, PnL, economic precision or trading claim
+is authorized.
 
-- future-price direction;
-- economic precision;
-- maker or taker profitability;
-- fill probability;
-- live-trading readiness.
+## 14. Post-Execution Immutability
 
-No future price, target, fill, fee or PnL field may be accessed.
+The formal one-shot attempt creates an atomic lock receipt before reading any
+cache. From that point:
 
-## 10. No Post-Result Repair
-
-After formal execution begins:
-
-- this idea document is immutable;
+- this idea is immutable;
 - the execution plan is immutable;
-- detector code and tests are immutable;
-- thresholds and gates are immutable;
-- no failed result may trigger repair, additional diagnosis, alternative
-  parameter execution or plan revision inside this task.
+- successor runner and tests are immutable;
+- no repair, diagnosis, replacement attempt, alternative parameter run or
+  result-driven plan change is allowed.
 
-Unexpected or contradictory results must be recorded as observed.
+Contradictory results must be recorded and left unchanged.

@@ -11,6 +11,12 @@
 - Formal data execution is locked pending independent review.
 - Once Build A begins, no result-driven repair, diagnosis, parameter change
   or plan revision is allowed.
+- Independent Round 1 review failed at `P0/P1/P2/P3=0/8/2/0`; no data was
+  executed.
+- Revision 2 makes authority direct calls, checkpoint ordering, confirmation,
+  slice identities, exact schemas, one-shot poison triad and post-execution
+  lock receipts executable.
+- Data execution remains locked pending a fresh review.
 
 ## 2026-08-30 0830T001 Baseline Preparation Started
 
