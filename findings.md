@@ -1,5 +1,20 @@
 # Findings
 
+## 2026-08-30 0830T003 Replacement Boundary
+
+- `0830T002` generated no observed support statistics, so the replacement
+  cannot legitimately use data-dependent tuning.
+- A new task is scientifically acceptable only if its hypothesis, thresholds,
+  gates and prediction remain byte-comparable in substance to Revision 18.
+- The known failure is an interface-contract defect: the accepted baseline
+  verifier requires keyword-only `check_working_tree`, while the old formal
+  runner omitted it.
+- The replacement must use a separate claim, attempt root, tag family and
+  external controller ref so it cannot overwrite or masquerade as the
+  consumed old attempt.
+- A regression test must inspect the formal call and require the explicit
+  literal `check_working_tree=True`.
+
 ## 2026-08-30 0830T002 Formal Execution Finding
 
 - The one-shot execution did not reach Build A and produced no scientific

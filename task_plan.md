@@ -1,18 +1,35 @@
 # Task Plan
 
+## 2026-08-30 0830T003 Leader Trigger Formal Replacement
+
+- `0830T003 / FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
+  is `执行中`.
+- Preserve the terminal failure history of `0830T002`; this is a distinct
+  one-shot task with distinct claim, tags, attempt root and controller ref.
+- Keep the Revision 18 scientific contract unchanged. The only implementation
+  change is the required baseline authority argument
+  `check_working_tree=True`.
+- Data execution is locked pending independent replacement-plan review,
+  implementation tests and readiness acceptance.
+- After claim consumption, contradictory results or execution failures must
+  be recorded without repair, diagnosis, plan revision or rerun.
+- Future outcomes, A0 and live/private/order execution remain unauthorized.
+
 ## 2026-08-30 0830T002 Leader Trigger Opposition Veto A-1
 
 - `0830T002 / FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1_A_MINUS1`
-  is `执行中`.
+  is `未通过`.
 - Unique primary is `TRADE_LED`; depletion-led and OFI-led are non-rescue
   sensitivities.
 - Keep 60s fixed epoch suppression and 0.50/0.25 directional thresholds.
 - Replace three-channel hard AND with leader trigger, explicit opposition
   veto and explicit-evidence 200ms confirmation.
-- Data execution is locked pending independent review and implementation
-  freeze.
-- The first formal Build A command freezes plan/code/tests; contradictory
-  results must be recorded without repair, diagnosis or plan revision.
+- The single-use claim was consumed, but execution stopped before Build A
+  because the baseline verifier call omitted required
+  `check_working_tree`.
+- Scientific classification is `NONE`; prediction is `NOT_EVALUATED`.
+- Preserve its claim, consumption tag, remote ledger and failure reports as
+  immutable history. Any later execution requires a new formal task.
 - Future outcomes, A0 and live/private/order execution remain unauthorized.
 
 ## 2026-08-30 0830T001 Fixed Epoch Suppression Baseline

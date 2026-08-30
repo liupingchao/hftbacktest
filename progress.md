@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-08-30 0830T003 Formal Replacement Started
+
+- Created independent worktree
+  `/Users/liu/Documents/hftbacktest-0830t003-leader-trigger-formal-replacement`
+  on branch `codex/fixed-epoch-leader-trigger-formal-replacement`.
+- Registered a new one-shot task, claim namespace, attempt root, tags and
+  remote controller ref; `0830T002` remains terminal and immutable.
+- The Revision 18 scientific contract is unchanged. The only registered
+  implementation correction is an explicit
+  `check_working_tree=True` baseline-authority preflight argument.
+- Formal cache execution remains locked pending independent replacement-plan
+  review, focused tests and implementation readiness acceptance.
+
 ## 2026-08-30 0830T002 Formal Attempt Interrupted
 
 - Revision 18 plan passed independent plan review at
