@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import copy
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -1089,6 +1090,302 @@ def test_verifier_rejects_manifest_self_inclusion(
     rows = VERIFIER.manifest_rows(root, AUDIT.EVIDENCED_16)
     assert len(rows) == 16
     assert all(row["path"] != "run_manifest.json" for row in rows)
+
+
+def init_git_repo(path: Path) -> str:
+    subprocess.run(["git", "init", "-q"], cwd=path, check=True)
+    subprocess.run(["git", "config", "user.name", "Fixture"], cwd=path, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "fixture@example.com"],
+        cwd=path,
+        check=True,
+    )
+    (path / "seed.txt").write_text("seed\n", encoding="ascii")
+    subprocess.run(["git", "add", "seed.txt"], cwd=path, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "seed"], cwd=path, check=True)
+    return subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=path, text=True
+    ).strip()
+
+
+def commit_claim_transition(
+    path: Path, *, extra_delta: bool = False
+) -> tuple[str, str, str]:
+    claim = path / AUDIT.CLAIM_ARMED_PATH
+    claim.parent.mkdir(parents=True, exist_ok=True)
+    claim.write_text(
+        json.dumps(
+            {
+                "task_id": AUDIT.TASK_ID,
+                "status": "ARMED_FOR_SINGLE_USE",
+                "implementation_tag": AUDIT.IMPLEMENTATION_TAG,
+                "formal_argv": ["formal"],
+                "controller_ref": AUDIT.CONTROLLER_REF,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="ascii",
+    )
+    subprocess.run(["git", "add", str(AUDIT.CLAIM_ARMED_PATH)], cwd=path, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "armed"], cwd=path, check=True)
+    implementation = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=path, text=True
+    ).strip()
+    blob = subprocess.check_output(
+        [
+            "git",
+            "rev-parse",
+            f"{implementation}:{AUDIT.CLAIM_ARMED_PATH.as_posix()}",
+        ],
+        cwd=path,
+        text=True,
+    ).strip()
+    claimed = path / AUDIT.CLAIMED_PATH
+    os.link(claim, claimed)
+    claim.unlink()
+    if extra_delta:
+        (path / "extra.txt").write_text("extra\n", encoding="ascii")
+    subprocess.run(["git", "add", "-A"], cwd=path, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", AUDIT.CONSUMPTION_MESSAGE],
+        cwd=path,
+        check=True,
+    )
+    consumption = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=path, text=True
+    ).strip()
+    return implementation, consumption, blob
+
+
+def test_consumption_transition_is_exact_same_blob_only_delta(tmp_path: Path) -> None:
+    init_git_repo(tmp_path)
+    implementation, consumption, blob = commit_claim_transition(tmp_path)
+    AUDIT.verify_consumption_transition(
+        repo_root=tmp_path,
+        implementation_head=implementation,
+        consumption_head=consumption,
+        expected_claim_blob=blob,
+    )
+    VERIFIER.verify_consumption_transition(
+        repo_root=tmp_path,
+        implementation_head=implementation,
+        consumption_head=consumption,
+        expected_claim_blob=blob,
+    )
+
+
+def test_consumption_transition_rejects_extra_tree_delta(tmp_path: Path) -> None:
+    init_git_repo(tmp_path)
+    implementation, consumption, blob = commit_claim_transition(
+        tmp_path, extra_delta=True
+    )
+    with pytest.raises(AUDIT.AuditError, match="consumption_exact_rename_delta"):
+        AUDIT.verify_consumption_transition(
+            repo_root=tmp_path,
+            implementation_head=implementation,
+            consumption_head=consumption,
+            expected_claim_blob=blob,
+        )
+    with pytest.raises(
+        VERIFIER.VerificationError, match="consumption_exact_rename_delta"
+    ):
+        VERIFIER.verify_consumption_transition(
+            repo_root=tmp_path,
+            implementation_head=implementation,
+            consumption_head=consumption,
+            expected_claim_blob=blob,
+        )
+
+
+@pytest.mark.parametrize("object_kind", ["blob", "tree"])
+def test_historical_scan_rejects_dangling_attempt_objects(
+    tmp_path: Path, object_kind: str
+) -> None:
+    init_git_repo(tmp_path)
+    if object_kind == "blob":
+        payload = json.dumps(
+            {
+                "task_id": AUDIT.TASK_ID,
+                "status": "ARMED_FOR_SINGLE_USE",
+                "implementation_tag": AUDIT.IMPLEMENTATION_TAG,
+                "formal_argv": ["formal"],
+                "controller_ref": AUDIT.CONTROLLER_REF,
+            }
+        ).encode()
+        subprocess.run(
+            ["git", "hash-object", "-w", "--stdin"],
+            cwd=tmp_path,
+            input=payload,
+            check=True,
+        )
+        expected = "historical_attempt_claim_blob"
+    else:
+        blob = (
+            subprocess.check_output(
+                ["git", "hash-object", "-w", "--stdin"],
+                cwd=tmp_path,
+                input=b"plain\n",
+            )
+            .decode()
+            .strip()
+        )
+        subprocess.run(
+            ["git", "mktree"],
+            cwd=tmp_path,
+            input=f"100644 blob {blob}\t{AUDIT.CLAIMED_PATH.name}\n".encode(),
+            check=True,
+        )
+        expected = "historical_attempt_tree"
+    with pytest.raises(AUDIT.AuditError, match=expected):
+        AUDIT.verify_no_historical_attempt(tmp_path)
+
+
+def test_detector_child_rejects_inherited_regular_file_fd(tmp_path: Path) -> None:
+    target = tmp_path / "raw-capability.npz"
+    target.write_bytes(b"fixture")
+    descriptor = os.open(target, os.O_RDONLY)
+    code = (
+        "from examples.hyperliquid import "
+        "skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1 as a;"
+        "import sys;"
+        "\ntry:\n a.enforce_detector_fd_boundary({0,1,2})"
+        "\nexcept a.AuditError as e:\n"
+        " sys.exit(0 if str(e).startswith('detector_inherited_fd:') else 3)"
+        "\nsys.exit(4)\n"
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=Path(__file__).resolve().parents[2],
+            pass_fds=(descriptor,),
+            check=False,
+        )
+    finally:
+        os.close(descriptor)
+    assert result.returncode == 0
+
+
+def test_detector_child_rejects_unregistered_control_pipe_fd() -> None:
+    read_fd, write_fd = os.pipe()
+    code = (
+        "from examples.hyperliquid import "
+        "skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1 as a;"
+        "import sys;"
+        "\ntry:\n a.enforce_detector_fd_boundary({0,1,2})"
+        "\nexcept a.AuditError as e:\n"
+        " sys.exit(0 if str(e).startswith('detector_control_fd_domain:') else 3)"
+        "\nsys.exit(4)\n"
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=Path(__file__).resolve().parents[2],
+            pass_fds=(read_fd,),
+            check=False,
+        )
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
+    assert result.returncode == 0
+
+
+def test_verifier_rejects_work_path_traversal(tmp_path: Path) -> None:
+    with pytest.raises(VERIFIER.VerificationError, match="relative_path_domain"):
+        VERIFIER.safe_relative_child(tmp_path, "work/../../escape.npz", "work/")
+
+
+def test_verifier_v00_rejects_tag_alias_before_resolution(tmp_path: Path) -> None:
+    attempt = tmp_path / "attempt"
+    attempt.mkdir()
+    context = {
+        "repo_root": Path.cwd().resolve(),
+        "attempt_root": attempt.resolve(),
+        "result_out": Path.cwd().resolve()
+        / ".workflow/reports/0830T002-terminal-verifier.json",
+        "implementation_tag": "alias",
+        "consumption_tag": VERIFIER.CONSUMPTION_TAG,
+        "terminal_tag": VERIFIER.TERMINAL_TAG,
+    }
+    with pytest.raises(VERIFIER.VerificationError, match="verifier_frozen_tags"):
+        VERIFIER.check_v00(context)
+
+
+def test_verifier_recomputes_gate_truth_and_precedence() -> None:
+    gates = AUDIT.build_gates(passing_gate_values())
+    payload = {
+        "schema_version": 1,
+        "gate_order": list(AUDIT.GATE_ORDER),
+        "gates": gates,
+        "first_failed_gate_id": None,
+        "classification": AUDIT.classify(gates),
+    }
+    VERIFIER.validate_gate_contract(payload)
+    mutated = copy.deepcopy(payload)
+    mutated["gates"][0]["conditions"][0]["actual"] = False
+    with pytest.raises(VERIFIER.VerificationError, match="gate_condition_truth"):
+        VERIFIER.validate_gate_contract(mutated)
+    mutated = copy.deepcopy(payload)
+    mutated["gates"][0]["conditions"][0].update(
+        {"status": "NOT_EVALUATED", "passed": None, "actual": None}
+    )
+    with pytest.raises(VERIFIER.VerificationError, match="gate_condition_precedence"):
+        VERIFIER.validate_gate_contract(mutated)
+
+
+def test_verifier_comparison_rejects_false_equal_flag(tmp_path: Path) -> None:
+    left, right = tmp_path / "left", tmp_path / "right"
+    left.mkdir()
+    right.mkdir()
+    (left / "x").write_text("same\n", encoding="ascii")
+    (right / "x").write_text("same\n", encoding="ascii")
+    payload = VERIFIER.comparison("FINAL_17:A_vs_B", left, right, ("x",))
+    payload["rows"][0]["equal"] = False
+    payload["difference_count"] = 1
+    with pytest.raises(VERIFIER.VerificationError, match="comparison_equal_value"):
+        VERIFIER.validate_comparison(
+            payload,
+            expected_domain="FINAL_17:A_vs_B",
+            expected_paths=("x",),
+        )
+
+
+@pytest.mark.parametrize("failure_index", range(13))
+def test_verifier_v00_v12_mutation_short_circuit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_index: int,
+) -> None:
+    functions = []
+    for index in range(13):
+        if index == failure_index:
+            functions.append(
+                lambda context, index=index: (_ for _ in ()).throw(
+                    VERIFIER.VerificationError(f"mutation:{index}")
+                )
+            )
+        else:
+            functions.append(lambda context: None)
+    monkeypatch.setattr(VERIFIER, "CHECK_FUNCTIONS", tuple(functions))
+    args = SimpleNamespace(
+        repo_root=tmp_path,
+        attempt_root=tmp_path / "attempt",
+        result_out=tmp_path / "result.json",
+        implementation_tag=VERIFIER.IMPLEMENTATION_TAG,
+        consumption_tag=VERIFIER.CONSUMPTION_TAG,
+        terminal_tag=VERIFIER.TERMINAL_TAG,
+    )
+    exit_code, payload = VERIFIER.verify_terminal(args)
+    assert exit_code == 2
+    assert payload["first_failure_code"] == VERIFIER.CHECK_IDS[failure_index]
+    assert [row["status"] for row in payload["checks"][:failure_index]] == [
+        "PASS"
+    ] * failure_index
+    assert payload["checks"][failure_index]["status"] == "FAIL"
+    assert all(
+        row["status"] == "NOT_EVALUATED"
+        for row in payload["checks"][failure_index + 1 :]
+    )
 
 
 def test_parse_args_rejects_nonformal_modes() -> None:

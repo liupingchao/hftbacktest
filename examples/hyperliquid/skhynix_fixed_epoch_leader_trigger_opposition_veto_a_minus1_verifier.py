@@ -8,16 +8,20 @@ import ast
 import csv
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
 import sys
+from collections import defaultdict
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Mapping, Sequence
 
 
 TASK_ID = "0830T002"
+HYPOTHESIS_ID = "FIXED_EPOCH_LEADER_TRIGGER_OPPOSITION_VETO_MSTATE_V1"
+AUDIT_ID = f"{HYPOTHESIS_ID}_A_MINUS1"
 SCHEMA_VERSION = 1
 CONTROLLER_REMOTE = "origin"
 CONTROLLER_URL = "git@github.com:liupingchao/hftbacktest.git"
@@ -26,12 +30,133 @@ RUNNER_PATH = Path(
     "examples/hyperliquid/"
     "skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py"
 )
+IDEA_PATH = Path(
+    "docs/skhynix_fixed_epoch_leader_trigger_opposition_veto_research_idea_20260830.md"
+)
+PLAN_PATH = Path(
+    "docs/skhynix_fixed_epoch_leader_trigger_opposition_veto_"
+    "a_minus1_execution_plan_20260830.md"
+)
+TASK_PATH = Path(".workflow/tasks/0830T002.md")
+TEST_PATH = Path(
+    "examples/hyperliquid/"
+    "test_skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1.py"
+)
+FEATURE_AUTHORITY_PATH = Path(
+    "examples/hyperliquid/skhynix_flow_coherence_a_minus1_audit.py"
+)
+EPOCH_AUTHORITY_PATH = Path(
+    "examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py"
+)
 VERIFIER_PATH = Path(
     "examples/hyperliquid/"
     "skhynix_fixed_epoch_leader_trigger_opposition_veto_a_minus1_verifier.py"
 )
+CLAIM_ARMED_PATH = Path(".workflow/attempt-claims/0830T002.armed.json")
 CLAIMED_PATH = Path(".workflow/attempt-claims/0830T002.claimed.json")
 TERMINAL_RECEIPT_PATH = Path(".workflow/attempt-receipts/0830T002.terminal.json")
+IDEA_SHA256 = "a916717f21e1714298520e69f8e2702920f4cd54308f5d554691d4364a1cc997"
+PLAN_SHA256 = "8171a7bed7b216527fed468dbcff8f31ab1f48ec871bb2eee9b0ae7ad123f79c"
+BASELINE_TAG = "skhynix-fixed-epoch-suppression-v1"
+BASELINE_COMMIT = "f06eb5cb012cb62b2a778ad90d433c4083f9ba14"
+IMPLEMENTATION_TAG = "skhynix-fixed-epoch-leader-trigger-a-minus1-implementation-v1"
+CONSUMPTION_TAG = "skhynix-fixed-epoch-leader-trigger-a-minus1-consumed-v1"
+TERMINAL_TAG = "skhynix-fixed-epoch-leader-trigger-a-minus1-terminal-v1"
+CONSUMPTION_MESSAGE = "audit: consume 0830T002 formal attempt claim"
+TERMINAL_MESSAGE = "audit: seal 0830T002 formal attempt result"
+FEATURE_AUTHORITY_COMMIT = "45544ecc3901623ca7c2e34a059afca6c551d625"
+FEATURE_AUTHORITY_BLOB = "494c203e7195f292e057f7708c99f52096259a02"
+FEATURE_AUTHORITY_SHA256 = (
+    "f7dc1565bf0a45363dadf3204d827e0d13687f6cc3307c2e7c5e77aeb321400c"
+)
+EPOCH_AUTHORITY_COMMIT = BASELINE_COMMIT
+EPOCH_AUTHORITY_BLOB = "5672a8ca9f6d4ced2b2deaaf5689e2e7bb7935da"
+EPOCH_AUTHORITY_SHA256 = (
+    "dfa8af1f4b8410370ec7ccd0bea30b63840ebe484d74446c8cbe2564918ac070"
+)
+AUTHORITY_AST_SHA256 = {
+    "build_features": "e5cca6c2b7627ef8e3719e4fdecb5a540a42a2028e2fb141ea9fff4f7c246933",
+    "source_preflight": "9089e2f348965c6601d23315be625f333558b688dda4318b034fff38d80d57a6",
+    "base_eligibility": "c0121463187a6678679059b6b8cf9d2948a525fb14c5df0bb25377bce7d7da6a",
+    "channel_actions": "0dc86f04ff18fe490f6f7c2f6332acadc8d441c68deb798e4829bfae5d0277ab",
+    "channel_memories": "5507a492a9984d0aec1f36ef16a9977ff2321af4c86e245fa3a0ddfe8c7e4df1",
+    "epoch_support_ledger": "d76a80ef31b3f229eb23099f1f3b06cf6ab2e2a3f101a07c37c2286436f5b453",
+    "materialize_poisoned_cache_set": "f16b126c56e7d255ae2c218886af69533ed3e118497a05f309b5803638245a05",
+    "verify_poison_attestation": "3627c9280644d03d382545bded4e145ef0bdd107edb9c171dc7c4a207697d830",
+}
+CHANNELS = ("trade", "depletion", "ofi")
+VARIANTS = ("TRADE_LED", "DEPLETION_LED", "OFI_LED")
+PRIMARY_VARIANT = "TRADE_LED"
+SENSITIVITY_VARIANTS = ("DEPLETION_LED", "OFI_LED")
+DIRECTIONS = (-1, 1)
+GATE_REQUIREMENTS = {
+    "A-1-0": (
+        ("baseline_authority_verified", "true"),
+        ("frozen_successor_identities_verified", "true"),
+        ("direct_callable_bindings_verified", "true"),
+        ("claim_and_lock_valid_before_cache", "true"),
+        ("canonical_source_closure_exact", "29 exact caches"),
+        ("source_preflight_violation_count", "0"),
+        ("raw_a_b_difference_count", "0"),
+    ),
+    "A-1-1": (
+        ("poison_cache_count", "29"),
+        ("poison_unconsumed_field_count", "15"),
+        ("poison_changed_field_instance_count", "435"),
+        ("poison_consumed_field_mismatch_count", "0"),
+        ("raw_a_p_difference_count", "0"),
+    ),
+    "A-1-2": (
+        ("action_partition_violation_count", "0"),
+        ("unauthorized_ttl_refresh_count", "0"),
+        ("cross_segment_memory_carry_count", "0"),
+        ("conservation_violation_count", "0"),
+        ("fixed_epoch_violation_count", "0"),
+        ("slice_mismatch_count", "0"),
+        ("cross_segment_compared_checkpoint_count", "0"),
+        ("represented_slice_date_count", ">=4"),
+        ("distinct_comparable_epoch_count", ">=30"),
+        ("compared_support_checkpoint_count", ">0"),
+        ("schema_violation_count", "0"),
+        ("numeric_violation_count", "0"),
+    ),
+    "A-1-3": (
+        ("trade_led_confirmed_cluster_count", ">=30"),
+        ("trade_led_represented_date_count", ">=4"),
+        ("trade_led_maximum_single_date_share", "<=0.50"),
+    ),
+}
+CONSUMED_FIELDS = (
+    "activity",
+    "ask_depletion",
+    "bid_depletion",
+    "event_seq",
+    "ofi",
+    "ofi_abs",
+    "ready",
+    "segment_id",
+    "trade_signed",
+    "trade_total",
+    "ts_ns",
+    "valid_book",
+)
+UNCONSUMED_FIELDS = (
+    "ask_depth",
+    "bid_depth",
+    "bin_boundary_violations",
+    "cache_schema_version",
+    "initial_bridge_failure_count",
+    "midpoint",
+    "non_admitted_message_contributions",
+    "obi",
+    "quality_boundary_count",
+    "reset_count",
+    "segment_end_ids",
+    "segment_end_ts",
+    "sequence_gap_count",
+    "spread_ticks",
+    "tick_size",
+)
 FINAL_PATHS = (
     "classification.json",
     "contracts/authority_binding.json",
@@ -448,6 +573,114 @@ def git_text(repo_root: Path, *args: str) -> str:
     return git(repo_root, *args).stdout.strip()
 
 
+def git_blob_sha256(repo_root: Path, revision: str, path: Path) -> str:
+    result = subprocess.run(
+        ("git", "show", f"{revision}:{path.as_posix()}"),
+        cwd=repo_root,
+        capture_output=True,
+        check=False,
+    )
+    require(result.returncode == 0, f"git_blob_missing:{revision}:{path}")
+    return hashlib.sha256(result.stdout).hexdigest()
+
+
+def verify_consumption_transition(
+    *,
+    repo_root: Path,
+    implementation_head: str,
+    consumption_head: str,
+    expected_claim_blob: str,
+) -> None:
+    require(
+        git_text(repo_root, "rev-parse", f"{consumption_head}^") == implementation_head,
+        "consumption_parent",
+    )
+    require(
+        git_text(
+            repo_root,
+            "rev-parse",
+            f"{implementation_head}:{CLAIM_ARMED_PATH.as_posix()}",
+        )
+        == expected_claim_blob,
+        "implementation_armed_blob",
+    )
+    require(
+        git(
+            repo_root,
+            "cat-file",
+            "-e",
+            f"{implementation_head}:{CLAIMED_PATH.as_posix()}",
+            check=False,
+        ).returncode
+        != 0,
+        "implementation_claimed_exists",
+    )
+    require(
+        git_text(
+            repo_root,
+            "rev-parse",
+            f"{consumption_head}:{CLAIMED_PATH.as_posix()}",
+        )
+        == expected_claim_blob,
+        "consumption_claimed_blob",
+    )
+    for path in (CLAIM_ARMED_PATH, TERMINAL_RECEIPT_PATH):
+        require(
+            git(
+                repo_root,
+                "cat-file",
+                "-e",
+                f"{consumption_head}:{path.as_posix()}",
+                check=False,
+            ).returncode
+            != 0,
+            f"consumption_forbidden_path:{path}",
+        )
+    delta = git_text(
+        repo_root,
+        "diff-tree",
+        "--no-commit-id",
+        "--name-status",
+        "-r",
+        "--no-renames",
+        implementation_head,
+        consumption_head,
+    ).splitlines()
+    require(
+        delta
+        == [
+            f"D\t{CLAIM_ARMED_PATH.as_posix()}",
+            f"A\t{CLAIMED_PATH.as_posix()}",
+        ],
+        "consumption_exact_rename_delta",
+    )
+    require(
+        git_text(repo_root, "show", "-s", "--format=%B", consumption_head)
+        == CONSUMPTION_MESSAGE,
+        "consumption_commit_message",
+    )
+
+
+def safe_relative_child(root: Path, relative: str, prefix: str) -> Path:
+    require(isinstance(relative, str) and relative, "relative_path_type")
+    pure = PurePosixPath(relative)
+    require(
+        not pure.is_absolute()
+        and "." not in pure.parts
+        and ".." not in pure.parts
+        and relative.startswith(prefix),
+        "relative_path_domain",
+    )
+    path = root.joinpath(*pure.parts)
+    current = root
+    for part in pure.parts:
+        current /= part
+        if current.exists() or current.is_symlink():
+            require(not current.is_symlink(), f"child_symlink:{relative}")
+    require(path.resolve().is_relative_to(root.resolve()), "relative_path_escape")
+    return path
+
+
 def read_json(path: Path) -> dict[str, Any]:
     require(path.is_file(), f"json_missing:{path}")
     raw = path.read_bytes()
@@ -476,6 +709,264 @@ def is_sha256(value: Any) -> bool:
 
 def is_utc(value: Any) -> bool:
     return isinstance(value, str) and UTC_RE.fullmatch(value) is not None
+
+
+CSV_BOOL_FIELDS = {
+    "source_authority_verified",
+    "cache_field_schema_verified",
+    "action_partition_exact",
+    "grid_exact",
+    "is_primary",
+    "support_prediction_passed",
+    "epoch_disposition_exact",
+    "counter_exact",
+    "retained_exact",
+    "status_exact",
+    "support_exact",
+    "insufficient_confirmation_history",
+    "confirmation_segment_boundary",
+    "explicit_opposite_update",
+    "no_additional_same_leader_update",
+}
+CSV_JSON_FIELDS = {"segment_ids_json", "secondary_age_json"}
+CSV_OPTIONAL_FIELDS = {
+    "segment_id",
+    "retained_candidate_id",
+    "first_additional_same_update_ts_ns",
+    "first_additional_same_update_event_seq",
+    "maximum_single_date_cluster_share",
+}
+CSV_TEXT_FIELDS = {
+    "cache_name",
+    "research_date",
+    "capture_id",
+    "channel",
+    "variant",
+    "disposition",
+    "candidate_id",
+    "dependence_cluster_id",
+    "leader_channel",
+    "confirmation_status",
+    "cancel_reason",
+    "mismatch_reason",
+}
+
+
+def parse_csv_int(text: str, field: str, *, minimum: int = 0) -> int:
+    require(re.fullmatch(r"-?(?:0|[1-9][0-9]*)", text) is not None, f"csv_int:{field}")
+    value = int(text)
+    require(value >= minimum, f"csv_int_range:{field}")
+    return value
+
+
+def parse_csv_number(text: str, field: str) -> float:
+    require(text != "", f"csv_number_empty:{field}")
+    value = float(text)
+    require(math.isfinite(value), f"csv_number_nonfinite:{field}")
+    return value
+
+
+def typed_csv_rows(path: Path, relative: str) -> list[dict[str, Any]]:
+    header = CSV_HEADERS[relative]
+    raw = path.read_bytes()
+    require(raw.endswith(b"\n") and b"\r" not in raw, f"csv_serialization:{relative}")
+    require(
+        b"nan" not in raw.lower() and b"inf" not in raw.lower(),
+        f"csv_nonfinite:{relative}",
+    )
+    with path.open(newline="", encoding="ascii") as handle:
+        reader = csv.DictReader(handle)
+        require(tuple(reader.fieldnames or ()) == header, f"csv_header:{relative}")
+        raw_rows = list(reader)
+    rows = []
+    for raw_row in raw_rows:
+        require(set(raw_row) == set(header), f"csv_row_keys:{relative}")
+        row: dict[str, Any] = {}
+        for field in header:
+            text = raw_row[field]
+            if field in CSV_BOOL_FIELDS:
+                require(text in {"True", "False"}, f"csv_bool:{relative}:{field}")
+                row[field] = text == "True"
+            elif field in CSV_JSON_FIELDS:
+                value = json.loads(text)
+                require(isinstance(value, (list, dict)), f"csv_json:{relative}:{field}")
+                row[field] = value
+            elif field == "maximum_single_date_cluster_share":
+                row[field] = None if text == "" else parse_csv_number(text, field)
+                if row[field] is not None:
+                    require(0.0 <= row[field] <= 1.0, "csv_share_range")
+            elif field in CSV_OPTIONAL_FIELDS and text == "":
+                row[field] = None
+            elif field == "maximum_memory_age_ms":
+                row[field] = parse_csv_int(text, field, minimum=-1)
+            elif field.endswith("_sha256") or field in {
+                "candidate_id",
+                "retained_candidate_id",
+            }:
+                if text == "" and field in CSV_OPTIONAL_FIELDS:
+                    row[field] = None
+                else:
+                    require(is_sha256(text), f"csv_sha:{relative}:{field}")
+                    row[field] = text
+            elif field in CSV_TEXT_FIELDS:
+                require(text != "" and text.isascii(), f"csv_text:{relative}:{field}")
+                row[field] = text
+            else:
+                row[field] = parse_csv_int(text, field)
+        rows.append(row)
+    validate_csv_semantics(relative, rows)
+    return rows
+
+
+def validate_csv_semantics(relative: str, rows: list[dict[str, Any]]) -> None:
+    order = {variant: index for index, variant in enumerate(VARIANTS)}
+    if relative == "support/source_cache_inventory.csv":
+        require(len(rows) == 29, "inventory_count")
+        require(
+            rows == sorted(rows, key=lambda row: row["cache_name"])
+            and len({row["cache_name"] for row in rows}) == len(rows)
+            and all(
+                row["cache_name"].endswith(".npz")
+                and "/" not in row["cache_name"]
+                and row["cache_schema_version"] == 4
+                and row["source_authority_verified"] is True
+                and row["cache_field_schema_verified"] is True
+                for row in rows
+            ),
+            "inventory_semantics",
+        )
+    elif relative == "support/channel_action_by_date.csv":
+        require(
+            rows == sorted(rows, key=lambda row: (row["research_date"], row["channel"]))
+            and all(row["channel"] in CHANNELS for row in rows),
+            "channel_rows_semantics",
+        )
+    elif relative == "support/epoch_support.csv":
+        require(
+            rows
+            == sorted(
+                rows,
+                key=lambda row: (
+                    row["research_date"],
+                    row["capture_id"],
+                    row["epoch_id"],
+                ),
+            ),
+            "epoch_rows_sort",
+        )
+        for row in rows:
+            require(
+                row["disposition"] in {"eligible", "cross_segment", "incomplete_grid"}
+                and (
+                    (row["segment_id"] is not None)
+                    == (row["disposition"] == "eligible")
+                ),
+                "epoch_rows_domain",
+            )
+    elif relative == "support/epoch_variant_counters.csv":
+        require(
+            rows
+            == sorted(
+                rows,
+                key=lambda row: (
+                    row["research_date"],
+                    row["capture_id"],
+                    row["epoch_id"],
+                    order[row["variant"]],
+                    row["direction"],
+                ),
+            )
+            and all(
+                row["variant"] in VARIANTS and row["direction"] in DIRECTIONS
+                for row in rows
+            ),
+            "counter_rows_semantics",
+        )
+    elif relative == "support/trigger_ledger.csv":
+        require(
+            rows
+            == sorted(
+                rows,
+                key=lambda row: (
+                    row["research_date"],
+                    row["capture_id"],
+                    order[row["variant"]],
+                    row["epoch_id"],
+                    row["direction"],
+                    row["candidate_ts_ns"],
+                    row["candidate_event_seq"],
+                ),
+            ),
+            "trigger_rows_sort",
+        )
+        for row in rows:
+            require(
+                row["variant"] in VARIANTS
+                and row["direction"] in DIRECTIONS
+                and row["leader_channel"] in CHANNELS
+                and row["confirmation_status"] in {"CONFIRMED", "CANCELLED"}
+                and (
+                    (row["first_additional_same_update_ts_ns"] is None)
+                    == (row["first_additional_same_update_event_seq"] is None)
+                ),
+                "trigger_rows_domain",
+            )
+    elif relative == "support/support_by_date.csv":
+        require(
+            rows
+            == sorted(
+                rows,
+                key=lambda row: (
+                    row["research_date"],
+                    order[row["variant"]],
+                    row["direction"],
+                ),
+            )
+            and all(
+                row["variant"] in VARIANTS and row["direction"] in DIRECTIONS
+                for row in rows
+            ),
+            "support_rows_semantics",
+        )
+    elif relative == "support/variant_summary.csv":
+        require(
+            [row["variant"] for row in rows] == list(VARIANTS)
+            and [row["is_primary"] for row in rows] == [True, False, False],
+            "variant_rows_domain",
+        )
+        for row in rows:
+            require(
+                (row["maximum_single_date_cluster_share"] is None)
+                == (row["distinct_confirmed_cluster_count"] == 0),
+                "variant_share_sentinel",
+            )
+    elif relative == "support/slice_invariance.csv":
+        require(
+            rows
+            == sorted(
+                rows,
+                key=lambda row: (
+                    row["research_date"],
+                    row["capture_id"],
+                    row["segment_id"],
+                    row["nominal_start_ts_ns"],
+                ),
+            )
+            and all(
+                row["mismatch_reason"]
+                in {
+                    "none",
+                    "epoch_disposition",
+                    "counter",
+                    "retained",
+                    "status",
+                    "support",
+                    "cross_segment",
+                }
+                for row in rows
+            ),
+            "slice_rows_semantics",
+        )
 
 
 def assert_no_symlink_components(path: Path) -> None:
@@ -537,7 +1028,12 @@ def comparison(
     }
 
 
-def validate_comparison(value: Mapping[str, Any]) -> None:
+def validate_comparison(
+    value: Mapping[str, Any],
+    *,
+    expected_domain: str | None = None,
+    expected_paths: Sequence[str] | None = None,
+) -> None:
     exact_keys(
         value,
         {
@@ -578,12 +1074,81 @@ def validate_comparison(value: Mapping[str, Any]) -> None:
             "comparison_other_sha",
         )
         require(isinstance(row["equal"], bool), "comparison_equal_type")
+        require(
+            row["equal"]
+            is (row["a_sha256"] is not None and row["a_sha256"] == row["other_sha256"]),
+            "comparison_equal_value",
+        )
         paths.append(row["path"])
     require(paths == sorted(paths) and len(paths) == len(set(paths)), "comparison_sort")
     require(
         value["difference_count"] == sum(not row["equal"] for row in value["rows"]),
         "comparison_difference_count",
     )
+    if expected_domain is not None:
+        require(value["domain"] == expected_domain, "comparison_domain")
+    if expected_paths is not None:
+        expected = sorted(expected_paths)
+        require(
+            value["expected_path_count"] == len(expected)
+            and value["a_path_count"] == len(expected)
+            and value["other_path_count"] == len(expected)
+            and paths == expected,
+            "comparison_path_closure",
+        )
+
+
+def gate_condition_passes(condition_id: str, value: Any) -> bool:
+    if condition_id in {
+        "baseline_authority_verified",
+        "frozen_successor_identities_verified",
+        "direct_callable_bindings_verified",
+        "claim_and_lock_valid_before_cache",
+        "canonical_source_closure_exact",
+    }:
+        return value is True
+    if not is_int(value):
+        if condition_id == "trade_led_maximum_single_date_share":
+            return (
+                isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and math.isfinite(float(value))
+                and float(value) <= 0.50
+            )
+        return False
+    exact = {
+        "source_preflight_violation_count": 0,
+        "raw_a_b_difference_count": 0,
+        "poison_cache_count": 29,
+        "poison_unconsumed_field_count": 15,
+        "poison_changed_field_instance_count": 435,
+        "poison_consumed_field_mismatch_count": 0,
+        "raw_a_p_difference_count": 0,
+        "action_partition_violation_count": 0,
+        "unauthorized_ttl_refresh_count": 0,
+        "cross_segment_memory_carry_count": 0,
+        "conservation_violation_count": 0,
+        "fixed_epoch_violation_count": 0,
+        "slice_mismatch_count": 0,
+        "cross_segment_compared_checkpoint_count": 0,
+        "schema_violation_count": 0,
+        "numeric_violation_count": 0,
+    }
+    if condition_id in exact:
+        return value == exact[condition_id]
+    if condition_id in {
+        "represented_slice_date_count",
+        "trade_led_represented_date_count",
+    }:
+        return value >= 4
+    if condition_id in {
+        "distinct_comparable_epoch_count",
+        "trade_led_confirmed_cluster_count",
+    }:
+        return value >= 30
+    if condition_id == "compared_support_checkpoint_count":
+        return value > 0
+    return False
 
 
 def validate_gate_contract(payload: Mapping[str, Any]) -> None:
@@ -597,6 +1162,7 @@ def validate_gate_contract(payload: Mapping[str, Any]) -> None:
         "gate_rows_order",
     )
     first_failure = None
+    previous_failed = False
     for gate in gates:
         exact_keys(gate, {"gate_id", "status", "passed", "conditions"}, "gate_keys")
         require(
@@ -611,6 +1177,28 @@ def validate_gate_contract(payload: Mapping[str, Any]) -> None:
             else None
         )
         require(gate["passed"] is expected_passed, "gate_passed")
+        require(
+            gate["conditions"]
+            and [
+                (row.get("condition"), row.get("required"))
+                for row in gate["conditions"]
+            ]
+            == list(GATE_REQUIREMENTS[gate["gate_id"]]),
+            "gate_condition_contract",
+        )
+        require(
+            isinstance(gate["conditions"], list)
+            and len(
+                {
+                    row.get("condition")
+                    for row in gate["conditions"]
+                    if isinstance(row, dict)
+                }
+            )
+            == len(gate["conditions"]),
+            "gate_condition_duplicates",
+        )
+        local_failed = False
         for row in gate["conditions"]:
             exact_keys(
                 row,
@@ -626,34 +1214,331 @@ def validate_gate_contract(payload: Mapping[str, Any]) -> None:
                     row["passed"] is None and row["actual"] is None,
                     "gate_not_evaluated_sentinel",
                 )
+            else:
+                require(
+                    isinstance(row["passed"], bool)
+                    and row["actual"] is not None
+                    and (
+                        not isinstance(row["actual"], float)
+                        or (
+                            isinstance(row["actual"], float)
+                            and math.isfinite(row["actual"])
+                        )
+                    ),
+                    "gate_condition_actual",
+                )
+                expected_passed = gate_condition_passes(row["condition"], row["actual"])
+                require(
+                    row["status"] == ("PASS" if expected_passed else "FAIL")
+                    and row["passed"] is expected_passed,
+                    "gate_condition_truth",
+                )
+            if previous_failed or local_failed:
+                require(
+                    row["status"] == "NOT_EVALUATED",
+                    "gate_condition_precedence",
+                )
+            else:
+                require(
+                    row["status"] in {"PASS", "FAIL"},
+                    "gate_condition_precedence",
+                )
+            local_failed |= row["status"] == "FAIL"
+        expected_gate_status = (
+            "NOT_EVALUATED" if previous_failed else "FAIL" if local_failed else "PASS"
+        )
+        require(gate["status"] == expected_gate_status, "gate_status_precedence")
         if gate["status"] == "FAIL" and first_failure is None:
             first_failure = gate["gate_id"]
-        if first_failure is not None and gate["gate_id"] != first_failure:
-            require(gate["status"] == "NOT_EVALUATED", "gate_precedence")
+        previous_failed |= local_failed
     require(payload["first_failed_gate_id"] == first_failure, "first_failed_gate")
+    if first_failure is None:
+        expected_classification = "Aminus1_trade_led_recurrent_structural_candidate"
+    elif first_failure == "A-1-0":
+        expected_classification = "Aminus1_authority_or_source_failed"
+    elif first_failure == "A-1-1":
+        expected_classification = "Aminus1_outcome_boundary_violated"
+    elif first_failure == "A-1-2":
+        expected_classification = "Aminus1_detector_integrity_failed"
+    else:
+        failed_condition = next(
+            row["condition"]
+            for row in gates[-1]["conditions"]
+            if row["status"] == "FAIL"
+        )
+        expected_classification = (
+            "Aminus1_trade_led_structural_support_not_estimable"
+            if failed_condition
+            in {
+                "trade_led_confirmed_cluster_count",
+                "trade_led_represented_date_count",
+            }
+            else "Aminus1_trade_led_structure_date_concentrated"
+        )
+    require(
+        payload["classification"] == expected_classification,
+        "gate_classification",
+    )
 
 
-def validate_final_root(root: Path) -> dict[str, Any]:
+def validate_final_root(root: Path, context: Mapping[str, Any]) -> dict[str, Any]:
+    require(
+        all(not path.is_symlink() for path in root.rglob("*")),
+        "final17_symlink",
+    )
     produced = {
         path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()
     }
     require(produced == set(FINAL_PATHS), "final17_path_set")
+    payloads = {}
     for relative, keys in JSON_KEYS.items():
         payload = read_json(root / relative)
         exact_keys(payload, keys, f"json_keys:{relative}")
         require(payload["schema_version"] == 1, f"schema_version:{relative}")
         if relative == "contracts/gate_contract.json":
             validate_gate_contract(payload)
+        payloads[relative] = payload
+    tables = {}
     for relative, header in CSV_HEADERS.items():
-        with (root / relative).open(newline="", encoding="ascii") as handle:
-            reader = csv.reader(handle)
-            actual = tuple(next(reader))
-            rows = list(reader)
-        require(actual == header, f"csv_header:{relative}")
-        raw = (root / relative).read_bytes().lower()
-        require(b"nan" not in raw and b"inf" not in raw, f"csv_nonfinite:{relative}")
-        require(all(len(row) == len(header) for row in rows), f"csv_width:{relative}")
-    return read_json(root / "classification.json")
+        tables[relative] = typed_csv_rows(root / relative, relative)
+
+    inventory = tables["support/source_cache_inventory.csv"]
+    authority = payloads["contracts/authority_binding.json"]
+    tracked_paths = (
+        IDEA_PATH,
+        PLAN_PATH,
+        TASK_PATH,
+        RUNNER_PATH,
+        VERIFIER_PATH,
+        TEST_PATH,
+        CLAIMED_PATH,
+    )
+    require(
+        [row.get("path") for row in authority["tracked_files"]]
+        == [path.as_posix() for path in tracked_paths],
+        "authority_tracked_order",
+    )
+    identities = context["implementation_identities"]
+    for row, path in zip(authority["tracked_files"], tracked_paths):
+        exact_keys(row, {"path", "sha256", "git_blob_oid"}, "file_identity_keys")
+        require(
+            is_sha256(row["sha256"]) and is_sha1(row["git_blob_oid"]),
+            "file_identity_types",
+        )
+        expected = (
+            {
+                "path": CLAIMED_PATH.as_posix(),
+                "sha256": sha256_file(context["repo_root"] / CLAIMED_PATH),
+                "git_blob_oid": git_text(
+                    context["repo_root"],
+                    "rev-parse",
+                    f"{context['consumption_head']}:{CLAIMED_PATH.as_posix()}",
+                ),
+            }
+            if path == CLAIMED_PATH
+            else identities[path.as_posix()]
+        )
+        require(row == expected, f"file_identity_value:{path}")
+    callable_names = list(AUTHORITY_AST_SHA256)
+    require(
+        [row.get("callable_name") for row in authority["callables"]] == callable_names,
+        "callable_order",
+    )
+    analyzed_unit_count = len(context["instrumentation"]["feature_calls"])
+    for row in authority["callables"]:
+        exact_keys(
+            row,
+            {
+                "path",
+                "commit",
+                "git_blob_oid",
+                "file_sha256",
+                "callable_name",
+                "callable_ast_sha256",
+                "direct_call_count",
+            },
+            "callable_identity_keys",
+        )
+        name = row["callable_name"]
+        feature = name == "build_features"
+        require(
+            row["path"]
+            == (FEATURE_AUTHORITY_PATH if feature else EPOCH_AUTHORITY_PATH).as_posix()
+            and row["commit"]
+            == (FEATURE_AUTHORITY_COMMIT if feature else EPOCH_AUTHORITY_COMMIT)
+            and row["git_blob_oid"]
+            == (FEATURE_AUTHORITY_BLOB if feature else EPOCH_AUTHORITY_BLOB)
+            and row["file_sha256"]
+            == (FEATURE_AUTHORITY_SHA256 if feature else EPOCH_AUTHORITY_SHA256)
+            and row["callable_ast_sha256"] == AUTHORITY_AST_SHA256[name]
+            and row["direct_call_count"]
+            == (
+                1
+                if name
+                in {"materialize_poisoned_cache_set", "verify_poison_attestation"}
+                else analyzed_unit_count
+            ),
+            f"callable_identity_value:{name}",
+        )
+    require(
+        authority["task_id"] == TASK_ID
+        and authority["hypothesis_id"] == HYPOTHESIS_ID
+        and authority["audit_id"] == AUDIT_ID
+        and authority["baseline_tag"] == BASELINE_TAG
+        and authority["baseline_commit"] == BASELINE_COMMIT
+        and authority["implementation_tag"] == IMPLEMENTATION_TAG
+        and authority["implementation_head"] == context["implementation_head"]
+        and authority["consumption_tag"] == CONSUMPTION_TAG
+        and authority["consumption_head"] == context["consumption_head"]
+        and authority["source_inventory_sha256"] == canonical_sha(inventory)
+        and authority["attempted_claim_sha256"]
+        == sha256_file(context["repo_root"] / CLAIMED_PATH)
+        and authority["all_verified"] is True,
+        "authority_binding_values",
+    )
+
+    detector = payloads["contracts/detector_contract.json"]
+    require(
+        detector
+        == {
+            "schema_version": 1,
+            "hypothesis_id": HYPOTHESIS_ID,
+            "variant_order": list(VARIANTS),
+            "channel_order": list(CHANNELS),
+            "fast_threshold": 0.5,
+            "medium_threshold": 0.25,
+            "margin": 0.0,
+            "ttl_ms": 100,
+            "ttl_inclusive": True,
+            "prestate_ms": 120,
+            "prestate_checkpoint_count": 6,
+            "confirmation_ms": 200,
+            "confirmation_checkpoint_count": 10,
+            "causal_order": [
+                "source_preflight",
+                "base_eligibility_and_action",
+                "memory_update_and_expiry",
+                "leader_prestate",
+                "raw_leader_onset",
+                "epoch_and_core",
+                "confirmation_edge",
+                "anchor_support_and_veto",
+                "fixed_epoch_thinning",
+                "explicit_evidence_confirmation",
+            ],
+            "onset_rule": "leader_NEW_d_with_six_prior_BACKGROUND_same_segment",
+            "confirmation_edge_rule": "candidate_ts_ns+200ms<=core_close_ns",
+            "veto_rule": "secondary_opposite_count>0",
+            "thinning_rule": "earliest(candidate_ts_ns,candidate_event_seq)_per_capture_epoch_variant_direction",
+            "confirmation_rule": "leader_NEW_d>=1_and_any_channel_NEW_-d==0_over_t+20..t+200",
+            "cancel_reason_precedence": [
+                "insufficient_confirmation_history",
+                "confirmation_segment_boundary",
+                "explicit_opposite_update",
+                "no_additional_same_leader_update",
+            ],
+        },
+        "detector_contract_values",
+    )
+    fixed = payloads["contracts/fixed_epoch_contract.json"]
+    require(
+        fixed
+        == {
+            "schema_version": 1,
+            "epoch_origin_ns": 0,
+            "epoch_width_ns": 60_000_000_000,
+            "checkpoint_ns": 20_000_000,
+            "expected_checkpoint_count": 3000,
+            "core_open_offset_ns": 15_000_000_000,
+            "core_close_offset_ns": 45_000_000_000,
+            "core_half_open": True,
+            "confirmation_close_equality_admitted": True,
+            "thinning_key": ["capture_id", "epoch_id", "variant", "direction"],
+            "tie_break": ["candidate_ts_ns", "candidate_event_seq"],
+            "cluster_key": ["capture_id", "epoch_id"],
+        },
+        "fixed_epoch_contract_values",
+    )
+
+    gate = payloads["contracts/gate_contract.json"]
+    summary = payloads["reports/A_minus1_summary.json"]
+    classification = payloads["classification.json"]
+    variant_rows = tables["support/variant_summary.csv"]
+    integrity_keys = {
+        "source_preflight_violation_count",
+        "action_partition_violation_count",
+        "unauthorized_ttl_refresh_count",
+        "cross_segment_memory_carry_count",
+        "conservation_violation_count",
+        "fixed_epoch_violation_count",
+        "slice_mismatch_count",
+        "cross_segment_compared_checkpoint_count",
+        "represented_slice_date_count",
+        "distinct_comparable_epoch_count",
+        "compared_support_checkpoint_count",
+        "schema_violation_count",
+        "numeric_violation_count",
+    }
+    exact_keys(summary["integrity"], integrity_keys, "integrity_keys")
+    require(
+        all(is_int(value) and value >= 0 for value in summary["integrity"].values()),
+        "integrity_values",
+    )
+    require(
+        summary["task_id"] == TASK_ID
+        and summary["hypothesis_id"] == HYPOTHESIS_ID
+        and summary["audit_id"] == AUDIT_ID
+        and summary["idea_sha256"] == IDEA_SHA256
+        and summary["plan_sha256"] == PLAN_SHA256
+        and summary["implementation_head"] == context["implementation_head"]
+        and summary["primary_variant"] == PRIMARY_VARIANT
+        and summary["sensitivity_variants"] == list(SENSITIVITY_VARIANTS)
+        and summary["variant_rows"] == variant_rows
+        and summary["gates"] == gate["gates"],
+        "summary_values",
+    )
+    require(
+        classification["task_id"] == TASK_ID
+        and classification["hypothesis_id"] == HYPOTHESIS_ID
+        and classification["audit_id"] == AUDIT_ID
+        and classification["classification"]
+        == gate["classification"]
+        == summary["classification"]
+        and classification["first_failed_gate_id"] == gate["first_failed_gate_id"]
+        and classification["gate_statuses"] == [row["status"] for row in gate["gates"]],
+        "classification_cross_file",
+    )
+    for payload in (summary, classification):
+        require(
+            payload["future_outcomes_authorized"] is False
+            and payload["a0_authorized"] is False
+            and payload["live_trading_authorized"] is False,
+            "authorization_lock",
+        )
+
+    outcome = payloads["contracts/outcome_access_ledger.json"]
+    poison = context["poison"]
+    require(
+        outcome["future_target_accessed"] is False
+        and outcome["future_price_accessed"] is False
+        and outcome["fill_fee_pnl_accessed"] is False
+        and outcome["consumed_cache_fields"] == list(CONSUMED_FIELDS)
+        and outcome["cache_count"] == poison["cache_count"]
+        and outcome["unconsumed_field_count"] == poison["unconsumed_field_count"]
+        and outcome["nonempty_unconsumed_field_instance_count"]
+        == poison["nonempty_unconsumed_field_instance_count"]
+        and outcome["changed_unconsumed_field_instance_count"]
+        == poison["changed_unconsumed_field_instance_count"]
+        and outcome["consumed_field_mismatch_count"] == 0
+        and outcome["poison_attestation_sha256"]
+        == sha256_file(context["attempt_root"] / "poison-attestation.json")
+        and is_int(outcome["raw_a_p_difference_count"])
+        and outcome["raw_a_p_difference_count"] >= 0
+        and outcome["outcome_boundary_preserved"]
+        is (outcome["raw_a_p_difference_count"] == 0),
+        "outcome_ledger_values",
+    )
+    return classification
 
 
 def validate_push_call(
@@ -745,6 +1630,12 @@ def check_v00(context: dict[str, Any]) -> None:
     assert_no_symlink_components(attempt)
     require(Path.cwd().resolve() == repo, "verifier_cwd")
     require(
+        context["implementation_tag"] == IMPLEMENTATION_TAG
+        and context["consumption_tag"] == CONSUMPTION_TAG
+        and context["terminal_tag"] == TERMINAL_TAG,
+        "verifier_frozen_tags",
+    )
+    require(
         sys.argv
         == [
             VERIFIER_PATH.as_posix(),
@@ -788,27 +1679,55 @@ def check_v00(context: dict[str, Any]) -> None:
 def check_v01(context: dict[str, Any]) -> None:
     repo = context["repo_root"]
     implementation_head = context["implementation_head"]
-    path = repo / VERIFIER_PATH
-    require(path.is_file(), "verifier_missing")
-    blob = git_text(
-        repo,
-        "rev-parse",
-        f"{implementation_head}:{VERIFIER_PATH.as_posix()}",
-    )
-    require(is_sha1(blob), "verifier_blob")
-    require(
-        git(
+    identities = {}
+    for path in (
+        IDEA_PATH,
+        PLAN_PATH,
+        TASK_PATH,
+        RUNNER_PATH,
+        VERIFIER_PATH,
+        TEST_PATH,
+    ):
+        full = repo / path
+        require(full.is_file(), f"tracked_file_missing:{path}")
+        blob = git_text(
             repo,
-            "diff",
-            "--quiet",
-            implementation_head,
-            "--",
-            VERIFIER_PATH.as_posix(),
-            check=False,
-        ).returncode
-        == 0,
-        "verifier_worktree_drift",
+            "rev-parse",
+            f"{implementation_head}:{path.as_posix()}",
+        )
+        require(is_sha1(blob), f"tracked_file_blob:{path}")
+        require(
+            git(
+                repo,
+                "diff",
+                "--quiet",
+                implementation_head,
+                "--",
+                path.as_posix(),
+                check=False,
+            ).returncode
+            == 0,
+            f"tracked_file_worktree_drift:{path}",
+        )
+        require(
+            git_blob_sha256(repo, implementation_head, path) == sha256_file(full),
+            f"tracked_file_sha:{path}",
+        )
+        identities[path.as_posix()] = {
+            "path": path.as_posix(),
+            "sha256": sha256_file(full),
+            "git_blob_oid": blob,
+        }
+    require(
+        identities[IDEA_PATH.as_posix()]["sha256"] == IDEA_SHA256,
+        "idea_sha256",
     )
+    require(
+        identities[PLAN_PATH.as_posix()]["sha256"] == PLAN_SHA256,
+        "plan_sha256",
+    )
+    path = repo / VERIFIER_PATH
+    blob = identities[VERIFIER_PATH.as_posix()]["git_blob_oid"]
     runner_source = (repo / RUNNER_PATH).read_text(encoding="ascii")
     tree = ast.parse(runner_source)
     require(
@@ -858,6 +1777,7 @@ def check_v01(context: dict[str, Any]) -> None:
         )
     context["verifier_sha256"] = sha256_file(path)
     context["verifier_blob"] = blob
+    context["implementation_identities"] = identities
 
 
 def check_v02(context: dict[str, Any]) -> None:
@@ -869,6 +1789,19 @@ def check_v02(context: dict[str, Any]) -> None:
         git_text(repo, "rev-list", "-n", "1", context["implementation_tag"])
         == implementation,
         "implementation_tag",
+    )
+    for tag in (IMPLEMENTATION_TAG, CONSUMPTION_TAG, TERMINAL_TAG):
+        require(git_text(repo, "cat-file", "-t", tag) == "tag", f"annotated_tag:{tag}")
+    claim_blob = git_text(
+        repo,
+        "rev-parse",
+        f"{implementation}:{CLAIM_ARMED_PATH.as_posix()}",
+    )
+    verify_consumption_transition(
+        repo_root=repo,
+        implementation_head=implementation,
+        consumption_head=consumption,
+        expected_claim_blob=claim_blob,
     )
     require(
         git_text(repo, "rev-list", "-n", "1", context["consumption_tag"])
@@ -885,6 +1818,10 @@ def check_v02(context: dict[str, Any]) -> None:
     )
     require(
         git_text(repo, "rev-parse", f"{terminal}^") == consumption, "terminal_parent"
+    )
+    require(
+        git_text(repo, "show", "-s", "--format=%B", terminal) == TERMINAL_MESSAGE,
+        "terminal_commit_message",
     )
     require(
         git_text(repo, "rev-list", "--count", f"{consumption}..{terminal}") == "1",
@@ -957,16 +1894,53 @@ def check_v03(context: dict[str, Any]) -> None:
         "claim_keys",
     )
     require(
-        claim["task_id"] == TASK_ID
+        claim["schema_version"] == SCHEMA_VERSION
+        and claim["task_id"] == TASK_ID
         and claim["attempt_id"]
         and claim["status"] == "ARMED_FOR_SINGLE_USE"
         and claim["repo_root"] == str(repo)
         and claim["attempt_root"] == str(attempt)
-        and claim["implementation_tag"] == context["implementation_tag"]
+        and claim["implementation_tag"] == IMPLEMENTATION_TAG
+        and claim["idea_sha256"] == IDEA_SHA256
+        and claim["plan_sha256"] == PLAN_SHA256
         and claim["controller_remote"] == CONTROLLER_REMOTE
         and claim["controller_url"] == CONTROLLER_URL
         and claim["controller_ref"] == CONTROLLER_REF,
         "claim_values",
+    )
+    identities = context["implementation_identities"]
+    for field, path in (
+        ("task_sha256", TASK_PATH),
+        ("runner_sha256", RUNNER_PATH),
+        ("verifier_sha256", VERIFIER_PATH),
+        ("tests_sha256", TEST_PATH),
+    ):
+        require(
+            claim[field] == identities[path.as_posix()]["sha256"],
+            f"claim_identity:{field}",
+        )
+    expected_formal_argv = [
+        RUNNER_PATH.as_posix(),
+        "--formal-attempt",
+        "--repo-root",
+        str(repo),
+        "--source-cache-root",
+        claim["source_cache_root"],
+        "--attempt-root",
+        str(attempt),
+    ]
+    require(claim["formal_argv"] == expected_formal_argv, "claim_formal_argv")
+    claimed_bytes = (repo / CLAIMED_PATH).read_bytes()
+    require(
+        hashlib.sha1(
+            f"blob {len(claimed_bytes)}\0".encode() + claimed_bytes
+        ).hexdigest()
+        == git_text(
+            repo,
+            "rev-parse",
+            f"{context['consumption_head']}:{CLAIMED_PATH.as_posix()}",
+        ),
+        "claimed_blob_bytes",
     )
     lock = read_json(attempt / "attempt-lock.json")
     exact_keys(
@@ -997,12 +1971,24 @@ def check_v03(context: dict[str, Any]) -> None:
         "attempt_lock_keys",
     )
     require(
-        lock["task_id"] == TASK_ID
+        lock["schema_version"] == SCHEMA_VERSION
+        and lock["task_id"] == TASK_ID
         and lock["attempt_id"] == claim["attempt_id"]
         and lock["status"] == "CLAIMED_BEFORE_CACHE_READ"
+        and is_int(lock["pid"])
+        and lock["pid"] > 0
+        and is_utc(lock["started_at_utc"])
+        and lock["cwd"] == str(repo)
+        and lock["argv"] == claim["formal_argv"]
         and lock["implementation_head"] == context["implementation_head"]
         and lock["consumption_head"] == context["consumption_head"]
         and lock["claimed_sha256"] == sha256_file(repo / CLAIMED_PATH)
+        and lock["repo_root"] == str(repo)
+        and lock["source_cache_root"] == claim["source_cache_root"]
+        and lock["attempt_root"] == str(attempt)
+        and lock["controller_remote"] == CONTROLLER_REMOTE
+        and lock["controller_ref"] == CONTROLLER_REF
+        and lock["controller_consumption_head"] == context["consumption_head"]
         and lock["successful_push_count"] == 1,
         "attempt_lock_values",
     )
@@ -1026,6 +2012,18 @@ def check_v03(context: dict[str, Any]) -> None:
         new_head=context["consumption_head"],
         pre_id="PRE_CONSUMPTION",
         post_id="POST_CONSUMPTION",
+    )
+    require(
+        lock["remote_transitions"]
+        == [
+            {
+                "transition_id": "CONSUMPTION",
+                "old_head": None,
+                "new_head": context["consumption_head"],
+                "derived_from": ["PRE_CONSUMPTION", "POST_CONSUMPTION"],
+            }
+        ],
+        "lock_remote_transition",
     )
     context["claim"] = claim
     context["lock"] = lock
@@ -1131,7 +2129,16 @@ def check_v05(context: dict[str, Any]) -> None:
         "work_manifest_keys",
     )
     rows = work["rows"]
-    require(work["row_count"] == len(rows), "work_row_count")
+    require(
+        work["schema_version"] == SCHEMA_VERSION
+        and work["attempt_id"] == context["claim"]["attempt_id"]
+        and is_int(work["row_count"])
+        and work["row_count"] == len(rows)
+        and is_int(work["per_build_slice_count"])
+        and work["per_build_slice_count"] >= 0
+        and is_sha256(work["tree_sha256"]),
+        "work_manifest_values",
+    )
     order = {"A": 0, "B": 1, "P": 2}
     sorted_rows = sorted(
         rows,
@@ -1146,6 +2153,7 @@ def check_v05(context: dict[str, Any]) -> None:
     seen_paths = set()
     seen_keys = set()
     counts = {label: 0 for label in ROOT_LABELS}
+    ordinals: dict[tuple[str, str], list[int]] = defaultdict(list)
     for row in rows:
         exact_keys(
             row,
@@ -1159,20 +2167,37 @@ def check_v05(context: dict[str, Any]) -> None:
             },
             "work_row_keys",
         )
-        path = attempt / row["path"]
+        path = safe_relative_child(attempt, row["path"], "work/")
         key = (row["build_label"], row["cache_name"], row["slice_ordinal"])
+        expected_relative = (
+            f"work/{row['build_label']}/{row['cache_name']}/"
+            f"slice_{row['slice_ordinal']:06d}.npz"
+        )
         require(
-            row["path"].startswith("work/")
+            row["build_label"] in ROOT_LABELS
+            and isinstance(row["cache_name"], str)
+            and row["cache_name"].endswith(".npz")
+            and is_int(row["slice_ordinal"])
+            and row["slice_ordinal"] >= 0
+            and row["path"] == expected_relative
             and row["path"] not in seen_paths
             and key not in seen_keys
             and path.is_file()
+            and is_int(row["size_bytes"])
+            and row["size_bytes"] >= 0
             and path.stat().st_size == row["size_bytes"]
+            and is_sha256(row["sha256"])
             and sha256_file(path) == row["sha256"],
             "work_row_values",
         )
         seen_paths.add(row["path"])
         seen_keys.add(key)
         counts[row["build_label"]] += 1
+        ordinals[(row["build_label"], row["cache_name"])].append(row["slice_ordinal"])
+    require(
+        all(values == list(range(len(values))) for values in ordinals.values()),
+        "work_slice_ordinal_domain",
+    )
     require(
         all(value == work["per_build_slice_count"] for value in counts.values()),
         "work_per_build",
@@ -1201,6 +2226,26 @@ def check_v05(context: dict[str, Any]) -> None:
         "instrumentation_keys",
     )
     calls = instrumentation["feature_calls"]
+    require(
+        instrumentation["schema_version"] == SCHEMA_VERSION
+        and instrumentation["attempt_id"] == context["claim"]["attempt_id"]
+        and all(
+            is_int(instrumentation[name]) and instrumentation[name] >= 0
+            for name in (
+                "successor_np_load_callsite_count",
+                "loader_boundary_violation_count",
+                "detector_boundary_violation_count",
+                "feature_mutation_violation_count",
+                "inherited_fd_violation_count",
+                "ipc_envelope_violation_count",
+                "raw_reference_cross_boundary_count",
+                "raw_buffer_cross_boundary_count",
+                "loader_process_count",
+                "detector_process_count",
+            )
+        ),
+        "instrumentation_top_values",
+    )
     require(
         [row["call_index"] for row in calls] == list(range(len(calls))),
         "feature_call_index",
@@ -1273,6 +2318,24 @@ def check_v05(context: dict[str, Any]) -> None:
     work_paths = {str((attempt / row["path"]).resolve()): row for row in rows}
     source_root = Path(context["lock"]["source_cache_root"]).resolve()
     poison_root = (attempt / "poison_cache").resolve()
+    inventory = typed_csv_rows(
+        context["roots"]["A"] / "support/source_cache_inventory.csv",
+        "support/source_cache_inventory.csv",
+    )
+    inventory_names = [row["cache_name"] for row in inventory]
+    inventory_sha = {row["cache_name"]: row["cache_sha256"] for row in inventory}
+    call_order = {"A": 0, "B": 1, "P": 2}
+    expected_call_sort = sorted(
+        calls,
+        key=lambda row: (
+            call_order.get(row.get("build_label"), 99),
+            f"{row.get('capture_id', '')}.npz",
+            0 if row.get("unit_kind") == "FULL" else 1,
+            -1 if row.get("slice_ordinal") is None else row.get("slice_ordinal"),
+        ),
+    )
+    require(calls == expected_call_sort, "feature_call_sort")
+    full_calls: dict[tuple[str, str], Mapping[str, Any]] = {}
     for call in calls:
         exact_keys(
             call,
@@ -1299,6 +2362,7 @@ def check_v05(context: dict[str, Any]) -> None:
             "feature_call_keys",
         )
         path = Path(call["resolved_input_path"])
+        cache_name = f"{call['capture_id']}.npz"
         expected_authority = {
             ("A", "FULL"): "CANONICAL",
             ("B", "FULL"): "CANONICAL",
@@ -1315,6 +2379,7 @@ def check_v05(context: dict[str, Any]) -> None:
             and call["input_authority"] == expected_authority
             and isinstance(call["capture_id"], str)
             and isinstance(call["research_date"], str)
+            and cache_name in inventory_names
             and (
                 call["slice_ordinal"] is None
                 if call["unit_kind"] == "FULL"
@@ -1336,10 +2401,21 @@ def check_v05(context: dict[str, Any]) -> None:
         )
         if call["unit_kind"] == "FULL":
             require(
+                (call["build_label"], cache_name) not in full_calls,
+                "duplicate_full_call",
+            )
+            full_calls[(call["build_label"], cache_name)] = call
+            require(
                 path.parent.resolve()
                 == (source_root if call["build_label"] in {"A", "B"} else poison_root),
                 "feature_full_input_root",
             )
+            require(path.name == cache_name, "feature_full_cache_name")
+            if call["build_label"] in {"A", "B"}:
+                require(
+                    call["input_sha256"] == inventory_sha[cache_name],
+                    "feature_canonical_inventory_sha",
+                )
         else:
             require(
                 str(path.resolve()) in work_paths
@@ -1366,6 +2442,15 @@ def check_v05(context: dict[str, Any]) -> None:
                 and row["input_sha256"] == call["input_sha256"],
                 "field_access_values",
             )
+    require(
+        set(full_calls)
+        == {
+            (label, cache_name)
+            for label in ROOT_LABELS
+            for cache_name in inventory_names
+        },
+        "feature_full_call_closure",
+    )
     events = instrumentation["raw_open_events"]
     require(
         [row["event_index"] for row in events] == list(range(len(events))),
@@ -1415,7 +2500,10 @@ def check_v05(context: dict[str, Any]) -> None:
             "raw_open_event_keys",
         )
         require(
-            row["event_type"] in {"open", "mmap.__new__"}
+            is_int(row["call_index"])
+            and row["call_index"] in {call["call_index"] for call in calls}
+            and row["build_label"] in ROOT_LABELS
+            and row["event_type"] in {"open", "mmap.__new__"}
             and row["phase"] in phase_order
             and row["operation"] in {"READ_INPUT", "WRITE_SLICE"}
             and row["allowed"] is True,
@@ -1424,18 +2512,21 @@ def check_v05(context: dict[str, Any]) -> None:
         if row["phase"] == "HASHER":
             require(
                 row["caller_name"] == "sha256_file"
+                and row["caller_path"] == RUNNER_PATH.as_posix()
                 and row["operation"] == "READ_INPUT",
                 "hasher_event_authority",
             )
         elif row["phase"] == "LOADER":
             require(
                 row["caller_name"] == "build_features"
+                and row["caller_path"] == FEATURE_AUTHORITY_PATH.as_posix()
                 and row["operation"] == "READ_INPUT",
                 "loader_event_authority",
             )
         else:
             require(
-                row["caller_name"] == "materialize_slice",
+                row["caller_name"] == "materialize_slice"
+                and row["caller_path"] == RUNNER_PATH.as_posix(),
                 "slice_event_authority",
             )
         events_by_call.setdefault(row["call_index"], []).append(row)
@@ -1450,13 +2541,31 @@ def check_v05(context: dict[str, Any]) -> None:
             "raw_open_phase_matrix",
         )
         for row in call_events:
+            require(
+                row["build_label"] == call["build_label"],
+                "raw_open_build_label",
+            )
             if row["phase"] in {"HASHER", "LOADER"}:
                 require(
                     row["resolved_path"] == call["resolved_input_path"],
                     "raw_open_feature_input_path",
                 )
+            elif row["operation"] == "WRITE_SLICE":
+                require(
+                    row["resolved_path"] == call["resolved_input_path"]
+                    and call["unit_kind"] == "SLICE",
+                    "raw_open_slice_write_path",
+                )
+            else:
+                full = full_calls[(call["build_label"], f"{call['capture_id']}.npz")]
+                require(
+                    row["resolved_path"] == full["resolved_input_path"]
+                    and call["unit_kind"] == "SLICE",
+                    "raw_open_slice_read_path",
+                )
     context["work_manifest"] = work
     context["instrumentation"] = instrumentation
+    context["inventory"] = inventory
 
 
 def check_v06(context: dict[str, Any]) -> None:
@@ -1482,7 +2591,10 @@ def check_v06(context: dict[str, Any]) -> None:
     require(
         payload["task_id"] == "0829T003"
         and payload["hypothesis_id"] == "FIXED_CAUSAL_EPOCH_MSTATE_V2"
+        and payload["poison_output_root"] == str((attempt / "poison_p").resolve())
+        and payload["source_inventory_sha256"] == canonical_sha(context["inventory"])
         and payload["cache_count"] == 29
+        and payload["unconsumed_fields"] == list(UNCONSUMED_FIELDS)
         and payload["unconsumed_field_count"] == 15
         and payload["nonempty_unconsumed_field_instance_count"] == 435
         and payload["changed_unconsumed_field_instance_count"] == 435
@@ -1491,13 +2603,37 @@ def check_v06(context: dict[str, Any]) -> None:
         "poison_values",
     )
     require(
-        sorted(row["cache_name"] for row in payload["caches"])
-        == [row["cache_name"] for row in payload["caches"]],
+        [row["cache_name"] for row in payload["caches"]]
+        == [row["cache_name"] for row in context["inventory"]],
         "poison_cache_sort",
+    )
+    poison_cache_root = attempt / "poison_cache"
+    require(
+        list_children(poison_cache_root)
+        == {row["cache_name"] for row in context["inventory"]},
+        "poison_cache_children",
     )
     for cache in payload["caches"]:
         exact_keys(cache, {"cache_name", "unconsumed_fields"}, "poison_cache_keys")
-        require(len(cache["unconsumed_fields"]) == 15, "poison_field_count")
+        cache_path = poison_cache_root / cache["cache_name"]
+        require(
+            cache_path.is_file()
+            and not cache_path.is_symlink()
+            and sha256_file(cache_path)
+            == next(
+                call["input_sha256"]
+                for call in context["instrumentation"]["feature_calls"]
+                if call["build_label"] == "P"
+                and call["unit_kind"] == "FULL"
+                and Path(call["resolved_input_path"]).name == cache["cache_name"]
+            ),
+            "poison_cache_identity",
+        )
+        require(
+            [row["field"] for row in cache["unconsumed_fields"]]
+            == list(UNCONSUMED_FIELDS),
+            "poison_field_domain",
+        )
         for field in cache["unconsumed_fields"]:
             exact_keys(
                 field,
@@ -1511,7 +2647,12 @@ def check_v06(context: dict[str, Any]) -> None:
                 "poison_field_keys",
             )
             require(
-                is_sha256(field["source_value_sha256"])
+                field["field"] in UNCONSUMED_FIELDS
+                and isinstance(field["dtype"], str)
+                and field["dtype"]
+                and isinstance(field["shape"], list)
+                and all(is_int(value) and value >= 0 for value in field["shape"])
+                and is_sha256(field["source_value_sha256"])
                 and is_sha256(field["poison_value_sha256"])
                 and field["source_value_sha256"] != field["poison_value_sha256"],
                 "poison_field_sha",
@@ -1521,7 +2662,9 @@ def check_v06(context: dict[str, Any]) -> None:
 
 def check_v07(context: dict[str, Any]) -> None:
     roots = context["roots"]
-    classifications = [validate_final_root(roots[label]) for label in ROOT_LABELS]
+    classifications = [
+        validate_final_root(roots[label], context) for label in ROOT_LABELS
+    ]
     require(
         classifications[0] == classifications[1] == classifications[2],
         "classification_triad",
@@ -1576,7 +2719,12 @@ def check_v09(context: dict[str, Any]) -> None:
         ),
     }
     for name, value in expected.items():
-        validate_comparison(value)
+        expected_paths = RAW_PATHS if name.startswith("raw_") else SEALED_PATHS
+        validate_comparison(
+            value,
+            expected_domain=value["domain"],
+            expected_paths=expected_paths,
+        )
         require(evidence[name] == value, f"execution_comparison:{name}")
     require(
         evidence["implementation_head"] == context["implementation_head"],
@@ -1587,6 +2735,16 @@ def check_v09(context: dict[str, Any]) -> None:
     )
     context["final_a_p"] = comparison(
         "FINAL_17:A_vs_P", roots["A"], roots["P"], FINAL_PATHS
+    )
+    validate_comparison(
+        context["final_a_b"],
+        expected_domain="FINAL_17:A_vs_B",
+        expected_paths=FINAL_PATHS,
+    )
+    validate_comparison(
+        context["final_a_p"],
+        expected_domain="FINAL_17:A_vs_P",
+        expected_paths=FINAL_PATHS,
     )
 
 
@@ -1644,6 +2802,29 @@ def check_v10(context: dict[str, Any]) -> None:
         [row["label"] for row in payload["root_rows"]] == list(ROOT_LABELS),
         "attempt_root_rows",
     )
+    for row, label in zip(payload["root_rows"], ROOT_LABELS):
+        exact_keys(
+            row,
+            {
+                "label",
+                "path",
+                "artifact_count",
+                "tree_sha256",
+                "manifest_sha256",
+                "classification",
+            },
+            "root_row_keys",
+        )
+        root = context["roots"][label]
+        require(
+            row["label"] == label
+            and row["path"] == str(root)
+            and row["artifact_count"] == 17
+            and row["tree_sha256"] == context["root_tree_sha"][label]
+            and row["manifest_sha256"] == sha256_file(root / "run_manifest.json")
+            and row["classification"] == context["classification"]["classification"],
+            f"root_row_values:{label}",
+        )
     context["attempt_result"] = payload
 
 

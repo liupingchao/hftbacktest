@@ -13,6 +13,7 @@ import math
 import multiprocessing as mp
 import os
 import re
+import stat
 import struct
 import subprocess
 import sys
@@ -642,6 +643,20 @@ def git(
 
 def git_text(repo_root: Path, *args: str) -> str:
     return git(repo_root, *args).stdout.strip()
+
+
+def git_bytes(repo_root: Path, *args: str) -> bytes:
+    result = subprocess.run(
+        ("git", *args),
+        cwd=repo_root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise AuditError(
+            f"git_failed:{args[0]}:{result.stderr.decode('utf-8', 'replace').strip()}"
+        )
+    return result.stdout
 
 
 def function_ast_sha256(callable_value: Any) -> str:
@@ -2243,6 +2258,16 @@ def _detector_worker(
     research_date: str,
 ) -> None:
     try:
+        os.environ.clear()
+        fd_audit = enforce_detector_fd_boundary(
+            {
+                0,
+                1,
+                2,
+                feature_connection.fileno(),
+                result_connection.fileno(),
+            }
+        )
         install_raw_audit_hook(
             phase="DETECTOR",
             call_index=-1,
@@ -2266,6 +2291,8 @@ def _detector_worker(
             research_date=research_date,
             features=features,
         )
+        analysis["_detector_inherited_fd_violation_count"] = fd_audit["violation_count"]
+        analysis["_detector_environment_entry_count"] = len(os.environ)
         result_connection.send(
             {
                 "ok": True,
@@ -2283,6 +2310,58 @@ def _detector_worker(
     finally:
         feature_connection.close()
         result_connection.close()
+
+
+def enforce_detector_fd_boundary(allowed_fds: set[int]) -> dict[str, Any]:
+    """Reject regular-file or directory capabilities inherited by DETECTOR."""
+    violation_rows = []
+    control_rows = []
+    observed_fds = []
+    fd_root = Path("/dev/fd")
+    require(fd_root.is_dir(), "detector_fd_directory_missing")
+    descriptors = sorted(int(name) for name in os.listdir(fd_root) if name.isdigit())
+    for descriptor in descriptors:
+        try:
+            mode = os.fstat(descriptor).st_mode
+        except OSError:
+            continue
+        observed_fds.append(descriptor)
+        if descriptor in allowed_fds:
+            continue
+        if stat.S_ISFIFO(mode) or stat.S_ISSOCK(mode):
+            control_rows.append(descriptor)
+            continue
+        if stat.S_ISCHR(mode):
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+            continue
+        if stat.S_ISREG(mode) or stat.S_ISDIR(mode):
+            violation_rows.append(
+                {
+                    "fd": descriptor,
+                    "kind": ("REGULAR" if stat.S_ISREG(mode) else "DIRECTORY"),
+                }
+            )
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+    require(
+        not violation_rows,
+        f"detector_inherited_fd:{violation_rows}",
+    )
+    require(
+        len(control_rows) == 3,
+        f"detector_control_fd_domain:{len(control_rows)}",
+    )
+    return {
+        "observed_fd_count": len(observed_fds),
+        "internal_control_fd_count": len(control_rows),
+        "violation_count": len(violation_rows),
+        "violations": violation_rows,
+    }
 
 
 def execute_feature_call(
@@ -2340,10 +2419,13 @@ def execute_feature_call(
     detector_result = detector_result_receiver.recv()
     loader.join()
     detector.join()
-    require(loader.exitcode == 0 and loader_result["ok"], "loader_failed")
     require(
         detector.exitcode == 0 and detector_result["ok"],
-        "detector_failed",
+        f"detector_failed:{detector_result.get('error', '')}",
+    )
+    require(
+        loader.exitcode == 0 and loader_result["ok"],
+        f"loader_failed:{loader_result.get('error', '')}",
     )
     sender = loader_result["sender"]
     receiver = detector_result["receiver"]
@@ -2361,6 +2443,14 @@ def execute_feature_call(
     require(receiver["eof_observed"] is True, "ipc_eof_missing")
     require(receiver["unused_byte_count"] == 0, "ipc_unused_bytes")
     analysis = detector_result["analysis"]
+    inherited_fd_violation_count = analysis.pop(
+        "_detector_inherited_fd_violation_count"
+    )
+    detector_environment_entry_count = analysis.pop("_detector_environment_entry_count")
+    require(inherited_fd_violation_count == 0, "detector_inherited_fd")
+    require(detector_environment_entry_count == 0, "detector_environment_not_empty")
+    analysis["_detector_inherited_fd_violation_count"] = inherited_fd_violation_count
+    analysis["_detector_environment_entry_count"] = detector_environment_entry_count
     call = {
         "call_index": call_index,
         "build_label": build_label,
@@ -2601,6 +2691,8 @@ def build_raw_output(
     field_accesses = []
     raw_open_events = []
     work_rows = []
+    detector_inherited_fd_violation_count = 0
+    detector_environment_violation_count = 0
     comparable_keys: set[tuple[str, int]] = set()
     call_index = start_call_index
     for cache_row in canonical_inventory:
@@ -2625,6 +2717,12 @@ def build_raw_output(
                 f"cache_sha:{cache_name}",
             )
         analyses.append(full)
+        detector_inherited_fd_violation_count += int(
+            full.pop("_detector_inherited_fd_violation_count", 0)
+        )
+        detector_environment_violation_count += int(
+            full.pop("_detector_environment_entry_count", 0)
+        )
         feature_calls.append(call)
         field_accesses.extend(accesses)
         raw_open_events.extend(open_events)
@@ -2682,6 +2780,12 @@ def build_raw_output(
                     actual_start_ts_ns=materialized["actual_start_ts_ns"],
                     slice_source_sha256=materialized["sha256"],
                 )
+            )
+            detector_inherited_fd_violation_count += int(
+                sliced.pop("_detector_inherited_fd_violation_count", 0)
+            )
+            detector_environment_violation_count += int(
+                sliced.pop("_detector_environment_entry_count", 0)
             )
             comparable_keys.update(
                 (capture_id, epoch_id)
@@ -2759,6 +2863,10 @@ def build_raw_output(
         "field_accesses": field_accesses,
         "raw_open_events": raw_open_events,
         "work_rows": work_rows,
+        "detector_inherited_fd_violation_count": (
+            detector_inherited_fd_violation_count
+        ),
+        "detector_environment_violation_count": detector_environment_violation_count,
         "next_call_index": call_index,
         "source_preflight_violation_count": sum(
             int(row["source_preflight_violation_count"]) for row in analyses
@@ -2985,6 +3093,8 @@ def instrumentation_evidence(
     feature_calls: Sequence[Mapping[str, Any]],
     field_accesses: Sequence[Mapping[str, Any]],
     raw_open_events: Sequence[Mapping[str, Any]],
+    inherited_fd_violation_count: int = 0,
+    detector_environment_violation_count: int = 0,
 ) -> dict[str, Any]:
     calls = sorted(feature_calls, key=lambda row: row["call_index"])
     accesses = sorted(field_accesses, key=lambda row: (row["call_index"], row["field"]))
@@ -3021,9 +3131,9 @@ def instrumentation_evidence(
         "field_accesses": accesses,
         "raw_open_events": events,
         "loader_boundary_violation_count": 0,
-        "detector_boundary_violation_count": 0,
+        "detector_boundary_violation_count": detector_environment_violation_count,
         "feature_mutation_violation_count": 0,
-        "inherited_fd_violation_count": 0,
+        "inherited_fd_violation_count": inherited_fd_violation_count,
         "ipc_envelope_violation_count": 0,
         "raw_reference_cross_boundary_count": 0,
         "raw_buffer_cross_boundary_count": 0,
@@ -3198,11 +3308,19 @@ def verify_no_historical_attempt(repo_root: Path) -> None:
     )
     require(fsck.returncode == 0, "git_fsck_preflight")
     commits = set(git_text(repo_root, "rev-list", "--all", "--reflog").splitlines())
-    commits.update(
-        match.group(1)
-        for line in fsck.stdout.splitlines()
-        if (match := re.fullmatch(r"unreachable commit ([0-9a-f]{40})", line.strip()))
-    )
+    objects: dict[str, set[str]] = {
+        "commit": set(),
+        "tree": set(),
+        "blob": set(),
+    }
+    for line in f"{fsck.stdout}\n{fsck.stderr}".splitlines():
+        match = re.fullmatch(
+            r"(?:unreachable|dangling) (commit|tree|blob) ([0-9a-f]{40})",
+            line.strip(),
+        )
+        if match:
+            objects[match.group(1)].add(match.group(2))
+    commits.update(objects["commit"])
     prohibited_paths = (CLAIMED_PATH, TERMINAL_RECEIPT_PATH)
     for commit in sorted(commits):
         message = git_text(repo_root, "show", "-s", "--format=%B", commit)
@@ -3219,6 +3337,132 @@ def verify_no_historical_attempt(repo_root: Path) -> None:
                 check=False,
             )
             require(exists.returncode != 0, "historical_attempt_path")
+    prohibited_names = {
+        CLAIMED_PATH.as_posix(),
+        TERMINAL_RECEIPT_PATH.as_posix(),
+        CLAIMED_PATH.name,
+        TERMINAL_RECEIPT_PATH.name,
+    }
+    for tree_oid in sorted(objects["tree"]):
+        rows = git_text(repo_root, "ls-tree", "-r", tree_oid).splitlines()
+        for row in rows:
+            path = row.split("\t", 1)[1] if "\t" in row else ""
+            require(
+                path not in prohibited_names
+                and Path(path).name not in prohibited_names,
+                "historical_attempt_tree",
+            )
+    for blob_oid in sorted(objects["blob"]):
+        size = int(git_text(repo_root, "cat-file", "-s", blob_oid))
+        if size > 1_048_576:
+            continue
+        raw = git_bytes(repo_root, "cat-file", "blob", blob_oid)
+        try:
+            payload = json.loads(raw.decode("ascii"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, dict) or payload.get("task_id") != TASK_ID:
+            continue
+        claim_signature = {
+            "implementation_tag",
+            "formal_argv",
+            "controller_ref",
+            "status",
+        }
+        receipt_signature = {
+            "attempt_result_sha256",
+            "work_tree_sha256",
+            "sealed_at_utc",
+            "consumption_head",
+        }
+        require(
+            not (
+                claim_signature <= set(payload)
+                and payload.get("status") == "ARMED_FOR_SINGLE_USE"
+            ),
+            "historical_attempt_claim_blob",
+        )
+        require(
+            not (receipt_signature <= set(payload)),
+            "historical_attempt_terminal_blob",
+        )
+
+
+def verify_consumption_transition(
+    *,
+    repo_root: Path,
+    implementation_head: str,
+    consumption_head: str,
+    expected_claim_blob: str,
+) -> None:
+    require(
+        git_text(repo_root, "rev-parse", f"{consumption_head}^") == implementation_head,
+        "consumption_parent",
+    )
+    require(
+        git_text(
+            repo_root,
+            "rev-parse",
+            f"{implementation_head}:{CLAIM_ARMED_PATH.as_posix()}",
+        )
+        == expected_claim_blob,
+        "implementation_armed_blob",
+    )
+    require(
+        git(
+            repo_root,
+            "cat-file",
+            "-e",
+            f"{implementation_head}:{CLAIMED_PATH.as_posix()}",
+            check=False,
+        ).returncode
+        != 0,
+        "implementation_claimed_exists",
+    )
+    require(
+        git_text(
+            repo_root,
+            "rev-parse",
+            f"{consumption_head}:{CLAIMED_PATH.as_posix()}",
+        )
+        == expected_claim_blob,
+        "consumption_claimed_blob",
+    )
+    for path in (CLAIM_ARMED_PATH, TERMINAL_RECEIPT_PATH):
+        require(
+            git(
+                repo_root,
+                "cat-file",
+                "-e",
+                f"{consumption_head}:{path.as_posix()}",
+                check=False,
+            ).returncode
+            != 0,
+            f"consumption_forbidden_path:{path}",
+        )
+    delta = git_text(
+        repo_root,
+        "diff-tree",
+        "--no-commit-id",
+        "--name-status",
+        "-r",
+        "--no-renames",
+        implementation_head,
+        consumption_head,
+    ).splitlines()
+    require(
+        delta
+        == [
+            f"D\t{CLAIM_ARMED_PATH.as_posix()}",
+            f"A\t{CLAIMED_PATH.as_posix()}",
+        ],
+        "consumption_exact_rename_delta",
+    )
+    require(
+        git_text(repo_root, "show", "-s", "--format=%B", consumption_head)
+        == CONSUMPTION_MESSAGE,
+        "consumption_commit_message",
+    )
 
 
 def verify_git_fsync_config(repo_root: Path) -> None:
@@ -3386,6 +3630,9 @@ def consume_claim(
     require(armed.is_file() and not claimed.exists(), "claim_state")
     require(not attempt_root.exists(), "attempt_root_exists")
     armed_bytes = armed.read_bytes()
+    expected_claim_blob = git_text(
+        repo_root, "rev-parse", f"{implementation_head}:{CLAIM_ARMED_PATH.as_posix()}"
+    )
     claim = verify_armed_claim(
         repo_root=repo_root,
         source_cache_root=source_cache_root,
@@ -3402,6 +3649,12 @@ def consume_claim(
     git(repo_root, "add", str(CLAIM_ARMED_PATH), str(CLAIMED_PATH))
     git(repo_root, "commit", "-m", CONSUMPTION_MESSAGE)
     consumption_head = git_text(repo_root, "rev-parse", "HEAD")
+    verify_consumption_transition(
+        repo_root=repo_root,
+        implementation_head=implementation_head,
+        consumption_head=consumption_head,
+        expected_claim_blob=expected_claim_blob,
+    )
     git(
         repo_root,
         "tag",
@@ -3708,6 +3961,14 @@ def execute_formal_attempt(
         feature_calls=feature_calls,
         field_accesses=field_accesses,
         raw_open_events=raw_open_events,
+        inherited_fd_violation_count=sum(
+            int(build_results[label]["detector_inherited_fd_violation_count"])
+            for label in ("A", "B", "P")
+        ),
+        detector_environment_violation_count=sum(
+            int(build_results[label]["detector_environment_violation_count"])
+            for label in ("A", "B", "P")
+        ),
     )
     instrumentation_path = attempt_root / "instrumentation-evidence.json"
     write_json_no_replace(instrumentation_path, instrumentation)
