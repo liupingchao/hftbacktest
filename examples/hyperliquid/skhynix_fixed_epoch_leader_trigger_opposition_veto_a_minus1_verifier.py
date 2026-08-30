@@ -7,6 +7,7 @@ import argparse
 import ast
 import csv
 import hashlib
+import io
 import json
 import math
 import os
@@ -56,7 +57,7 @@ CLAIM_ARMED_PATH = Path(".workflow/attempt-claims/0830T002.armed.json")
 CLAIMED_PATH = Path(".workflow/attempt-claims/0830T002.claimed.json")
 TERMINAL_RECEIPT_PATH = Path(".workflow/attempt-receipts/0830T002.terminal.json")
 IDEA_SHA256 = "a916717f21e1714298520e69f8e2702920f4cd54308f5d554691d4364a1cc997"
-PLAN_SHA256 = "8171a7bed7b216527fed468dbcff8f31ab1f48ec871bb2eee9b0ae7ad123f79c"
+PLAN_SHA256 = "c690cfb13f11d34bc08a19ecf4e44d987316b54d8099b02efc384de45c33538e"
 BASELINE_TAG = "skhynix-fixed-epoch-suppression-v1"
 BASELINE_COMMIT = "f06eb5cb012cb62b2a778ad90d433c4083f9ba14"
 IMPLEMENTATION_TAG = "skhynix-fixed-epoch-leader-trigger-a-minus1-implementation-v1"
@@ -546,6 +547,19 @@ def pretty_json_bytes(value: Any) -> bytes:
     return (
         json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
     ).encode("ascii")
+
+
+def csv_bytes(rows: Sequence[Mapping[str, Any]], fields: Sequence[str]) -> bytes:
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        buffer,
+        fieldnames=list(fields),
+        extrasaction="raise",
+        lineterminator="\n",
+    )
+    writer.writeheader()
+    writer.writerows(rows)
+    return buffer.getvalue().encode("ascii")
 
 
 def sha256_file(path: Path) -> str:
@@ -1524,7 +1538,8 @@ def comparison_path_sha(
     if not poison_normalize_slice_source:
         return sha256_file(path)
     if relative == "support/slice_invariance.csv":
-        with path.open(newline="", encoding="ascii") as handle:
+        raw = path.read_bytes()
+        with io.StringIO(raw.decode("ascii"), newline="") as handle:
             reader = csv.DictReader(handle)
             require(
                 tuple(reader.fieldnames or ())
@@ -1532,11 +1547,25 @@ def comparison_path_sha(
                 "poison_slice_comparison_header",
             )
             rows = list(reader)
+        require(
+            csv_bytes(rows, CSV_HEADERS["support/slice_invariance.csv"]) == raw,
+            "poison_slice_comparison_noncanonical",
+        )
         for row in rows:
             row["slice_source_sha256"] = "0" * 64
-        return canonical_sha(rows)
+        normalized = csv_bytes(rows, CSV_HEADERS["support/slice_invariance.csv"])
+        require(
+            len(normalized) == len(raw),
+            "poison_slice_comparison_size_changed",
+        )
+        return hashlib.sha256(normalized).hexdigest()
     if relative == "run_manifest.json":
-        payload = read_json(path)
+        raw = path.read_bytes()
+        payload = json.loads(raw.decode("ascii"))
+        require(
+            pretty_json_bytes(payload) == raw,
+            "poison_manifest_comparison_noncanonical",
+        )
         artifacts = payload.get("artifacts")
         require(
             isinstance(artifacts, list),
@@ -1557,8 +1586,54 @@ def comparison_path_sha(
             "support/slice_invariance.csv",
             poison_normalize_slice_source=True,
         )
-        return canonical_sha(payload)
+        normalized = pretty_json_bytes(payload)
+        require(
+            len(normalized) == len(raw),
+            "poison_manifest_comparison_size_changed",
+        )
+        return hashlib.sha256(normalized).hexdigest()
     return sha256_file(path)
+
+
+def comparison_difference_paths(value: Mapping[str, Any]) -> set[str]:
+    return {str(row["path"]) for row in value["rows"] if not row["equal"]}
+
+
+def require_projection_lineage(
+    raw: Mapping[str, Any],
+    sealed: Mapping[str, Any],
+    final: Mapping[str, Any] | None = None,
+) -> None:
+    raw_rows = {str(row["path"]): row for row in raw["rows"]}
+    sealed_rows = {str(row["path"]): row for row in sealed["rows"]}
+    require(
+        set(raw_rows) == set(RAW_PATHS)
+        and set(sealed_rows) == set(SEALED_PATHS)
+        and all(sealed_rows[path] == raw_rows[path] for path in RAW_PATHS)
+        and all(
+            sealed_rows[path]["equal"] for path in set(SEALED_PATHS) - set(RAW_PATHS)
+        )
+        and comparison_difference_paths(sealed) == comparison_difference_paths(raw)
+        and sealed["difference_count"] == raw["difference_count"],
+        "sealed_comparison_lineage",
+    )
+    if final is None:
+        return
+    final_rows = {str(row["path"]): row for row in final["rows"]}
+    raw_differences = comparison_difference_paths(raw)
+    expected_final_differences = set(raw_differences)
+    if raw_differences:
+        expected_final_differences.add("run_manifest.json")
+    require(
+        set(final_rows) == set(FINAL_PATHS)
+        and all(final_rows[path] == sealed_rows[path] for path in SEALED_PATHS)
+        and final_rows["contracts/execution_evidence.json"]["equal"]
+        and final_rows["run_manifest.json"]["equal"] is (not raw_differences)
+        and comparison_difference_paths(final) == expected_final_differences
+        and final["difference_count"]
+        == raw["difference_count"] + int(bool(raw_differences)),
+        "final_comparison_lineage",
+    )
 
 
 def validate_comparison(
@@ -3332,6 +3407,16 @@ def check_v09(context: dict[str, Any]) -> None:
         context["final_a_p"],
         expected_domain="FINAL_17:A_vs_P",
         expected_paths=FINAL_PATHS,
+    )
+    require_projection_lineage(
+        expected["raw_a_b"],
+        expected["sealed_a_b"],
+        context["final_a_b"],
+    )
+    require_projection_lineage(
+        expected["raw_a_p"],
+        expected["sealed_a_p"],
+        context["final_a_p"],
     )
 
 

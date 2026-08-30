@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import copy
 import csv
+import io
 import json
 import os
 import subprocess
@@ -151,7 +152,7 @@ def test_frozen_identity_and_exact_output_domains() -> None:
         "a916717f21e1714298520e69f8e2702920f4cd54308f5d554691d4364a1cc997"
     )
     assert AUDIT.PLAN_SHA256 == (
-        "8171a7bed7b216527fed468dbcff8f31ab1f48ec871bb2eee9b0ae7ad123f79c"
+        "c690cfb13f11d34bc08a19ecf4e44d987316b54d8099b02efc384de45c33538e"
     )
     assert len(AUDIT.RAW_11) == 11
     assert len(AUDIT.SEALED_15) == 15
@@ -2731,6 +2732,107 @@ def test_poison_comparison_ignores_only_slice_source_sha(
         )["equal"]
         is False
     )
+
+
+def test_poison_comparison_rejects_noncanonical_slice_csv(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    path = package["roots"]["P"] / "support/slice_invariance.csv"
+    rows = VERIFIER.typed_csv_rows(path, "support/slice_invariance.csv")
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        buffer,
+        fieldnames=list(VERIFIER.CSV_HEADERS["support/slice_invariance.csv"]),
+        quoting=csv.QUOTE_ALL,
+        lineterminator="\n",
+    )
+    writer.writeheader()
+    writer.writerows(rows)
+    path.write_bytes(buffer.getvalue().encode("ascii"))
+    with pytest.raises(AUDIT.AuditError, match="poison_slice_comparison_noncanonical"):
+        AUDIT.comparison(
+            "RAW_11:A_vs_P",
+            package["roots"]["A"],
+            package["roots"]["P"],
+            AUDIT.RAW_11,
+            poison_normalize_slice_source=True,
+        )
+
+
+def test_poison_comparison_rejects_noncanonical_manifest_json(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    path = package["roots"]["P"] / "run_manifest.json"
+    payload = VERIFIER.read_json(path)
+    path.write_text(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")),
+        encoding="ascii",
+    )
+    with pytest.raises(
+        AUDIT.AuditError, match="poison_manifest_comparison_noncanonical"
+    ):
+        AUDIT.comparison(
+            "FINAL_17:A_vs_P",
+            package["roots"]["A"],
+            package["roots"]["P"],
+            AUDIT.FINAL_17,
+            poison_normalize_slice_source=True,
+        )
+
+
+def synthetic_comparison(
+    domain: str,
+    paths: tuple[str, ...],
+    differences: set[str],
+) -> dict[str, object]:
+    rows = [
+        {
+            "path": path,
+            "a_sha256": "a" * 64,
+            "other_sha256": ("b" if path in differences else "a") * 64,
+            "equal": path not in differences,
+        }
+        for path in sorted(paths)
+    ]
+    return {
+        "domain": domain,
+        "expected_path_count": len(paths),
+        "a_path_count": len(paths),
+        "other_path_count": len(paths),
+        "difference_count": len(differences),
+        "rows": rows,
+    }
+
+
+def test_nested_comparison_lineage_accepts_raw_negative_package() -> None:
+    raw_difference = {"support/support_by_date.csv"}
+    raw = synthetic_comparison("RAW_11:A_vs_P", AUDIT.RAW_11, raw_difference)
+    sealed = synthetic_comparison("SEALED_15:A_vs_P", AUDIT.SEALED_15, raw_difference)
+    final = synthetic_comparison(
+        "FINAL_17:A_vs_P",
+        AUDIT.FINAL_17,
+        raw_difference | {"run_manifest.json"},
+    )
+    AUDIT.require_projection_lineage(raw, sealed, final)
+    VERIFIER.require_projection_lineage(raw, sealed, final)
+
+
+def test_nested_comparison_lineage_rejects_new_post_raw_difference() -> None:
+    raw_difference = {"support/support_by_date.csv"}
+    raw = synthetic_comparison("RAW_11:A_vs_P", AUDIT.RAW_11, raw_difference)
+    sealed = synthetic_comparison(
+        "SEALED_15:A_vs_P",
+        AUDIT.SEALED_15,
+        raw_difference | {"classification.json"},
+    )
+    with pytest.raises(AUDIT.AuditError, match="sealed_comparison_lineage"):
+        AUDIT.require_projection_lineage(raw, sealed)
+    with pytest.raises(VERIFIER.VerificationError, match="sealed_comparison_lineage"):
+        VERIFIER.require_projection_lineage(raw, sealed)
 
 
 @pytest.mark.parametrize("target_index", range(12))

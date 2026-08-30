@@ -7,6 +7,7 @@ import argparse
 import ast
 import csv
 import hashlib
+import io
 import inspect
 import json
 import math
@@ -76,7 +77,7 @@ CLAIMED_PATH = Path(".workflow/attempt-claims/0830T002.claimed.json")
 TERMINAL_RECEIPT_PATH = Path(".workflow/attempt-receipts/0830T002.terminal.json")
 
 IDEA_SHA256 = "a916717f21e1714298520e69f8e2702920f4cd54308f5d554691d4364a1cc997"
-PLAN_SHA256 = "8171a7bed7b216527fed468dbcff8f31ab1f48ec871bb2eee9b0ae7ad123f79c"
+PLAN_SHA256 = "c690cfb13f11d34bc08a19ecf4e44d987316b54d8099b02efc384de45c33538e"
 FEATURE_AUTHORITY_COMMIT = "45544ecc3901623ca7c2e34a059afca6c551d625"
 FEATURE_AUTHORITY_BLOB = "494c203e7195f292e057f7708c99f52096259a02"
 FEATURE_AUTHORITY_SHA256 = (
@@ -1852,18 +1853,33 @@ def comparison_path_sha(
     if not poison_normalize_slice_source:
         return sha256_file(path)
     if relative == "support/slice_invariance.csv":
-        with path.open(newline="", encoding="ascii") as handle:
+        raw = path.read_bytes()
+        with io.StringIO(raw.decode("ascii"), newline="") as handle:
             reader = csv.DictReader(handle)
             require(
                 tuple(reader.fieldnames or ()) == SLICE_FIELDS,
                 "poison_slice_comparison_header",
             )
             rows = list(reader)
+        require(
+            csv_bytes(rows, SLICE_FIELDS) == raw,
+            "poison_slice_comparison_noncanonical",
+        )
         for row in rows:
             row["slice_source_sha256"] = "0" * 64
-        return canonical_sha(rows)
+        normalized = csv_bytes(rows, SLICE_FIELDS)
+        require(
+            len(normalized) == len(raw),
+            "poison_slice_comparison_size_changed",
+        )
+        return hashlib.sha256(normalized).hexdigest()
     if relative == "run_manifest.json":
-        payload = json.loads(path.read_text(encoding="ascii"))
+        raw = path.read_bytes()
+        payload = json.loads(raw.decode("ascii"))
+        require(
+            pretty_json_bytes(payload) == raw,
+            "poison_manifest_comparison_noncanonical",
+        )
         artifacts = payload.get("artifacts")
         require(
             isinstance(artifacts, list),
@@ -1884,8 +1900,59 @@ def comparison_path_sha(
             "support/slice_invariance.csv",
             poison_normalize_slice_source=True,
         )
-        return canonical_sha(payload)
+        normalized = pretty_json_bytes(payload)
+        require(
+            len(normalized) == len(raw),
+            "poison_manifest_comparison_size_changed",
+        )
+        return hashlib.sha256(normalized).hexdigest()
     return sha256_file(path)
+
+
+def require_exact_projection(root: Path, paths: Sequence[str], code: str) -> None:
+    produced = {
+        path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()
+    }
+    require(produced == set(paths), code)
+
+
+def comparison_difference_paths(value: Mapping[str, Any]) -> set[str]:
+    return {str(row["path"]) for row in value["rows"] if not row["equal"]}
+
+
+def require_projection_lineage(
+    raw: Mapping[str, Any],
+    sealed: Mapping[str, Any],
+    final: Mapping[str, Any] | None = None,
+) -> None:
+    raw_rows = {str(row["path"]): row for row in raw["rows"]}
+    sealed_rows = {str(row["path"]): row for row in sealed["rows"]}
+    require(
+        set(raw_rows) == set(RAW_11)
+        and set(sealed_rows) == set(SEALED_15)
+        and all(sealed_rows[path] == raw_rows[path] for path in RAW_11)
+        and all(sealed_rows[path]["equal"] for path in set(SEALED_15) - set(RAW_11))
+        and comparison_difference_paths(sealed) == comparison_difference_paths(raw)
+        and sealed["difference_count"] == raw["difference_count"],
+        "sealed_comparison_lineage",
+    )
+    if final is None:
+        return
+    final_rows = {str(row["path"]): row for row in final["rows"]}
+    raw_differences = comparison_difference_paths(raw)
+    expected_final_differences = set(raw_differences)
+    if raw_differences:
+        expected_final_differences.add("run_manifest.json")
+    require(
+        set(final_rows) == set(FINAL_17)
+        and all(final_rows[path] == sealed_rows[path] for path in SEALED_15)
+        and final_rows["contracts/execution_evidence.json"]["equal"]
+        and final_rows["run_manifest.json"]["equal"] is (not raw_differences)
+        and comparison_difference_paths(final) == expected_final_differences
+        and final["difference_count"]
+        == raw["difference_count"] + int(bool(raw_differences)),
+        "final_comparison_lineage",
+    )
 
 
 def require_cross_build_consumer_identity(
@@ -3073,6 +3140,8 @@ def seal_roots(
     attempt_id: str,
     implementation_head: str,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    for label, root in roots.items():
+        require_exact_projection(root, RAW_11, f"raw11_path_set:{label}")
     raw_ab = comparison("RAW_11:A_vs_B", roots["A"], roots["B"], RAW_11)
     raw_ap = comparison(
         "RAW_11:A_vs_P",
@@ -3155,6 +3224,8 @@ def seal_roots(
         write_json_no_replace(root / "contracts/gate_contract.json", gate_contract)
         write_json_no_replace(root / "reports/A_minus1_summary.json", summary)
         write_json_no_replace(root / "classification.json", classification_payload)
+    for label, root in roots.items():
+        require_exact_projection(root, SEALED_15, f"sealed15_path_set:{label}")
     sealed_ab = comparison("SEALED_15:A_vs_B", roots["A"], roots["B"], SEALED_15)
     sealed_ap = comparison(
         "SEALED_15:A_vs_P",
@@ -3163,6 +3234,8 @@ def seal_roots(
         SEALED_15,
         poison_normalize_slice_source=True,
     )
+    require_projection_lineage(raw_ab, sealed_ab)
+    require_projection_lineage(raw_ap, sealed_ap)
     evidence = {
         "schema_version": SCHEMA_VERSION,
         "attempt_id": attempt_id,
@@ -3184,6 +3257,8 @@ def seal_roots(
             },
         )
         fsync_directory(root)
+    for label, root in roots.items():
+        require_exact_projection(root, FINAL_17, f"final17_path_set:{label}")
     final_ab = comparison("FINAL_17:A_vs_B", roots["A"], roots["B"], FINAL_17)
     final_ap = comparison(
         "FINAL_17:A_vs_P",
@@ -3192,6 +3267,8 @@ def seal_roots(
         FINAL_17,
         poison_normalize_slice_source=True,
     )
+    require_projection_lineage(raw_ab, sealed_ab, final_ab)
+    require_projection_lineage(raw_ap, sealed_ap, final_ap)
     return (
         {
             "classification": classification,
