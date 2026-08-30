@@ -12,6 +12,8 @@
   the attempt non-replaceable.
 - No inference about `TRADE_LED`, `DEPLETION_LED`, `OFI_LED`, confirmed
   clusters, represented dates or concentration is authorized from this run.
+- Final QA accepted the interruption record as authentic but rejected task
+  completion because no A/B/P scientific package or classification exists.
 
 ## 2026-08-30 Leader Trigger Opposition Veto Design
 

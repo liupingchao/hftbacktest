@@ -17,6 +17,9 @@
   `NOT_EVALUATED`.
 - The post-claim contract forbids repair, rerun, replacement execution or
   plan/code/test changes in this task.
+- Independent final QA marked the task `未通过` at
+  `P0/P1/P2/P3=0/1/0/0`: record authenticity passed, but the registered formal
+  scientific execution did not complete.
 
 ## 2026-08-30 0830T002 Leader Trigger A-1 Drafted
 
