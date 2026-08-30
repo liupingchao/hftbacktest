@@ -920,6 +920,41 @@ def test_manifest_self_exclusion_and_comparison_missing_extra(
     assert [row["path"] for row in rows] == sorted(AUDIT.RAW_11)
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    ("missing", "extra", "symlink", "directory", "fifo"),
+)
+def test_exact_projection_rejects_nonregular_or_wrong_path_set(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    root = tmp_path / "root"
+    for relative in AUDIT.RAW_11:
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative + "\n", encoding="ascii")
+    target = root / AUDIT.RAW_11[0]
+    if mutation == "missing":
+        target.unlink()
+    elif mutation == "extra":
+        (root / "unexpected").write_text("extra\n", encoding="ascii")
+    elif mutation == "symlink":
+        external = tmp_path / "external"
+        external.write_text("target\n", encoding="ascii")
+        target.unlink()
+        target.symlink_to(external)
+    elif mutation == "directory":
+        target.unlink()
+        target.mkdir()
+    elif mutation == "fifo":
+        target.unlink()
+        os.mkfifo(target)
+    else:
+        raise AssertionError(mutation)
+    with pytest.raises(AUDIT.AuditError, match="raw11_path_set"):
+        AUDIT.require_exact_projection(root, AUDIT.RAW_11, "raw11_path_set")
+
+
 def test_work_manifest_rejects_duplicate_path_and_key() -> None:
     row = {
         "build_label": "A",
@@ -1538,7 +1573,10 @@ def zero_counter_rows() -> list[dict[str, object]]:
 def synthetic_terminal_package(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    *,
+    raw_negative: str | None = None,
 ) -> dict[str, object]:
+    assert raw_negative in {None, "A_B", "A_P"}
     source_repo = Path(__file__).resolve().parents[2]
     repo = tmp_path / "repo"
     source_root = tmp_path / "source"
@@ -2090,13 +2128,18 @@ def synthetic_terminal_package(
     raw_tables_by_label = {}
     for label, root in roots.items():
         label_slice_rows = copy.deepcopy(slice_rows)
+        label_channel_rows = copy.deepcopy(channel_rows)
+        if (raw_negative == "A_B" and label == "B") or (
+            raw_negative == "A_P" and label == "P"
+        ):
+            label_channel_rows[0]["maximum_memory_age_ms"] = 0
         for row in label_slice_rows:
             row["slice_source_sha256"] = work_by_label_cache[label][
                 f"{row['capture_id']}.npz"
             ]["sha256"]
         raw_tables = {
             "support/source_cache_inventory.csv": inventory,
-            "support/channel_action_by_date.csv": channel_rows,
+            "support/channel_action_by_date.csv": label_channel_rows,
             "support/epoch_support.csv": epoch_rows,
             "support/epoch_variant_counters.csv": counter_rows,
             "support/slice_invariance.csv": label_slice_rows,
@@ -2602,6 +2645,45 @@ def test_complete_synthetic_terminal_package_passes_v00_v12(
     assert [row["status"] for row in payload["checks"]] == ["PASS"] * 13
 
 
+@pytest.mark.parametrize(
+    ("raw_negative", "classification", "comparison_name"),
+    (
+        ("A_B", "Aminus1_authority_or_source_failed", "raw_a_b"),
+        ("A_P", "Aminus1_outcome_boundary_violated", "raw_a_p"),
+    ),
+)
+def test_complete_raw_negative_package_preserves_lineage_and_passes_terminal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    raw_negative: str,
+    classification: str,
+    comparison_name: str,
+) -> None:
+    package = synthetic_terminal_package(
+        tmp_path,
+        monkeypatch,
+        raw_negative=raw_negative,
+    )
+    roots = package["roots"]
+    observed = VERIFIER.read_json(roots["A"] / "classification.json")
+    evidence = VERIFIER.read_json(roots["A"] / "contracts/execution_evidence.json")
+    assert observed["classification"] == classification
+    raw = evidence[comparison_name]
+    sealed = evidence[comparison_name.replace("raw_", "sealed_")]
+    final = package["comparisons"][comparison_name.replace("raw_", "final_")]
+    assert raw["difference_count"] == 1
+    assert sealed["difference_count"] == 1
+    assert final["difference_count"] == 2
+    assert {row["path"] for row in final["rows"] if not row["equal"]} == {
+        "support/channel_action_by_date.csv",
+        "run_manifest.json",
+    }
+    exit_code, payload = VERIFIER.verify_terminal(package["args"])
+    assert exit_code == 0, payload
+    assert payload["status"] == "PASS"
+    assert payload["first_failure_code"] is None
+
+
 def test_v07_rejects_synchronized_scientific_summary_mutation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2761,6 +2843,32 @@ def test_poison_comparison_rejects_noncanonical_slice_csv(
         )
 
 
+@pytest.mark.parametrize("mutation", ("crlf", "quoted_header"))
+def test_poison_comparison_rejects_alternate_slice_serialization(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    path = package["roots"]["P"] / "support/slice_invariance.csv"
+    raw = path.read_bytes()
+    if mutation == "crlf":
+        changed = raw.replace(b"\n", b"\r\n")
+    elif mutation == "quoted_header":
+        changed = raw.replace(b"research_date,", b'"research_date",', 1)
+    else:
+        raise AssertionError(mutation)
+    path.write_bytes(changed)
+    with pytest.raises(AUDIT.AuditError, match="poison_slice_comparison_noncanonical"):
+        AUDIT.comparison(
+            "RAW_11:A_vs_P",
+            package["roots"]["A"],
+            package["roots"]["P"],
+            AUDIT.RAW_11,
+            poison_normalize_slice_source=True,
+        )
+
+
 def test_poison_comparison_rejects_noncanonical_manifest_json(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2782,6 +2890,55 @@ def test_poison_comparison_rejects_noncanonical_manifest_json(
             AUDIT.FINAL_17,
             poison_normalize_slice_source=True,
         )
+
+
+@pytest.mark.parametrize("mutation", ("key_order", "indent", "trailing_newline"))
+def test_poison_comparison_rejects_alternate_manifest_serialization(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    path = package["roots"]["P"] / "run_manifest.json"
+    payload = VERIFIER.read_json(path)
+    if mutation == "key_order":
+        reordered = {key: payload[key] for key in reversed(tuple(payload))}
+        changed = (json.dumps(reordered, indent=2, ensure_ascii=True) + "\n").encode(
+            "ascii"
+        )
+    elif mutation == "indent":
+        changed = (
+            json.dumps(payload, indent=4, sort_keys=True, ensure_ascii=True) + "\n"
+        ).encode("ascii")
+    elif mutation == "trailing_newline":
+        changed = path.read_bytes() + b"\n"
+    else:
+        raise AssertionError(mutation)
+    path.write_bytes(changed)
+    with pytest.raises(
+        AUDIT.AuditError, match="poison_manifest_comparison_noncanonical"
+    ):
+        AUDIT.comparison(
+            "FINAL_17:A_vs_P",
+            package["roots"]["A"],
+            package["roots"]["P"],
+            AUDIT.FINAL_17,
+            poison_normalize_slice_source=True,
+        )
+
+
+def test_complete_package_noncanonical_manifest_first_fails_v09(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = synthetic_terminal_package(tmp_path, monkeypatch)
+    path = package["roots"]["P"] / "run_manifest.json"
+    payload = VERIFIER.read_json(path)
+    path.write_text(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")),
+        encoding="ascii",
+    )
+    assert_verify_terminal_failure(package, 9)
 
 
 def synthetic_comparison(

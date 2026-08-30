@@ -707,6 +707,13 @@ def read_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def read_json_semantic(path: Path) -> dict[str, Any]:
+    require(path.is_file(), f"json_missing:{path}")
+    payload = json.loads(path.read_bytes().decode("ascii"))
+    require(isinstance(payload, dict), f"json_object:{path}")
+    return payload
+
+
 def exact_keys(value: Mapping[str, Any], keys: set[str], code: str) -> None:
     require(set(value) == keys, code)
 
@@ -1905,7 +1912,11 @@ def validate_final_root(
     require(produced == set(FINAL_PATHS), "final17_path_set")
     payloads = {}
     for relative, keys in JSON_KEYS.items():
-        payload = read_json(root / relative)
+        payload = (
+            read_json_semantic(root / relative)
+            if relative == "run_manifest.json"
+            else read_json(root / relative)
+        )
         exact_keys(payload, keys, f"json_keys:{relative}")
         require(payload["schema_version"] == 1, f"schema_version:{relative}")
         if relative == "contracts/gate_contract.json":
@@ -3338,7 +3349,7 @@ def check_v07(context: dict[str, Any]) -> None:
 
 def check_v08(context: dict[str, Any]) -> None:
     for label, root in context["roots"].items():
-        manifest = read_json(root / "run_manifest.json")
+        manifest = read_json_semantic(root / "run_manifest.json")
         rows = manifest_rows(
             root, tuple(path for path in FINAL_PATHS if path != "run_manifest.json")
         )

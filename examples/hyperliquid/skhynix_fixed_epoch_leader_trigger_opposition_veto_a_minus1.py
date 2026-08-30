@@ -1910,10 +1910,22 @@ def comparison_path_sha(
 
 
 def require_exact_projection(root: Path, paths: Sequence[str], code: str) -> None:
+    entries = list(root.rglob("*"))
+    require(all(not entry.is_symlink() for entry in entries), f"{code}:symlink")
     produced = {
-        path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()
+        path.relative_to(root).as_posix()
+        for path in entries
+        if path.exists() and stat.S_ISREG(path.lstat().st_mode)
     }
     require(produced == set(paths), code)
+    for relative in paths:
+        path = root / relative
+        require(
+            path.exists()
+            and not path.is_symlink()
+            and stat.S_ISREG(path.lstat().st_mode),
+            f"{code}:non_regular:{relative}",
+        )
 
 
 def comparison_difference_paths(value: Mapping[str, Any]) -> set[str]:
