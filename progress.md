@@ -10353,3 +10353,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - New plan/task/surface SHA256 values are `92431c6c...`, `2aca596a...` and
   `c4639ed4...`. Implementation and formal remain locked pending independent
   plan review.
+
+## 2026-08-31 0831T001 Plan Review Round 24
+
+- Independent review accepted mandatory witness observation, the canonical
+  quarantine-row grammar, exact ordinal path exclusions and restart-row
+  disjointness.
+- Review failed with one P1: adding receipt/report absence to the earlier
+  `BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE` phase predicate makes a report-present
+  A10 state select zero phases and fail G05 before artifact classification.
+- Revision 24 remains historical evidence only. Implementation and formal
+  execution remain locked.
