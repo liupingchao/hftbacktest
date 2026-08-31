@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_16_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_17_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -123,6 +123,12 @@ classification.
 | Round 3 implementation-readiness finding | Revision 16 closure |
 |---|---|
 | controller ref disappearance after durable consumption proof is defined as divergence, but `controller_divergence_value_domains.observed_sha` allowed only a 40-hex SHA | amend that single value domain to `ABSENT or one 40 lowercase hex SHA outside expected_sha_set_json`; all receipt fields, expected-set rules, blocker code, restart semantics and other surface bytes remain unchanged |
+
+### 1.9 Revision 17 closure matrix
+
+| Round 16 finding | Revision 17 closure |
+|---|---|
+| value-domain amendment still conflicted with a trigger, POST_ATTEMPT_ROOT table and plan prose that treated `ABSENT` as globally legal | define the observed token domain as `ABSENT or 40-hex`, then make legality depend only on membership in the exact receipt-sensitive expected set for the current durable proof stage; any token outside that set, including `ABSENT`, is divergence |
 
 ## 2. Authorization Boundary
 
@@ -272,10 +278,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  6d6ce0e7733ed17d888bfa7dd0fd1033f854f8dd4df3a7f82b503dedbe2066f9
+  a77f6fd0d4a36b2be9974c8fcf2d2d920f7ab7b5a2e17b1eead81695bc98600a
 
 Git blob:
-  1dfd67e18786a797796cff5e12e1d84b5c5cef81
+  74533850d2bf173c3d2acefb71f2d83bfe7a9999
 ```
 
 It freezes:
@@ -1525,9 +1531,10 @@ only by the immutable recovery files and the independent QA evidence fields.
 
 Before publishing a new `recovery_start.json`, recovery observes the
 controller ref under the corresponding push-runtime lock. The exact legal
-set is selected from local durable state and contains `ABSENT`, the
-consumption SHA and/or the terminal SHA as registered by the surface
-contract. Any other SHA is not converted into a new Q0 FAIL. It
+set is selected from local durable state and may contain `ABSENT`, the
+consumption SHA and/or the terminal SHA as registered for that proof stage by
+the surface contract. Any observed `ABSENT` or 40-hex token outside that
+exact set is not converted into a new Q0 FAIL. It
 publishes the canonical `controller_ref_divergence.json`, completes only an
 unfinished local claim consumption, and preserves the consumed claim. Before
 a terminal receipt exists, classification is `NONE` and terminal artifacts

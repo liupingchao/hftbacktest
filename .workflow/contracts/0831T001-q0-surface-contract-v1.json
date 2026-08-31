@@ -1916,7 +1916,7 @@
         "qa_outcome": "independent QA records status 阻塞, preserved classification or NONE, blocker_code CONTROLLER_OBSERVATION_FAILURE and blocker SHA256"
       },
       "CONTROLLER_REF_DIVERGENCE": {
-        "trigger": "the exact controller ref observation is neither ABSENT nor the locally expected consumption or terminal SHA for the current durable stage",
+        "trigger": "the exact observed controller token is ABSENT or one 40-hex SHA and is outside expected_sha_sets_by_local_state for the current durable proof stage",
         "task_status": "阻塞",
         "claim_state": "consumed and never reusable",
         "local_consumption": "if armed has not yet been renamed, complete only the local armed-to-claimed rename, consumption commit and consumption tag after publishing the divergence observation; controller push remains forbidden",
@@ -1959,7 +1959,7 @@
         "blocker_code": "CONTROLLER_REF_DIVERGENCE",
         "controller_ref": "exact registered controller ref",
         "expected_sha_set_json": "canonical compact ASCII JSON string array in ASCII order containing exactly the legal SHA tokens for the observed durable stage",
-        "observed_sha": "ABSENT or one 40 lowercase hex SHA outside expected_sha_set_json",
+        "observed_sha": "observed token is ABSENT or one 40 lowercase hex SHA, and it must be outside expected_sha_set_json",
         "observation_command": "exact git_commands.controller_observe JSON string array",
         "observation_exit_code": 0,
         "observation_stdout_sha256": "64 lowercase hex over exact stdout bytes",
@@ -2050,8 +2050,8 @@
           "MALFORMED_OUTPUT": "PRE_ATTEMPT_CONTROLLER_OBSERVATION_RETRYABLE; no state write and armed claim remains unconsumed"
         },
         "POST_ATTEMPT_ROOT": {
-          "ABSENT_OR_EXPECTED_SHA": "continue the legal remote-state rule",
-          "UNEXPECTED_SHA": "publish CONTROLLER_REF_DIVERGENCE blocker and enter workflow_blocker_restart_rows",
+          "EXPECTED_TOKEN": "continue only when the observed ABSENT or 40-hex token is a member of the exact expected_sha_sets_by_local_state entry for the current durable proof stage",
+          "UNEXPECTED_TOKEN_INCLUDING_ABSENT": "publish CONTROLLER_REF_DIVERGENCE blocker when the observed ABSENT or 40-hex token is outside that exact expected set, then enter workflow_blocker_restart_rows",
           "COMMAND_FAILED": "publish CONTROLLER_OBSERVATION_FAILURE blocker and enter workflow_blocker_restart_rows",
           "MALFORMED_OUTPUT": "publish CONTROLLER_OBSERVATION_FAILURE blocker and enter workflow_blocker_restart_rows"
         }

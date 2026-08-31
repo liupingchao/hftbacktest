@@ -10066,3 +10066,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `expected_sha_sets_by_local_state`; any `ABSENT` or 40-hex token outside
   that exact set is divergence.
 - Authority-dependent implementation and formal execution remain locked.
+
+## 2026-08-31 0831T001 Q0 Plan Amendment Round 17
+
+- Controller token syntax and legality are now separate: the token is
+  `ABSENT` or 40-hex, while legality depends only on membership in the exact
+  receipt-sensitive expected set for the current durable proof stage.
+- Divergence trigger, POST_ATTEMPT_ROOT table, receipt value domain and plan
+  prose now use the same rule. Post-receipt `ABSENT` is unambiguously
+  divergence.
+- New surface SHA256/blob are `a77f6fd0...98600a` /
+  `74533850...a9999`.
+- Revision 17 awaits independent plan review; implementation and formal stay
+  locked.
