@@ -67,6 +67,14 @@
 - Revision 6 derives QF13 as `log(81)`, uses explicit invocation claims and
   runtime flocks for at-most-once children, and separates normal push receipts
   from recovery-only ref-observation receipts with `ABSENT`/`NONE` sentinels.
+- Revision 6 review failed at `0/4/1/0`: child locks had a pre-acquisition
+  race, direct O_EXCL target writes could strand partial JSON, receipt/stage
+  and report values were not byte-unique, authority binding was singular, and
+  Git fsync setup did not match the executable environment.
+- Revision 7 passes already-held runtime descriptors into children, publishes
+  complete control bytes by hard-link no-replace, freezes terminal profiles
+  and report deltas, uses an ordered two-authority table, and makes
+  `core.fsync=all` command-scoped.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

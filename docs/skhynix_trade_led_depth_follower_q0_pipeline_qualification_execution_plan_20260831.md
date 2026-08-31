@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_6_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_7_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -65,7 +65,7 @@ classification.
 | QF13 background run | production-derived `log1p(200ms-120ms)=log(81)` with boundary probe |
 | CSV bytes | exact dialect, final LF and QUOTE_ALL hostile probe |
 | readiness identity | separate 37-file structural-only mode; no formal identity |
-| one-shot | invocation claims, observation receipts and recoverable controller-only terminalization |
+| one-shot | inherited locks, atomic control publication, typed stages/reports and command-scoped Git fsync |
 
 ## 2. Authorization Boundary
 
@@ -215,10 +215,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  62a7a3d751ec46bc702b4242f85fdea425eb9c5c4879c233c4dfdf5a0d4d8851
+  a096435f5ec52108a5aa003a99bcdf9e8c652eb2134cbe4cc0f78f7ed69073d0
 
 Git blob:
-  9f3ab2c13f0f8ea03cffc65dcd7e0abb9cf5f25b
+  df2dd1a25913debecc9415e9cd6969878d5534d1
 ```
 
 It freezes:
@@ -321,6 +321,9 @@ base_masks AST:
 The accepted fixed-epoch authority identity is:
 
 ```text
+path:
+  examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py
+
 commit:
   f06eb5cb012cb62b2a778ad90d433c4083f9ba14
 
@@ -342,6 +345,18 @@ channel_memories AST:
 epoch_support_ledger AST:
   d76a80ef31b3f229eb23099f1f3b06cf6ab2e2a3f101a07c37c2286436f5b453
 ```
+
+`authority_binding.json` encodes these as the exact ordered
+`accepted_authorities` array from the surface contract:
+
+```text
+FEATURE_AUTHORITY
+FIXED_EPOCH_AUTHORITY
+```
+
+Each row contains `authority_id`, `path`, `commit`, `git_blob`, `sha256` and
+an exact callable-name-to-AST-SHA object. Singular or flattened authority
+fields are forbidden.
 
 ## 5. Feature Contract
 
@@ -1177,6 +1192,9 @@ Formal identities are:
 implementation tag:
   skhynix-trade-led-depth-follower-q0-implementation-v1
 
+implementation commit message:
+  feat: implement 0831T001 Q0 pipeline qualification
+
 consumption tag:
   skhynix-trade-led-depth-follower-q0-consumed-v1
 
@@ -1237,7 +1255,7 @@ single order:
 preflight validates all armed-claim bindings and verifies the controller ref
 is absent without writing state
 create the no-replace attempt root
-create and fsync O_EXCL attempt-lock.json
+atomically publish deterministic attempt-lock.json
 
 the validated armed claim binds:
   implementation commit and tag
@@ -1253,10 +1271,10 @@ after crash recovery observes the expected ref, the distinct REF_OBSERVATION
 receipt
 copy the chosen consumption-transition receipt byte-for-byte to the tracked
 receipt path
-create and fsync the O_EXCL producer invocation claim
+acquire the producer runtime flock and atomically publish its invocation claim
 run the exact formal producer child argv at most once and immediately fsync
 `<attempt_root>/control/formal_producer_exit.json` after waitpid
-create and fsync the O_EXCL verifier invocation claim
+acquire the verifier runtime flock and atomically publish its invocation claim
 run the exact terminal verifier child argv at most once and immediately fsync
 `<attempt_root>/control/terminal_verifier_exit.json` after waitpid
 ```
@@ -1265,6 +1283,20 @@ Exact claim, attempt-lock, push-receipt and terminal-receipt fields; Git fsync
 configuration; commit/tag messages; transition commands; crash-state
 classification and retry policy are the `one_shot` object in the surface
 contract.
+
+Every Git command that may write objects, refs, index, config or a remote ref
+uses this exact command-scoped prefix:
+
+```text
+git -c commit.gpgSign=false -c core.fsync=all -c core.fsyncMethod=fsync
+```
+
+The same prefix is used to verify the effective values before claim arming.
+Repository-local stronger or weaker defaults are not authority because the
+command-scoped values override them. Controller init/config, both
+commit/tag pairs and both lease-CAS pushes are exact commands in
+`one_shot.git_commands`. They are stored as argv token arrays and executed
+without a shell; displayed command lines are explanatory only.
 
 The only retryable state is:
 
@@ -1307,7 +1339,8 @@ Receipt ownership is exact:
 independent QA report
   `.workflow/reports/0831T001-qa.md` and
   `docs/qa-acceptance-report.md` record and verify
-  terminal_push_receipt.json SHA256 in the QA commit
+  the selected terminal `PUSH_CALL | REF_OBSERVATION` receipt SHA256 in the
+  QA commit
 ```
 
 The terminal push uses `--force-with-lease` expecting the exact consumption
@@ -1338,16 +1371,51 @@ The exact recovery-driver argv is:
 ```
 
 The recovery driver itself may be restarted after a recovery-process crash.
-Its writes are O_EXCL or exact-byte idempotent, and every Git action is
-selected from observed ref state and guarded by the registered lease. A
+Its writes use the atomic control-publication protocol, and every Git action
+is selected from observed ref state and guarded by the registered lease. A
 recovery restart may never create a producer or verifier invocation claim.
+
+Every content-bearing control artifact is published as:
+
+```text
+write complete canonical bytes to <target>.publishing with O_EXCL
+-> verify full write
+-> fsync temporary file
+-> hard-link temporary to target no-replace
+-> fsync parent
+-> unlink temporary
+-> fsync parent
+```
+
+Only the final target is committed authority. A truncated temporary is never
+authority. While holding the orchestrator lock, recovery removes and rebuilds
+a deterministic temporary from independently derived bytes. For an
+unreconstructable PUSH_CALL or child-exit temporary, it removes only the
+uncommitted temporary after the matching runtime lock is acquirable, then
+uses REF_OBSERVATION or interruption semantics. Attempt lock, invocation
+claim, tracked receipt copy, process exit receipt, recovery observation and
+terminal receipt all use this protocol.
+`one_shot.control_publication_crash_states` separately freezes before-link
+and after-link handling for every such artifact; a generic “file exists”
+test is never enough.
 
 The outer driver and recovery driver serialize on an exclusive flock held on
 `<attempt_root>/control/orchestrator.lock`. Recovery cannot begin until it
-acquires that lock. Each producer/verifier child similarly holds its own
-runtime flock for its entire execution. Before an invocation-without-exit is
-classified as interrupted, recovery must acquire and release that child lock;
-therefore it cannot race an orphan child that survived its parent.
+acquires that lock. For each producer/verifier child, the parent acquires the
+runtime flock before invocation publication and passes the already locked
+descriptor with:
+
+```text
+close_fds = true
+pass_fds = (runtime_lock_fd, handoff_ack_write_fd)
+```
+
+The child validates both descriptors and writes the single ASCII byte `A`
+before any attempt-state read or write. The parent closes its own runtime
+descriptor only after ACK or child EOF. Thus a successfully launched child
+owns the inherited lock from `Popen` onward, with no pre-acquisition gap.
+Recovery cannot classify invocation-without-exit until the inherited lock is
+again acquirable.
 
 Each Git push has a separate runtime flock. The driver passes that locked file
 descriptor only to the exact `git push` child, so an orphan push retains the
@@ -1357,13 +1425,14 @@ post-child, not a race with an in-flight push.
 
 The two formal process receipts use the exact field sets and canonical
 serializer in `one_shot.formal_process_receipts`. Before each `Popen`, the
-outer driver writes and fsyncs an O_EXCL invocation claim containing the
-exact child argv, kind and ordinal. The exit receipts persist child argv,
+outer driver atomically publishes an invocation claim containing the exact
+child argv, kind and ordinal. The exit receipts persist child argv,
 exit codes and stdout/stderr hashes before the next transition. The verifier
 receipt additionally persists `first_error`, result SHA and terminal-manifest
-SHA. Invocation claim without exit receipt maps to
-`FORMAL_PRODUCER_INTERRUPTED` or `TERMINAL_VERIFIER_INTERRUPTED`; it never
-authorizes a rerun.
+SHA. Child kind, ordinal, launch status, handoff status and missing-value
+domains are exact in the surface contract. Invocation claim without exit
+receipt maps to `FORMAL_PRODUCER_INTERRUPTED` or
+`TERMINAL_VERIFIER_INTERRUPTED`; it never authorizes a rerun.
 
 All SHA fields use the exact domains in `one_shot.sha_tokens`. In particular,
 an absent controller ref is the ASCII token `ABSENT`; an unavailable process
@@ -1428,8 +1497,46 @@ FAIL:
   completed_stages_json and missing_stages_json are required
 ```
 
-Stage lists are derived from the frozen transition-order prefix completed
-before failure; producer-supplied stage claims are not trusted.
+Stage lists are selected from the frozen machine profiles after independently
+observing committed invocation/exit/result artifacts; producer-supplied stage
+claims are not trusted.
+
+The terminal receipt does not use prose as stage identity. It uses only:
+
+```text
+F00_PREFLIGHT
+F01_CONSUMPTION_CLOSED
+F02_PRODUCER_INVOCATION
+F03_PRODUCER_EXIT
+F04_VERIFIER_INVOCATION
+F05_VERIFIER_EXIT
+F06_RESULT_CLASSIFIED
+F07_BASELINE_PUBLISHED
+```
+
+`completed_stages_json` and `missing_stages_json` are JSON string fields
+whose values must be one exact compact array from
+`one_shot.terminal_stage_profiles`; even an empty set is `"[]"`, never
+`NONE`. Every crash boundary maps through
+`one_shot.crash_recovery_matrix` to one first error, recovery mode and stage
+profile. The surface contract also freezes canonical PASS and recovery-FAIL
+receipt preimages with their expected byte hashes as executable derivation
+tests.
+
+The business execution report is exactly
+`.workflow/reports/0831T001-business.md`, UTF-8 with LF and final LF. Its
+section order, fixed values and list templates are
+`one_shot.execution_report`. The terminal commit parent is the exact
+consumption commit. Its common tracked delta is exactly:
+
+```text
+.workflow/attempt-receipts/0831T001.consumption-push.json
+.workflow/attempt-receipts/0831T001.terminal.json
+.workflow/reports/0831T001-business.md
+```
+
+PASS additionally adds exactly the 57 baseline files; FAIL adds no baseline
+path. Any other tracked delta is forbidden.
 
 Both branches create the tracked terminal result receipt and execution report,
 then create the same terminal commit/tag and lease-bound controller push. A

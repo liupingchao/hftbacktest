@@ -185,10 +185,7 @@
       "schema_version"
     ],
     "authority_binding.json": [
-      "accepted_authority_commit",
-      "accepted_authority_path",
-      "accepted_authority_sha256",
-      "callable_ast_sha256",
+      "accepted_authorities",
       "fixture_truth_blob",
       "fixture_truth_sha256",
       "master_blob",
@@ -281,6 +278,46 @@
     "qualification_summary.json": "derive counts from fixture, slice, access and A/B/P artifacts; classification is Q0_PIPELINE_QUALIFIED iff every registered gate passes",
     "state_contract.json": "derive exact constants from frozen master and accepted authority callables"
   },
+  "accepted_authorities": {
+    "row_fields": [
+      "authority_id",
+      "callable_ast_sha256",
+      "commit",
+      "git_blob",
+      "path",
+      "sha256"
+    ],
+    "row_order": [
+      "FEATURE_AUTHORITY",
+      "FIXED_EPOCH_AUTHORITY"
+    ],
+    "rows": [
+      {
+        "authority_id": "FEATURE_AUTHORITY",
+        "callable_ast_sha256": {
+          "base_masks": "bc2155a38bd1707fcdb77bdebea611da3889934a47d415bdfd0d5a95842d7114",
+          "build_features": "e5cca6c2b7627ef8e3719e4fdecb5a540a42a2028e2fb141ea9fff4f7c246933"
+        },
+        "commit": "45544ecc3901623ca7c2e34a059afca6c551d625",
+        "git_blob": "494c203e7195f292e057f7708c99f52096259a02",
+        "path": "examples/hyperliquid/skhynix_flow_coherence_a_minus1_audit.py",
+        "sha256": "f7dc1565bf0a45363dadf3204d827e0d13687f6cc3307c2e7c5e77aeb321400c"
+      },
+      {
+        "authority_id": "FIXED_EPOCH_AUTHORITY",
+        "callable_ast_sha256": {
+          "channel_actions": "0dc86f04ff18fe490f6f7c2f6332acadc8d441c68deb798e4829bfae5d0277ab",
+          "channel_memories": "5507a492a9984d0aec1f36ef16a9977ff2321af4c86e245fa3a0ddfe8c7e4df1",
+          "epoch_support_ledger": "d76a80ef31b3f229eb23099f1f3b06cf6ab2e2a3f101a07c37c2286436f5b453",
+          "source_preflight": "9089e2f348965c6601d23315be625f333558b688dda4318b034fff38d80d57a6"
+        },
+        "commit": "f06eb5cb012cb62b2a778ad90d433c4083f9ba14",
+        "git_blob": "5672a8ca9f6d4ced2b2deaaf5689e2e7bb7935da",
+        "path": "examples/hyperliquid/skhynix_fixed_causal_epoch_mstate_a_minus1.py",
+        "sha256": "dfa8af1f4b8410370ec7ccd0bea30b63840ebe484d74446c8cbe2564918ac070"
+      }
+    ]
+  },
   "manifest_schema": {
     "fields": [
       "manifest_kind",
@@ -331,12 +368,11 @@
     "attempt_lock_fields": [
       "armed_claim_sha256",
       "attempt_root",
-      "created_unix_ns",
       "implementation_commit",
-      "pid",
       "schema_version",
       "task_id"
     ],
+    "implementation_commit_message": "feat: implement 0831T001 Q0 pipeline qualification",
     "consumption_commit_message": "audit: consume 0831T001 Q0 attempt",
     "crash_states": {
       "before_attempt_root": "UNCONSUMED_RETRY_ALLOWED_INCLUDING_CONTROLLER_PREPARATION",
@@ -362,18 +398,186 @@
     },
     "git_config": {
       "commit.gpgSign": "false",
-      "core.fsync": "committed,loose-object,batch,reference",
-      "core.fsyncMethod": "fsync"
+      "core.fsync": "all",
+      "core.fsyncMethod": "fsync",
+      "enforcement": "every Git command that can write an object, ref, index, config or remote ref uses the exact command prefix: git -c commit.gpgSign=false -c core.fsync=all -c core.fsyncMethod=fsync",
+      "stronger_or_weaker_repository_config": "ignored because command-scoped values are authoritative; preflight verifies the three effective values using the same prefix"
     },
     "git_commands": {
       "controller_config": [
-        "git --git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git config receive.denyNonFastForwards true",
-        "git --git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git config transfer.fsckObjects true"
+        [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "--git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+          "config",
+          "receive.denyNonFastForwards",
+          "true"
+        ],
+        [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "--git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+          "config",
+          "transfer.fsckObjects",
+          "true"
+        ]
       ],
-      "controller_init": "git init --bare /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
-      "controller_observe": "git ls-remote /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git refs/heads/codex/0831T001-controller-ledger",
-      "consumption_push": "git push --porcelain --force-with-lease=refs/heads/codex/0831T001-controller-ledger: /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git <consumption_sha>:refs/heads/codex/0831T001-controller-ledger",
-      "terminal_push": "git push --porcelain --force-with-lease=refs/heads/codex/0831T001-controller-ledger:<consumption_sha> /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git <terminal_sha>:refs/heads/codex/0831T001-controller-ledger"
+      "controller_init": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "init",
+        "--bare",
+        "/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git"
+      ],
+      "controller_observe": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "ls-remote",
+        "/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+        "refs/heads/codex/0831T001-controller-ledger"
+      ],
+      "consumption_commit": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "commit",
+        "--no-verify",
+        "-m",
+        "audit: consume 0831T001 Q0 attempt"
+      ],
+      "consumption_tag": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "tag",
+        "-a",
+        "skhynix-trade-led-depth-follower-q0-consumed-v1",
+        "-m",
+        "0831T001 Q0 claim consumed",
+        "<consumption_sha>"
+      ],
+      "consumption_push": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "push",
+        "--porcelain",
+        "--force-with-lease=refs/heads/codex/0831T001-controller-ledger:",
+        "/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+        "<consumption_sha>:refs/heads/codex/0831T001-controller-ledger"
+      ],
+      "terminal_commit": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "commit",
+        "--no-verify",
+        "-m",
+        "audit: seal 0831T001 Q0 result"
+      ],
+      "terminal_tag": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "tag",
+        "-a",
+        "skhynix-trade-led-depth-follower-q0-terminal-v1",
+        "-m",
+        "0831T001 Q0 terminal result sealed",
+        "<terminal_sha>"
+      ],
+      "terminal_push": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "push",
+        "--porcelain",
+        "--force-with-lease=refs/heads/codex/0831T001-controller-ledger:<consumption_sha>",
+        "/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+        "<terminal_sha>:refs/heads/codex/0831T001-controller-ledger"
+      ],
+      "verify_effective_config": [
+        [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "config",
+          "--get",
+          "commit.gpgSign"
+        ],
+        [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "config",
+          "--get",
+          "core.fsync"
+        ],
+        [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "config",
+          "--get",
+          "core.fsyncMethod"
+        ]
+      ]
     },
     "push_receipt_fields": [
       "command",
@@ -402,6 +606,7 @@
       "transition_kind"
     ],
     "push_receipt_value_domains": {
+      "common": "schema_version is integer 1; command/observation_command is the exact JSON string array from git_commands after placeholder substitution; transition_kind is CONSUMPTION or TERMINAL; receipt_kind is PUSH_CALL or REF_OBSERVATION; exit codes are base-10 integers; SHA tokens follow sha_tokens",
       "consumption_PUSH_CALL": "old_sha=ABSENT, pre_ls_remote_sha=ABSENT, post_ls_remote_sha=new_sha=<consumption_sha>, receipt_kind=PUSH_CALL",
       "consumption_REF_OBSERVATION": "expected_old_sha=ABSENT, observed_new_sha=<consumption_sha>, receipt_kind=REF_OBSERVATION",
       "terminal_PUSH_CALL": "old_sha=pre_ls_remote_sha=<consumption_sha>, post_ls_remote_sha=new_sha=<terminal_sha>, receipt_kind=PUSH_CALL",
@@ -428,19 +633,73 @@
       "terminal_verifier_exit_code",
       "terminal_verifier_result_sha256"
     ],
+    "terminal_receipt_value_domains": {
+      "schema_version": 1,
+      "classification": [
+        "Q0_PIPELINE_QUALIFIED",
+        "Q0_PIPELINE_NOT_QUALIFIED"
+      ],
+      "consumption_commit": "40 lowercase hex",
+      "consumption_push_receipt_sha256": "64 lowercase hex over the committed tracked member of the consumption receipt union",
+      "first_error": "NONE for PASS or one exact code from terminalization_branches.FAIL.first_error",
+      "formal_exit_code": "base-10 integer or NONE",
+      "terminal_verifier_exit_code": "base-10 integer or NONE",
+      "terminal_verifier_result_sha256": "64 lowercase hex or NONE",
+      "package_terminal_manifest_sha256": "64 lowercase hex or NONE",
+      "recovery_observation_sha256": "64 lowercase hex on recovery or NONE on normal path",
+      "completed_stages_json": "one exact string value from terminal_stage_profiles",
+      "missing_stages_json": "one exact string value from terminal_stage_profiles"
+    },
+    "terminal_receipt_derivation_examples": {
+      "NORMAL_PASS": {
+        "preimage": {
+          "classification": "Q0_PIPELINE_QUALIFIED",
+          "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\",\"F07_BASELINE_PUBLISHED\"]",
+          "consumption_commit": "1111111111111111111111111111111111111111",
+          "consumption_push_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "first_error": "NONE",
+          "formal_exit_code": 0,
+          "missing_stages_json": "[]",
+          "package_terminal_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "recovery_observation_sha256": "NONE",
+          "schema_version": 1,
+          "terminal_verifier_exit_code": 0,
+          "terminal_verifier_result_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        },
+        "canonical_bytes_sha256": "c2585204aaa0fbaab293585e6f10886e5d6f8edc21aeee7f3817b9852178e087"
+      },
+      "RECOVERY_FAIL_PRE_PRODUCER": {
+        "preimage": {
+          "classification": "Q0_PIPELINE_NOT_QUALIFIED",
+          "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\"]",
+          "consumption_commit": "1111111111111111111111111111111111111111",
+          "consumption_push_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+          "formal_exit_code": "NONE",
+          "missing_stages_json": "[\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]",
+          "package_terminal_manifest_sha256": "NONE",
+          "recovery_observation_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "schema_version": 1,
+          "terminal_verifier_exit_code": "NONE",
+          "terminal_verifier_result_sha256": "NONE"
+        },
+        "canonical_bytes_sha256": "a87d158d989733dcd27339bfd03245832db86fe40f025e5da2b1fe775f824376"
+      },
+      "serialization": "canonical compact sorted-key ASCII JSON plus LF"
+    },
     "transition_order": [
       "verify the pre-created controller repository, exact config, validated armed claim and absent controller ref without writing state",
       "create attempt root with mkdir no-replace",
-      "create attempt-lock.json with O_CREAT|O_EXCL and fsync",
+      "atomically publish deterministic attempt-lock.json with control_publication",
       "rename armed claim to claimed and fsync parent",
       "create consumption commit whose only tracked delta is armed-to-claimed rename",
       "create annotated consumption tag",
       "push consumption commit with absent-ref force-with-lease CAS",
       "record durable consumption PUSH_CALL receipt, or after interruption record a distinct REF_OBSERVATION receipt, and copy the chosen receipt to the tracked path",
-      "create and fsync the producer invocation claim with O_CREAT|O_EXCL",
+      "acquire producer runtime flock and atomically publish the producer invocation claim",
       "run the exact formal producer child argv at most once",
       "write and fsync formal_producer_exit.json",
-      "create and fsync the verifier invocation claim with O_CREAT|O_EXCL",
+      "acquire verifier runtime flock and atomically publish the verifier invocation claim",
       "run the exact terminal verifier child argv at most once even when producer failed",
       "write and fsync terminal_verifier_exit.json",
       "branch on terminal verifier result: PASS copies accepted package to baseline; FAIL forbids baseline copy",
@@ -451,6 +710,165 @@
       "record durable terminal PUSH_CALL receipt, or after interruption record a distinct REF_OBSERVATION receipt",
       "independent QA records terminal push receipt SHA256 in report; no producer or verifier rerun"
     ],
+    "formal_stage_order": [
+      "F00_PREFLIGHT",
+      "F01_CONSUMPTION_CLOSED",
+      "F02_PRODUCER_INVOCATION",
+      "F03_PRODUCER_EXIT",
+      "F04_VERIFIER_INVOCATION",
+      "F05_VERIFIER_EXIT",
+      "F06_RESULT_CLASSIFIED",
+      "F07_BASELINE_PUBLISHED"
+    ],
+    "formal_stage_requirements": {
+      "FAIL": [
+        "F00_PREFLIGHT",
+        "F01_CONSUMPTION_CLOSED",
+        "F02_PRODUCER_INVOCATION",
+        "F03_PRODUCER_EXIT",
+        "F04_VERIFIER_INVOCATION",
+        "F05_VERIFIER_EXIT",
+        "F06_RESULT_CLASSIFIED"
+      ],
+      "PASS": [
+        "F00_PREFLIGHT",
+        "F01_CONSUMPTION_CLOSED",
+        "F02_PRODUCER_INVOCATION",
+        "F03_PRODUCER_EXIT",
+        "F04_VERIFIER_INVOCATION",
+        "F05_VERIFIER_EXIT",
+        "F06_RESULT_CLASSIFIED",
+        "F07_BASELINE_PUBLISHED"
+      ]
+    },
+    "terminal_stage_profiles": {
+      "FAIL_PRE_PRODUCER": {
+        "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\"]",
+        "missing_stages_json": "[\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]"
+      },
+      "FAIL_PRODUCER_INTERRUPTED": {
+        "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\"]",
+        "missing_stages_json": "[\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]"
+      },
+      "FAIL_PRE_VERIFIER": {
+        "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\"]",
+        "missing_stages_json": "[\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]"
+      },
+      "FAIL_VERIFIER_INTERRUPTED": {
+        "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\"]",
+        "missing_stages_json": "[\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]"
+      },
+      "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS": {
+        "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]",
+        "missing_stages_json": "[]"
+      },
+      "PASS_COMPLETE": {
+        "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\",\"F07_BASELINE_PUBLISHED\"]",
+        "missing_stages_json": "[]"
+      }
+    },
+    "crash_recovery_matrix": {
+      "before_attempt_root": {
+        "first_error": "NONE",
+        "recovery_mode": "UNCONSUMED_RETRY_ALLOWED",
+        "stage_profile": "NONE"
+      },
+      "after_attempt_root_before_lock": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "recovery_mode": "RECOVER_CONSUMPTION_AND_FAIL",
+        "stage_profile": "FAIL_PRE_PRODUCER"
+      },
+      "after_attempt_lock_before_claim_rename": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "recovery_mode": "RECOVER_CONSUMPTION_AND_FAIL",
+        "stage_profile": "FAIL_PRE_PRODUCER"
+      },
+      "after_claim_rename_before_consumption_commit": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "recovery_mode": "RECOVER_CONSUMPTION_AND_FAIL",
+        "stage_profile": "FAIL_PRE_PRODUCER"
+      },
+      "after_consumption_commit_before_tag": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "recovery_mode": "RECOVER_CONSUMPTION_AND_FAIL",
+        "stage_profile": "FAIL_PRE_PRODUCER"
+      },
+      "after_consumption_tag_before_push": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "recovery_mode": "RECOVER_CONSUMPTION_AND_FAIL",
+        "stage_profile": "FAIL_PRE_PRODUCER"
+      },
+      "after_consumption_push_before_untracked_receipt": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "recovery_mode": "OBSERVE_CONSUMPTION_AND_FAIL",
+        "stage_profile": "FAIL_PRE_PRODUCER"
+      },
+      "after_untracked_receipt_before_tracked_copy": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "recovery_mode": "COPY_CONSUMPTION_RECEIPT_AND_FAIL",
+        "stage_profile": "FAIL_PRE_PRODUCER"
+      },
+      "after_tracked_copy_before_producer_invocation": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "recovery_mode": "FAIL_WITHOUT_CHILD",
+        "stage_profile": "FAIL_PRE_PRODUCER"
+      },
+      "after_producer_invocation_before_exit_receipt": {
+        "first_error": "FORMAL_PRODUCER_INTERRUPTED",
+        "recovery_mode": "WAIT_RUNTIME_LOCK_AND_FAIL",
+        "stage_profile": "FAIL_PRODUCER_INTERRUPTED"
+      },
+      "after_producer_exit_before_verifier_invocation": {
+        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER",
+        "recovery_mode": "FAIL_WITHOUT_VERIFIER",
+        "stage_profile": "FAIL_PRE_VERIFIER"
+      },
+      "after_verifier_invocation_before_exit_receipt": {
+        "first_error": "TERMINAL_VERIFIER_INTERRUPTED",
+        "recovery_mode": "WAIT_RUNTIME_LOCK_AND_FAIL",
+        "stage_profile": "FAIL_VERIFIER_INTERRUPTED"
+      },
+      "after_terminal_verifier_fail": {
+        "first_error": "FROM_VERIFIER_EXIT_RECEIPT",
+        "recovery_mode": "COMPLETE_FAIL_TERMINALIZATION",
+        "stage_profile": "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS"
+      },
+      "after_terminal_verifier_pass_before_baseline_copy": {
+        "first_error": "NONE",
+        "recovery_mode": "COMPLETE_PASS_TERMINALIZATION",
+        "stage_profile": "PASS_COMPLETE"
+      },
+      "after_baseline_copy_before_terminal_receipt": {
+        "first_error": "NONE",
+        "recovery_mode": "COMPLETE_PASS_TERMINALIZATION",
+        "stage_profile": "PASS_COMPLETE"
+      },
+      "after_terminal_receipt_before_terminal_commit": {
+        "first_error": "FROM_COMMITTED_TERMINAL_RECEIPT",
+        "recovery_mode": "COMPLETE_CONTROLLER_TRANSITIONS",
+        "stage_profile": "FROM_COMMITTED_TERMINAL_RECEIPT"
+      },
+      "after_terminal_commit_before_tag": {
+        "first_error": "FROM_COMMITTED_TERMINAL_RECEIPT",
+        "recovery_mode": "COMPLETE_CONTROLLER_TRANSITIONS",
+        "stage_profile": "FROM_COMMITTED_TERMINAL_RECEIPT"
+      },
+      "after_terminal_tag_before_push": {
+        "first_error": "FROM_COMMITTED_TERMINAL_RECEIPT",
+        "recovery_mode": "COMPLETE_CONTROLLER_TRANSITIONS",
+        "stage_profile": "FROM_COMMITTED_TERMINAL_RECEIPT"
+      },
+      "after_terminal_push_before_receipt": {
+        "first_error": "FROM_COMMITTED_TERMINAL_RECEIPT",
+        "recovery_mode": "OBSERVE_TERMINAL_AND_COMPLETE",
+        "stage_profile": "FROM_COMMITTED_TERMINAL_RECEIPT"
+      },
+      "after_terminal_push_receipt": {
+        "first_error": "FROM_COMMITTED_TERMINAL_RECEIPT",
+        "recovery_mode": "TERMINAL_COMPLETE",
+        "stage_profile": "FROM_COMMITTED_TERMINAL_RECEIPT"
+      }
+    },
     "receipt_paths": {
       "consumption_untracked": "<attempt_root>/control/consumption_push_receipt.json",
       "consumption_observation_untracked": "<attempt_root>/control/consumption_push_observation.json",
@@ -463,14 +881,72 @@
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
       "terminal_push_ownership": "untracked immutable selected member of the terminal PUSH_CALL|REF_OBSERVATION receipt union; its SHA256 is recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md"
     },
-    "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; write O_CREAT|O_EXCL, fsync file, fsync parent",
+    "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
+    "control_publication": {
+      "temporary_path": "<target>.publishing",
+      "temporary_creation": "open the sibling temporary path with O_WRONLY|O_CREAT|O_EXCL; never create the committed target directly",
+      "write_order": "write all expected bytes, verify full byte count, fsync temporary file, hard-link temporary to committed target no-replace, fsync parent, unlink temporary, fsync parent",
+      "committed_definition": "only the final target path is committed; a .publishing path is never authority",
+      "existing_target": "accept only when bytes are exactly the independently derived expected bytes; otherwise fail closed",
+      "abandoned_deterministic_temporary": "while holding orchestrator flock and with target absent, remove a truncated or mismatched temporary only when expected bytes are independently derivable, fsync parent, then rebuild",
+      "abandoned_observational_temporary": "for PUSH_CALL or child-exit bytes that cannot be reconstructed after interruption, remove the uncommitted temporary after the corresponding runtime lock is acquirable; select REF_OBSERVATION or interruption semantics instead",
+      "claim_payloads": "attempt lock and invocation claims are deterministic payloads published by this same protocol; the atomic hard-link, not temporary creation, consumes the claim",
+      "tracked_copy": "publish the exact source receipt bytes through a sibling temporary and hard-link no-replace using the same order",
+      "crash_interpretation": "crash before hard-link leaves no committed artifact and is recoverable from the temporary rule; crash after hard-link leaves a complete committed target whose bytes must verify exactly"
+    },
+    "control_publication_crash_states": {
+      "attempt-lock.json": {
+        "before_hard_link": "remove/rebuild deterministic temporary; claim remains uncommitted",
+        "after_hard_link": "verify committed bytes and remove any temporary"
+      },
+      "formal_producer_invocation.json": {
+        "before_hard_link": "remove/rebuild deterministic temporary; producer launch right remains unconsumed",
+        "after_hard_link": "producer launch right is consumed; recovery never launches it"
+      },
+      "terminal_verifier_invocation.json": {
+        "before_hard_link": "remove/rebuild deterministic temporary only on normal outer path; recovery does not create a missing verifier invocation",
+        "after_hard_link": "verifier launch right is consumed; recovery never launches it"
+      },
+      "formal_producer_exit.json": {
+        "before_hard_link": "after runtime flock is acquirable, remove uncommitted temporary and classify FORMAL_PRODUCER_INTERRUPTED",
+        "after_hard_link": "verify committed bytes and use the exit receipt"
+      },
+      "terminal_verifier_exit.json": {
+        "before_hard_link": "after runtime flock is acquirable, remove uncommitted temporary and classify TERMINAL_VERIFIER_INTERRUPTED",
+        "after_hard_link": "verify committed bytes and use the exit receipt"
+      },
+      "consumption_push_receipt.json": {
+        "before_hard_link": "after push runtime flock is acquirable, remove uncommitted temporary and select REF_OBSERVATION from exact ref state",
+        "after_hard_link": "verify committed PUSH_CALL bytes and forbid REF_OBSERVATION"
+      },
+      "terminal_push_receipt.json": {
+        "before_hard_link": "after push runtime flock is acquirable, remove uncommitted temporary and select REF_OBSERVATION from exact ref state",
+        "after_hard_link": "verify committed PUSH_CALL bytes and forbid REF_OBSERVATION"
+      },
+      "tracked_consumption_receipt": {
+        "before_hard_link": "remove/rebuild from the committed untracked union member",
+        "after_hard_link": "verify exact byte identity and remove any temporary"
+      },
+      "recovery_observation.json": {
+        "before_hard_link": "remove/rebuild deterministic observation from committed state",
+        "after_hard_link": "verify exact bytes and remove any temporary"
+      },
+      "terminal_result_receipt": {
+        "before_hard_link": "remove/rebuild deterministic receipt from committed state/profile",
+        "after_hard_link": "verify exact bytes and remove any temporary"
+      },
+      "business_execution_report": {
+        "before_hard_link": "remove/rebuild deterministic report from terminal receipt",
+        "after_hard_link": "verify exact bytes and remove any temporary"
+      }
+    },
     "controller_preparation": {
       "stage": "PRE_CONSUMPTION_RETRYABLE_INFRASTRUCTURE",
       "allowed_before_armed_claim": true,
-      "commands": [
-        "git init --bare /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
-        "git --git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git config receive.denyNonFastForwards true",
-        "git --git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git config transfer.fsckObjects true"
+      "command_keys": [
+        "controller_init",
+        "controller_config[0]",
+        "controller_config[1]"
       ],
       "absent_state": "run init and config, fsync bare repository and parent, then verify exact config and ref absent",
       "prepared_state": "verify exact bare-repository format, exact config and ref absent; do not reinitialize",
@@ -486,28 +962,28 @@
         "package_terminal_manifest_sha256": "required 64-lowercase-hex",
         "baseline_copy": "required exact atomic 57-file baseline publication before terminal receipt",
         "first_error": "NONE",
-        "completed_stages": "all registered stages",
-        "missing_stages": "NONE",
+        "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\",\"F07_BASELINE_PUBLISHED\"]",
+        "missing_stages_json": "[]",
         "recovery_observation_sha256": "NONE on the normal path; required 64-lowercase-hex when PASS is completed by recovery from an existing successful verifier exit receipt"
       },
       "FAIL": {
         "classification": "Q0_PIPELINE_NOT_QUALIFIED",
         "package_terminal_manifest_sha256": "NONE when no valid terminal manifest exists; otherwise observed 64-lowercase-hex",
         "baseline_copy": "forbidden",
-        "first_error": "registered verifier error, FORMAL_PRODUCER_EXIT_NONZERO, FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER, FORMAL_PRODUCER_INTERRUPTED, FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER, or TERMINAL_VERIFIER_INTERRUPTED",
-        "completed_stages": "canonical compact JSON array of completed stage IDs",
-        "missing_stages": "canonical compact JSON array of uncompleted stage IDs",
+        "first_error": "registered verifier error, FORMAL_PRODUCER_EXIT_NONZERO, FORMAL_PRODUCER_LAUNCH_ERROR, FORMAL_PRODUCER_HANDOFF_ERROR, FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER, FORMAL_PRODUCER_INTERRUPTED, FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER, TERMINAL_VERIFIER_LAUNCH_ERROR, TERMINAL_VERIFIER_HANDOFF_ERROR, or TERMINAL_VERIFIER_INTERRUPTED",
+        "completed_stages_json": "one exact terminal_stage_profiles value",
+        "missing_stages_json": "the paired exact terminal_stage_profiles value",
         "terminal_verifier_result_sha256": "required 64-lowercase-hex when canonical result bytes exist; otherwise NONE",
         "formal_exit_code": "base-10 integer only when formal_producer_exit.json exists; otherwise NONE",
         "terminal_verifier_exit_code": "base-10 integer only when terminal_verifier_exit.json exists; otherwise NONE",
         "recovery_observation_sha256": "required 64-lowercase-hex on recovery; NONE on a normal verifier FAIL path",
         "recovery": "after attempt-root creation, complete missing claim/consumption/controller transitions, write one recovery observation, and terminalize from durable invocation/exit receipts plus observed refs; never launch or relaunch a child in recovery",
-        "first_error_precedence": "producer invocation without exit -> FORMAL_PRODUCER_INTERRUPTED; producer nonzero exit -> FORMAL_PRODUCER_EXIT_NONZERO; producer exit without verifier invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER; verifier invocation without exit -> TERMINAL_VERIFIER_INTERRUPTED; verifier exit -> registered verifier first_error; no producer invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
-        "stage_lists": "derive from the frozen transition_order prefix completed before failure; no producer-authored stage list is trusted"
+        "first_error_precedence": "producer launch_status=POPEN_ERROR -> FORMAL_PRODUCER_LAUNCH_ERROR; producer handoff_status!=ACKED -> FORMAL_PRODUCER_HANDOFF_ERROR; producer invocation without exit -> FORMAL_PRODUCER_INTERRUPTED; producer nonzero exit -> FORMAL_PRODUCER_EXIT_NONZERO; producer exit without verifier invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER; verifier launch_status=POPEN_ERROR -> TERMINAL_VERIFIER_LAUNCH_ERROR; verifier handoff_status!=ACKED -> TERMINAL_VERIFIER_HANDOFF_ERROR; verifier invocation without exit -> TERMINAL_VERIFIER_INTERRUPTED; verifier exit -> registered verifier first_error; no producer invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "stage_lists": "select the exact terminal_stage_profiles row from independently observed committed artifacts and crash_recovery_matrix; no producer-authored stage list is trusted"
       }
     },
     "formal_process_receipts": {
-      "serialization": "canonical compact sorted-key ASCII JSON plus LF; write O_CREAT|O_EXCL, fsync file, fsync parent",
+      "serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
       "outer_driver_argv": [
         "/Users/liu/.local/conda/bin/python",
         "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
@@ -551,18 +1027,30 @@
         "producer": "<attempt_root>/control/formal_producer_runtime.lock",
         "verifier": "<attempt_root>/control/terminal_verifier_runtime.lock"
       },
-      "child_runtime_lock_semantics": "each child acquires and holds its exclusive flock before reading or writing attempt state and releases it only on exit; recovery must acquire and release the corresponding nonblocking lock before classifying a claimed invocation without an exit receipt, so it cannot terminalize while an orphan child is still running",
+      "child_runtime_lock_semantics": "the outer driver opens and exclusively flocks the child runtime lock before publishing the invocation claim; Popen uses close_fds=true and pass_fds=(runtime_lock_fd,handoff_ack_write_fd); the inherited runtime descriptor already owns the flock, the child validates both inherited descriptors and writes the single ASCII byte A before any attempt-state read/write, and the parent closes its runtime descriptor only after that ACK or child EOF; recovery must acquire the same flock before classification, which is impossible while any launched child retains the inherited descriptor",
       "invocation_claim_fields": [
         "argv",
         "child_kind",
         "invocation_ordinal",
         "schema_version"
       ],
+      "invocation_claim_value_domains": {
+        "argv": "exact corresponding producer_argv or verifier_argv JSON string array",
+        "child_kind": [
+          "FORMAL_PRODUCER",
+          "TERMINAL_VERIFIER"
+        ],
+        "invocation_ordinal": 1,
+        "schema_version": 1
+      },
       "producer_invocation_path": "<attempt_root>/control/formal_producer_invocation.json",
       "producer_path": "<attempt_root>/control/formal_producer_exit.json",
       "producer_fields": [
         "argv",
+        "child_kind",
         "exit_code",
+        "handoff_status",
+        "launch_status",
         "stderr_sha256",
         "stdout_sha256"
       ],
@@ -570,16 +1058,38 @@
       "verifier_path": "<attempt_root>/control/terminal_verifier_exit.json",
       "verifier_fields": [
         "argv",
+        "child_kind",
         "exit_code",
         "first_error",
+        "handoff_status",
+        "launch_status",
         "package_terminal_manifest_sha256",
         "result_sha256",
         "stderr_sha256",
         "stdout_sha256"
       ],
+      "exit_receipt_value_domains": {
+        "child_kind": "FORMAL_PRODUCER or TERMINAL_VERIFIER matching the receipt path",
+        "launch_status": [
+          "STARTED",
+          "POPEN_ERROR"
+        ],
+        "handoff_status": [
+          "ACKED",
+          "EOF_BEFORE_ACK",
+          "NOT_APPLICABLE"
+        ],
+        "exit_code": "base-10 integer only for STARTED; NONE for POPEN_ERROR",
+        "stdout_sha256": "64 lowercase hex only for STARTED; NONE for POPEN_ERROR",
+        "stderr_sha256": "64 lowercase hex only for STARTED; SHA256 of captured Popen exception text for POPEN_ERROR",
+        "producer_first_error": "not present",
+        "verifier_first_error": "registered verifier error or NONE; invocation/internal wrapper errors use the terminal branch code, not a fabricated verifier gate",
+        "package_terminal_manifest_sha256": "64 lowercase hex only when verifier result contains a valid manifest; otherwise NONE",
+        "result_sha256": "64 lowercase hex only when committed canonical verifier result exists; otherwise NONE"
+      },
       "missing_token": "NONE",
-      "invocation_semantics": "write and fsync the O_CREAT|O_EXCL invocation claim before Popen; its existence consumes the sole launch right even if the child never starts; recovery never launches a child whose invocation claim exists and never creates a missing invocation claim",
-      "durability": "write O_CREAT|O_EXCL exit receipt and fsync immediately after child waitpid; fsync control directory before next transition"
+      "invocation_semantics": "acquire runtime flock, atomically publish the deterministic invocation claim, then call Popen exactly once; committed invocation existence consumes the sole launch right even if Popen fails; recovery never launches a child whose invocation claim exists and never creates a missing invocation claim",
+      "durability": "atomically publish the exit receipt immediately after child waitpid or Popen error using control_publication"
     },
     "recovery": {
       "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
@@ -599,9 +1109,33 @@
         "verifier_invocation_state",
         "verifier_exit_state"
       ],
+      "recovery_observation_value_domains": {
+        "schema_version": 1,
+        "crash_boundary": "one exact key from crash_recovery_matrix",
+        "first_error": "the exact crash_recovery_matrix first_error after resolving FROM_* tokens from committed receipts",
+        "recovery_mode": "the exact crash_recovery_matrix recovery_mode",
+        "observed_consumption_sha": "40 lowercase hex or ABSENT",
+        "observed_terminal_sha": "40 lowercase hex or ABSENT",
+        "producer_invocation_state": [
+          "ABSENT",
+          "COMMITTED"
+        ],
+        "producer_exit_state": [
+          "ABSENT",
+          "COMMITTED"
+        ],
+        "verifier_invocation_state": [
+          "ABSENT",
+          "COMMITTED"
+        ],
+        "verifier_exit_state": [
+          "ABSENT",
+          "COMMITTED"
+        ]
+      },
       "normal_path_recovery_observation_sha256": "NONE",
       "recovery_path": "<attempt_root>/control/recovery_observation.json",
-      "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every write is O_CREAT|O_EXCL or an exact-byte idempotent observation, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
+      "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every content write uses control_publication or verifies exact committed bytes, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
       "remote_state_rules": {
         "ABSENT": "complete consumption transition, using absent-ref lease when push is still required",
         "<consumption_sha>": "complete or recover terminalization; terminal push may still be required",
@@ -621,6 +1155,84 @@
       "preparation": "copy to the attempt-owned candidate, verify every byte against terminal_manifest.json, fsync every file and directory",
       "publication": "atomic no-replace directory rename to destination followed by destination-parent fsync",
       "recovery": "if destination is absent, resume and verify the candidate before publication; if destination exists, require exact 57-file identity; any extra, missing or mismatched byte fails closed"
+    },
+    "execution_report": {
+      "path": ".workflow/reports/0831T001-business.md",
+      "encoding": "UTF-8",
+      "line_ending": "LF",
+      "final_lf_required": true,
+      "section_order": [
+        "执行线程",
+        "任务ID",
+        "状态",
+        "是否进行QA验收",
+        "QA说明",
+        "files",
+        "action",
+        "verify",
+        "done",
+        "blockers",
+        "commit",
+        "提交信息"
+      ],
+      "fixed_values": {
+        "执行线程": "SKHYNIX Trade-Led Depth-Follower Q0 业务线程",
+        "任务ID": "0831T001",
+        "状态": "待验收",
+        "是否进行QA验收": "是",
+        "QA说明": "无",
+        "commit": "<implementation_commit>",
+        "提交信息": "feat: implement 0831T001 Q0 pipeline qualification"
+      },
+      "list_templates": {
+        "files": [
+          "examples/hyperliquid/skhynix_trade_led_depth_follower_transition_hazard.py",
+          "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+          "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py",
+          "examples/hyperliquid/test_skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+          ".workflow/attempt-receipts/0831T001.consumption-push.json",
+          ".workflow/attempt-receipts/0831T001.terminal.json",
+          "baselines/skhynix_trade_led_depth_follower_q0_v1 (PASS only)"
+        ],
+        "action": [
+          "Executed the frozen synthetic QF01-QF15 Q0 pipeline exactly once.",
+          "Recorded classification from the committed terminal receipt without post-formal repair."
+        ],
+        "verify": [
+          "focused pytest",
+          "accepted fixed-epoch regression",
+          "ruff check and format check",
+          "py_compile",
+          "runner and verifier --help",
+          "detached-worktree readiness comparison",
+          "formal producer and independent terminal verifier"
+        ],
+        "done": [
+          "classification=<terminal receipt classification>",
+          "first_error=<terminal receipt first_error>",
+          "historical_cache_access=NONE",
+          "outcome_access=NONE"
+        ],
+        "blockers_PASS": [
+          "无"
+        ],
+        "blockers_FAIL": [
+          "<terminal receipt first_error>"
+        ]
+      },
+      "derived_values": "angle-bracket placeholders are substituted from the committed terminal receipt except implementation_commit, which comes from the claimed authority; PASS chooses blockers_PASS and FAIL chooses blockers_FAIL; no other list item or ordering is permitted",
+      "publication": "publish through control_publication before terminal commit"
+    },
+    "terminal_commit_tracked_delta": {
+      "common_exact_paths": [
+        ".workflow/attempt-receipts/0831T001.consumption-push.json",
+        ".workflow/attempt-receipts/0831T001.terminal.json",
+        ".workflow/reports/0831T001-business.md"
+      ],
+      "PASS_additional_paths": "exact 57 files below baselines/skhynix_trade_led_depth_follower_q0_v1 in package_layout.package_files order",
+      "FAIL_additional_paths": [],
+      "forbidden": "any other tracked path change",
+      "parent": "exact consumption commit"
     }
   },
   "package_directories": [
