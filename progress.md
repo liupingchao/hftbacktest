@@ -156,6 +156,15 @@
 - Independent review must also audit the still-incomplete crash recovery,
   controller-blocker restart and Git G01-G07 closure before any implementation
   freeze, tag or claim arming.
+- Candidate round 1 was independently reviewed from detached commit
+  `b341fbe66345ce40248bb57a355be91da587544e`.
+- Implementation readiness failed with `P0/P1/P2/P3 = 0/7/1/0`.
+- Detached structural readiness itself passed with 57 feature calls, 37
+  projection files and projection tree SHA256
+  `ebd00e01440b8c287994503fc055f90b902828f797b7ed4a1682c3e98d4e9e77`.
+- No implementation tag or armed claim may be created until the seven P1
+  one-shot/recovery findings are closed and a new independent readiness review
+  passes.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 
