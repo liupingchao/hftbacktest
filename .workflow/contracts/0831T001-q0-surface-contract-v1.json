@@ -373,6 +373,7 @@
       "task_id"
     ],
     "implementation_commit_message": "feat: implement 0831T001 Q0 pipeline qualification",
+    "arming_commit_message": "audit: arm 0831T001 Q0 attempt",
     "consumption_commit_message": "audit: consume 0831T001 Q0 attempt",
     "crash_states": {
       "before_attempt_root": "UNCONSUMED_RETRY_ALLOWED_INCLUDING_CONTROLLER_PREPARATION",
@@ -469,6 +470,60 @@
         "-m",
         "audit: consume 0831T001 Q0 attempt"
       ],
+      "implementation_tag": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "tag",
+        "-a",
+        "skhynix-trade-led-depth-follower-q0-implementation-v1",
+        "-m",
+        "0831T001 Q0 implementation frozen",
+        "<implementation_commit>"
+      ],
+      "arming_stage": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "add",
+        "--",
+        ".workflow/attempt-claims/0831T001.armed.json"
+      ],
+      "arming_commit": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "commit",
+        "--no-verify",
+        "-m",
+        "audit: arm 0831T001 Q0 attempt"
+      ],
+      "consumption_stage": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "add",
+        "-A",
+        "--",
+        ".workflow/attempt-claims/0831T001.armed.json",
+        ".workflow/attempt-claims/0831T001.claimed.json"
+      ],
       "consumption_tag": [
         "git",
         "-c",
@@ -510,6 +565,32 @@
         "--no-verify",
         "-m",
         "audit: seal 0831T001 Q0 result"
+      ],
+      "terminal_stage_common": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "add",
+        "--",
+        ".workflow/attempt-receipts/0831T001.consumption-push.json",
+        ".workflow/attempt-receipts/0831T001.terminal.json",
+        ".workflow/reports/0831T001-business.md"
+      ],
+      "terminal_stage_PASS": [
+        "git",
+        "-c",
+        "commit.gpgSign=false",
+        "-c",
+        "core.fsync=all",
+        "-c",
+        "core.fsyncMethod=fsync",
+        "add",
+        "--",
+        "baselines/skhynix_trade_led_depth_follower_q0_v1"
       ],
       "terminal_tag": [
         "git",
@@ -579,6 +660,42 @@
         ]
       ]
     },
+    "git_history_contract": {
+      "chronology": [
+        "implementation commit with exact implementation_commit_message",
+        "annotated implementation tag targeting implementation commit",
+        "arming commit whose parent is implementation commit",
+        "consumption commit whose parent is arming commit",
+        "annotated consumption tag targeting consumption commit",
+        "terminal commit whose parent is consumption commit",
+        "annotated terminal tag targeting terminal commit"
+      ],
+      "arming_commit_delta": {
+        "added": [
+          ".workflow/attempt-claims/0831T001.armed.json"
+        ],
+        "deleted": [],
+        "modified": [],
+        "required_mode": "100644",
+        "parent": "<implementation_commit>"
+      },
+      "consumption_commit_delta": {
+        "added": [
+          ".workflow/attempt-claims/0831T001.claimed.json"
+        ],
+        "deleted": [
+          ".workflow/attempt-claims/0831T001.armed.json"
+        ],
+        "modified": [],
+        "claimed_blob": "exactly equal to the armed-claim blob",
+        "required_mode": "100644",
+        "parent": "<arming_commit>"
+      },
+      "terminal_commit_delta": "exact terminal_commit_tracked_delta for PASS or FAIL",
+      "clean_precondition": "before the first stage command of each arming, consumption or terminal transition, index has no staged entry and tracked worktree is clean except the exact unstaged paths named by that transition",
+      "staged_verification": "after the sole arming or consumption stage command, and after the complete terminal_stage_common plus optional terminal_stage_PASS sequence, git diff --cached --name-only -z and git ls-files -s must show exactly the registered aggregate path set, modes and independently expected blobs; no rename-similarity output is used as authority",
+      "post_commit": "index and tracked worktree are clean and HEAD parent/message/tree satisfy this chronology"
+    },
     "push_receipt_fields": [
       "command",
       "controller_ref",
@@ -628,7 +745,6 @@
       "formal_exit_code",
       "missing_stages_json",
       "package_terminal_manifest_sha256",
-      "recovery_observation_sha256",
       "schema_version",
       "terminal_verifier_exit_code",
       "terminal_verifier_result_sha256"
@@ -646,7 +762,6 @@
       "terminal_verifier_exit_code": "base-10 integer or NONE",
       "terminal_verifier_result_sha256": "64 lowercase hex or NONE",
       "package_terminal_manifest_sha256": "64 lowercase hex or NONE",
-      "recovery_observation_sha256": "64 lowercase hex on recovery or NONE on normal path",
       "completed_stages_json": "one exact string value from terminal_stage_profiles",
       "missing_stages_json": "one exact string value from terminal_stage_profiles"
     },
@@ -661,12 +776,11 @@
           "formal_exit_code": 0,
           "missing_stages_json": "[]",
           "package_terminal_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
-          "recovery_observation_sha256": "NONE",
           "schema_version": 1,
           "terminal_verifier_exit_code": 0,
           "terminal_verifier_result_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
         },
-        "canonical_bytes_sha256": "c2585204aaa0fbaab293585e6f10886e5d6f8edc21aeee7f3817b9852178e087"
+        "canonical_bytes_sha256": "bc778f948ee54def6a964de44ea73745aac6e2a59cb528f6ee2f454fa24131a8"
       },
       "RECOVERY_FAIL_PRE_PRODUCER": {
         "preimage": {
@@ -678,12 +792,11 @@
           "formal_exit_code": "NONE",
           "missing_stages_json": "[\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]",
           "package_terminal_manifest_sha256": "NONE",
-          "recovery_observation_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
           "schema_version": 1,
           "terminal_verifier_exit_code": "NONE",
           "terminal_verifier_result_sha256": "NONE"
         },
-        "canonical_bytes_sha256": "a87d158d989733dcd27339bfd03245832db86fe40f025e5da2b1fe775f824376"
+        "canonical_bytes_sha256": "a3edd59a990182b7dabc19e196911a270bafd8f404de59be22d38922800429f9"
       },
       "serialization": "canonical compact sorted-key ASCII JSON plus LF"
     },
@@ -703,7 +816,7 @@
       "run the exact terminal verifier child argv at most once even when producer failed",
       "write and fsync terminal_verifier_exit.json",
       "branch on terminal verifier result: PASS copies accepted package to baseline; FAIL forbids baseline copy",
-      "create PASS or FAIL terminal result receipt and execution report including consumption receipt SHA256 and recovery observation SHA256",
+      "create PASS or FAIL terminal result receipt and execution report",
       "create terminal commit descendant of consumption commit",
       "create annotated terminal tag",
       "push terminal commit with force-with-lease expected consumption SHA",
@@ -720,25 +833,16 @@
       "F06_RESULT_CLASSIFIED",
       "F07_BASELINE_PUBLISHED"
     ],
-    "formal_stage_requirements": {
-      "FAIL": [
-        "F00_PREFLIGHT",
-        "F01_CONSUMPTION_CLOSED",
-        "F02_PRODUCER_INVOCATION",
-        "F03_PRODUCER_EXIT",
-        "F04_VERIFIER_INVOCATION",
-        "F05_VERIFIER_EXIT",
-        "F06_RESULT_CLASSIFIED"
+    "allowed_stage_profiles_by_classification": {
+      "Q0_PIPELINE_NOT_QUALIFIED": [
+        "FAIL_PRE_PRODUCER",
+        "FAIL_PRODUCER_INTERRUPTED",
+        "FAIL_PRE_VERIFIER",
+        "FAIL_VERIFIER_INTERRUPTED",
+        "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS"
       ],
-      "PASS": [
-        "F00_PREFLIGHT",
-        "F01_CONSUMPTION_CLOSED",
-        "F02_PRODUCER_INVOCATION",
-        "F03_PRODUCER_EXIT",
-        "F04_VERIFIER_INVOCATION",
-        "F05_VERIFIER_EXIT",
-        "F06_RESULT_CLASSIFIED",
-        "F07_BASELINE_PUBLISHED"
+      "Q0_PIPELINE_QUALIFIED": [
+        "PASS_COMPLETE"
       ]
     },
     "terminal_stage_profiles": {
@@ -875,11 +979,13 @@
       "consumption_tracked": ".workflow/attempt-receipts/0831T001.consumption-push.json",
       "terminal_untracked": "<attempt_root>/control/terminal_push_receipt.json",
       "terminal_observation_untracked": "<attempt_root>/control/terminal_push_observation.json",
+      "recovery_start_untracked": "<attempt_root>/control/recovery_start.json",
       "recovery_observation_untracked": "<attempt_root>/control/recovery_observation.json",
       "terminal_qa_report": ".workflow/reports/0831T001-qa.md",
       "terminal_qa_mirror": "docs/qa-acceptance-report.md",
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
-      "terminal_push_ownership": "untracked immutable selected member of the terminal PUSH_CALL|REF_OBSERVATION receipt union; its SHA256 is recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md"
+      "terminal_push_ownership": "untracked immutable selected member of the terminal PUSH_CALL|REF_OBSERVATION receipt union; its SHA256 is recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md",
+      "recovery_ownership": "terminal receipt never contains a recovery hash; independent QA records recovery_start.json and recovery_observation.json SHA256, or NONE/NONE on the normal path"
     },
     "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
     "control_publication": {
@@ -923,13 +1029,29 @@
         "before_hard_link": "after push runtime flock is acquirable, remove uncommitted temporary and select REF_OBSERVATION from exact ref state",
         "after_hard_link": "verify committed PUSH_CALL bytes and forbid REF_OBSERVATION"
       },
+      "consumption_push_observation.json": {
+        "before_hard_link": "while consumption push lock is held and before any terminal-ref transition, rerun exact ls-remote and rebuild the same REF_OBSERVATION",
+        "after_hard_link": "verify committed REF_OBSERVATION bytes"
+      },
+      "terminal_push_observation.json": {
+        "before_hard_link": "while terminal push lock is held, rerun exact ls-remote and rebuild the same REF_OBSERVATION",
+        "after_hard_link": "verify committed REF_OBSERVATION bytes"
+      },
+      "terminal_verifier_result.json": {
+        "before_hard_link": "verifier may not exit 0 or 2; remove uncommitted temporary after runtime lock release and classify exit 3/internal error",
+        "after_hard_link": "verify committed canonical result before verifier exits 0 or 2"
+      },
       "tracked_consumption_receipt": {
         "before_hard_link": "remove/rebuild from the committed untracked union member",
         "after_hard_link": "verify exact byte identity and remove any temporary"
       },
       "recovery_observation.json": {
-        "before_hard_link": "remove/rebuild deterministic observation from committed state",
+        "before_hard_link": "complete recovery to the same terminal state and rebuild using immutable recovery_start identity",
         "after_hard_link": "verify exact bytes and remove any temporary"
+      },
+      "recovery_start.json": {
+        "before_hard_link": "no recovery state change is permitted; remove/rebuild from the unchanged initial state",
+        "after_hard_link": "verify exact bytes and use it for every recovery restart"
       },
       "terminal_result_receipt": {
         "before_hard_link": "remove/rebuild deterministic receipt from committed state/profile",
@@ -964,24 +1086,69 @@
         "first_error": "NONE",
         "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\",\"F07_BASELINE_PUBLISHED\"]",
         "missing_stages_json": "[]",
-        "recovery_observation_sha256": "NONE on the normal path; required 64-lowercase-hex when PASS is completed by recovery from an existing successful verifier exit receipt"
+        "late_recovery": "immutable terminal receipt remains authoritative; recovery evidence is bound only by independent QA"
       },
       "FAIL": {
         "classification": "Q0_PIPELINE_NOT_QUALIFIED",
         "package_terminal_manifest_sha256": "NONE when no valid terminal manifest exists; otherwise observed 64-lowercase-hex",
         "baseline_copy": "forbidden",
-        "first_error": "registered verifier error, FORMAL_PRODUCER_EXIT_NONZERO, FORMAL_PRODUCER_LAUNCH_ERROR, FORMAL_PRODUCER_HANDOFF_ERROR, FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER, FORMAL_PRODUCER_INTERRUPTED, FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER, TERMINAL_VERIFIER_LAUNCH_ERROR, TERMINAL_VERIFIER_HANDOFF_ERROR, or TERMINAL_VERIFIER_INTERRUPTED",
+        "first_error": "one exact code from terminal_error_codes",
         "completed_stages_json": "one exact terminal_stage_profiles value",
         "missing_stages_json": "the paired exact terminal_stage_profiles value",
         "terminal_verifier_result_sha256": "required 64-lowercase-hex when canonical result bytes exist; otherwise NONE",
         "formal_exit_code": "base-10 integer only when formal_producer_exit.json exists; otherwise NONE",
         "terminal_verifier_exit_code": "base-10 integer only when terminal_verifier_exit.json exists; otherwise NONE",
-        "recovery_observation_sha256": "required 64-lowercase-hex on recovery; NONE on a normal verifier FAIL path",
+        "late_recovery": "immutable terminal receipt remains authoritative; recovery evidence is bound only by independent QA",
         "recovery": "after attempt-root creation, complete missing claim/consumption/controller transitions, write one recovery observation, and terminalize from durable invocation/exit receipts plus observed refs; never launch or relaunch a child in recovery",
-        "first_error_precedence": "producer launch_status=POPEN_ERROR -> FORMAL_PRODUCER_LAUNCH_ERROR; producer handoff_status!=ACKED -> FORMAL_PRODUCER_HANDOFF_ERROR; producer invocation without exit -> FORMAL_PRODUCER_INTERRUPTED; producer nonzero exit -> FORMAL_PRODUCER_EXIT_NONZERO; producer exit without verifier invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER; verifier launch_status=POPEN_ERROR -> TERMINAL_VERIFIER_LAUNCH_ERROR; verifier handoff_status!=ACKED -> TERMINAL_VERIFIER_HANDOFF_ERROR; verifier invocation without exit -> TERMINAL_VERIFIER_INTERRUPTED; verifier exit -> registered verifier first_error; no producer invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+        "first_error_precedence": "producer launch error; producer handoff error; producer invocation without exit; producer nonzero exit; producer exit without verifier invocation; verifier launch error; verifier handoff error; verifier invocation without exit; verifier exit=3 internal error; verifier unexpected exit; verifier exit=2 registered first_error; no producer invocation",
         "stage_lists": "select the exact terminal_stage_profiles row from independently observed committed artifacts and crash_recovery_matrix; no producer-authored stage list is trusted"
       }
     },
+    "terminal_error_codes": [
+      "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+      "FORMAL_PRODUCER_INTERRUPTED",
+      "FORMAL_PRODUCER_LAUNCH_ERROR",
+      "FORMAL_PRODUCER_HANDOFF_ERROR",
+      "FORMAL_PRODUCER_EXIT_NONZERO",
+      "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER",
+      "TERMINAL_VERIFIER_INTERRUPTED",
+      "TERMINAL_VERIFIER_LAUNCH_ERROR",
+      "TERMINAL_VERIFIER_HANDOFF_ERROR",
+      "TERMINAL_VERIFIER_INTERNAL_ERROR",
+      "TERMINAL_VERIFIER_UNEXPECTED_EXIT",
+      "SOURCE_ROOT_NOT_CLOSED",
+      "SOURCE_PATH_KIND",
+      "SOURCE_SCHEMA",
+      "SOURCE_CLOCK",
+      "SOURCE_DOMAIN",
+      "AUTHORITY_BINDING",
+      "FEATURE_SCHEMA",
+      "ANCHOR_CONTRACT",
+      "OUTCOME_ACCESS_BOUNDARY",
+      "SLICE_IDENTITY",
+      "BUILD_INPUT_BINDING",
+      "PACKAGE_PATH_SET",
+      "PACKAGE_PATH_KIND",
+      "PACKAGE_SCHEMA",
+      "PACKAGE_CANONICAL_BYTES",
+      "PACKAGE_LINEAGE",
+      "AB_IDENTITY",
+      "AP_IDENTITY",
+      "TERMINAL_CLOSURE",
+      "PACKAGE_PATH_SET_MISSING",
+      "PACKAGE_PATH_SET_EXTRA",
+      "PACKAGE_LINEAGE_ORDER",
+      "SLICE_PUBLICATION_ABSENT",
+      "SLICE_PUBLICATION",
+      "CAUSAL_ACCESS_BOUNDARY",
+      "SOURCE_PATH_KIND_SYMLINK",
+      "PACKAGE_PATH_KIND_FIFO",
+      "PACKAGE_CANONICAL_JSON",
+      "PACKAGE_CANONICAL_CSV",
+      "FIXTURE_TRUTH_OBSERVED_MISMATCH",
+      "RESET_IDENTITY_MISMATCH",
+      "CROSS_SEGMENT_CARRY_NONZERO"
+    ],
     "formal_process_receipts": {
       "serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
       "outer_driver_argv": [
@@ -1011,7 +1178,11 @@
         "--truth",
         ".workflow/contracts/0831T001-fixture-truth-v1.json",
         "--surface-contract",
-        ".workflow/contracts/0831T001-q0-surface-contract-v1.json"
+        ".workflow/contracts/0831T001-q0-surface-contract-v1.json",
+        "--runtime-lock-fd",
+        "198",
+        "--handoff-ack-fd",
+        "199"
       ],
       "verifier_argv": [
         "/Users/liu/.local/conda/bin/python",
@@ -1019,7 +1190,11 @@
         "--package-root",
         "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package",
         "--result",
-        "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/control/terminal_verifier_result.json"
+        "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/control/terminal_verifier_result.json",
+        "--runtime-lock-fd",
+        "198",
+        "--handoff-ack-fd",
+        "199"
       ],
       "process_topology": "the outer driver is the only Git/claim/baseline owner; producer and verifier are separate direct children with the exact argv arrays and cwd equal to the formal cwd",
       "orchestrator_lock": "<attempt_root>/control/orchestrator.lock is created before any consumed transition and held with exclusive flock by the outer or recovery driver; recovery may proceed only after it acquires that lock, proving the prior orchestrator no longer owns the state machine",
@@ -1027,7 +1202,20 @@
         "producer": "<attempt_root>/control/formal_producer_runtime.lock",
         "verifier": "<attempt_root>/control/terminal_verifier_runtime.lock"
       },
-      "child_runtime_lock_semantics": "the outer driver opens and exclusively flocks the child runtime lock before publishing the invocation claim; Popen uses close_fds=true and pass_fds=(runtime_lock_fd,handoff_ack_write_fd); the inherited runtime descriptor already owns the flock, the child validates both inherited descriptors and writes the single ASCII byte A before any attempt-state read/write, and the parent closes its runtime descriptor only after that ACK or child EOF; recovery must acquire the same flock before classification, which is impossible while any launched child retains the inherited descriptor",
+      "child_runtime_lock_semantics": "the exact child_handoff_protocol is authoritative",
+      "child_handoff_protocol": {
+        "fixed_runtime_lock_fd": 198,
+        "fixed_handoff_ack_fd": 199,
+        "slot_precondition": "fds 198 and 199 are closed in the parent before setup; any pre-existing descriptor fails before invocation publication",
+        "parent_setup": "open and exclusively flock the runtime lock, create an O_CLOEXEC pipe, dup2 runtime lock to fd 198 inheritable and pipe write end to fd 199 inheritable, keep the ACK read end private",
+        "popen": "start_new_session=true, close_fds=true, pass_fds=(198,199), exact child argv includes --runtime-lock-fd 198 --handoff-ack-fd 199",
+        "parent_close_order": "immediately after successful Popen close the parent's original runtime-lock fd, original pipe write fd and local fd 199; retain only local fd 198 until handoff acceptance or until a failed child is reaped; on Popen error close every original and fixed-slot descriptor before publishing the POPEN_ERROR exit receipt",
+        "child_order": "validate fd 198 is the exact regular runtime-lock path and owns the inherited flock; validate fd 199 is writable; write exactly one byte 0x41; close fd 199; perform all child work; fsync every child-owned output; close fd 198 only as the final child-owned action before process return",
+        "ack_validation": "parent uses monotonic poll with 5000ms deadline and reads at most two bytes; accepted sequence is exactly 0x41 followed by EOF; EOF before 0x41, any different byte, any second byte or timeout is handoff failure",
+        "handoff_failure": "send SIGTERM to the child process group, wait 1000ms, send SIGKILL if still alive, waitpid exactly once, publish exit receipt with handoff_status EOF_BEFORE_ACK, MALFORMED_ACK, EXTRA_ACK or TIMEOUT",
+        "parent_after_ack": "close local fd 198 only after exact ACK acceptance; the child inherited descriptor continues to hold the flock",
+        "recovery": "after acquiring orchestrator lock, block until fd 198 runtime flock is acquirable; this proves the child completed all child-owned writes or never launched"
+      },
       "invocation_claim_fields": [
         "argv",
         "child_kind",
@@ -1077,6 +1265,9 @@
         "handoff_status": [
           "ACKED",
           "EOF_BEFORE_ACK",
+          "EXTRA_ACK",
+          "MALFORMED_ACK",
+          "TIMEOUT",
           "NOT_APPLICABLE"
         ],
         "exit_code": "base-10 integer only for STARTED; NONE for POPEN_ERROR",
@@ -1087,13 +1278,114 @@
         "package_terminal_manifest_sha256": "64 lowercase hex only when verifier result contains a valid manifest; otherwise NONE",
         "result_sha256": "64 lowercase hex only when committed canonical verifier result exists; otherwise NONE"
       },
+      "producer_exit_tuple_table": [
+        {
+          "launch_status": "POPEN_ERROR",
+          "handoff_status": "NOT_APPLICABLE",
+          "exit_code": "NONE",
+          "stdout_sha256": "NONE",
+          "stderr_sha256": "HEX64",
+          "terminal_error": "FORMAL_PRODUCER_LAUNCH_ERROR"
+        },
+        {
+          "launch_status": "STARTED",
+          "handoff_status": "ACKED",
+          "exit_code": "INTEGER",
+          "stdout_sha256": "HEX64",
+          "stderr_sha256": "HEX64",
+          "terminal_error": "NONE when exit_code=0; FORMAL_PRODUCER_EXIT_NONZERO otherwise"
+        },
+        {
+          "launch_status": "STARTED",
+          "handoff_status": "EOF_BEFORE_ACK|MALFORMED_ACK|EXTRA_ACK|TIMEOUT",
+          "exit_code": "INTEGER",
+          "stdout_sha256": "HEX64",
+          "stderr_sha256": "HEX64",
+          "terminal_error": "FORMAL_PRODUCER_HANDOFF_ERROR"
+        }
+      ],
+      "verifier_exit_tuple_table": [
+        {
+          "launch_status": "POPEN_ERROR",
+          "handoff_status": "NOT_APPLICABLE",
+          "exit_code": "NONE",
+          "result_sha256": "NONE",
+          "package_terminal_manifest_sha256": "NONE",
+          "first_error": "NONE",
+          "terminal_error": "TERMINAL_VERIFIER_LAUNCH_ERROR"
+        },
+        {
+          "launch_status": "STARTED",
+          "handoff_status": "EOF_BEFORE_ACK|MALFORMED_ACK|EXTRA_ACK|TIMEOUT",
+          "exit_code": "INTEGER",
+          "result_sha256": "NONE",
+          "package_terminal_manifest_sha256": "NONE",
+          "first_error": "NONE",
+          "terminal_error": "TERMINAL_VERIFIER_HANDOFF_ERROR"
+        },
+        {
+          "launch_status": "STARTED",
+          "handoff_status": "ACKED",
+          "exit_code": 0,
+          "result_sha256": "HEX64",
+          "package_terminal_manifest_sha256": "HEX64",
+          "first_error": "NONE",
+          "terminal_error": "NONE"
+        },
+        {
+          "launch_status": "STARTED",
+          "handoff_status": "ACKED",
+          "exit_code": 2,
+          "result_sha256": "HEX64",
+          "package_terminal_manifest_sha256": "HEX64_OR_NONE",
+          "first_error": "REGISTERED_VERIFIER_ERROR",
+          "terminal_error": "USE_FIRST_ERROR"
+        },
+        {
+          "launch_status": "STARTED",
+          "handoff_status": "ACKED",
+          "exit_code": 3,
+          "result_sha256": "NONE",
+          "package_terminal_manifest_sha256": "NONE",
+          "first_error": "NONE",
+          "terminal_error": "TERMINAL_VERIFIER_INTERNAL_ERROR"
+        },
+        {
+          "launch_status": "STARTED",
+          "handoff_status": "ACKED",
+          "exit_code": "INTEGER_NOT_0_2_3",
+          "result_sha256": "NONE",
+          "package_terminal_manifest_sha256": "NONE",
+          "first_error": "NONE",
+          "terminal_error": "TERMINAL_VERIFIER_UNEXPECTED_EXIT"
+        }
+      ],
       "missing_token": "NONE",
       "invocation_semantics": "acquire runtime flock, atomically publish the deterministic invocation claim, then call Popen exactly once; committed invocation existence consumes the sole launch right even if Popen fails; recovery never launches a child whose invocation claim exists and never creates a missing invocation claim",
       "durability": "atomically publish the exit receipt immediately after child waitpid or Popen error using control_publication"
     },
     "recovery": {
       "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
-      "entry_precondition": "acquire the exclusive orchestrator flock; for each invocation claim lacking an exit receipt, also prove the child runtime flock is acquirable before terminal classification",
+      "entry_precondition": "acquire the exclusive orchestrator flock, atomically publish or verify recovery_start.json before any recovery state change, and for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
+      "recovery_start_fields": [
+        "attempt_lock_sha256",
+        "claimed_or_armed_sha256",
+        "crash_boundary",
+        "initial_committed_paths_json",
+        "initial_controller_sha",
+        "recovery_id",
+        "schema_version"
+      ],
+      "recovery_start_value_domains": {
+        "schema_version": 1,
+        "attempt_lock_sha256": "64 lowercase hex",
+        "claimed_or_armed_sha256": "64 lowercase hex over the exact committed claimed path when present, otherwise armed path",
+        "crash_boundary": "one exact key from crash_recovery_matrix other than before_attempt_root",
+        "initial_controller_sha": "40 lowercase hex or ABSENT",
+        "initial_committed_paths_json": "canonical compact JSON string array of all committed control target paths in ASCII order before recovery changes state",
+        "recovery_id": "SHA256 of canonical compact sorted-key ASCII JSON over the other six fields excluding recovery_id"
+      },
+      "recovery_start_rule": "publish recovery_start.json before rename, commit, tag, push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses exact committed bytes and original crash_boundary",
       "consumption_receipt_union": "exactly one of consumption_push_receipt.json with receipt_kind PUSH_CALL or consumption_push_observation.json with receipt_kind REF_OBSERVATION; copy the chosen bytes to the tracked consumption receipt path",
       "terminal_receipt_union": "exactly one of terminal_push_receipt.json with receipt_kind PUSH_CALL or terminal_push_observation.json with receipt_kind REF_OBSERVATION",
       "push_observation_rule": "REF_OBSERVATION is allowed only when exact ls-remote observes the expected new SHA after a crash and the normal PUSH_CALL receipt is absent; it records the observation command outputs, never reconstructed push outputs",
@@ -1104,15 +1396,19 @@
         "observed_terminal_sha",
         "producer_invocation_state",
         "producer_exit_state",
+        "recovery_id",
         "recovery_mode",
+        "recovery_start_sha256",
         "schema_version",
         "verifier_invocation_state",
         "verifier_exit_state"
       ],
       "recovery_observation_value_domains": {
         "schema_version": 1,
-        "crash_boundary": "one exact key from crash_recovery_matrix",
+        "crash_boundary": "exactly equal to recovery_start.crash_boundary",
         "first_error": "the exact crash_recovery_matrix first_error after resolving FROM_* tokens from committed receipts",
+        "recovery_id": "exactly equal to recovery_start.recovery_id",
+        "recovery_start_sha256": "64 lowercase hex over committed recovery_start.json",
         "recovery_mode": "the exact crash_recovery_matrix recovery_mode",
         "observed_consumption_sha": "40 lowercase hex or ABSENT",
         "observed_terminal_sha": "40 lowercase hex or ABSENT",
@@ -1135,6 +1431,14 @@
       },
       "normal_path_recovery_observation_sha256": "NONE",
       "recovery_path": "<attempt_root>/control/recovery_observation.json",
+      "qa_evidence_fields": [
+        "classification",
+        "recovery_observation_sha256",
+        "recovery_start_sha256",
+        "terminal_result_receipt_sha256",
+        "terminal_transition_receipt_sha256"
+      ],
+      "qa_evidence_normal_path": "recovery_start_sha256=NONE and recovery_observation_sha256=NONE",
       "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every content write uses control_publication or verifies exact committed bytes, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
       "remote_state_rules": {
         "ABSENT": "complete consumption transition, using absent-ref lease when push is still required",
@@ -1161,66 +1465,121 @@
       "encoding": "UTF-8",
       "line_ending": "LF",
       "final_lf_required": true,
-      "section_order": [
-        "执行线程",
-        "任务ID",
-        "状态",
-        "是否进行QA验收",
-        "QA说明",
-        "files",
-        "action",
-        "verify",
-        "done",
-        "blockers",
-        "commit",
-        "提交信息"
-      ],
-      "fixed_values": {
-        "执行线程": "SKHYNIX Trade-Led Depth-Follower Q0 业务线程",
-        "任务ID": "0831T001",
-        "状态": "待验收",
-        "是否进行QA验收": "是",
-        "QA说明": "无",
-        "commit": "<implementation_commit>",
-        "提交信息": "feat: implement 0831T001 Q0 pipeline qualification"
+      "renderer": "select PASS or FAIL line array, replace each angle-bracket placeholder exactly once, join lines with LF, append one final LF, encode UTF-8; no other whitespace or blank line is permitted",
+      "placeholder_sources": {
+        "<blocker>": "terminal receipt first_error; FAIL only",
+        "<classification>": "terminal receipt classification",
+        "<first_error>": "terminal receipt first_error",
+        "<implementation_commit>": "claimed authority implementation_commit"
       },
-      "list_templates": {
-        "files": [
-          "examples/hyperliquid/skhynix_trade_led_depth_follower_transition_hazard.py",
-          "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
-          "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py",
-          "examples/hyperliquid/test_skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
-          ".workflow/attempt-receipts/0831T001.consumption-push.json",
-          ".workflow/attempt-receipts/0831T001.terminal.json",
-          "baselines/skhynix_trade_led_depth_follower_q0_v1 (PASS only)"
+      "templates": {
+        "PASS": [
+          "# 0831T001 Business Execution Report",
+          "执行线程：",
+          "- SKHYNIX Trade-Led Depth-Follower Q0 业务线程",
+          "任务ID：",
+          "- 0831T001",
+          "状态：",
+          "- 待验收",
+          "是否进行QA验收：",
+          "- 是",
+          "QA说明：",
+          "- 无",
+          "files：",
+          "- examples/hyperliquid/skhynix_trade_led_depth_follower_transition_hazard.py",
+          "- examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+          "- examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py",
+          "- examples/hyperliquid/test_skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+          "- .workflow/attempt-receipts/0831T001.consumption-push.json",
+          "- .workflow/attempt-receipts/0831T001.terminal.json",
+          "- baselines/skhynix_trade_led_depth_follower_q0_v1",
+          "action：",
+          "- Executed the frozen synthetic QF01-QF15 Q0 pipeline exactly once.",
+          "- Recorded classification from the committed terminal receipt without post-formal repair.",
+          "verify：",
+          "- focused pytest",
+          "- accepted fixed-epoch regression",
+          "- ruff check and format check",
+          "- py_compile",
+          "- runner and verifier --help",
+          "- detached-worktree readiness comparison",
+          "- formal producer and independent terminal verifier",
+          "done：",
+          "- classification=<classification>",
+          "- first_error=<first_error>",
+          "- historical_cache_access=NONE",
+          "- outcome_access=NONE",
+          "blockers：",
+          "- 无",
+          "commit：",
+          "- <implementation_commit>",
+          "提交信息：",
+          "- feat: implement 0831T001 Q0 pipeline qualification"
         ],
-        "action": [
-          "Executed the frozen synthetic QF01-QF15 Q0 pipeline exactly once.",
-          "Recorded classification from the committed terminal receipt without post-formal repair."
-        ],
-        "verify": [
-          "focused pytest",
-          "accepted fixed-epoch regression",
-          "ruff check and format check",
-          "py_compile",
-          "runner and verifier --help",
-          "detached-worktree readiness comparison",
-          "formal producer and independent terminal verifier"
-        ],
-        "done": [
-          "classification=<terminal receipt classification>",
-          "first_error=<terminal receipt first_error>",
-          "historical_cache_access=NONE",
-          "outcome_access=NONE"
-        ],
-        "blockers_PASS": [
-          "无"
-        ],
-        "blockers_FAIL": [
-          "<terminal receipt first_error>"
+        "FAIL": [
+          "# 0831T001 Business Execution Report",
+          "执行线程：",
+          "- SKHYNIX Trade-Led Depth-Follower Q0 业务线程",
+          "任务ID：",
+          "- 0831T001",
+          "状态：",
+          "- 待验收",
+          "是否进行QA验收：",
+          "- 是",
+          "QA说明：",
+          "- 无",
+          "files：",
+          "- examples/hyperliquid/skhynix_trade_led_depth_follower_transition_hazard.py",
+          "- examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+          "- examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py",
+          "- examples/hyperliquid/test_skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+          "- .workflow/attempt-receipts/0831T001.consumption-push.json",
+          "- .workflow/attempt-receipts/0831T001.terminal.json",
+          "action：",
+          "- Executed the frozen synthetic QF01-QF15 Q0 pipeline exactly once.",
+          "- Recorded classification from the committed terminal receipt without post-formal repair.",
+          "verify：",
+          "- focused pytest",
+          "- accepted fixed-epoch regression",
+          "- ruff check and format check",
+          "- py_compile",
+          "- runner and verifier --help",
+          "- detached-worktree readiness comparison",
+          "- formal producer and independent terminal verifier",
+          "done：",
+          "- classification=<classification>",
+          "- first_error=<first_error>",
+          "- historical_cache_access=NONE",
+          "- outcome_access=NONE",
+          "blockers：",
+          "- <blocker>",
+          "commit：",
+          "- <implementation_commit>",
+          "提交信息：",
+          "- feat: implement 0831T001 Q0 pipeline qualification"
         ]
       },
-      "derived_values": "angle-bracket placeholders are substituted from the committed terminal receipt except implementation_commit, which comes from the claimed authority; PASS chooses blockers_PASS and FAIL chooses blockers_FAIL; no other list item or ordering is permitted",
+      "derivation_examples": {
+        "PASS": {
+          "values": {
+            "<classification>": "Q0_PIPELINE_QUALIFIED",
+            "<first_error>": "NONE",
+            "<implementation_commit>": "1111111111111111111111111111111111111111"
+          },
+          "size_bytes": 1368,
+          "sha256": "ed88eef2f8bb49974170229a3fb211c9956cb784d9e11e54bcea655e2cff69bd"
+        },
+        "FAIL": {
+          "values": {
+            "<blocker>": "FORMAL_PRODUCER_INTERRUPTED",
+            "<classification>": "Q0_PIPELINE_NOT_QUALIFIED",
+            "<first_error>": "FORMAL_PRODUCER_INTERRUPTED",
+            "<implementation_commit>": "1111111111111111111111111111111111111111"
+          },
+          "size_bytes": 1368,
+          "sha256": "c5196a95e25b45ea394efd3682167d457dd1987ec8256108a8caf18e8d377056"
+        }
+      },
       "publication": "publish through control_publication before terminal commit"
     },
     "terminal_commit_tracked_delta": {

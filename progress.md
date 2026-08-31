@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 7 Candidate
+## 2026-08-31 0831T001 Q0 Revision 8 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -45,7 +45,19 @@
 - Revision 7 removes child-lock handoff races, atomically publishes every
   control artifact, freezes terminal stage/report bytes, encodes both accepted
   authorities, and enforces Git durability with command-scoped config.
-- Implementation is locked pending independent Revision 7 plan review.
+- Revision 7 independent review failed at `P0/P1/P2/P3=0/4/1/0`;
+  implementation and formal execution remained locked.
+- Revision 8 adds the missing arming/index history, fixed FD `198/199`
+  handoff with exact ACK/timeout/kill semantics, legal early-stop FAIL
+  profiles, exhaustive process exit/error tuples, immutable
+  `recovery_start.json` identity and byte-exact PASS/FAIL reports.
+- Synthetic validation passed for both exact Git terminal deltas: FAIL stages
+  3 tracked paths and PASS stages 60 tracked paths. The parent/child inherited
+  flock remains blocked until child exit and becomes acquirable afterward.
+- Receipt and report derivation hashes, JSON structure, truth-error coverage
+  and stage-profile coverage all recompute exactly.
+- Historical-cache access and outcome access remain `NONE`.
+- Implementation is locked pending independent Revision 8 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

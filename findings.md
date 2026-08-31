@@ -75,6 +75,23 @@
   complete control bytes by hard-link no-replace, freezes terminal profiles
   and report deltas, uses an ordered two-authority table, and makes
   `core.fsync=all` command-scoped.
+- Revision 7 review failed at `0/4/1/0`: it lacked an executable arming/index
+  commit graph, fixed child-visible FD/ACK lifecycle, a total early-failure
+  terminal table, immutable late-recovery identity and byte-unique reports.
+- Revision 8 makes the tracked history explicit as implementation, arming,
+  consumption and terminal commits with exact stage commands and deltas.
+- A macOS inherited-flock simulation found that the parent's original
+  runtime-lock FD must be closed immediately after successful `Popen`;
+  retaining it would prevent recovery even after child exit. Revision 8 now
+  retains only fixed parent slot `198` until ACK and leaves the inherited lock
+  solely with the child afterward.
+- Revision 8 separates immutable terminal-result authority from later
+  recovery evidence. Recovery publishes a stable `recovery_start.json`
+  before changing state, while independent QA binds both recovery hashes.
+- FAIL no longer falsely requires all formal stages. Each early interruption
+  selects one registered stage profile and one exact orchestration error.
+- PASS and FAIL report templates now have complete line arrays, single-use
+  placeholders and independently recomputed SHA256 examples.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

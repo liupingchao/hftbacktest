@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_7_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_8_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -65,7 +65,7 @@ classification.
 | QF13 background run | production-derived `log1p(200ms-120ms)=log(81)` with boundary probe |
 | CSV bytes | exact dialect, final LF and QUOTE_ALL hostile probe |
 | readiness identity | separate 37-file structural-only mode; no formal identity |
-| one-shot | inherited locks, atomic control publication, typed stages/reports and command-scoped Git fsync |
+| one-shot | arming/index graph, fixed FD handoff, total verifier table, late recovery and exact reports |
 
 ## 2. Authorization Boundary
 
@@ -215,10 +215,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  a096435f5ec52108a5aa003a99bcdf9e8c652eb2134cbe4cc0f78f7ed69073d0
+  e422fc3b709f7477704be970b880a3b40b223fe833eed332ec2f172f6e02f3f5
 
 Git blob:
-  df2dd1a25913debecc9415e9cd6969878d5534d1
+  2eb04ae4a4eb321d2328dac006369df77b1904eb
 ```
 
 It freezes:
@@ -1195,6 +1195,9 @@ implementation tag:
 implementation commit message:
   feat: implement 0831T001 Q0 pipeline qualification
 
+arming commit message:
+  audit: arm 0831T001 Q0 attempt
+
 consumption tag:
   skhynix-trade-led-depth-follower-q0-consumed-v1
 
@@ -1222,6 +1225,47 @@ controller bare repository:
 controller ref:
   refs/heads/codex/0831T001-controller-ledger
 ```
+
+The pre-formal Git chronology is exact:
+
+```text
+implementation commit
+-> annotated implementation tag targets that commit
+-> atomically publish armed claim
+-> stage only armed claim
+-> arming commit, parent = implementation commit
+-> formal outer driver starts with HEAD = arming commit
+```
+
+The claim binds the implementation commit, not the later arming commit.
+Before each transition's first stage command, the index is empty and tracked
+worktree is clean except the registered transition paths. Exact stage
+commands are:
+
+```text
+arming:
+  git ... add -- .workflow/attempt-claims/0831T001.armed.json
+
+consumption:
+  git ... add -A -- .workflow/attempt-claims/0831T001.armed.json
+    .workflow/attempt-claims/0831T001.claimed.json
+
+terminal common:
+  git ... add -- both tracked receipts and 0831T001-business.md
+
+terminal PASS only:
+  git ... add -- baselines/skhynix_trade_led_depth_follower_q0_v1
+```
+
+The ellipsis is the exact command-scoped Git prefix below. Arming and
+consumption each verify the index after their sole stage command. Terminal
+PASS verifies the aggregate index only after `terminal_stage_common` and
+`terminal_stage_PASS`; terminal FAIL verifies after
+`terminal_stage_common`. Cached path set, mode and expected blobs are checked
+directly; rename similarity output is not authority. The arming commit adds
+one `100644` claim, the consumption commit deletes armed and adds
+byte-identical claimed, and the terminal commit has only its registered
+PASS/FAIL delta.
 
 After readiness passes and before the armed claim is created, controller
 infrastructure is prepared in the retryable
@@ -1336,11 +1380,16 @@ Receipt ownership is exact:
 <attempt_root>/control/recovery_observation.json
   required exactly once on every recovery path; forbidden on the normal path
 
+<attempt_root>/control/recovery_start.json
+  immutable recovery identity, published before any recovery state change;
+  reused byte-for-byte by every recovery restart
+
 independent QA report
   `.workflow/reports/0831T001-qa.md` and
   `docs/qa-acceptance-report.md` record and verify
-  the selected terminal `PUSH_CALL | REF_OBSERVATION` receipt SHA256 in the
-  QA commit
+  the selected terminal `PUSH_CALL | REF_OBSERVATION` receipt SHA256,
+  terminal-result receipt SHA256, and recovery-start/recovery-observation
+  SHA256 or `NONE/NONE` in the QA commit
 ```
 
 The terminal push uses `--force-with-lease` expecting the exact consumption
@@ -1356,6 +1405,14 @@ An existing invocation claim consumes that child's sole launch right even
 when no exit receipt exists. A missing invocation claim is not created by
 recovery; it maps to the registered pre-producer or pre-verifier interruption
 error.
+
+After acquiring the orchestrator lock, recovery first publishes
+`recovery_start.json` from the unchanged initial state. Its `recovery_id`,
+original crash boundary, initial controller SHA and committed-control path
+set never change even if recovery later advances refs or commits and then
+crashes. The terminal receipt contains no recovery hash and is never
+rewritten. Late recovery after terminal-receipt publication is represented
+only by the immutable recovery files and the independent QA evidence fields.
 
 If a push succeeded but the process crashed before persisting its normal
 receipt, recovery does not reconstruct lost push stdout/stderr. It runs the
@@ -1406,16 +1463,29 @@ runtime flock before invocation publication and passes the already locked
 descriptor with:
 
 ```text
+runtime fd slot = 198
+ACK fd slot = 199
 close_fds = true
-pass_fds = (runtime_lock_fd, handoff_ack_write_fd)
+pass_fds = (198,199)
+start_new_session = true
 ```
 
-The child validates both descriptors and writes the single ASCII byte `A`
-before any attempt-state read or write. The parent closes its own runtime
-descriptor only after ACK or child EOF. Thus a successfully launched child
-owns the inherited lock from `Popen` onward, with no pre-acquisition gap.
-Recovery cannot classify invocation-without-exit until the inherited lock is
-again acquirable.
+The parent first proves fd slots `198/199` are closed, duplicates the locked
+runtime file and ACK pipe writer into those exact slots, and names them in the
+child argv. Immediately after successful `Popen`, it closes its original
+runtime-lock FD, original pipe writer and local fd `199`, but retains local fd
+`198` until handoff resolves. On `Popen` error it closes every original and
+fixed-slot descriptor before publishing the exit receipt.
+
+The child validates fd `198` against the exact runtime-lock path and inherited
+flock, validates fd `199`, writes exactly byte `0x41`, closes fd `199`, then
+does any attempt work. The parent accepts only `0x41` followed by EOF within
+5000ms monotonic time. EOF-before-ACK, another byte, a second byte or timeout
+is a handoff error; it SIGTERMs the child process group, waits 1000ms,
+SIGKILLs if required, and calls `waitpid` once. The child retains fd `198`
+through its final fsynced child-owned write and closes it only immediately
+before return. Recovery therefore cannot acquire the lock while any child can
+still mutate attempt state.
 
 Each Git push has a separate runtime flock. The driver passes that locked file
 descriptor only to the exact `git push` child, so an orphan push retains the
@@ -1460,14 +1530,14 @@ renamed by the runner.
 The exact producer child argv is:
 
 ```text
-/Users/liu/.local/conda/bin/python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py --formal-producer --attempt-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1 --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package --truth .workflow/contracts/0831T001-fixture-truth-v1.json --surface-contract .workflow/contracts/0831T001-q0-surface-contract-v1.json
+/Users/liu/.local/conda/bin/python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py --formal-producer --attempt-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1 --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package --truth .workflow/contracts/0831T001-fixture-truth-v1.json --surface-contract .workflow/contracts/0831T001-q0-surface-contract-v1.json --runtime-lock-fd 198 --handoff-ack-fd 199
 ```
 
 After the formal producer stops, the terminal verifier runs at most once even
 if the producer exit code is nonzero. Its exact child argv is:
 
 ```text
-/Users/liu/.local/conda/bin/python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package --result /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/control/terminal_verifier_result.json
+/Users/liu/.local/conda/bin/python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package --result /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/control/terminal_verifier_result.json --runtime-lock-fd 198 --handoff-ack-fd 199
 ```
 
 No post-formal regeneration is permitted. Terminalization has two exact
@@ -1487,12 +1557,18 @@ FAIL:
   process exit/result fields = integer/hash when the durable exit receipt
     exists, otherwise NONE
   first_error precedence:
+    producer Popen error -> FORMAL_PRODUCER_LAUNCH_ERROR
+    producer ACK error -> FORMAL_PRODUCER_HANDOFF_ERROR
     producer invocation without exit -> FORMAL_PRODUCER_INTERRUPTED
     producer nonzero exit -> FORMAL_PRODUCER_EXIT_NONZERO
     producer exit without verifier invocation ->
       FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER
+    verifier Popen error -> TERMINAL_VERIFIER_LAUNCH_ERROR
+    verifier ACK error -> TERMINAL_VERIFIER_HANDOFF_ERROR
     verifier invocation without exit -> TERMINAL_VERIFIER_INTERRUPTED
-    verifier exit -> verifier registered first error
+    verifier exit 3 -> TERMINAL_VERIFIER_INTERNAL_ERROR
+    verifier exit outside 0/2/3 -> TERMINAL_VERIFIER_UNEXPECTED_EXIT
+    verifier exit 2 -> verifier registered first error
     no producer invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER
   completed_stages_json and missing_stages_json are required
 ```
@@ -1519,15 +1595,18 @@ whose values must be one exact compact array from
 `one_shot.terminal_stage_profiles`; even an empty set is `"[]"`, never
 `NONE`. Every crash boundary maps through
 `one_shot.crash_recovery_matrix` to one first error, recovery mode and stage
-profile. The surface contract also freezes canonical PASS and recovery-FAIL
-receipt preimages with their expected byte hashes as executable derivation
-tests.
+profile. FAIL is valid with any explicitly registered early-stop FAIL profile;
+it does not require all `F00..F06`. The producer/verifier launch, handoff,
+exit, result, manifest and first-error tuples are an exhaustive machine table.
+The surface contract also freezes canonical PASS and recovery-FAIL receipt
+preimages with their expected byte hashes as executable derivation tests.
 
 The business execution report is exactly
 `.workflow/reports/0831T001-business.md`, UTF-8 with LF and final LF. Its
-section order, fixed values and list templates are
-`one_shot.execution_report`. The terminal commit parent is the exact
-consumption commit. Its common tracked delta is exactly:
+complete PASS/FAIL line arrays, placeholder sources, join rule and example
+hashes are `one_shot.execution_report`; FAIL has no baseline line. The
+terminal commit parent is the exact consumption commit. Its common tracked
+delta is exactly:
 
 ```text
 .workflow/attempt-receipts/0831T001.consumption-push.json
