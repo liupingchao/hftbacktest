@@ -148,6 +148,16 @@
 - Unstaged additions require a separate authority because `git diff` does not
   include untracked files. The frozen observation combines raw cached rows,
   raw tracked-worktree rows and independently hashed untracked rows.
+- Revision 13 review confirmed that explicit `--no-renames` makes the
+  armed-to-claimed raw output invariant under `diff.renames=true/false`.
+  It also found that `git diff` alone does not bind actual staged worktree
+  mode or exact bytes: `core.filemode=false` hid a `0644 -> 0755` mutation,
+  and clean normalization can hide byte changes.
+- Raw `-z` output is encoded as repeated `metadata NUL path NUL` pairs, not
+  one NUL record containing metadata and path. The frozen parser states the
+  latter, and only the two consumption states have detailed row preimages;
+  the all-state mode/blob/staging mutation requirement is not yet
+  executable-total.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

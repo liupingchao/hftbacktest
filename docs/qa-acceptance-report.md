@@ -1,199 +1,167 @@
 # QA 验收结果
 
 执行线程：
-- QA验收线程
+- 独立计划审查线程
 
 任务ID：
-- 0830T003
+- 0831T001
 
 状态：
 - 未通过
 
 更新时间：
-- 2026-08-30 23:56 CST
+- 2026-08-31 12:30 CST
 
 验收线程：
-- 独立最终 QA
+- 0831T001 Q0 Revision 13 独立 plan reviewer
 
 验收对象：
-- 0830T003 single-use formal execution
-- `.workflow/reports/0830T003-execution.md`
-- reviewed HEAD:
-  `07dc96b49cf9accc4c9e2b72ad7a6868978d75d2`
+- reviewed commit:
+  `db7866127540bebce9b7dc8401cdd9af27a3a833`
+- commit message:
+  `workflow: harden 0831T001 Q0 contract revision 13`
+- frozen execution plan、task 与 surface contract
+- Round 12 唯一 P1 的 Revision 13 closure
 
 验收范围：
-- replacement plan 与 implementation readiness 授权。
-- single-use claim consumption。
-- consumption commit/tag 与 remote controller ledger。
-- attempt tree、Build A/B/P、terminal artifacts 与 scientific result 状态。
-- execution report 的事实真实性。
-- claim 消费后是否存在 repair、rerun 或 frozen scientific bytes 漂移。
+- raw `--no-renames` cached/worktree/untracked observation。
+- staged/unstaged armed-to-claimed transition。
+- `diff.renames=true/false` invariance。
+- path/mode/blob/staging mutation fail-closed 性质。
+- Revision 13 新增 P0-P3 风险。
 
 验收限制：
-- 未打开或读取 source-cache-root 下 29 个正式 cache。
-- 未读取 future outcomes。
-- 未运行 formal attempt、runner 或 terminal verifier。
-- 未诊断执行异常原因。
-- 未修改 plan、runner、verifier、tests、task、claim 或研究产物。
-- 除本报告及其 docs 同步副本外未修改任何文件。
+- historical-cache access: `NONE`
+- future-outcome access: `NONE`
+- implementation access/review: `NONE`
+- formal attempt root access: `NONE`
+- claim/receipt/controller-ref access: `NONE`
+- 未运行 formal、live、private、order 或交易操作。
+- Git observation 验证仅使用系统临时目录的合成仓库。
+- 未修改冻结 execution plan、task 或 surface contract。
 
 ## Severity
 
-- **P0/P1/P2/P3 = 0/1/0/0**
+- **P0/P1/P2/P3 = 0/2/0/0**
 
-## Finding
+## Round 12 P1 判定
 
-### P1-1 Formal scientific execution 未完成
+- **NOT CLOSED**
+- Round 12 carry-forward:
+  `P0/P1/P2/P3=0/1/0/0`
+- `--no-renames` 已关闭 `R100` rename collapse，且
+  `diff.renames=true/false` observation byte-identical。
+- 但 Round 12 还要求 path/mode/blob/staging mutation 全部 fail closed；
+  staged mode mutation 仍有反例。
 
-0830T003 的任务目标是完成一次独立、outcome-blind 的 A-1 structural-support
-formal audit。实际 single-use execution 在 Build A 内中断：
+### P1-1 Round 12 P1 remains open: staged mode and exact bytes are not independently bound
 
-- runner exit code 记录为 `1`；
-- attempt root 已建立并保留 durable consumption evidence；
-- `canonical_a` directory 存在，但为空，没有发布 RAW package；
-- `work/A` 只有一个 partial slice work file；
-- Build A 未完成，Build B/P 未开始；
-- `canonical_b`、`poison_cache`、`poison_p` 均不存在；
-- `attempt-result.json`、terminal receipt、terminal tag、terminal push
-  receipt 与 terminal verifier result 均不存在；
-- 没有完整 RAW/SEALED/FINAL package；
-- scientific classification 为 `NONE`；
-- registered prediction 为 `NOT_EVALUATED`；
-- 没有 observed support counts 可供科学验收。
+Revision 13 的 `--no-renames` 命令成功阻止 `D+A` 被折叠为 `R100`，但
+cached/worktree raw diff 仍受其他 Git 语义影响。
 
-冻结计划明确规定：producer 在 `attempt-result.json` 与 terminal receipt
-形成前停止时，状态为 `INTERRUPTED_TERMINAL`。因此本次执行没有完成任务要求的
-formal scientific audit。`NONE` / `NOT_EVALUATED` 是未完成执行状态，不是支持
-或反对 hypothesis 的科学结论。
+隔离仓库反例：
 
-## Record Authenticity
+```text
+core.filemode=false
+claimed mode mutation: 0644 -> 0755
+cached observation unchanged: true
+worktree observation unchanged: true
+worktree raw output: empty
+```
 
-执行记录的真实性与一致性 **通过**。
+因此一个真实 staged mode mutation 仍保持
+`EXACT_CONSUMPTION_INDEX_STAGED` 的 canonical observation，G05 fail
+open。`core.autocrlf=true` 下 LF 到 CRLF 的精确字节变化也可被 clean
+normalization 隐藏，说明 staged worktree 实体字节没有被独立 hash 绑定。
 
-1. Replacement plan review commit
-   `7ff86deabd9ece709eba90b7ee561a76e4bf96e7` 为 `PASS`，
-   `P0/P1/P2/P3=0/0/0/0`。
-2. Implementation readiness commit
-   `df65052b1203aa948be2f93480a966097d61336e` 为 `PASS`，
-   `P0/P1/P2/P3=0/0/0/0`，并只授权 exact tracked claim。
-3. Authorization commit
-   `fd347004e18e0c0c94fe7541983e441b80a63fdb` 只更新 task/progress
-   授权记录；随后
-   `bf98fbe5cc99ad50cba30b66ed772ef22e5b5c6e`
-   只绑定最终 armed-claim task SHA。
-4. Annotated implementation tag
-   `skhynix-fixed-epoch-leader-trigger-a-minus1-replacement-implementation-v1`
-   精确 peel 到
-   `bf98fbe5cc99ad50cba30b66ed772ef22e5b5c6e`。
-5. Final armed claim 的 task SHA256
-   `3f0d49f6992c011197380f5f75f68b7eeebd1dce7bebd3e133291fcb8a5b5cd2`
-   与该 implementation HEAD 的 task bytes 一致。
-6. Armed claim 已以相同 Git blob
-   `9f1f1adfc7d4871fd5acf348988afee75571f03f`
-   rename 为 `.workflow/attempt-claims/0830T003.claimed.json`。
-7. Claimed file SHA256 为
-   `2bee0095637779208145c93a09429168868a31cabc1ac25a83439fce3f6a59f2`，
-   与 `attempt-lock.json` 的 `claimed_sha256` 一致。
-8. Consumption commit
-   `108378d86b547fdf2f7c9bd7e26f2522681d8c28`
-   的 parent 是 implementation HEAD，唯一 tree delta 是
-   armed-to-claimed rename，commit message exact。
-9. Annotated consumption tag
-   `skhynix-fixed-epoch-leader-trigger-a-minus1-replacement-consumed-v1`
-   精确 peel 到 consumption commit。
-10. Remote controller ref
-    `refs/heads/codex/0830T003-controller-ledger`
-    现场 `ls-remote` 精确指向同一 consumption commit。
-11. Attempt lock SHA256 为
-    `98666878d4c79823dfd6ef23f0d3292a5c130754fa8b2cac0a913ec4479cadd2`。
-12. Consumption push receipt SHA256 为
-    `58b467c337a8cb8f2160118dc9abbd15644bd14e859f9bba90cb53de324c701b`。
-13. Claim、lock 与 receipt 的 exact argv、roots、implementation HEAD、
-    consumption HEAD、controller ref、old-null/new-head transition 和唯一
-    successful push 相互一致。
-14. Attempt root 精确包含三个 regular files：
-    - `attempt-lock.json`
-    - `push-ledger/000-consumption.json`
-    - `work/A/2026-07-29_0540d8311fc2.npz/slice_000000.npz`
-15. 空 `canonical_a` 与 partial `work/A` file 共同证明 Build A 已开始但未
-    发布；runner 固定调用顺序也表明 baseline authority preflight 已先通过。
-16. Execution report 对 Git identities、hashes、attempt tree、缺失的
-    Build B/P 和 terminal artifacts、`INTERRUPTED_TERMINAL`、`NONE` 与
-    `NOT_EVALUATED` 的描述均与独立复算一致。
-17. Reviewed HEAD
-    `07dc96b49cf9accc4c9e2b72ad7a6868978d75d2`
-    对 execution report 的唯一后置修改是填入其实际 report commit
-    `80cfb93abb41350ab35f1cf9191d8f82529a020b`。
+## 新增 P0-P3
 
-Execution report 中保存了 terminal exception 文本。本 QA 按限制不诊断其
-原因，也不依赖该文本决定科学完成度；durable Git/remote/attempt state 已独立
-证明 formal execution 中断。
+- New severity:
+  `P0/P1/P2/P3=0/1/0/0`
+- 当前已完成审查范围内没有新增 P0、P2 或 P3。
 
-记录真实性通过只表示执行事实被准确、不可逆且无粉饰地保存，不表示 formal
-scientific execution 已完成。
+### P1-2 New: raw parser framing and all-state canonical preimages are incomplete
 
-## No Repair Or Rerun
+冻结 parser 声称每个 NUL record 同时包含 metadata 与 path。实际
+`git diff --raw -z` 对每个非 rename row 编码为：
 
-1. Consumption commit 之后的 reachable commits 只有：
-   - `80cfb93abb41350ab35f1cf9191d8f82529a020b`：新增 execution
-     report，并更新 task/progress/findings 的事实记录；
-   - `07dc96b49cf9accc4c9e2b72ad7a6868978d75d2`：只将 execution
-     report 绑定到前述 report commit。
-2. 从 implementation HEAD 到 reviewed HEAD，idea、replacement plan、
-   runner、verifier 和 tests 的 Git blobs 全部 exact unchanged。
-3. 物理文件系统中只有一个 T003 attempt root。
-4. Push ledger 只有 `000-consumption.json`，没有第二次或 terminal push。
-5. Consumption tag 之后没有 terminal tag。
-6. Remote controller ref 仍停留在唯一 consumption HEAD。
-7. All-ref/reflog history 只有一次 T003 consumption transition。
-8. `git fsck --full --unreachable --no-reflogs` 成功；对 unreachable
-   commits/trees/blobs 的独立内容扫描未发现隐藏的 T003 claim、receipt、
-   consumption、terminal 或 replacement-attempt evidence。
+```text
+metadata NUL path NUL
+```
 
-未发现 post-claim repair、rerun、替代参数执行、第二 attempt、terminalization
-或 frozen scientific bytes 漂移。
+staged armed-to-claimed 因而产生四个非空 NUL fields，而不是两个各自含
+metadata+path 的 record。契约未冻结 metadata/path pairing grammar、exact
+regex、final-NUL 与 odd-field rejection。
+
+此外，`state_derivation` 引用 exact
+`tracked_transition_state_semantics preimage`，但该对象只有 prose。
+只有两个 consumption state 新增了 row 描述；其余五个 legal dirty state
+没有 machine-readable six-field preimage，receipt/report/baseline 路径也
+没有冻结 exact mode。故 “every legal state” mutation probe 不可独立复现。
+
+## Passing Evidence
+
+1. `db786612` 的 HEAD、parent 与 message identity 通过。
+2. plan/task/surface SHA256 与 Git blob identity 通过。
+3. surface contract strict duplicate-key JSON parse 通过。
+4. `git diff --check` 与 `git fsck` 通过。
+5. staged raw output 在 `diff.renames=true/false` 下均为独立
+   `D armed + A claimed`，字节完全一致。
+6. unstaged raw/untracked observation 在两种 rename config 下完全一致。
+7. 按 Git 实际 framing 构造 intended parser 时，两种 legal consumption
+   state 均可精确分类。
+8. 默认配置下 path/blob/staging 及 mode mutation 均触发 G05。
+9. 116,640-row pre-blocker table 精确复现：
+   `17 legal / 116,623 invalid`，aggregate
+   `c55f8ccabea22cd4e386f5cd2923b5cfd40eb2e028f1fc9b4b0385475ad0bd2e`。
+10. 21,384-row post-controller table 精确复现：
+    `11 legal / 21,373 invalid`，aggregate
+    `d9e4682bf43d4516b276eb46760fd020196503af5dfd2edc6e8b90b4336d4356`。
 
 ## 验收结论
 
 - **未通过**
-- 记录真实性：**通过**
-- Formal scientific execution：**未完成**
-- Scientific result：**不存在**
-- 结论说明：
-  - Single-use claim consumption、Git/tag/remote ledger 与中断记录真实且
-    合同一致，但任务要求的完整 A/B/P formal scientific audit 没有形成。
-  - 该状态是已消费 one-shot claim 的终局失败，不是等待外部条件后可以在
-    0830T003 内继续的 `阻塞`。
+- **P0/P1/P2/P3 = 0/2/0/0**
+- Round 12 carry-forward: `0/1/0/0`
+- new findings: `0/1/0/0`
+- plan freeze: **NOT AUTHORIZED**
+- implementation lock: **CLOSED**
+- formal execution lock: **CLOSED**
+
+结论说明：
+- Revision 13 关闭了 Round 12 的 rename collapse，但没有关闭完整
+  observation-to-classification contract。
+- staged mode mutation 仍有可执行 fail-open 反例。
+- raw parser 与所有 legal state 的 canonical preimage 尚未冻结到唯一可实现。
+- 只有 `0/0/0/0` 才可 PASS。
 
 通过项：
-1. Plan review、readiness 与 single-use authorization 可复核。
-2. Claim consumption、consumption commit/tag 与 remote ledger exact。
-3. Attempt tree、hashes和缺失的 terminal artifacts 与 execution report
-   一致。
-4. 执行中断被诚实记录，没有伪造 scientific classification。
-5. 未发现 repair、rerun 或 frozen scientific bytes 修改。
+1. raw `--no-renames` 分离 armed deletion 与 claimed addition。
+2. `diff.renames=true/false` canonical observation invariant。
+3. 两张既有状态机聚合保持精确。
 
 不通过项：
-1. Build A 未完成。
-2. Build B/P 未执行。
-3. 未形成 RAW/SEALED/FINAL package、attempt result 或 terminal closure。
-4. 未产生可验收的 A-1 classification、prediction evaluation 或 support
-   evidence。
+1. staged mode/exact-byte mutation 不能保证 G05 fail closed。
+2. raw NUL parser framing 不正确。
+3. all-state canonical preimage/mutation matrix 不完整。
 
 缺陷清单：
-1. P1-1：single-use formal scientific execution 在 Build A 内中断，任务
-   目标未完成。
+1. P1-1：staged worktree mode 与 exact bytes 未被独立绑定。
+2. P1-2：raw parser framing 与 all-state preimages 不可执行-total。
 
 阻塞项：
-- 无。Claim 已消费且 frozen post-claim contract 禁止本任务内 repair、
-  diagnosis、replacement attempt 或 rerun；0830T003 应终局记为
-  `未通过`。
+- Revision 13 不得解锁 implementation 或 formal execution。
 
 建议总控下一步：
-1. 将 0830T003 关闭为 `未通过`，保留全部 consumption、partial-work 与
-   interruption evidence。
-2. 不得将 `NONE` / `NOT_EVALUATED` 解读为研究假设的正面或负面结果。
-3. 任何后续正式科学执行必须注册为新的、独立审查和授权的 formal task。
+1. 冻结所有 present worktree path 的 no-follow lstat 与 exact-byte hash
+   观察，包括 staged paths。
+2. 冻结真实 `metadata NUL path NUL` parser grammar。
+3. 为每个 legal action phase/branch 冻结 machine-readable canonical rows、
+   exact mode/blob source 与 mutation aggregate。
+4. 完成修订后发起新的独立 plan review。
+
+详细报告：
+- `.workflow/reports/0831T001-plan-review-round13.md`
 
 提交信息：
-- commit：由本 QA 报告提交承载，不在报告内自引用。
+- commit：由本轮审查提交承载，不在报告内自引用。

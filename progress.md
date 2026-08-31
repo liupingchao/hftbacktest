@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 13 Candidate
+## 2026-08-31 0831T001 Q0 Revision 13 Plan Review Failed
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -107,8 +107,15 @@
 - Revision 13 uses only raw `--no-renames` cached/worktree records plus exact
   untracked path/mode/blob rows. Consumption staging is always two records,
   `D armed` and `A claimed`, with exact blob identity.
+- Revision 13 independent review failed at
+  `P0/P1/P2/P3=0/2/0/0`. The rename-config matrix and intended
+  armed-to-claimed rows reproduce, but `core.filemode=false` hides a staged
+  mode mutation, exact worktree bytes are not independently rebound, the raw
+  NUL parser contradicts Git framing, and only two legal dirty states have
+  detailed row preimages.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation is locked pending independent Revision 13 plan review.
+- Implementation and formal execution remain locked pending a corrected
+  revision and a new independent plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 
