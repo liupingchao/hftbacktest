@@ -10203,3 +10203,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   control publication.
 - New plan/task/surface SHA256 values are `cd958a03...`, `3205ec73...` and
   `6ed73252...`. Independent plan review is required before implementation.
+
+## 2026-08-31 0831T001 Plan Review Round 18
+
+- Independent plan review failed with four P1 findings.
+- `UF_IMMUTABLE` conflicts with hard-link temporary cleanup, has an incomplete
+  crash matrix, and can be cleared and restored by the formal runtime owner.
+- PRE_BLOCKER also still lacks a unique durable-observation-to-action-phase
+  tie-break for pre-push versus push-unreceipted states.
+- Revision 18 remains historical evidence only and does not unlock
+  implementation or formal execution.
