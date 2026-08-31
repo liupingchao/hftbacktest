@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 4 Candidate
+## 2026-08-31 0831T001 Q0 Revision 5 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -29,7 +29,13 @@
   reset state. It also persists child runtime receipts, freezes canonical CSV,
   separates readiness from formal identity and replaces observe-then-push
   with lease-bound controller transitions.
-- Implementation is locked pending independent Revision 4 plan review.
+- Revision 4 independent review failed at `P0/P1/P2/P3=0/4/0/0`;
+  implementation and formal execution remained locked.
+- Revision 5 keeps strict base eligibility alive through the reset boundary,
+  maps partial QF12 publication to `SLICE_PUBLICATION`, makes receipt header
+  order byte-identical, and adds retryable controller preparation plus
+  durable PASS/FAIL terminalization.
+- Implementation is locked pending independent Revision 5 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

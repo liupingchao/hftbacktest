@@ -163,6 +163,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -175,6 +190,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -242,6 +262,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -256,6 +291,11 @@
           "value": 1
         },
         {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
+        },
+        {
           "field": "trade_signed",
           "index": 4510,
           "value": 1
@@ -263,6 +303,21 @@
         {
           "field": "trade_total",
           "index": 4510,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
+          "index": 4511,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4511,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4511,
           "value": 1
         },
         {
@@ -326,6 +381,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -338,6 +408,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -400,6 +475,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -412,6 +502,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -494,6 +589,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -506,6 +616,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -612,6 +727,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -624,6 +754,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -720,6 +855,11 @@
           "value": 1
         },
         {
+          "field": "trade_total",
+          "index": 2259,
+          "value": 0.25
+        },
+        {
           "field": "trade_signed",
           "index": 2260,
           "value": -1
@@ -751,6 +891,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 2255,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 2255,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 2255,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 2256,
           "value": 1
         },
@@ -776,6 +931,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -788,6 +958,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -848,6 +1023,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -860,6 +1050,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -928,6 +1123,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -940,6 +1150,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -1017,6 +1232,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -1029,6 +1259,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -1094,13 +1329,13 @@
         ],
         "model_inputs": {
           "is_causal_trade_onset": 1,
-          "joint_threshold_overshoot": 0.08333333333333331,
+          "joint_threshold_overshoot": 0.05769230769230771,
           "leader_background_run_length": 0,
           "log_activity": 3.9318256327243257,
           "log_visible_depth": 5.303304908059076,
-          "signed_fast_minus_medium_acceleration": 0.6666666666666667,
-          "signed_fast_trade_ratio": 1,
-          "signed_medium_trade_ratio": 0.3333333333333333,
+          "signed_fast_minus_medium_acceleration": 0.49230769230769234,
+          "signed_fast_trade_ratio": 0.8,
+          "signed_medium_trade_ratio": 0.3076923076923077,
           "signed_obi": 0,
           "spread_ticks": 1,
           "time_of_day_cos": 0.9999784863660974,
@@ -1153,6 +1388,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -1165,6 +1415,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -1234,11 +1489,6 @@
           0,
           80,
           80
-        ],
-        "memory_at_index_3000": [
-          9,
-          9,
-          9
         ]
       },
       "fixture_id": "QF14",
@@ -1270,6 +1520,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 2994,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 2994,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 2994,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 2995,
           "value": 1
         },
@@ -1284,14 +1549,19 @@
           "value": 1
         },
         {
+          "field": "trade_total",
+          "index": 2998,
+          "value": 1
+        },
+        {
           "field": "trade_signed",
           "index": 2999,
-          "value": -1
+          "value": -2
         },
         {
           "field": "trade_total",
           "index": 2999,
-          "value": 1
+          "value": 2
         },
         {
           "field": "segment_id",
@@ -1326,6 +1596,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -1338,6 +1623,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -1479,6 +1769,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 2994,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 2994,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 2994,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 2995,
           "value": 1
         },
@@ -1493,14 +1798,19 @@
           "value": 1
         },
         {
+          "field": "trade_total",
+          "index": 2998,
+          "value": 1
+        },
+        {
           "field": "trade_signed",
           "index": 2999,
-          "value": -1
+          "value": -2
         },
         {
           "field": "trade_total",
           "index": 2999,
-          "value": 1
+          "value": 2
         },
         {
           "field": "segment_id",
@@ -1535,6 +1845,21 @@
         },
         {
           "field": "bid_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 4505,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
           "index": 4506,
           "value": 1
         },
@@ -1547,6 +1872,11 @@
           "field": "ofi_abs",
           "index": 4506,
           "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 4509,
+          "value": 0.25
         },
         {
           "field": "trade_signed",
@@ -1580,7 +1910,7 @@
       "probe_id": "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION"
     },
     {
-      "error_code": "BUILD_INPUT_BINDING",
+      "error_code": "SLICE_PUBLICATION",
       "probe_id": "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION"
     },
     {

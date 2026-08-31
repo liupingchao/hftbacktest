@@ -54,6 +54,12 @@
   one-shot controller transitions.
 - Revision 4 addresses those findings without changing the scientific
   thresholds or opening historical/outcome access.
+- Revision 4 review failed at `0/4/0/0`: reset observability still lapsed
+  under strict base masks, QF12 named a later error, receipt field order
+  differed, and formal failure had no complete controller terminalization.
+- Revision 5 adds exact observability refreshes, the reachable slice error,
+  one receipt header and durable producer/verifier exit receipts feeding
+  explicit PASS/FAIL terminal branches.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

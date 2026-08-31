@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_4_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_5_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -61,10 +61,10 @@ classification.
 | QF04 censor | independently derived `150.2s / 7510 / 60000ms` |
 | reset non-vacuity | actual `NEW_NEG` and `[-1,0,0]` memory at `2999`, cleared at `3000` |
 | child receipts | all loader/hasher/detector/FD/EOF fields persisted in `feature_calls.csv` |
-| QF12 first error | post-publication interruption now expects reachable `BUILD_INPUT_BINDING` |
+| QF12 first error | one published slice with other required slices absent expects `SLICE_PUBLICATION` |
 | CSV bytes | exact dialect, final LF and QUOTE_ALL hostile probe |
 | readiness identity | separate 37-file structural-only mode; no formal identity |
-| one-shot | claim-first preflight, root/lock/rename order, lease CAS, exact receipt paths and crash states |
+| one-shot | retryable controller preparation, root/lock/rename order, lease CAS and explicit PASS/FAIL terminalization |
 
 ## 2. Authorization Boundary
 
@@ -180,10 +180,10 @@ The independent machine-readable oracle is:
 .workflow/contracts/0831T001-fixture-truth-v1.json
 
 SHA256:
-  6d96e3ce580da85a30f349c346bcee4a390031ac1280c1233ded1591d6273006
+  fd1ea67f97e9d282e8fd12ae9bae4198e6742201d4bb630ed54e8dbdc6b57d85
 
 Git blob:
-  ebc9a085b64dc6036260bcaa94f44945f8af4ee3
+  33e78f7fa060f368b9ebfb517c61cb615b0405bc
 ```
 
 It freezes:
@@ -214,10 +214,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  a78497bb5a207c5772f5c4e9218e95d01eadaa691b4990ce87956ade2228d5b2
+  3f23b5d5964224606d33e6d7e7cb071e698746b76fbb6f422459d824fc49007b
 
 Git blob:
-  fe878b2539b44e165655b2ed50b218eba69a9ebd
+  ed65e8181b8dbb281adffa2440b9edcb69c59f0c
 ```
 
 It freezes:
@@ -552,15 +552,21 @@ Production eligibility needs both trade and depth observability before a
 neutral action can update memory. Every positive fixture therefore first
 completes the 30s cooldown measured from the 60s slice/segment boundary, seeds
 all three channels at index `4500`, refreshes trade neutral at `4504`,
-refreshes depletion and OFI neutral at `4506`, uses leader-background
-checkpoints `4504..4509`, and places the anchor at `4510`. Its anchor is
-therefore at `90.2s`. This makes the full/slice comparison non-vacuous while
-preventing the fixture oracle from assuming neutral memory that the production
-base mask would never admit.
+refreshes depletion and OFI neutral at both `4505` and `4506`, refreshes trade
+observability with neutral `trade_total=0.25` at `4509`, uses
+leader-background checkpoints `4504..4509`, and places the anchor at `4510`.
+Its anchor is therefore at `90.2s`. The extra refreshes keep the accepted
+five-checkpoint fast denominators continuously finite; they prevent a hidden
+`GLOBAL_INVALID` clear while preserving neutral memory and the frozen
+direction thresholds. This makes the full/slice comparison non-vacuous while
+preventing the fixture oracle from assuming memory the production base mask
+would never admit.
 
 QF14/QF15 separately establish a real pre-boundary negative trade state:
-joint neutral seed at `2989`, trade refresh at `2993`, follower refresh at
-`2995`, negative trade onset at `2999`, and segment change at `3000`.
+joint neutral seed at `2989`, trade refresh at `2993`, depth/OFI observability
+at `2994`, follower refresh at `2995`, trade observability refresh at `2998`,
+negative trade onset with `trade_signed=-2, trade_total=2` at `2999`, and
+segment change at `3000`.
 Production primitives must yield:
 
 ```text
@@ -1050,7 +1056,7 @@ QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION
   -> SLICE_PUBLICATION_ABSENT
 
 QF12_INTERRUPT_AFTER_SLICE_PUBLICATION
-  -> BUILD_INPUT_BINDING
+  -> SLICE_PUBLICATION
 
 QF13_CAUSAL_PREFIX_MUTATION
   -> CAUSAL_ACCESS_BOUNDARY
@@ -1080,11 +1086,10 @@ CROSS_SEGMENT_CARRY_NONZERO
   -> CROSS_SEGMENT_CARRY_NONZERO
 ```
 
-The post-publication QF12 baseline has durable A/B/P fixture roots and one
-published slice but lacks the complete 57-call consumer closure. Gates before
-physical build binding remain evaluable; `BUILD_INPUT_BINDING` is therefore
-the registered earliest reachable error. It does not claim that terminal
-closure can be reached without a package.
+The post-publication QF12 baseline has exactly one durably published QF12
+slice while at least one other required QF07/QF08/QF12/QF15 publication is
+absent. Complete slice publication is therefore the unique earliest boundary:
+`SLICE_PUBLICATION`. No probe-specific skipping is allowed.
 
 Verifier gate precedence is the exact `error_precedence` array in the fixture
 truth authority. After the first failed gate, every later gate is
@@ -1187,6 +1192,31 @@ controller ref:
   refs/heads/codex/0831T001-controller-ledger
 ```
 
+After readiness passes and before the armed claim is created, controller
+infrastructure is prepared in the retryable
+`PRE_CONSUMPTION_RETRYABLE_INFRASTRUCTURE` stage:
+
+```text
+if controller repository is absent:
+  run the exact git init --bare command
+  apply the exact two controller config commands
+  fsync the bare repository and its parent
+
+if it is already prepared:
+  verify bare format, exact config, empty object database and absent controller
+  ref
+  do not reinitialize
+
+if any ref exists or config/ownership is unexpected:
+  fail closed before claim arming
+```
+
+After init/config, both the bare repository directory and its parent are
+fsynced with `O_DIRECTORY`. Failure in this stage consumes no claim and
+creates no attempt root, so repair and retry are allowed only after proving
+there are no refs or objects. Controller creation/configuration is prohibited
+inside the consumed formal state machine.
+
 Before any formal fixture is generated, the state machine executes in this
 single order:
 
@@ -1207,6 +1237,10 @@ the consumption commit and annotated tag are created
 push the consumption commit with an absent-ref --force-with-lease CAS
 write and fsync the exact consumption push receipt
 copy that receipt byte-for-byte to the tracked receipt path
+run the formal producer exactly once and immediately fsync
+`<attempt_root>/control/formal_producer_exit.json`
+run the terminal verifier exactly once and immediately fsync
+`<attempt_root>/control/terminal_verifier_exit.json`
 ```
 
 Exact claim, attempt-lock, push-receipt and terminal-receipt fields; Git fsync
@@ -1217,7 +1251,8 @@ contract.
 The only retryable state is:
 
 ```text
-failure before no-replace attempt-root creation
+controller preparation failure or any other failure before no-replace
+attempt-root creation
 ```
 
 Any state at or after successful no-replace attempt-root creation is terminal
@@ -1233,8 +1268,12 @@ Receipt ownership is exact:
 .workflow/attempt-receipts/0831T001.consumption-push.json
   exact copy included in the terminal commit
 
+.workflow/attempt-receipts/0831T001.terminal.json
+  tracked PASS/FAIL terminal result receipt included in the terminal commit
+
 <attempt_root>/control/terminal_push_receipt.json
-  durable immediately after the terminal CAS
+  untracked terminal-push observation, durable immediately after the terminal
+  CAS
   cannot be in the commit whose push it observes
 
 independent QA report
@@ -1248,6 +1287,13 @@ commit. Plain observe-then-push is prohibited. Every crash boundary from
 attempt-root creation through terminal-push receipt has the single
 interpretation frozen in `one_shot.crash_states`; recovery may only observe
 and report durable/remote state, never rerun the producer or verifier.
+
+The two formal process receipts use the exact field sets and canonical
+serializer in `one_shot.formal_process_receipts`. They persist child argv,
+exit codes and stdout/stderr hashes before the next transition. The verifier
+receipt additionally persists `first_error`, result SHA and terminal-manifest
+SHA, using `NONE` only where the frozen FAIL branch permits absence. Recovery
+terminalizes from these durable receipts and observed state only.
 
 The exact formal cwd is:
 
@@ -1265,22 +1311,51 @@ The runner consumes the armed claim before generating fixtures; the path
 argument remains the pre-consumption authority named by the claim and is
 renamed by the runner.
 
-After the formal producer stops, the only permitted package command is:
+After the formal producer stops, the terminal verifier runs exactly once even
+if the producer exit code is nonzero:
 
 ```text
 python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package
 ```
 
-No post-formal regeneration is permitted. If the verifier passes, the exact
-57 package files are copied byte-for-byte, without regeneration, to:
+No post-formal regeneration is permitted. Terminalization has two exact
+branches:
+
+```text
+PASS:
+  classification = Q0_PIPELINE_QUALIFIED
+  terminal manifest SHA256 = required hex
+  copy exact 57-file package to baseline
+  first_error = NONE
+
+FAIL:
+  classification = Q0_PIPELINE_NOT_QUALIFIED
+  baseline copy = forbidden
+  terminal manifest SHA256 = NONE if no valid manifest exists
+  first_error = FORMAL_PRODUCER_EXIT_NONZERO if producer exit is nonzero;
+    otherwise the terminal verifier's registered first error
+  completed_stages_json and missing_stages_json are required
+```
+
+Stage lists are derived from the frozen transition-order prefix completed
+before failure; producer-supplied stage claims are not trusted.
+
+Both branches create the tracked terminal result receipt and execution report,
+then create the same terminal commit/tag and lease-bound controller push. A
+verifier failure is therefore durably terminalized rather than left in a
+state with no receipt.
+
+If the verifier passes, the exact 57 package files are copied byte-for-byte,
+without regeneration, to:
 
 ```text
 baselines/skhynix_trade_led_depth_follower_q0_v1/
 ```
 
-The baseline copy is checked against the accepted formal
-`terminal_manifest.json`. The terminal receipt, terminal commit/tag and
-controller-ref transition are then created.
+The PASS baseline copy is checked against the accepted formal
+`terminal_manifest.json`. The terminal result receipt fields and PASS/FAIL
+sentinels are frozen in `one_shot.terminal_receipt_fields` and
+`one_shot.terminalization_branches`.
 
 ## 13. Acceptance
 

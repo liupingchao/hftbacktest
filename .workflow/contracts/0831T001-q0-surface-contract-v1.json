@@ -109,8 +109,8 @@
       "probe_id": "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION"
     },
     {
-      "baseline": "QF12 A/B/P inputs exist and one slice is durably published, but the 57-call physical consumer closure and structural package do not exist",
-      "expected_first_error": "BUILD_INPUT_BINDING",
+      "baseline": "QF12 slice is durably published for one build while at least one other frozen required slice publication is absent",
+      "expected_first_error": "SLICE_PUBLICATION",
       "mutation": "SIGKILL orchestrator after slice parent-directory fsync and before structural package creation",
       "probe_id": "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION"
     },
@@ -339,7 +339,7 @@
     ],
     "consumption_commit_message": "audit: consume 0831T001 Q0 attempt",
     "crash_states": {
-      "before_attempt_root": "UNCONSUMED_RETRY_ALLOWED",
+      "before_attempt_root": "UNCONSUMED_RETRY_ALLOWED_INCLUDING_CONTROLLER_PREPARATION",
       "after_attempt_root_before_lock": "INTERRUPTED_TERMINAL_NO_RERUN",
       "after_attempt_lock_before_claim_rename": "INTERRUPTED_TERMINAL_NO_RERUN",
       "after_claim_rename_before_consumption_commit": "INTERRUPTED_TERMINAL_NO_RERUN",
@@ -350,7 +350,7 @@
       "after_tracked_copy_before_producer": "INTERRUPTED_TERMINAL_NO_RERUN",
       "during_producer": "INTERRUPTED_TERMINAL_NO_RERUN",
       "after_producer_before_terminal_verifier": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_terminal_verifier_fail": "FORMAL_FAIL_FIXED_NO_RERUN",
+      "after_terminal_verifier_fail": "FORMAL_FAIL_FIXED_TERMINALIZE_FAIL_BRANCH_NO_RERUN",
       "after_terminal_verifier_pass_before_baseline_copy": "FORMAL_PASS_FIXED_NO_RERUN",
       "after_baseline_copy_before_terminal_receipt": "FORMAL_PASS_FIXED_NO_RERUN",
       "after_terminal_receipt_before_terminal_commit": "FORMAL_RESULT_FIXED_NO_RERUN",
@@ -390,16 +390,19 @@
     "terminal_commit_message": "audit: seal 0831T001 Q0 result",
     "terminal_receipt_fields": [
       "classification",
+      "completed_stages_json",
       "consumption_commit",
       "consumption_push_receipt_sha256",
+      "first_error",
       "formal_exit_code",
+      "missing_stages_json",
       "package_terminal_manifest_sha256",
       "schema_version",
       "terminal_verifier_exit_code",
       "terminal_verifier_result_sha256"
     ],
     "transition_order": [
-      "preflight validates the armed claim and verifies the controller ref absent without writing state",
+      "verify the pre-created controller repository, exact config, validated armed claim and absent controller ref without writing state",
       "create attempt root with mkdir no-replace",
       "create attempt-lock.json with O_CREAT|O_EXCL and fsync",
       "rename armed claim to claimed and fsync parent",
@@ -407,25 +410,88 @@
       "create annotated consumption tag",
       "push consumption commit with absent-ref force-with-lease CAS",
       "record durable untracked consumption push receipt and copy it to the tracked receipt path",
-      "run one formal producer",
-      "run one terminal verifier",
-      "copy accepted package bytes to tracked baseline",
-      "create terminal receipt and execution report including consumption receipt SHA256",
+      "run one formal producer exactly once",
+      "write and fsync formal_producer_exit.json",
+      "run one terminal verifier exactly once even when producer failed",
+      "write and fsync terminal_verifier_exit.json",
+      "branch on terminal verifier result: PASS copies accepted package to baseline; FAIL forbids baseline copy",
+      "create PASS or FAIL terminal result receipt and execution report including consumption receipt SHA256",
       "create terminal commit descendant of consumption commit",
       "create annotated terminal tag",
       "push terminal commit with force-with-lease expected consumption SHA",
       "record durable untracked terminal push receipt",
-      "independent QA records terminal push receipt SHA256 in QA report; no producer or verifier rerun"
+      "independent QA records terminal push receipt SHA256 in report; no producer or verifier rerun"
     ],
     "receipt_paths": {
       "consumption_untracked": "<attempt_root>/control/consumption_push_receipt.json",
       "consumption_tracked": ".workflow/attempt-receipts/0831T001.consumption-push.json",
       "terminal_untracked": "<attempt_root>/control/terminal_push_receipt.json",
-      "terminal_tracked_ownership": "terminal receipt bytes remain under the immutable attempt root; SHA256 is recorded in both exact QA report paths and their QA commit",
       "terminal_qa_report": ".workflow/reports/0831T001-qa.md",
-      "terminal_qa_mirror": "docs/qa-acceptance-report.md"
+      "terminal_qa_mirror": "docs/qa-acceptance-report.md",
+      "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
+      "terminal_push_ownership": "untracked immutable attempt-root receipt; SHA256 recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md"
     },
-    "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; write O_CREAT|O_EXCL, fsync file, fsync parent"
+    "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; write O_CREAT|O_EXCL, fsync file, fsync parent",
+    "controller_preparation": {
+      "stage": "PRE_CONSUMPTION_RETRYABLE_INFRASTRUCTURE",
+      "allowed_before_armed_claim": true,
+      "commands": [
+        "git init --bare /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+        "git --git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git config receive.denyNonFastForwards true",
+        "git --git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git config transfer.fsckObjects true"
+      ],
+      "absent_state": "run init and config, fsync bare repository and parent, then verify exact config and ref absent",
+      "prepared_state": "verify exact bare-repository format, exact config and ref absent; do not reinitialize",
+      "failure_state": "no attempt root and no claim consumption; repair/retry is allowed",
+      "forbidden_state": "any controller ref present, wrong config, non-bare repository or unexpected ownership fails closed",
+      "empty_object_database_required": true,
+      "durability": "after init/config, fsync the bare repository directory and its parent directory with O_DIRECTORY; any fsync failure blocks claim arming",
+      "retry_after_partial_init": "allowed only while attempt root and armed/claimed consumption are absent; remove/recreate only after verifying no refs and empty object database"
+    },
+    "terminalization_branches": {
+      "PASS": {
+        "classification": "Q0_PIPELINE_QUALIFIED",
+        "package_terminal_manifest_sha256": "required 64-lowercase-hex",
+        "baseline_copy": "required exact 57-file copy before terminal receipt",
+        "first_error": "NONE",
+        "completed_stages": "all registered stages",
+        "missing_stages": "NONE"
+      },
+      "FAIL": {
+        "classification": "Q0_PIPELINE_NOT_QUALIFIED",
+        "package_terminal_manifest_sha256": "NONE when no valid terminal manifest exists; otherwise observed 64-lowercase-hex",
+        "baseline_copy": "forbidden",
+        "first_error": "required registered error code or FORMAL_PRODUCER_EXIT_NONZERO",
+        "completed_stages": "canonical compact JSON array of completed stage IDs",
+        "missing_stages": "canonical compact JSON array of uncompleted stage IDs",
+        "terminal_verifier_result_sha256": "required 64-lowercase-hex when canonical result bytes exist; otherwise NONE",
+        "recovery": "derive receipt/report only from durable producer/verifier exit receipts and observed filesystem/controller state; no child rerun",
+        "first_error_precedence": "FORMAL_PRODUCER_EXIT_NONZERO when formal_exit_code != 0; otherwise terminal verifier first_error",
+        "stage_lists": "derive from the frozen transition_order prefix completed before failure; no producer-authored stage list is trusted"
+      }
+    },
+    "formal_process_receipts": {
+      "serialization": "canonical compact sorted-key ASCII JSON plus LF; write O_CREAT|O_EXCL, fsync file, fsync parent",
+      "producer_path": "<attempt_root>/control/formal_producer_exit.json",
+      "producer_fields": [
+        "argv",
+        "exit_code",
+        "stderr_sha256",
+        "stdout_sha256"
+      ],
+      "verifier_path": "<attempt_root>/control/terminal_verifier_exit.json",
+      "verifier_fields": [
+        "argv",
+        "exit_code",
+        "first_error",
+        "package_terminal_manifest_sha256",
+        "result_sha256",
+        "stderr_sha256",
+        "stdout_sha256"
+      ],
+      "missing_token": "NONE",
+      "durability": "write O_CREAT|O_EXCL and fsync immediately after child waitpid; fsync control directory before next transition"
+    }
   },
   "package_directories": [
     "builds",
@@ -464,9 +530,9 @@
       "frame_sha256",
       "field_access_sha256",
       "detector_exit_sha256",
-      "inherited_fd_violation_count",
-      "detector_cwd",
       "detector_environment_entry_count",
+      "detector_cwd",
+      "inherited_fd_violation_count",
       "hasher_exitcode",
       "loader_exitcode",
       "detector_exitcode",
@@ -866,9 +932,9 @@
           "frame_sha256",
           "field_access_sha256",
           "detector_exit_sha256",
-          "inherited_fd_violation_count",
-          "detector_cwd",
           "detector_environment_entry_count",
+          "detector_cwd",
+          "inherited_fd_violation_count",
           "hasher_exitcode",
           "loader_exitcode",
           "detector_exitcode",
