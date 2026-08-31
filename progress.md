@@ -10079,3 +10079,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `74533850...a9999`.
 - Revision 17 awaits independent plan review; implementation and formal stay
   locked.
+
+## 2026-08-31 0831T001 Q0 Plan Review Round 17 Accepted
+
+- Independent review passed with `P0/P1/P2/P3 = 0/0/0/1`.
+- The observed controller token is now unambiguously `ABSENT` or 40-hex, and
+  proof-stage expected-set membership is the sole legality rule.
+- Any set-external token, including post-receipt `ABSENT`, is controller
+  divergence.
+- Revision 17 is the frozen authority for round 4 implementation. Formal
+  remains locked pending a new implementation-readiness pass.
