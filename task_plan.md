@@ -47,6 +47,11 @@
   including both commit-before-tag windows and every legal unstaged/staged
   Git delta. It freezes both the 116,640-row pre-blocker table and 21,384-row
   post-controller restart table.
+- Revision 12 was independently rejected at `P0/P1/P2/P3=0/1/0/0`.
+- Revision 13 freezes a rename-invariant raw Git observation algorithm for
+  cached, unstaged tracked and untracked rows. Armed deletion and claimed
+  addition are proven as separate mode/blob records under every rename
+  configuration.
 - Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
   negative boundaries, causal access proof, terminal verification and
   pre-consumption detached-worktree readiness.
@@ -56,7 +61,7 @@
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
 - Implementation and formal execution remain locked pending independent plan
-  review of Revision 12.
+  review of Revision 13.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 

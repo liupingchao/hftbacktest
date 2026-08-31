@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 12 Candidate
+## 2026-08-31 0831T001 Q0 Revision 13 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -100,8 +100,15 @@
   states. The pre-blocker table has 116,640 rows with 17 legal states; the
   controller post-blocker table has 21,384 rows with exactly one legal state
   for each of 11 executable restart phases.
+- Revision 12 independent review failed at
+  `P0/P1/P2/P3=0/1/0/0`: symbolic action states were total, but the actual
+  staged rename observation used rename-sensitive `--name-only` output and
+  could not prove armed deletion independently.
+- Revision 13 uses only raw `--no-renames` cached/worktree records plus exact
+  untracked path/mode/blob rows. Consumption staging is always two records,
+  `D armed` and `A claimed`, with exact blob identity.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation is locked pending independent Revision 12 plan review.
+- Implementation is locked pending independent Revision 13 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

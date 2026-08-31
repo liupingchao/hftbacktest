@@ -693,7 +693,93 @@
       },
       "terminal_commit_delta": "exact terminal_commit_tracked_delta for PASS or FAIL",
       "clean_precondition": "before the first stage command of each arming, consumption or terminal transition, index has no staged entry and tracked worktree is clean except the exact unstaged paths named by that transition",
-      "staged_verification": "after the sole arming or consumption stage command, and after the complete terminal_stage_common plus optional terminal_stage_PASS sequence, git diff --cached --name-only -z and git ls-files -s must show exactly the registered aggregate path set, modes and independently expected blobs; no rename-similarity output is used as authority",
+      "staged_verification": "derive the complete tracked-transition state only through git_observation_contract. Its explicit --no-renames raw commands expose every deletion and addition separately; directory-collapsing porcelain, name-only output and rename similarity are forbidden as authority",
+      "git_observation_contract": {
+        "cached_raw_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "diff",
+          "--cached",
+          "--no-renames",
+          "--no-ext-diff",
+          "--raw",
+          "-z",
+          "--full-index",
+          "--abbrev=40",
+          "HEAD"
+        ],
+        "worktree_raw_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "diff",
+          "--no-renames",
+          "--no-ext-diff",
+          "--raw",
+          "-z",
+          "--full-index",
+          "--abbrev=40"
+        ],
+        "untracked_paths_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "ls-files",
+          "--others",
+          "--exclude-standard",
+          "-z"
+        ],
+        "untracked_blob_command": [
+          "git",
+          "hash-object",
+          "--stdin"
+        ],
+        "raw_record_parser": "with --no-renames every NUL record has exactly one path and fields old_mode,new_mode,old_blob,new_blob,status,path; status domain is A,D,M,T,U and any U or non-one-letter status fails closed",
+        "untracked_parser": "split NUL paths, require strict ASCII path order, lstat each path without following symlinks, require registered regular-file mode, and pipe exact file bytes to untracked_blob_command",
+        "canonical_observation_fields": [
+          "cached_rows",
+          "untracked_rows",
+          "worktree_rows"
+        ],
+        "canonical_row_fields": [
+          "new_blob",
+          "new_mode",
+          "old_blob",
+          "old_mode",
+          "path",
+          "status"
+        ],
+        "row_order": "ASCII path ascending independently within cached_rows, worktree_rows and untracked_rows",
+        "zero_blob": "0000000000000000000000000000000000000000",
+        "zero_mode": "000000",
+        "consumption_rename_unstaged": {
+          "cached_rows": [],
+          "worktree_rows": "one D row for armed with old_mode=100644 and old_blob=<claim_blob>; no claimed row because it is untracked",
+          "untracked_rows": "one A row for claimed with new_mode=100644 and new_blob=<claim_blob>"
+        },
+        "consumption_index_staged": {
+          "cached_rows": "exactly two rows in ASCII path order: D armed from 100644/<claim_blob> to zero mode/blob, then A claimed from zero mode/blob to 100644/<claim_blob>",
+          "worktree_rows": [],
+          "untracked_rows": [],
+          "blob_identity": "armed old_blob equals claimed new_blob equals independently hashed claim bytes"
+        },
+        "state_derivation": "compare all three observed row arrays byte-for-byte with the exact tracked_transition_state_semantics preimage for the selected action phase; no omitted or extra path is legal",
+        "rename_configuration_invariance": "run the same observation in isolated repositories with diff.renames=true and diff.renames=false; explicit --no-renames must produce byte-identical canonical observation and the same tracked-transition classification",
+        "mutation_probes": "for every legal tracked-transition state, mutate one path, mode, blob or staging partition at a time and require G05_INDEX_OR_TRACKED_WORKTREE_DIRTY"
+      },
       "post_commit": "index and tracked worktree are clean and HEAD parent/message/tree satisfy this chronology"
     },
     "push_receipt_fields": [

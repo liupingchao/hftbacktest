@@ -141,6 +141,13 @@
   worktree, PASS two-stage terminal index and both pre-tag states separately.
   G05 now rejects only a transition state different from the action phase's
   exact expected path/mode/blob/staging partition.
+- Revision 12 review found that an exact abstract partition is insufficient
+  if Git observation itself can collapse delete+add into `R100`. Revision 13
+  explicitly disables rename detection and parses raw old/new mode/blob/path
+  records, so repository rename configuration cannot change classification.
+- Unstaged additions require a separate authority because `git diff` does not
+  include untracked files. The frozen observation combines raw cached rows,
+  raw tracked-worktree rows and independently hashed untracked rows.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

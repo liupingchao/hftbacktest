@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_12_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_13_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -91,6 +91,14 @@ classification.
 | legal commit-before-tag states matched G06/G07 | consumption-commit-before-tag and terminal-commit-before-tag are distinct action phases with `ABSENT` as the exact expected tag state |
 | exact staged index states matched G05 | claim rename, consumption staged index, terminal receipt-only worktree, terminal unstaged delta, PASS common-stage split and complete terminal staged index each have a distinct exact tracked-transition state |
 | proof-stage table omitted restart substates | 15 action phases generate a 116,640-row pre-blocker table; the 11 controller restart phases also generate a separate 21,384-row post-blocker table that skips G01 |
+
+### 1.5 Revision 13 closure matrix
+
+| Round 12 finding | Revision 13 closure |
+|---|---|
+| staged armed-to-claimed proof depended on rename detection | all index/worktree observations use `git diff --no-renames --raw -z --full-index --abbrev=40`; rename and name-only output are forbidden authority |
+| destination-only output did not prove armed deletion | the consumption staged preimage is exactly `D armed` plus `A claimed`, both mode `100644`, with armed old blob equal to claimed new blob and independently hashed claim bytes |
+| unstaged additions lacked exact observation | untracked paths use NUL-delimited `git ls-files --others --exclude-standard`, no-follow `lstat`, exact mode and `git hash-object --stdin`; cached, worktree and untracked rows jointly define each transition state |
 
 ## 2. Authorization Boundary
 
@@ -240,10 +248,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  16a9a6df6fad6dc367738e12641240b11253d18e13331d700ff218c7ac2be80f
+  767f360e73859d98371c768cded65d06df676753af0672f20a7ce4ff41ef78dd
 
 Git blob:
-  163b8eefdf56b24a6186d9809b9fa00b8ed32678
+  f1f2d91d574429a35df6c105da501f2f73514c3a
 ```
 
 It freezes:
@@ -1286,11 +1294,38 @@ The ellipsis is the exact command-scoped Git prefix below. Arming and
 consumption each verify the index after their sole stage command. Terminal
 PASS verifies the aggregate index only after `terminal_stage_common` and
 `terminal_stage_PASS`; terminal FAIL verifies after
-`terminal_stage_common`. Cached path set, mode and expected blobs are checked
-directly; rename similarity output is not authority. The arming commit adds
-one `100644` claim, the consumption commit deletes armed and adds
-byte-identical claimed, and the terminal commit has only its registered
-PASS/FAIL delta.
+`terminal_stage_common`.
+
+The observation algorithm is exact and rename-invariant:
+
+```text
+cached index:
+  git ... diff --cached --no-renames --raw -z --full-index --abbrev=40 HEAD
+
+unstaged tracked:
+  git ... diff --no-renames --raw -z --full-index --abbrev=40
+
+untracked:
+  git ... ls-files --others --exclude-standard -z
+  + no-follow lstat
+  + exact mode
+  + git hash-object --stdin over exact bytes
+```
+
+The three row arrays are sorted by ASCII path and compared against the exact
+action-phase preimage. For consumption staging, the cached rows are exactly:
+
+```text
+D .workflow/attempt-claims/0831T001.armed.json
+A .workflow/attempt-claims/0831T001.claimed.json
+```
+
+Both modes and blobs are bound, and the armed old blob equals the claimed new
+blob and the independent claim-byte Git blob. Rename similarity,
+`--name-only`, porcelain directory collapse and repository `diff.renames`
+configuration are never authority. The arming commit adds one `100644` claim,
+the consumption commit deletes armed and adds byte-identical claimed, and the
+terminal commit has only its registered PASS/FAIL delta.
 
 After readiness passes and before the armed claim is created, controller
 infrastructure is prepared in the retryable
@@ -1844,7 +1879,7 @@ G01 expected controller ref for the exact proof stage
 G02 armed/claimed state
 G03 exact HEAD
 G04 exact commit object, parent, message and tree delta
-G05 empty index and clean tracked worktree
+G05 exact cached/worktree/untracked row arrays for the selected action phase
 G06 exact annotated consumption tag
 G07 exact annotated terminal tag
 ```
@@ -1853,6 +1888,12 @@ G01 produces controller divergence. G02-G07 produce
 `ARTIFACT_STATE_CORRUPTION` and prohibit further commit, tag or push. After a
 controller blocker receipt is committed, its remote observation is frozen and
 restart evaluation skips G01 but still applies G02-G07.
+
+Every legal tracked-transition state is classified from the exact
+`--no-renames` raw observation under both `diff.renames=true` and
+`diff.renames=false`; the canonical observation and phase classification must
+be byte-identical. One-at-a-time path, mode, blob and staging-partition
+mutations must all select G05.
 
 Revision 12 separates seven controller-proof stages from 15 exact Git action
 phases. The tracked transition state is one of:
