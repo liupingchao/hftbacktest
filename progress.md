@@ -10249,3 +10249,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Accepted machine aggregates remain unchanged. New plan/task/surface
   SHA256 values are `bf3162e9...`, `f8ea271a...` and `fe28103f...`.
 - Implementation and formal remain locked pending independent plan review.
+
+## 2026-08-31 0831T001 Plan Review Round 20
+
+- Independent review accepted the 23-variant authority, all three recomputed
+  aggregates, witness CAS architecture and generic-temporary ownership split.
+- Review failed with three P1 findings: invalid-witness mutation semantics
+  conflict with blocker restart, A12 lacks total QA evidence for abnormal
+  witness/local states, and exact-temporary resume omits final target
+  no-follow FD/inode verification plus the `EEXIST` branch.
+- Revision 20 remains historical evidence and implementation stays locked.
