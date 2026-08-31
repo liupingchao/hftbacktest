@@ -3126,9 +3126,9 @@
           "-c",
           "core.fsyncMethod=fsync",
           "--git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
-          "show-ref",
-          "--hash",
+          "rev-parse",
           "--verify",
+          "--quiet",
           "refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1"
         ],
         "object_type_command": [

@@ -10385,3 +10385,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   zero-match.
 - Authority-dependent implementation is unlocked. Formal execution remains
   locked pending independent implementation readiness.
+## 2026-09-01 0831T001 Q0 Plan Amendment Round 26
+
+- Implementation probing found that the Revision 25 witness observation
+  command cannot produce its registered ABSENT tuple on Apple Git 2.39.5:
+  missing `show-ref --hash --verify` exits 128 with fatal stderr.
+- Revision 26 replaces only that command with exact full-ref
+  `rev-parse --verify --quiet`; direct absent/present probes match the frozen
+  `1 + empty/empty` and `0 + one OID/empty` tuples.
+- Witness CAS, A12, quarantine, action phases and all aggregate tables remain
+  unchanged. Authority-dependent implementation and formal execution are
+  locked pending independent plan review.
