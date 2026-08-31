@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_8_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_9_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -65,7 +65,7 @@ classification.
 | QF13 background run | production-derived `log1p(200ms-120ms)=log(81)` with boundary probe |
 | CSV bytes | exact dialect, final LF and QUOTE_ALL hostile probe |
 | readiness identity | separate 37-file structural-only mode; no formal identity |
-| one-shot | arming/index graph, fixed FD handoff, total verifier table, late recovery and exact reports |
+| one-shot | durable-state resolver, blocked controller divergence and stage-truthful exact reports |
 
 ## 2. Authorization Boundary
 
@@ -215,10 +215,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  e422fc3b709f7477704be970b880a3b40b223fe833eed332ec2f172f6e02f3f5
+  07b41192fcf46b36bff29d7bc9e663dcacd360f5f644d2b8dbd60075ac5eed40
 
 Git blob:
-  2eb04ae4a4eb321d2328dac006369df77b1904eb
+  6c48931fd54df49bc05d3009ea56699980f5a234
 ```
 
 It freezes:
@@ -1406,13 +1406,29 @@ when no exit receipt exists. A missing invocation claim is not created by
 recovery; it maps to the registered pre-producer or pre-verifier interruption
 error.
 
-After acquiring the orchestrator lock, recovery first publishes
+After acquiring the orchestrator lock, recovery first observes the controller
+ref under the relevant push-runtime lock. On a legal ref it publishes
 `recovery_start.json` from the unchanged initial state. Its `recovery_id`,
 original crash boundary, initial controller SHA and committed-control path
 set never change even if recovery later advances refs or commits and then
 crashes. The terminal receipt contains no recovery hash and is never
 rewritten. Late recovery after terminal-receipt publication is represented
 only by the immutable recovery files and the independent QA evidence fields.
+
+Before publishing a new `recovery_start.json`, recovery observes the
+controller ref under the corresponding push-runtime lock. The exact legal
+set is selected from local durable state and contains `ABSENT`, the
+consumption SHA and/or the terminal SHA as registered by the surface
+contract. Any other SHA is not converted into a new Q0 FAIL. It
+publishes the canonical `controller_ref_divergence.json`, completes only an
+unfinished local claim consumption, and preserves the consumed claim. Before
+a terminal receipt exists, classification is `NONE` and terminal artifacts
+are forbidden. After a terminal receipt exists, its Q0 classification,
+first error and report remain immutable; recovery may only complete a
+missing local terminal commit/tag. Terminal push is forbidden in both
+branches. Independent QA binds the blocker-observation SHA256 and records
+workflow status `阻塞`. This is a controller-ledger integrity outcome, not a
+new software qualification result.
 
 If a push succeeded but the process crashed before persisting its normal
 receipt, recovery does not reconstruct lost push stdout/stderr. It runs the
@@ -1556,26 +1572,26 @@ FAIL:
   terminal manifest SHA256 = NONE if no valid manifest exists
   process exit/result fields = integer/hash when the durable exit receipt
     exists, otherwise NONE
-  first_error precedence:
-    producer Popen error -> FORMAL_PRODUCER_LAUNCH_ERROR
-    producer ACK error -> FORMAL_PRODUCER_HANDOFF_ERROR
-    producer invocation without exit -> FORMAL_PRODUCER_INTERRUPTED
-    producer nonzero exit -> FORMAL_PRODUCER_EXIT_NONZERO
-    producer exit without verifier invocation ->
-      FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER
-    verifier Popen error -> TERMINAL_VERIFIER_LAUNCH_ERROR
-    verifier ACK error -> TERMINAL_VERIFIER_HANDOFF_ERROR
-    verifier invocation without exit -> TERMINAL_VERIFIER_INTERRUPTED
-    verifier exit 3 -> TERMINAL_VERIFIER_INTERNAL_ERROR
-    verifier exit outside 0/2/3 -> TERMINAL_VERIFIER_UNEXPECTED_EXIT
-    verifier exit 2 -> verifier registered first error
-    no producer invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER
+  first_error = one result from the shared durable-state resolver:
+    committed terminal receipt is immutable authority
+    absent producer invocation -> pre-producer interruption
+    producer invocation without exit -> producer interruption
+    committed producer launch/handoff/nonzero error wins over every later
+      orchestration or verifier state
+    only a successful producer allows pre-verifier/verifier errors to become
+      first_error
+    successful producer + verifier exit 2 -> registered verifier first error
+    successful producer + accepted verifier exit 0 -> NONE
   completed_stages_json and missing_stages_json are required
 ```
 
-Stage lists are selected from the frozen machine profiles after independently
-observing committed invocation/exit/result artifacts; producer-supplied stage
-claims are not trusted.
+The normal outer driver and recovery call the same resolver. Its 10 explicit
+cases cover absent invocation, absent exit, producer error with or without
+later verifier artifacts, successful producer with each verifier state, and
+accepted PASS. Crash boundaries select recovery mode; they cannot overwrite
+a committed producer error. Stage lists are selected from the frozen machine
+profiles after independently observing committed invocation/exit/result
+artifacts; producer-supplied stage claims are not trusted.
 
 The terminal receipt does not use prose as stage identity. It uses only:
 
@@ -1594,17 +1610,22 @@ F07_BASELINE_PUBLISHED
 whose values must be one exact compact array from
 `one_shot.terminal_stage_profiles`; even an empty set is `"[]"`, never
 `NONE`. Every crash boundary maps through
-`one_shot.crash_recovery_matrix` to one first error, recovery mode and stage
-profile. FAIL is valid with any explicitly registered early-stop FAIL profile;
-it does not require all `F00..F06`. The producer/verifier launch, handoff,
-exit, result, manifest and first-error tuples are an exhaustive machine table.
+`one_shot.crash_recovery_matrix` to one recovery mode and durable stage
+profile; `RESOLVE_FROM_DURABLE_STATE` and
+`FROM_COMMITTED_TERMINAL_RECEIPT` are resolved only by the shared machine
+resolver. FAIL is valid with any explicitly registered early-stop FAIL
+profile; it does not require all `F00..F06`. The producer/verifier launch,
+handoff, exit, result, manifest and first-error tuples are an exhaustive
+machine table.
 The surface contract also freezes canonical PASS and recovery-FAIL receipt
 preimages with their expected byte hashes as executable derivation tests.
 
 The business execution report is exactly
 `.workflow/reports/0831T001-business.md`, UTF-8 with LF and final LF. Its
 complete PASS/FAIL line arrays, placeholder sources, join rule and example
-hashes are `one_shot.execution_report`; FAIL has no baseline line. The
+hashes are `one_shot.execution_report`; FAIL has no baseline line and makes
+no claim that absent producer/verifier stages executed. It prints the exact
+committed and missing stage arrays from the terminal receipt. The
 terminal commit parent is the exact consumption commit. Its common tracked
 delta is exactly:
 
@@ -1681,7 +1702,7 @@ authorize drafting A-1a.
 
 ## 14. Failure Semantics
 
-Any formal-run failure is terminal for `0831T001`.
+Any non-divergent formal-run failure is terminal for `0831T001`.
 
 The task must record:
 
@@ -1691,6 +1712,21 @@ the observed error code
 completed and missing package stages
 Q0_PIPELINE_NOT_QUALIFIED
 ```
+
+An unexpected controller ref is a workflow integrity blocker. Before a
+terminal receipt exists it is recorded as:
+
+```text
+workflow status = 阻塞
+classification = NONE
+blocker = CONTROLLER_REF_DIVERGENCE
+claim = consumed and never reusable
+terminal Q0 receipt/report/commit/tag/push = forbidden
+```
+
+If a terminal receipt already exists, its classification and first error
+remain authoritative, but workflow status is still `阻塞`; a missing local
+terminal commit/tag may be completed and terminal push remains forbidden.
 
 No repair, diagnosis, plan change or rerun is permitted inside the consumed
 formal run. A software correction requires a new task and a new independent

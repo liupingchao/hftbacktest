@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 8 Candidate
+## 2026-08-31 0831T001 Q0 Revision 9 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -57,7 +57,23 @@
 - Receipt and report derivation hashes, JSON structure, truth-error coverage
   and stage-profile coverage all recompute exactly.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation is locked pending independent Revision 8 plan review.
+- Revision 8 independent review failed at `P0/P1/P2/P3=0/2/0/0`.
+  It found that crash-boundary labels could overwrite committed producer
+  errors, controller-ref divergence had no complete workflow outcome, and
+  the universal FAIL report overstated early-stage execution.
+- Revision 9 uses one 10-case durable-state resolver for normal and recovery
+  paths. Producer launch/handoff/nonzero errors keep precedence regardless of
+  later verifier state.
+- An unexpected controller ref now produces canonical blocker evidence and
+  consumes the local claim. Before a terminal receipt it sets classification
+  `NONE` and forbids terminal artifacts; after a terminal receipt it preserves
+  the immutable Q0 result while allowing only local commit/tag completion.
+  Both branches set workflow status `阻塞` and forbid controller push.
+- The exact FAIL report now prints committed/missing stage arrays and makes no
+  claim that absent producer or verifier stages executed; its sample is 1503
+  bytes with independently recomputed SHA256.
+- Historical-cache access and outcome access remain `NONE`.
+- Implementation is locked pending independent Revision 9 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

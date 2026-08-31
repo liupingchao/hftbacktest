@@ -386,10 +386,10 @@
       "after_untracked_receipt_before_tracked_copy": "COPY_EXISTING_RECEIPT_THEN_FAIL_PRE_PRODUCER",
       "after_tracked_copy_before_producer_invocation": "FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
       "after_producer_invocation_before_exit_receipt": "FAIL_FORMAL_PRODUCER_INTERRUPTED_NO_CHILD_RERUN",
-      "after_producer_exit_before_verifier_invocation": "FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER",
-      "after_verifier_invocation_before_exit_receipt": "FAIL_TERMINAL_VERIFIER_INTERRUPTED_NO_CHILD_RERUN",
-      "after_terminal_verifier_fail": "FORMAL_FAIL_FIXED_COMPLETE_FAIL_BRANCH",
-      "after_terminal_verifier_pass_before_baseline_copy": "FORMAL_PASS_FIXED_COMPLETE_PASS_BRANCH",
+      "after_producer_exit_before_verifier_invocation": "RESOLVE_DURABLE_PRODUCER_STATE_THEN_FAIL_PRE_VERIFIER",
+      "after_verifier_invocation_before_exit_receipt": "RESOLVE_DURABLE_PRODUCER_STATE_THEN_FAIL_VERIFIER_INTERRUPTED_NO_CHILD_RERUN",
+      "after_terminal_verifier_fail": "RESOLVE_DURABLE_PROCESS_STATE_THEN_COMPLETE_FAIL_BRANCH",
+      "after_terminal_verifier_pass_before_baseline_copy": "RESOLVE_DURABLE_PROCESS_STATE_THEN_COMPLETE_PASS_OR_FAIL_BRANCH",
       "after_baseline_copy_before_terminal_receipt": "FORMAL_PASS_FIXED_COMPLETE_PASS_BRANCH",
       "after_terminal_receipt_before_terminal_commit": "FORMAL_RESULT_FIXED_COMPLETE_CONTROLLER_TRANSITIONS",
       "after_terminal_commit_before_tag": "FORMAL_RESULT_FIXED_COMPLETE_CONTROLLER_TRANSITIONS",
@@ -815,7 +815,7 @@
       "acquire verifier runtime flock and atomically publish the verifier invocation claim",
       "run the exact terminal verifier child argv at most once even when producer failed",
       "write and fsync terminal_verifier_exit.json",
-      "branch on terminal verifier result: PASS copies accepted package to baseline; FAIL forbids baseline copy",
+      "apply terminal_state_resolver: PASS requires successful producer plus accepted verifier and copies the package to baseline; every resolved FAIL forbids baseline copy",
       "create PASS or FAIL terminal result receipt and execution report",
       "create terminal commit descendant of consumption commit",
       "create annotated terminal tag",
@@ -923,24 +923,24 @@
         "stage_profile": "FAIL_PRODUCER_INTERRUPTED"
       },
       "after_producer_exit_before_verifier_invocation": {
-        "first_error": "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER",
+        "first_error": "RESOLVE_FROM_DURABLE_STATE",
         "recovery_mode": "FAIL_WITHOUT_VERIFIER",
         "stage_profile": "FAIL_PRE_VERIFIER"
       },
       "after_verifier_invocation_before_exit_receipt": {
-        "first_error": "TERMINAL_VERIFIER_INTERRUPTED",
+        "first_error": "RESOLVE_FROM_DURABLE_STATE",
         "recovery_mode": "WAIT_RUNTIME_LOCK_AND_FAIL",
         "stage_profile": "FAIL_VERIFIER_INTERRUPTED"
       },
       "after_terminal_verifier_fail": {
-        "first_error": "FROM_VERIFIER_EXIT_RECEIPT",
+        "first_error": "RESOLVE_FROM_DURABLE_STATE",
         "recovery_mode": "COMPLETE_FAIL_TERMINALIZATION",
         "stage_profile": "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS"
       },
       "after_terminal_verifier_pass_before_baseline_copy": {
-        "first_error": "NONE",
-        "recovery_mode": "COMPLETE_PASS_TERMINALIZATION",
-        "stage_profile": "PASS_COMPLETE"
+        "first_error": "RESOLVE_FROM_DURABLE_STATE",
+        "recovery_mode": "RESOLVE_PASS_OR_FAIL_TERMINALIZATION",
+        "stage_profile": "RESOLVE_FROM_DURABLE_STATE"
       },
       "after_baseline_copy_before_terminal_receipt": {
         "first_error": "NONE",
@@ -981,6 +981,7 @@
       "terminal_observation_untracked": "<attempt_root>/control/terminal_push_observation.json",
       "recovery_start_untracked": "<attempt_root>/control/recovery_start.json",
       "recovery_observation_untracked": "<attempt_root>/control/recovery_observation.json",
+      "controller_divergence_untracked": "<attempt_root>/control/controller_ref_divergence.json",
       "terminal_qa_report": ".workflow/reports/0831T001-qa.md",
       "terminal_qa_mirror": "docs/qa-acceptance-report.md",
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
@@ -1053,6 +1054,10 @@
         "before_hard_link": "no recovery state change is permitted; remove/rebuild from the unchanged initial state",
         "after_hard_link": "verify exact bytes and use it for every recovery restart"
       },
+      "controller_ref_divergence.json": {
+        "before_hard_link": "if the temporary is complete and independently valid, link those exact bytes; otherwise remove it after parent fsync and rerun exact ls-remote under the controller runtime lock: publish a new blocker observation only if the current ref is still divergent, otherwise resume the legal remote-state rule because no blocker observation was committed",
+        "after_hard_link": "verify committed blocker bytes and follow the exact pre_terminal_receipt_branch or post_terminal_receipt_branch; terminal push remains forbidden"
+      },
       "terminal_result_receipt": {
         "before_hard_link": "remove/rebuild deterministic receipt from committed state/profile",
         "after_hard_link": "verify exact bytes and remove any temporary"
@@ -1100,8 +1105,8 @@
         "terminal_verifier_exit_code": "base-10 integer only when terminal_verifier_exit.json exists; otherwise NONE",
         "late_recovery": "immutable terminal receipt remains authoritative; recovery evidence is bound only by independent QA",
         "recovery": "after attempt-root creation, complete missing claim/consumption/controller transitions, write one recovery observation, and terminalize from durable invocation/exit receipts plus observed refs; never launch or relaunch a child in recovery",
-        "first_error_precedence": "producer launch error; producer handoff error; producer invocation without exit; producer nonzero exit; producer exit without verifier invocation; verifier launch error; verifier handoff error; verifier invocation without exit; verifier exit=3 internal error; verifier unexpected exit; verifier exit=2 registered first_error; no producer invocation",
-        "stage_lists": "select the exact terminal_stage_profiles row from independently observed committed artifacts and crash_recovery_matrix; no producer-authored stage list is trusted"
+        "first_error_precedence": "apply formal_process_receipts.terminal_state_resolver.first_error_rules_in_precedence_order; the normal driver and recovery use identical rules",
+        "stage_lists": "apply formal_process_receipts.terminal_state_resolver.stage_profile_rules to independently observed committed artifacts; crash_recovery_matrix cannot override a committed process error and no producer-authored stage list is trusted"
       }
     },
     "terminal_error_codes": [
@@ -1149,6 +1154,78 @@
       "RESET_IDENTITY_MISMATCH",
       "CROSS_SEGMENT_CARRY_NONZERO"
     ],
+    "workflow_blockers": {
+      "codes": [
+        "CONTROLLER_REF_DIVERGENCE"
+      ],
+      "CONTROLLER_REF_DIVERGENCE": {
+        "trigger": "the exact controller ref observation is neither ABSENT nor the locally expected consumption or terminal SHA for the current durable stage",
+        "task_status": "阻塞",
+        "claim_state": "consumed and never reusable",
+        "local_consumption": "if armed has not yet been renamed, complete only the local armed-to-claimed rename, consumption commit and consumption tag after publishing the divergence observation; controller push remains forbidden",
+        "controller_divergence_observation": "required canonical controller_ref_divergence.json",
+        "terminal_push": "forbidden",
+        "pre_terminal_receipt_branch": {
+          "classification": "NONE",
+          "allowed_post_observation_actions": "local claim consumption when incomplete, immutable blocker observation verification, independent QA and workflow status update only",
+          "terminal_receipt": "forbidden",
+          "business_execution_report": "forbidden",
+          "terminal_commit": "forbidden",
+          "terminal_tag": "forbidden",
+          "qa_outcome": "independent QA records status 阻塞, classification NONE, blocker_code CONTROLLER_REF_DIVERGENCE and controller_ref_divergence.json SHA256"
+        },
+        "post_terminal_receipt_branch": {
+          "classification": "preserve immutable committed terminal receipt classification",
+          "allowed_post_observation_actions": "verify immutable terminal receipt and report, complete missing local terminal commit or annotated terminal tag only, verify blocker observation, independent QA and workflow status update",
+          "terminal_receipt": "existing bytes remain immutable",
+          "business_execution_report": "existing bytes remain immutable",
+          "terminal_commit": "existing commit remains authority or may be completed locally from the immutable receipt/report",
+          "terminal_tag": "existing tag remains authority or may be completed locally",
+          "qa_outcome": "independent QA records status 阻塞, the immutable Q0 classification and first_error, blocker_code CONTROLLER_REF_DIVERGENCE and controller_ref_divergence.json SHA256"
+        },
+        "recovery_start": "do not create after divergence detection; preserve an already committed recovery_start.json",
+        "recovery_observation": "do not create after divergence detection; preserve an already committed recovery_observation.json"
+      },
+      "controller_divergence_fields": [
+        "blocker_code",
+        "controller_ref",
+        "expected_sha_set_json",
+        "observation_command",
+        "observation_exit_code",
+        "observation_stderr_sha256",
+        "observation_stdout_sha256",
+        "observed_sha",
+        "schema_version"
+      ],
+      "controller_divergence_value_domains": {
+        "schema_version": 1,
+        "blocker_code": "CONTROLLER_REF_DIVERGENCE",
+        "controller_ref": "exact registered controller ref",
+        "expected_sha_set_json": "canonical compact ASCII JSON string array in ASCII order containing exactly the legal SHA tokens for the observed durable stage",
+        "observed_sha": "one 40 lowercase hex SHA outside expected_sha_set_json",
+        "observation_command": "exact git_commands.controller_observe JSON string array",
+        "observation_exit_code": 0,
+        "observation_stdout_sha256": "64 lowercase hex over exact stdout bytes",
+        "observation_stderr_sha256": "64 lowercase hex over exact stderr bytes"
+      },
+      "expected_sha_sets_by_local_state": {
+        "before_consumption_commit": [
+          "ABSENT"
+        ],
+        "consumption_commit_without_terminal_commit": [
+          "<consumption_sha>",
+          "ABSENT"
+        ],
+        "terminal_commit_without_terminal_push_receipt": [
+          "<consumption_sha>",
+          "<terminal_sha>",
+          "ABSENT"
+        ],
+        "terminal_push_receipt_committed": [
+          "<terminal_sha>"
+        ]
+      }
+    },
     "formal_process_receipts": {
       "serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
       "outer_driver_argv": [
@@ -1360,13 +1437,54 @@
           "terminal_error": "TERMINAL_VERIFIER_UNEXPECTED_EXIT"
         }
       ],
+      "terminal_state_resolver": {
+        "scope": "the normal outer driver and every recovery path use this same resolver; crash_recovery_matrix supplies recovery mode and durable stage boundary but never overrides an already committed process error",
+        "controller_precheck": "before resolving a Q0 terminal state, observe the controller ref under the relevant runtime lock; an unexpected ref exits this resolver through workflow_blockers.CONTROLLER_REF_DIVERGENCE",
+        "stage_profile_rules": [
+          "committed terminal receipt -> exact completed_stages_json and missing_stages_json already in that receipt",
+          "producer invocation absent -> FAIL_PRE_PRODUCER",
+          "producer exit absent -> FAIL_PRODUCER_INTERRUPTED",
+          "verifier invocation absent -> FAIL_PRE_VERIFIER",
+          "verifier exit absent -> FAIL_VERIFIER_INTERRUPTED",
+          "verifier exit committed and resolved classification is FAIL -> FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
+          "verifier exit=0 and accepted package plus baseline publication are complete -> PASS_COMPLETE"
+        ],
+        "first_error_rules_in_precedence_order": [
+          "committed terminal receipt exists -> its immutable first_error",
+          "producer invocation absent -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+          "producer exit absent -> FORMAL_PRODUCER_INTERRUPTED",
+          "producer exit tuple terminal_error is FORMAL_PRODUCER_LAUNCH_ERROR, FORMAL_PRODUCER_HANDOFF_ERROR or FORMAL_PRODUCER_EXIT_NONZERO -> that producer terminal_error regardless of later verifier state",
+          "verifier invocation absent -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER",
+          "verifier exit absent -> TERMINAL_VERIFIER_INTERRUPTED",
+          "verifier exit tuple terminal_error is TERMINAL_VERIFIER_LAUNCH_ERROR, TERMINAL_VERIFIER_HANDOFF_ERROR, TERMINAL_VERIFIER_INTERNAL_ERROR or TERMINAL_VERIFIER_UNEXPECTED_EXIT -> that terminal_error",
+          "verifier exit=2 -> exact registered verifier first_error",
+          "verifier exit=0 with accepted result -> NONE"
+        ],
+        "resolver_cases": [
+          "producer invocation absent -> first_error FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER, profile FAIL_PRE_PRODUCER",
+          "producer invocation committed and producer exit absent -> first_error FORMAL_PRODUCER_INTERRUPTED, profile FAIL_PRODUCER_INTERRUPTED",
+          "producer exit resolves to a producer terminal_error and verifier invocation absent -> preserve producer terminal_error, profile FAIL_PRE_VERIFIER",
+          "producer exit=0 and verifier invocation absent -> first_error FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER, profile FAIL_PRE_VERIFIER",
+          "producer exit resolves to a producer terminal_error and verifier invocation committed but verifier exit absent -> preserve producer terminal_error, profile FAIL_VERIFIER_INTERRUPTED",
+          "producer exit=0 and verifier invocation committed but verifier exit absent -> first_error TERMINAL_VERIFIER_INTERRUPTED, profile FAIL_VERIFIER_INTERRUPTED",
+          "producer exit resolves to a producer terminal_error and verifier exit is committed with any legal verifier tuple -> preserve producer terminal_error, profile FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
+          "producer exit=0 and verifier exit resolves to a verifier terminal_error -> use verifier terminal_error, profile FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
+          "producer exit=0 and verifier exit=2 -> use registered verifier first_error, profile FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
+          "producer exit=0 and verifier exit=0 with accepted result -> first_error NONE; PASS_COMPLETE only after exact baseline publication, otherwise continue PASS recovery without publishing a premature terminal receipt"
+        ],
+        "crash_token_resolution": {
+          "RESOLVE_FROM_DURABLE_STATE": "apply first_error_rules_in_precedence_order and stage_profile_rules to committed invocation and exit receipts; after verifier exit=0 but before baseline publication this resolves to PASS recovery only when producer also succeeded, otherwise to FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
+          "FROM_COMMITTED_TERMINAL_RECEIPT": "use immutable classification, first_error, completed_stages_json and missing_stages_json from the committed terminal receipt"
+        },
+        "result_totality": "every non-divergent durable artifact combination either resolves to one PASS or FAIL terminal tuple or fails closed as an invalid receipt tuple before terminal publication"
+      },
       "missing_token": "NONE",
       "invocation_semantics": "acquire runtime flock, atomically publish the deterministic invocation claim, then call Popen exactly once; committed invocation existence consumes the sole launch right even if Popen fails; recovery never launches a child whose invocation claim exists and never creates a missing invocation claim",
       "durability": "atomically publish the exit receipt immediately after child waitpid or Popen error using control_publication"
     },
     "recovery": {
       "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
-      "entry_precondition": "acquire the exclusive orchestrator flock, atomically publish or verify recovery_start.json before any recovery state change, and for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
+      "entry_precondition": "acquire the exclusive orchestrator flock, observe the controller ref under the relevant controller runtime lock, exit through workflow_blockers.CONTROLLER_REF_DIVERGENCE when it is unexpected, otherwise atomically publish or verify recovery_start.json before any recovery state change, and for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
       "recovery_start_fields": [
         "attempt_lock_sha256",
         "claimed_or_armed_sha256",
@@ -1385,7 +1503,7 @@
         "initial_committed_paths_json": "canonical compact JSON string array of all committed control target paths in ASCII order before recovery changes state",
         "recovery_id": "SHA256 of canonical compact sorted-key ASCII JSON over the other six fields excluding recovery_id"
       },
-      "recovery_start_rule": "publish recovery_start.json before rename, commit, tag, push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses exact committed bytes and original crash_boundary",
+      "recovery_start_rule": "on every legal controller-ref path publish recovery_start.json before rename, commit, tag, push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses exact committed bytes and original crash_boundary; workflow_blockers.CONTROLLER_REF_DIVERGENCE is the sole exception and follows its restricted local-consumption branches without creating a new recovery_start",
       "consumption_receipt_union": "exactly one of consumption_push_receipt.json with receipt_kind PUSH_CALL or consumption_push_observation.json with receipt_kind REF_OBSERVATION; copy the chosen bytes to the tracked consumption receipt path",
       "terminal_receipt_union": "exactly one of terminal_push_receipt.json with receipt_kind PUSH_CALL or terminal_push_observation.json with receipt_kind REF_OBSERVATION",
       "push_observation_rule": "REF_OBSERVATION is allowed only when exact ls-remote observes the expected new SHA after a crash and the normal PUSH_CALL receipt is absent; it records the observation command outputs, never reconstructed push outputs",
@@ -1406,7 +1524,7 @@
       "recovery_observation_value_domains": {
         "schema_version": 1,
         "crash_boundary": "exactly equal to recovery_start.crash_boundary",
-        "first_error": "the exact crash_recovery_matrix first_error after resolving FROM_* tokens from committed receipts",
+        "first_error": "the exact terminal_state_resolver result after resolving RESOLVE_FROM_DURABLE_STATE or FROM_COMMITTED_TERMINAL_RECEIPT; a committed producer error is never replaced by a later orchestration or verifier error",
         "recovery_id": "exactly equal to recovery_start.recovery_id",
         "recovery_start_sha256": "64 lowercase hex over committed recovery_start.json",
         "recovery_mode": "the exact crash_recovery_matrix recovery_mode",
@@ -1444,7 +1562,7 @@
         "ABSENT": "complete consumption transition, using absent-ref lease when push is still required",
         "<consumption_sha>": "complete or recover terminalization; terminal push may still be required",
         "<terminal_sha>": "write terminal REF_OBSERVATION if normal receipt is absent, then finish QA handoff",
-        "other": "fail closed as CONTROLLER_REF_DIVERGENCE; do not push"
+        "other": "exit through workflow_blockers.CONTROLLER_REF_DIVERGENCE: before terminal receipt classification is NONE and terminal artifacts are forbidden; after terminal receipt preserve its immutable Q0 classification and allow only missing local terminal commit/tag completion; terminal push is always forbidden"
       }
     },
     "controller_push_runtime_locks": {
@@ -1469,8 +1587,10 @@
       "placeholder_sources": {
         "<blocker>": "terminal receipt first_error; FAIL only",
         "<classification>": "terminal receipt classification",
+        "<completed_stages_json>": "terminal receipt completed_stages_json; FAIL only",
         "<first_error>": "terminal receipt first_error",
-        "<implementation_commit>": "claimed authority implementation_commit"
+        "<implementation_commit>": "claimed authority implementation_commit",
+        "<missing_stages_json>": "terminal receipt missing_stages_json; FAIL only"
       },
       "templates": {
         "PASS": [
@@ -1536,16 +1656,13 @@
           "- .workflow/attempt-receipts/0831T001.consumption-push.json",
           "- .workflow/attempt-receipts/0831T001.terminal.json",
           "action：",
-          "- Executed the frozen synthetic QF01-QF15 Q0 pipeline exactly once.",
-          "- Recorded classification from the committed terminal receipt without post-formal repair.",
+          "- Consumed the frozen one-shot Q0 attempt and recorded only durably committed stages.",
+          "- Did not infer, recreate, or claim absent producer or verifier work.",
           "verify：",
-          "- focused pytest",
-          "- accepted fixed-epoch regression",
-          "- ruff check and format check",
-          "- py_compile",
-          "- runner and verifier --help",
-          "- detached-worktree readiness comparison",
-          "- formal producer and independent terminal verifier",
+          "- pre-consumption readiness and implementation checks completed before arming",
+          "- completed_stages_json=<completed_stages_json>",
+          "- missing_stages_json=<missing_stages_json>",
+          "- durable producer and verifier receipts verified only when present",
           "done：",
           "- classification=<classification>",
           "- first_error=<first_error>",
@@ -1573,11 +1690,13 @@
           "values": {
             "<blocker>": "FORMAL_PRODUCER_INTERRUPTED",
             "<classification>": "Q0_PIPELINE_NOT_QUALIFIED",
+            "<completed_stages_json>": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\"]",
             "<first_error>": "FORMAL_PRODUCER_INTERRUPTED",
-            "<implementation_commit>": "1111111111111111111111111111111111111111"
+            "<implementation_commit>": "1111111111111111111111111111111111111111",
+            "<missing_stages_json>": "[\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]"
           },
-          "size_bytes": 1368,
-          "sha256": "c5196a95e25b45ea394efd3682167d457dd1987ec8256108a8caf18e8d377056"
+          "size_bytes": 1503,
+          "sha256": "53bd4a77cf7029117707e01b926cebb8a3c078635019538a9aa607a0debb885c"
         }
       },
       "publication": "publish through control_publication before terminal commit"

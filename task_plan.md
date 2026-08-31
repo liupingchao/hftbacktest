@@ -28,6 +28,10 @@
 - Revision 8 freezes the complete implementation/arming/consumption/terminal
   Git graph, fixed child FD and ACK lifecycle, total process-exit/error table,
   immutable late-recovery identity and exact PASS/FAIL report bytes.
+- Revision 8 was independently rejected at `P0/P1/P2/P3=0/2/0/0`;
+  implementation and formal execution remained locked.
+- Revision 9 adds one durable-state first-error resolver, an explicit blocked
+  controller-divergence workflow outcome and a stage-truthful FAIL report.
 - Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
   negative boundaries, causal access proof, terminal verification and
   pre-consumption detached-worktree readiness.
@@ -37,7 +41,7 @@
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
 - Implementation and formal execution remain locked pending independent plan
-  review of Revision 8.
+  review of Revision 9.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 

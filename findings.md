@@ -92,6 +92,24 @@
   selects one registered stage profile and one exact orchestration error.
 - PASS and FAIL report templates now have complete line arrays, single-use
   placeholders and independently recomputed SHA256 examples.
+- Revision 8 review failed at `0/2/0/0`: its crash matrix could replace a
+  durable producer error with a later interruption, controller-ref divergence
+  had no complete workflow terminal meaning, and the exact early FAIL report
+  falsely claimed the full pipeline executed.
+- Revision 9 separates three authorities: crash boundary selects recovery
+  mode, committed process receipts select first error through one resolver,
+  and a committed terminal receipt remains immutable after publication.
+- The resolver explicitly covers 10 durable-state classes. A producer
+  launch, handoff or nonzero-exit error always wins over later verifier
+  absence, interruption, error or PASS.
+- Controller-ref divergence is not represented as a new Q0 software FAIL. It
+  consumes the local claim and publishes immutable blocker evidence. Before
+  terminal receipt its classification is `NONE`; after terminal receipt the
+  immutable Q0 result remains authority. Both branches produce workflow
+  status `阻塞` and forbid controller push.
+- The Revision 9 FAIL report is conservative across every early-stop profile:
+  it records exact completed/missing stage arrays and does not infer absent
+  producer or verifier work.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 
