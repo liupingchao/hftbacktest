@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_22_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_23_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -187,6 +187,19 @@ A12 evidence payload and successful-commit FD identity check are retained.
 | witness states lacked a mechanical derivation | freeze ordered ref/type/blob command tuple rules and an ordered no-follow `lstat/open/fstat/read` local path classifier, including exact observation-error stage/errno |
 | temporary cleanup could unlink a replacement inode | replace hard-link/unlink commit with Darwin `renamex_np(...,RENAME_EXCL)`; successful commit atomically removes the temporary name, while abandoned regular temporaries are atomically moved no-replace to a permanent sibling quarantine path and never deleted |
 
+Revision 22 was rejected with four residual partition and restart findings.
+Its atomic publication primitive and no-unlink boundary are accepted and
+retained.
+
+### 1.15 Revision 23 closure matrix
+
+| Round 22 finding | Revision 23 closure |
+|---|---|
+| recovery state had a witness-only gap and A12 overlap | derive a workflow-independent ordered partition: `NOT_STARTED`, `WITNESS_ONLY`, `START_ONLY`, `COMPLETE`, then complement `ABNORMAL`; A12 remains only a workflow outcome/evidence rule |
+| INVALID raw SHA could not encode nonregular paths | replace VALID/INVALID with `VALID_REGULAR`, `INVALID_REGULAR`, explicit symlink/directory/FIFO/other-nonregular states and `OBSERVATION_ERROR`; SHA exists only for regular states and error stage/errno is separate |
+| second rebuild crash could not coexist with quarantine | make quarantine an unbounded canonical inventory `<target>.abandoned.<sha256>.<ordinal>` with contiguous ordinals per SHA; each new abandoned temporary takes the next ordinal |
+| post-receipt row omitted A01-A08 | make `ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT` own every A01-A12 first match whenever terminal receipt or report exists before terminal commit |
+
 ## 2. Authorization Boundary
 
 Permitted inputs:
@@ -335,10 +348,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  8b7160d57739e3bef23d70c91d75c870109b3ed108c883543697fb6d8998b847
+  e7696f64a040b7ead3a32ff21fce0a52003863361264f5d76fb4259de0154dda
 
 Git blob:
-  265cb49534754c2a12bb19e5675f19bea87cf896
+  d4fd7f8d729a98eafe88dc04fb06cbbcf67543b1
 ```
 
 It freezes:
@@ -1566,10 +1579,11 @@ independent QA report
   `.workflow/reports/0831T001-qa.md` and
   `docs/qa-acceptance-report.md` derive one `workflow_outcome_mode`
   (`TERMINAL`, `ARTIFACT_BLOCKED`, `CONTROLLER_BLOCKED`) and one orthogonal
-  `recovery_evidence_state` (`NONE`, `START_ONLY`, `COMPLETE`,
-  `WITNESS_MISMATCH`). Terminal result/transition and recovery start/
-  observation each record `ABSENT`, `VALID` or `INVALID`; SHA256 is `NONE`
-  only for absence and is the exact raw-file hash for valid or invalid bytes.
+  `recovery_evidence_state` (`NOT_STARTED`, `WITNESS_ONLY`, `START_ONLY`,
+  `COMPLETE`, `ABNORMAL`). Terminal result/transition and recovery start/
+  observation each record absent, valid/invalid regular, explicit nonregular
+  kind or observation error. SHA256 exists only for regular bytes; syscall
+  error stage/errno is recorded separately.
 ```
 
 The terminal push uses `--force-with-lease` expecting the exact consumption
@@ -1641,8 +1655,10 @@ no-replace rename returns EEXIST:
 
 witness exact + local target absent + mismatched/truncated regular temporary:
   hash its retained FD bytes, atomically move it no-replace to
-  `<target>.abandoned.<sha256>`, reopen and verify inode/bytes/suffix,
-  preserve it permanently, fsync parent, then rebuild from witnessed bytes
+  `<target>.abandoned.<sha256>.<ordinal>` using the next contiguous ordinal
+  for that SHA, reopen and verify inode/bytes/suffix, preserve it permanently,
+  fsync parent, then rebuild from witnessed bytes. A later rebuild crash may
+  append another canonical quarantine and retry again.
 
 witness exact + local target absent + nonregular temporary:
   ARTIFACT_STATE_CORRUPTION / A12_RECOVERY_WITNESS_MISMATCH
@@ -1740,13 +1756,15 @@ the race result, while mismatch or nonregular kind fails closed.
 
 Pathname unlink is forbidden. A verified regular abandoned temporary is
 hashed through its retained FD, atomically renamed no-replace to
-content-addressed sibling `<target>.abandoned.<sha256>`, reopened no-follow
-and required to retain the original temporary FD `st_dev/st_ino`, exact bytes
-and matching path suffix. The parent inventory must contain at most one
-canonical quarantine. Multiple/noncanonical quarantine names, nonregular
-temporary, identity mismatch or observation failure block instead of deleting
-or overwriting any path. No pathname `exists/is_file/read_bytes` check or
-final-component `resolve()` is publication authority.
+content-addressed sibling `<target>.abandoned.<sha256>.<ordinal>`, reopened
+no-follow and required to retain the original temporary FD `st_dev/st_ino`,
+exact bytes and matching path suffix. The full parent inventory is valid only
+when every entry is canonical and ordinals for each SHA are contiguous from
+zero; the next quarantine takes the current count. Noncanonical inventory,
+nonregular temporary, identity mismatch or observation failure blocks instead
+of deleting or overwriting any path. No pathname
+`exists/is_file/read_bytes` check or final-component `resolve()` is
+publication authority.
 
 Only the final target is committed authority. A truncated temporary is never
 authority. While holding the orchestrator lock, recovery quarantines and

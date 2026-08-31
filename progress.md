@@ -10310,3 +10310,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   rebuild crash cannot coexist with the single quarantine, and A01-A08 remain
   absent from post-receipt artifact restart.
 - Revision 22 remains historical evidence and implementation stays locked.
+
+## 2026-08-31 0831T001 Plan Amendment Round 23
+
+- Recovery evidence is now a workflow-independent ordered partition with a
+  witness-only state and exact ABNORMAL complement.
+- QA file states distinguish valid/invalid regular bytes, explicit nonregular
+  kinds and observation errors; only regular files carry SHA256.
+- Quarantine is now a canonical content-addressed inventory with contiguous
+  per-SHA ordinals, allowing repeated deterministic rebuild crashes.
+- The artifact post-receipt preservation row covers every A01-A12 first match.
+- Accepted publication and table authorities remain unchanged. New
+  plan/task/surface SHA256 values are `7b4616b8...`, `960427e3...` and
+  `e7696f64...`.
+- Implementation and formal remain locked pending independent plan review.

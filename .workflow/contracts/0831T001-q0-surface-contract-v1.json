@@ -1720,13 +1720,13 @@
     "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
     "control_publication": {
       "temporary_path": "<target>.publishing",
-      "quarantine_path": "<target>.abandoned.<temporary_sha256>",
+      "quarantine_path": "<target>.abandoned.<temporary_sha256>.<ordinal>",
       "temporary_creation": "open the sibling temporary path with O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC; fstat the descriptor as one regular file; never create the committed target directly",
       "commit_primitive": "on the frozen Darwin formal runtime call libc renamex_np(<target>.publishing,<target>,RENAME_EXCL) with RENAME_EXCL=0x00000004; source and target are siblings in the same parent directory; return 0 is the only successful no-replace commit, EEXIST selects race_target, and every other errno fails closed",
       "write_order": "write all expected bytes and verify the full byte count through the opened temporary descriptor, fsync that descriptor, retain its fstat st_dev/st_ino, atomically rename the temporary to the committed target with commit_primitive, open the final target O_RDONLY|O_NOFOLLOW|O_CLOEXEC and fstat/read the same descriptor, require exact bytes and the same st_dev/st_ino as the still-open pre-rename temporary descriptor, fsync the final descriptor and parent; no pathname unlink is performed",
       "committed_definition": "only the final target path is committed; a .publishing path is never authority",
-      "existing_target": "inspect with no-follow lstat/open/fstat and accept only a regular non-symlink final target whose bytes are exactly the independently derived expected bytes; a sibling temporary may be absent or an exact regular non-authority race residue and is preserved, while a mismatched or nonregular temporary fails closed; the quarantine inventory must be empty or exactly one canonical content-addressed regular artifact whose bytes hash to its path suffix and is never rewritten; callers must not resolve the final path component before publication or validation",
-      "quarantine_rule": "pathname unlink is forbidden. While holding the orchestrator flock, open and retain the verified regular abandoned temporary FD identity and exact SHA256, require an empty quarantine inventory, move its pathname atomically to quarantine_path derived from that SHA256 with renamex_np(...,RENAME_EXCL), reopen quarantine O_RDONLY|O_NOFOLLOW|O_CLOEXEC and require regular kind, the same st_dev/st_ino as the retained FD, exact retained bytes and a path suffix equal to their SHA256, fsync quarantine and parent, preserve it permanently as non-authority evidence, then rebuild only when expected bytes are independently derivable. Any pre-existing/noncanonical/multiple quarantine, post-rename mismatch or no-follow observation failure fails closed without overwrite or rebuild",
+      "existing_target": "inspect with no-follow lstat/open/fstat and accept only a regular non-symlink final target whose bytes are exactly the independently derived expected bytes; a sibling temporary may be absent or an exact regular non-authority race residue and is preserved, while a mismatched or nonregular temporary fails closed; quarantine inventory may contain zero or more canonical content-addressed regular artifacts, each byte hash must equal its path SHA suffix and ordinals for each SHA must be contiguous from zero; callers must not resolve the final path component before publication or validation",
+      "quarantine_rule": "pathname unlink is forbidden. While holding the orchestrator flock, mechanically validate the complete quarantine inventory, open and retain the verified regular abandoned temporary FD identity and exact SHA256, select ordinal equal to the current contiguous count for that SHA, move its pathname atomically to quarantine_path with renamex_np(...,RENAME_EXCL), reopen quarantine O_RDONLY|O_NOFOLLOW|O_CLOEXEC and require regular kind, the same st_dev/st_ino as the retained FD, exact retained bytes and matching SHA/ordinal suffix, fsync quarantine and parent, preserve it permanently as non-authority evidence, then rebuild only when expected bytes are independently derivable. Any invalid inventory, post-rename mismatch or no-follow observation failure fails closed without overwrite or rebuild",
       "abandoned_deterministic_temporary": "with target absent, resume an exact regular temporary through commit_primitive; quarantine a truncated or mismatched regular temporary through quarantine_rule, then rebuild from independently derived bytes",
       "abandoned_observational_temporary": "for PUSH_CALL or child-exit bytes that cannot be reconstructed after interruption, quarantine the uncommitted regular temporary only after the corresponding runtime lock is acquirable; select REF_OBSERVATION or interruption semantics instead",
       "claim_payloads": "attempt lock and invocation claims are deterministic payloads published by this same protocol; the successful atomic no-replace rename, not temporary creation, consumes the claim",
@@ -2041,8 +2041,8 @@
           "object_type_stderr_sha256",
           "object_type_stdout_sha256",
           "observed_oid",
+          "quarantine_inventory_json",
           "quarantine_observation_error",
-          "quarantine_sha256",
           "quarantine_state",
           "ref_observation_exit_code",
           "ref_observation_stderr_sha256",
@@ -2071,12 +2071,12 @@
           "object_type": "blob when the object-type command proves a blob, another exact Git object type when readable but invalid, otherwise NONE",
           "quarantine_state": [
             "ABSENT",
-            "VALID_QUARANTINE",
-            "INVALID_QUARANTINE_SET",
+            "VALID_INVENTORY",
+            "INVALID_INVENTORY",
             "OBSERVATION_ERROR"
           ],
-          "quarantine_sha256": "64 lowercase hex only for VALID_QUARANTINE, otherwise NONE",
-          "quarantine_observation_error": "NONE unless quarantine_state=OBSERVATION_ERROR; otherwise the exact first failing stage and base-10 errno encoded as LSTAT:<errno>, OPEN:<errno>, FSTAT:<errno> or READ:<errno>",
+          "quarantine_inventory_json": "canonical compact sorted-key ASCII JSON string object with entries_hex and rows arrays. entries_hex contains every selected sibling basename encoded as lowercase hex in raw-byte order. rows contains one object per selected entry in the same order with exact keys name_hex, observed_sha256, observation_error, ordinal, path_state and sha256_suffix; absent or inapplicable values use NONE. VALID_INVENTORY requires every row regular and identity-stable, observed_sha256=sha256_suffix, and ordinals per suffix exactly 0..count-1. ABSENT uses both empty arrays; invalid/error states preserve all successfully observed rows",
+          "quarantine_observation_error": "NONE unless quarantine_state=OBSERVATION_ERROR; otherwise <name_hex>:<LSTAT|OPEN|FSTAT|READ>:<base-10-errno>, using FSTAT:0 for kind or inode-identity mismatch",
           "ref_observation_exit_code": "base-10 integer from the exact registered ref observation command",
           "ref_observation_stdout_sha256": "64 lowercase hex over exact stdout bytes",
           "ref_observation_stderr_sha256": "64 lowercase hex over exact stderr bytes",
@@ -2130,23 +2130,26 @@
           "state, SHA256 and observation_error are emitted by this ordered function for target and temporary independently"
         ],
         "quarantine_state_derivation": [
-          "list the parent directory through one opened no-follow directory descriptor and select names matching exactly <target-name>.abandoned.<64-lowercase-hex>",
-          "zero matching names -> ABSENT; more than one matching name, or any sibling beginning <target-name>.abandoned. that is not canonical -> INVALID_QUARANTINE_SET",
-          "for one canonical name, apply the ordered local regular-file lstat/open/fstat/read identity checks; any syscall error -> OBSERVATION_ERROR with the first stage/errno",
-          "nonregular kind, lstat/fstat identity mismatch, or content SHA256 different from the 64-hex path suffix -> INVALID_QUARANTINE_SET",
-          "one regular identity-stable file whose content SHA256 equals its suffix -> VALID_QUARANTINE with that SHA256"
+          "list the parent directory through one opened no-follow directory descriptor and select every sibling beginning exactly <target-name>.abandoned.",
+          "zero selected names -> ABSENT with quarantine_inventory_json containing empty entries_hex and rows arrays",
+          "each selected name must match <target-name>.abandoned.<64-lowercase-hex>.<base-10-nonnegative-ordinal-with-no-leading-zero-except-zero>; any noncanonical selected name -> INVALID_INVENTORY",
+          "for every selected raw basename in byte order, append its hex encoding and mechanically parsed row; for canonical names apply the ordered local regular-file lstat/open/fstat/read identity checks; any syscall error -> OBSERVATION_ERROR with the first name_hex/stage/errno while preserving all observed rows",
+          "nonregular kind, lstat/fstat identity mismatch, or content SHA256 different from the path SHA suffix -> INVALID_INVENTORY",
+          "group rows by sha256 and require ordinals exactly 0..count-1 with no duplicate path or ordinal; violation -> INVALID_INVENTORY",
+          "otherwise -> VALID_INVENTORY with the exact canonical row array"
         ],
         "legal_restart_state_tuples": [
           "ABSENT witness + ABSENT target + ABSENT temporary + ABSENT quarantine",
           "EXACT_BLOB witness + ABSENT target + ABSENT temporary + ABSENT quarantine",
-          "EXACT_BLOB witness + ABSENT target + ABSENT temporary + VALID_QUARANTINE",
+          "EXACT_BLOB witness + ABSENT target + ABSENT temporary + VALID_INVENTORY",
           "EXACT_BLOB witness + ABSENT target + EXACT_REGULAR temporary + ABSENT quarantine",
-          "EXACT_BLOB witness + ABSENT target + EXACT_REGULAR temporary + VALID_QUARANTINE",
+          "EXACT_BLOB witness + ABSENT target + EXACT_REGULAR temporary + VALID_INVENTORY",
           "EXACT_BLOB witness + ABSENT target + MISMATCH_REGULAR temporary + ABSENT quarantine when quarantine_rule succeeds before rebuild",
+          "EXACT_BLOB witness + ABSENT target + MISMATCH_REGULAR temporary + VALID_INVENTORY quarantine when quarantine_rule appends the next ordinal before rebuild",
           "EXACT_BLOB witness + EXACT_REGULAR target + ABSENT temporary + ABSENT quarantine",
-          "EXACT_BLOB witness + EXACT_REGULAR target + ABSENT temporary + VALID_QUARANTINE",
+          "EXACT_BLOB witness + EXACT_REGULAR target + ABSENT temporary + VALID_INVENTORY",
           "EXACT_BLOB witness + EXACT_REGULAR target + EXACT_REGULAR temporary as a preserved EEXIST race residue + ABSENT quarantine",
-          "EXACT_BLOB witness + EXACT_REGULAR target + EXACT_REGULAR temporary as a preserved EEXIST race residue + VALID_QUARANTINE"
+          "EXACT_BLOB witness + EXACT_REGULAR target + EXACT_REGULAR temporary as a preserved EEXIST race residue + VALID_INVENTORY"
         ],
         "observation_authority": "the exact ref, object-type and blob-read subprocess exit codes plus stdout/stderr SHA256 values and no-follow local path observations are frozen in artifact_state_corruption.json before any blocker restart action; subsequent repair or drift cannot rewrite the receipt"
       },
@@ -2271,7 +2274,7 @@
         {
           "state": "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT",
           "applies_to": "ARTIFACT_STATE_CORRUPTION only",
-          "required": "terminal receipt or business report exists and A09, A10, A11 or A12 matched; HEAD is exact consumption commit; annotated consumption tag exact; terminal tag absent",
+          "required": "terminal receipt or business report exists and any A01-A12 rule matched; HEAD is exact consumption commit; annotated consumption tag exact; terminal tag absent",
           "next_action": "preserve all bytes, do not render or commit terminal artifacts, independent QA and workflow status 阻塞",
           "crash_restart": "same row"
         },
@@ -3132,12 +3135,12 @@
         "restart_matrix": {
           "ref_absent_target_absent_temporary_absent_quarantine_absent": "derive from unchanged snapshot, create witness, then publish local target",
           "ref_absent_any_local_recovery_start_path_present": "target, temporary or quarantine present before witness publishes or verifies ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; local publication is forbidden before witness",
-          "ref_exact_target_absent_temporary_absent": "witness bytes are authority; quarantine must be ABSENT or one VALID_QUARANTINE file; create and fsync a new exact regular temporary, then commit with atomic no-replace rename",
+          "ref_exact_target_absent_temporary_absent": "witness bytes are authority; quarantine must be ABSENT or VALID_INVENTORY; create and fsync a new exact regular temporary, then commit with atomic no-replace rename",
           "ref_exact_target_absent_temporary_exact_regular": "open temporary O_RDONLY|O_NOFOLLOW|O_CLOEXEC, fstat regular, verify exact witnessed bytes and retain st_dev/st_ino, fsync the same descriptor, atomically rename it no-replace to target, then reopen target O_RDONLY|O_NOFOLLOW|O_CLOEXEC and require regular kind, exact witnessed bytes and the same st_dev/st_ino; fsync final descriptor and parent; successful rename leaves no temporary pathname",
           "ref_exact_target_absent_temporary_exact_regular_rename_eexist": "if no-replace rename returns EEXIST, reopen target no-follow and reclassify through ref_exact_target_exact_regular; accept only exact regular witnessed target bytes and preserve the exact regular temporary as non-authority race evidence, otherwise publish A12 without unlink or rewrite",
-          "ref_exact_target_absent_temporary_mismatched_or_truncated_regular": "quarantine inventory must be absent; hash the no-follow verified regular temporary bytes, atomically move it to the content-addressed quarantine path with RENAME_EXCL, reopen and verify inode/bytes/suffix, fsync parent, preserve it permanently, then rebuild from witnessed bytes; existing quarantine or any observation mismatch is A12",
+          "ref_exact_target_absent_temporary_mismatched_or_truncated_regular": "quarantine must be ABSENT or VALID_INVENTORY; hash the no-follow verified regular temporary bytes, choose the next contiguous ordinal for that SHA, atomically move it to the content-addressed quarantine path with RENAME_EXCL, reopen and verify inode/bytes/suffix, fsync parent, preserve it permanently, then rebuild from witnessed bytes; invalid inventory or any observation mismatch is A12",
           "ref_exact_target_absent_temporary_nonregular": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; do not unlink or rewrite",
-          "ref_exact_target_exact_regular": "accept after no-follow descriptor verification against witness; temporary ABSENT is the successful-rename state, exact regular temporary is a preserved EEXIST race residue, and every other temporary state is A12; quarantine may be ABSENT or VALID_QUARANTINE and every other quarantine state is A12; never unlink or rewrite temporary or quarantine",
+          "ref_exact_target_exact_regular": "accept after no-follow descriptor verification against witness; temporary ABSENT is the successful-rename state, exact regular temporary is a preserved EEXIST race residue, and every other temporary state is A12; quarantine may be ABSENT or VALID_INVENTORY and every other quarantine state is A12; never unlink or rewrite temporary or quarantine",
           "ref_exact_target_mismatch_or_nonregular": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; never rewrite target or witness",
           "ref_invalid_type_or_unreadable_or_conflicting": "freeze recovery_witness_evidence_json, publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH, then follow workflow_blocker_restart_rows; controller mutation, recovery-start/observation publication, terminalization and baseline mutation are forbidden, while blocker publication and deterministic local claim consumption are the only allowed writes"
         },
@@ -3193,15 +3196,19 @@
         "classification",
         "first_invalid_rule",
         "recovery_evidence_state",
+        "recovery_observation_error",
         "recovery_observation_sha256",
         "recovery_observation_state",
+        "recovery_start_error",
         "recovery_start_sha256",
         "recovery_start_state",
         "recovery_witness_blob_oid",
         "recovery_witness_ref",
         "recovery_witness_state",
+        "terminal_result_receipt_error",
         "terminal_result_receipt_sha256",
         "terminal_result_receipt_state",
+        "terminal_transition_receipt_error",
         "terminal_transition_receipt_sha256",
         "terminal_transition_receipt_state",
         "workflow_blocker_code",
@@ -3209,26 +3216,20 @@
         "workflow_outcome_mode"
       ],
       "qa_artifact_state_domains": {
-        "terminal_result_receipt_state": [
+        "common_file_state_domain": [
           "ABSENT",
-          "VALID",
-          "INVALID"
+          "VALID_REGULAR",
+          "INVALID_REGULAR",
+          "SYMLINK",
+          "DIRECTORY",
+          "FIFO",
+          "OTHER_NONREGULAR",
+          "OBSERVATION_ERROR"
         ],
-        "terminal_transition_receipt_state": [
-          "ABSENT",
-          "VALID",
-          "INVALID"
-        ],
-        "recovery_start_state": [
-          "ABSENT",
-          "VALID",
-          "INVALID"
-        ],
-        "recovery_observation_state": [
-          "ABSENT",
-          "VALID",
-          "INVALID"
-        ],
+        "terminal_result_receipt_state": "common_file_state_domain",
+        "terminal_transition_receipt_state": "common_file_state_domain",
+        "recovery_start_state": "common_file_state_domain",
+        "recovery_observation_state": "common_file_state_domain",
         "recovery_witness_state": [
           "NOT_OBSERVED",
           "ABSENT",
@@ -3237,21 +3238,27 @@
           "UNREADABLE",
           "CONFLICTING_BLOB"
         ],
-        "sha_binding": "for each file-state/SHA256 pair, ABSENT requires SHA256=NONE and VALID or INVALID requires the exact raw-file SHA256; invalid and absent are never co-encoded",
+        "file_state_derivation": "apply recovery_witness_evidence_schema.local_path_state_derivation independently to each terminal/recovery file using its registered expected schema/bytes; VALID_REGULAR means exact valid canonical bytes, INVALID_REGULAR means regular readable bytes that fail validation, and nonregular/error states preserve no-follow kind or first syscall error",
+        "sha_binding": "for each file-state/SHA256 pair, VALID_REGULAR or INVALID_REGULAR requires the exact no-follow raw-file SHA256; ABSENT, every nonregular kind and OBSERVATION_ERROR require SHA256=NONE",
+        "error_binding": "each *_error field is NONE unless its state=OBSERVATION_ERROR; then it is the exact first failing LSTAT|OPEN|FSTAT|READ stage plus base-10 errno, using FSTAT:0 for kind or inode-identity mismatch",
         "witness_binding": "NOT_OBSERVED requires witness ref/blob OID NONE; every other state requires the exact witness ref; EXACT_BLOB or CONFLICTING_BLOB requires the observed 40-hex blob OID and all other states require blob OID NONE"
       },
       "qa_workflow_outcome_modes": {
-        "TERMINAL": "workflow_blocker_code=NONE, workflow_blocker_sha256=NONE, first_invalid_rule=NONE, terminal result and terminal transition receipt states are both VALID, classification is the immutable PASS/FAIL classification, and recovery_evidence_state is NONE or COMPLETE",
-        "ARTIFACT_BLOCKED": "workflow_blocker_code=ARTIFACT_STATE_CORRUPTION, workflow_blocker_sha256 is exact, classification=NONE and first_invalid_rule is one A01-A12 or G02-G07 rule; A12 requires recovery_evidence_state=WITNESS_MISMATCH and non-A12 forbids it",
-        "CONTROLLER_BLOCKED": "workflow_blocker_code is CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE and workflow_blocker_sha256 is exact; classification preserves the immutable terminal classification only when terminal_result_receipt_state=VALID and is NONE otherwise; first_invalid_rule is G01_CONTROLLER_REF_NOT_EXPECTED for divergence and NONE for observation failure"
+        "TERMINAL": "workflow_blocker_code=NONE, workflow_blocker_sha256=NONE, first_invalid_rule=NONE, terminal result and terminal transition receipt states are both VALID_REGULAR, classification is the immutable PASS/FAIL classification, and recovery_evidence_state is NOT_STARTED or COMPLETE",
+        "ARTIFACT_BLOCKED": "workflow_blocker_code=ARTIFACT_STATE_CORRUPTION, workflow_blocker_sha256 is exact, classification=NONE and first_invalid_rule is one A01-A12 or G02-G07 rule; A12 additionally requires a valid embedded recovery_witness_evidence_json but does not alter recovery_evidence_state",
+        "CONTROLLER_BLOCKED": "workflow_blocker_code is CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE and workflow_blocker_sha256 is exact; classification preserves the immutable terminal classification only when terminal_result_receipt_state=VALID_REGULAR and is NONE otherwise; first_invalid_rule is G01_CONTROLLER_REF_NOT_EXPECTED for divergence and NONE for observation failure"
       },
       "qa_recovery_evidence_states": {
-        "NONE": "recovery_witness_state=NOT_OBSERVED, recovery_start_state=ABSENT and recovery_observation_state=ABSENT",
-        "START_ONLY": "recovery_witness_state=EXACT_BLOB, recovery_start_state=VALID and recovery_observation_state=ABSENT; allowed only for a blocked workflow outcome",
-        "COMPLETE": "recovery_witness_state=EXACT_BLOB and both recovery files are VALID; the blob bytes equal recovery_start.json and recovery_observation binds its SHA256",
-        "WITNESS_MISMATCH": "workflow outcome is ARTIFACT_BLOCKED with first_invalid_rule A12; witness/start/observation states and raw SHA fields are copied mechanically from the immutable recovery_witness_evidence_json and current preserved paths, but no recovery file is accepted as recovery authority"
+        "ordered_partition": [
+          "NOT_STARTED when recovery_witness_state=NOT_OBSERVED and both recovery file states are ABSENT",
+          "WITNESS_ONLY when recovery_witness_state=EXACT_BLOB and both recovery file states are ABSENT",
+          "START_ONLY when recovery_witness_state=EXACT_BLOB, recovery_start_state=VALID_REGULAR and recovery_observation_state=ABSENT",
+          "COMPLETE when recovery_witness_state=EXACT_BLOB and both recovery file states are VALID_REGULAR, the blob bytes equal recovery_start.json and recovery_observation binds its SHA256",
+          "ABNORMAL for every remaining tuple"
+        ],
+        "derivation_rule": "apply ordered_partition top to bottom using only witness/start/observation states and bytes; the first four predicates are mutually exclusive and ABNORMAL is the exact complement, so workflow outcome is not an input"
       },
-      "qa_evidence_totality": "derive file states before hashes, recovery evidence state before workflow outcome mode, then apply the exact mode rules; every terminal or blocker handoff must select exactly one recovery state and one workflow outcome mode, otherwise QA is 阻塞 with QA schema failure",
+      "qa_evidence_totality": "derive no-follow file states/errors/hashes, derive the recovery evidence partition without workflow inputs, then derive workflow outcome mode; every terminal or blocker handoff selects exactly one recovery state and one workflow outcome mode, otherwise QA is 阻塞 with QA schema failure",
       "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every content write uses control_publication or verifies exact committed bytes, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
       "remote_state_rules": {
         "ABSENT": "legal only in ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT, CONSUMPTION_COMMIT_PRE_PUSH or CONSUMPTION_PUSH_UNRECEIPTED; after a committed consumption receipt it is G01_CONTROLLER_REF_NOT_EXPECTED and enters CONTROLLER_REF_DIVERGENCE",
