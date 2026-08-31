@@ -187,6 +187,13 @@
 - Under the frozen variant, mutation-kind and configuration orders, the
   explicit row nesting reproduces exactly 704 rows and the existing aggregate
   `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
+- Independent Revision 15 review reproduced the same 704 rows directly from
+  the frozen object at `P0/P1/P2/P3=0/0/0/0`. It confirmed integer ordinals
+  `0..21`, exact nested snake_case JSON-boolean configuration rows, fixed
+  variant/mutation/configuration nesting and PATH `00..21`; no alternate
+  canonical preimage remains under the registered rules.
+- The plan gate is open for implementation only. Formal execution remains
+  locked until independent implementation readiness passes.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

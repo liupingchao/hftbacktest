@@ -69,6 +69,10 @@
   eight exact snake_case/JSON-boolean repository-config objects. The row
   nesting and `00..21` PATH formatting now uniquely rederive the frozen
   704-row aggregate.
+- Revision 15 independent review passed at
+  `P0/P1/P2/P3=0/0/0/0`. The Round 14 canonical row-schema finding is closed,
+  implementation may proceed, and formal execution remains locked pending
+  independent implementation readiness.
 - Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
   negative boundaries, causal access proof, terminal verification and
   pre-consumption detached-worktree readiness.
@@ -77,8 +81,9 @@
   anchor.
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
-- Implementation and formal execution remain locked pending independent
-  Revision 15 plan review.
+- Implementation is authorized under the frozen Revision 15 plan.
+- Formal execution remains locked pending independent implementation
+  readiness.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 

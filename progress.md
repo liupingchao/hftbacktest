@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 15 Candidate
+## 2026-08-31 0831T001 Q0 Revision 15 Plan Review Passed
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -137,9 +137,17 @@
 - Direct derivation from only those frozen rows reproduces all 704 rows and
   aggregate
   `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
+- Independent Revision 15 review passed at
+  `P0/P1/P2/P3=0/0/0/0`. It confirmed explicit integer ordinals `0..21`,
+  eight exact nested snake_case/JSON-boolean configuration rows, exact row
+  nesting/order, PATH `00..21` and the unique 704-row aggregate.
+- Sampled Round 14 regression retained 8 transition states, 22 unique
+  phase/branch variants across 15 phases, zero missing state references and
+  PASS60/FAIL3 expansion.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation and formal execution remain locked pending independent
-  Revision 15 plan review.
+- Implementation may proceed under the frozen Revision 15 plan.
+- Formal execution remains locked pending independent implementation
+  readiness.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 
