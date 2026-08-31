@@ -125,6 +125,15 @@
 - Stage-truthful prose does not by itself prove byte determinism. Revision 10
   freezes the complete 49-row legal FAIL rendering domain by canonical
   aggregate, with every report hash unique.
+- Revision 10 review confirmed those closures but found that expected
+  controller refs must depend on durable receipt proof, not only local commit
+  state. Once a consumption receipt proves the remote ref reached the
+  consumption SHA, later `ABSENT` is ledger disappearance and must block.
+- A restart row is not total unless exact HEAD, commit parent/message/tree
+  delta, index/worktree cleanliness and annotated tag object/message/peeled
+  target are all bound. Revision 11 makes these G02-G07 integrity predicates;
+  wrong tags and extra successor commits cannot be treated as local
+  completion.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

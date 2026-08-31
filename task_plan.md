@@ -37,6 +37,11 @@
   freezes an ordered 64-row artifact-presence audit with one corruption
   blocker, makes controller observation blockers restart-total, and freezes
   all 49 legal FAIL report renderings through a canonical aggregate.
+- Revision 10 was independently rejected at `P0/P1/P2/P3=0/1/0/0`.
+- Revision 11 splits controller expectations by durable receipt proof and
+  freezes a 10,368-row local Git/ref restart table. Missing refs after proof,
+  wrong tag targets, extra HEADs, invalid commit lineage and dirty index/tree
+  now have one ordered fail-closed outcome.
 - Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
   negative boundaries, causal access proof, terminal verification and
   pre-consumption detached-worktree readiness.
@@ -46,7 +51,7 @@
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
 - Implementation and formal execution remain locked pending independent plan
-  review of Revision 10.
+  review of Revision 11.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 

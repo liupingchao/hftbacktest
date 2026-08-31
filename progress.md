@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 10 Candidate
+## 2026-08-31 0831T001 Q0 Revision 11 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -83,8 +83,17 @@
 - The artifact presence table covers 64 rows with 7 legal shapes and 57
   invalid shapes; the complete FAIL rendering matrix covers 49 unique hashes
   and a 1472-1537 byte range.
+- Revision 10 independent review failed at
+  `P0/P1/P2/P3=0/1/0/0`. Artifact/Popen totality and all 49 FAIL renderings
+  passed; the remaining P1 was controller receipt/ref and local Git restart
+  totality.
+- Revision 11 no longer permits `ABSENT` after a durable consumption receipt.
+  It binds exact claim, HEAD, commit identity, index/worktree and annotated
+  tag targets through ordered G01-G07 rules.
+- The receipt/ref/HEAD/tag cross-product contains 10,368 rows: 9 legal and
+  10,359 fail-closed, with a frozen canonical aggregate.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation is locked pending independent Revision 10 plan review.
+- Implementation is locked pending independent Revision 11 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

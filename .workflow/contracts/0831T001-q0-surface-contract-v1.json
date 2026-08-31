@@ -1203,7 +1203,7 @@
         "CONTROLLER_REF_DIVERGENCE"
       ],
       "ARTIFACT_STATE_CORRUPTION": {
-        "trigger": "the first ordered artifact_state_machine invalid predicate matches, including an invalid committed terminal receipt/profile",
+        "trigger": "the first ordered artifact_state_machine A01-A11 predicate or local_git_state_machine G02-G07 predicate matches, including invalid process/report bytes, commit lineage, index/worktree state or task tag identity",
         "task_status": "阻塞",
         "claim_state": "consumed and never reusable",
         "classification": "NONE because the artifact chain or terminal receipt is not trustworthy",
@@ -1325,23 +1325,28 @@
           "VALID",
           "INVALID"
         ],
-        "first_invalid_rule": "one exact ordered artifact_state_machine invalid rule id",
+        "first_invalid_rule": "one exact ordered artifact_state_machine A01-A11 or local_git_state_machine G01-G07 invalid rule id",
         "observed_artifact_sha256_json": "canonical compact ASCII JSON object mapping every present committed process, result, baseline, terminal-receipt and business-report path to its exact SHA256 in ASCII path order"
       },
       "expected_sha_sets_by_local_state": {
-        "before_consumption_commit": [
+        "ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT": [
           "ABSENT"
         ],
-        "consumption_commit_without_terminal_commit": [
+        "CONSUMPTION_COMMIT_PRE_PUSH": [
+          "ABSENT"
+        ],
+        "CONSUMPTION_PUSH_UNRECEIPTED": [
           "<consumption_sha>",
           "ABSENT"
         ],
-        "terminal_commit_without_terminal_push_receipt": [
-          "<consumption_sha>",
-          "<terminal_sha>",
-          "ABSENT"
+        "CONSUMPTION_RECEIPT_COMMITTED": [
+          "<consumption_sha>"
         ],
-        "terminal_push_receipt_committed": [
+        "TERMINAL_PUSH_UNRECEIPTED": [
+          "<consumption_sha>",
+          "<terminal_sha>"
+        ],
+        "TERMINAL_PUSH_RECEIPT_COMMITTED": [
           "<terminal_sha>"
         ]
       },
@@ -1364,75 +1369,232 @@
         {
           "state": "BLOCKER_OBSERVATION_COMMITTED_ARMED",
           "applies_to": "all workflow_blockers codes",
-          "required": "blocker observation committed; armed exists; claimed absent; HEAD is arming commit",
+          "required": "blocker observation committed; armed exists; claimed absent; exact arming HEAD and commit identity; both task tags absent",
           "next_action": "rename armed to claimed, fsync parent",
           "crash_restart": "same row"
         },
         {
           "state": "BLOCKER_CLAIM_RENAMED",
           "applies_to": "all workflow_blockers codes",
-          "required": "blocker observation committed; claimed exists; armed absent; HEAD is arming commit",
+          "required": "blocker observation committed; claimed exists; armed absent; exact arming HEAD and commit identity; both task tags absent",
           "next_action": "run exact consumption_stage and consumption_commit; no controller push",
           "crash_restart": "same row"
         },
         {
           "state": "BLOCKER_CONSUMPTION_COMMITTED",
           "applies_to": "all workflow_blockers codes",
-          "required": "HEAD is exact consumption commit; consumption tag absent",
+          "required": "HEAD is exact consumption commit with exact parent/message/tree delta; consumption tag absent; terminal tag absent",
           "next_action": "create exact annotated consumption tag; no controller push",
           "crash_restart": "same row"
         },
         {
           "state": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
           "applies_to": "all workflow_blockers codes",
-          "required": "consumption tag targets consumption commit; terminal receipt absent",
+          "required": "HEAD is exact consumption commit; annotated consumption tag has exact message and peels to consumption commit; terminal tag absent; terminal receipt absent",
           "next_action": "independent QA and workflow status 阻塞",
           "crash_restart": "same row"
         },
         {
           "state": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
           "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only",
-          "required": "valid immutable terminal receipt exists; business report absent; HEAD is consumption commit",
+          "required": "valid immutable terminal receipt exists; business report absent; HEAD is exact consumption commit; annotated consumption tag exact; terminal tag absent",
           "next_action": "render and publish the exact execution_report bytes from the immutable receipt; no controller push",
           "crash_restart": "same row"
         },
         {
           "state": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
           "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only; ARTIFACT_STATE_CORRUPTION forbids terminal commit",
-          "required": "valid immutable terminal receipt/report exist; HEAD is consumption commit",
+          "required": "valid immutable terminal receipt/report exist; HEAD is exact consumption commit; annotated consumption tag exact; terminal tag absent",
           "next_action": "stage exact terminal delta and create terminal commit locally; no controller push",
           "crash_restart": "same row"
         },
         {
           "state": "BLOCKER_TERMINAL_COMMITTED",
           "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only",
-          "required": "HEAD is exact terminal commit; terminal tag absent",
+          "required": "HEAD is exact terminal commit with exact consumption parent/message/tree delta; annotated consumption tag exact; terminal tag absent",
           "next_action": "create exact annotated terminal tag; no controller push",
           "crash_restart": "same row"
         },
         {
           "state": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
           "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only",
-          "required": "terminal tag targets terminal commit",
+          "required": "HEAD is exact terminal commit; annotated consumption and terminal tags have exact messages and peel to their exact commits",
           "next_action": "independent QA and workflow status 阻塞",
           "crash_restart": "same row"
         },
         {
           "state": "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT",
           "applies_to": "ARTIFACT_STATE_CORRUPTION only",
-          "required": "terminal receipt or business report exists and A09, A10 or A11 matched; HEAD is consumption commit",
+          "required": "terminal receipt or business report exists and A09, A10 or A11 matched; HEAD is exact consumption commit; annotated consumption tag exact; terminal tag absent",
           "next_action": "preserve all bytes, do not render or commit terminal artifacts, independent QA and workflow status 阻塞",
           "crash_restart": "same row"
         },
         {
           "state": "ARTIFACT_BLOCKER_TERMINAL_HISTORY_PRESENT",
           "applies_to": "ARTIFACT_STATE_CORRUPTION only",
-          "required": "a terminal commit or terminal tag already exists when corruption is detected",
+          "required": "HEAD is the exact terminal commit and any present task tags have exact messages and targets when corruption is detected after terminal history publication",
           "next_action": "preserve existing Git history and all artifact bytes, independent QA and workflow status 阻塞",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_LOCAL_GIT_STATE_CORRUPTION",
+          "applies_to": "all workflow_blockers codes",
+          "required": "the first matching local_git_state_machine rule is G02-G07, so no legal restart row may be selected",
+          "next_action": "publish or verify ARTIFACT_STATE_CORRUPTION with that first_invalid_rule, preserve all existing bytes and Git refs, forbid commit/tag/push, independent QA and workflow status 阻塞",
           "crash_restart": "same row"
         }
       ],
-      "workflow_blocker_restart_authority": "after any blocker observation target is committed, workflow_blocker_restart_rows supersede crash_recovery_matrix; select exactly one row from blocker code plus durable claim/HEAD/tag/receipt/report state, and repeat that row after interruption until its next_action commits"
+      "workflow_blocker_restart_row_count": 11,
+      "workflow_blocker_restart_common_invariants": {
+        "index": "empty before and after each registered transition except while the exact next_action stage command is in progress",
+        "tracked_worktree": "clean outside the exact registered transition paths; any other tracked change is G05",
+        "commit_identity": "every observed task commit has the exact registered parent, message, tree delta and object type; any mismatch is G04",
+        "tag_identity": "every present task tag is one annotated tag object with the exact registered message and peeled target; any wrong, lightweight, duplicate/conflicting or unexpected tag is G06 or G07",
+        "head": "must equal the exact commit named by the selected row; detached or additional successor HEAD is G03"
+      },
+      "workflow_blocker_restart_authority": "first evaluate local_git_state_machine; G01 enters CONTROLLER_REF_DIVERGENCE and G02-G07 enter ARTIFACT_STATE_CORRUPTION. Only a row with no G-rule match may be selected. After any blocker observation target is committed, workflow_blocker_restart_rows supersede crash_recovery_matrix and repeat the exact selected row after interruption until its next_action commits",
+      "local_git_state_machine": {
+        "evaluation_modes": {
+          "PRE_BLOCKER_OBSERVATION": "evaluate G01-G07 in order; G01 publishes CONTROLLER_REF_DIVERGENCE, while G02-G07 publish ARTIFACT_STATE_CORRUPTION",
+          "POST_CONTROLLER_BLOCKER_OBSERVATION": "verify the immutable controller blocker receipt, freeze its observed ref or unverifiable observation as evidence, skip G01, then evaluate G02-G07 against each restart state before selecting a workflow_blocker_restart_rows row",
+          "POST_ARTIFACT_BLOCKER_OBSERVATION": "verify immutable ARTIFACT_STATE_CORRUPTION and perform no additional Git mutation other than a local claim consumption transition already authorized by a previously selected valid pre-terminal row"
+        },
+        "proof_stage_order": [
+          "ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT",
+          "CONSUMPTION_COMMIT_PRE_PUSH",
+          "CONSUMPTION_PUSH_UNRECEIPTED",
+          "CONSUMPTION_RECEIPT_COMMITTED",
+          "TERMINAL_PUSH_UNRECEIPTED",
+          "TERMINAL_PUSH_RECEIPT_COMMITTED"
+        ],
+        "controller_ref_domain": [
+          "ABSENT",
+          "CONSUMPTION_SHA",
+          "TERMINAL_SHA",
+          "OTHER"
+        ],
+        "claim_state_domain": [
+          "ARMED",
+          "CLAIMED",
+          "OTHER"
+        ],
+        "head_state_domain": [
+          "ARMING_COMMIT",
+          "CONSUMPTION_COMMIT",
+          "TERMINAL_COMMIT",
+          "OTHER"
+        ],
+        "tag_state_domain": [
+          "ABSENT",
+          "EXACT",
+          "INVALID"
+        ],
+        "binary_state_domains": {
+          "commit_identity_valid": [
+            false,
+            true
+          ],
+          "index_and_tracked_worktree_clean": [
+            false,
+            true
+          ]
+        },
+        "expected_local_state_by_proof_stage": {
+          "ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT": {
+            "claim_state": "ARMED_OR_CLAIMED",
+            "head_state": "ARMING_COMMIT",
+            "consumption_tag_state": "ABSENT",
+            "terminal_tag_state": "ABSENT"
+          },
+          "CONSUMPTION_COMMIT_PRE_PUSH": {
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "ABSENT"
+          },
+          "CONSUMPTION_PUSH_UNRECEIPTED": {
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "ABSENT"
+          },
+          "CONSUMPTION_RECEIPT_COMMITTED": {
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "ABSENT"
+          },
+          "TERMINAL_PUSH_UNRECEIPTED": {
+            "claim_state": "CLAIMED",
+            "head_state": "TERMINAL_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "EXACT"
+          },
+          "TERMINAL_PUSH_RECEIPT_COMMITTED": {
+            "claim_state": "CLAIMED",
+            "head_state": "TERMINAL_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "EXACT"
+          }
+        },
+        "ordered_invalid_rules": [
+          {
+            "rule_id": "G01_CONTROLLER_REF_NOT_EXPECTED",
+            "predicate": "controller ref token is outside expected_sha_sets_by_local_state[proof_stage]"
+          },
+          {
+            "rule_id": "G02_CLAIM_STATE_MISMATCH",
+            "predicate": "claim state is outside expected_local_state_by_proof_stage[proof_stage].claim_state"
+          },
+          {
+            "rule_id": "G03_HEAD_MISMATCH",
+            "predicate": "HEAD differs from expected_local_state_by_proof_stage[proof_stage].head_state"
+          },
+          {
+            "rule_id": "G04_COMMIT_IDENTITY_MISMATCH",
+            "predicate": "commit_identity_valid is false"
+          },
+          {
+            "rule_id": "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
+            "predicate": "index_and_tracked_worktree_clean is false"
+          },
+          {
+            "rule_id": "G06_CONSUMPTION_TAG_MISMATCH",
+            "predicate": "consumption tag state differs from expected_local_state_by_proof_stage[proof_stage].consumption_tag_state"
+          },
+          {
+            "rule_id": "G07_TERMINAL_TAG_MISMATCH",
+            "predicate": "terminal tag state differs from expected_local_state_by_proof_stage[proof_stage].terminal_tag_state"
+          }
+        ],
+        "invalid_outcomes": {
+          "G01_CONTROLLER_REF_NOT_EXPECTED": "CONTROLLER_REF_DIVERGENCE; no controller push",
+          "G02_G07": "ARTIFACT_STATE_CORRUPTION; preserve Git/artifact bytes and forbid commit, tag and controller push"
+        },
+        "cross_product_derivation": {
+          "evaluation_mode": "PRE_BLOCKER_OBSERVATION",
+          "row_order": "proof_stage_order, controller_ref_domain, claim_state_domain, head_state_domain, consumption tag state, terminal tag state, commit_identity_valid false/true, index_and_tracked_worktree_clean false/true",
+          "row_fields": [
+            "claim_state",
+            "commit_identity_valid",
+            "consumption_tag_state",
+            "controller_ref_state",
+            "first_invalid_rule",
+            "head_state",
+            "index_and_tracked_worktree_clean",
+            "proof_stage",
+            "restart_state_valid",
+            "terminal_tag_state"
+          ],
+          "first_invalid_rule": "first matching G01-G07, otherwise NONE",
+          "restart_state_valid": "true iff first_invalid_rule is NONE",
+          "row_count": 10368,
+          "canonical_rows": "canonical compact sorted-key ASCII JSON array with no trailing LF",
+          "canonical_rows_sha256": "624a7b61803cfdfb34715dee40fb4a52beea84f6202b885f856bcc2fe1edf138",
+          "valid_row_count": 9,
+          "invalid_row_count": 10359
+        }
+      }
     },
     "formal_process_receipts": {
       "serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
@@ -1864,9 +2026,9 @@
       "qa_evidence_normal_path": "recovery_start_sha256=NONE and recovery_observation_sha256=NONE",
       "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every content write uses control_publication or verifies exact committed bytes, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
       "remote_state_rules": {
-        "ABSENT": "complete consumption transition, using absent-ref lease when push is still required",
-        "<consumption_sha>": "complete or recover terminalization; terminal push may still be required",
-        "<terminal_sha>": "write terminal REF_OBSERVATION if normal receipt is absent, then finish QA handoff",
+        "ABSENT": "legal only in ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT, CONSUMPTION_COMMIT_PRE_PUSH or CONSUMPTION_PUSH_UNRECEIPTED; after a committed consumption receipt it is G01_CONTROLLER_REF_NOT_EXPECTED and enters CONTROLLER_REF_DIVERGENCE",
+        "<consumption_sha>": "legal only in CONSUMPTION_PUSH_UNRECEIPTED, CONSUMPTION_RECEIPT_COMMITTED or TERMINAL_PUSH_UNRECEIPTED; complete or recover terminalization without erasing durable receipt proof",
+        "<terminal_sha>": "legal only in TERMINAL_PUSH_UNRECEIPTED or TERMINAL_PUSH_RECEIPT_COMMITTED; write terminal REF_OBSERVATION only when normal receipt is absent, then finish QA handoff",
         "other": "an unexpected 40-hex SHA exits through CONTROLLER_REF_DIVERGENCE; command failure or malformed output exits through CONTROLLER_OBSERVATION_FAILURE; before a terminal receipt classification is NONE and terminal artifacts are forbidden, after a valid terminal receipt preserve its immutable Q0 classification and allow only missing local terminal commit/tag completion; controller push is always forbidden"
       }
     },

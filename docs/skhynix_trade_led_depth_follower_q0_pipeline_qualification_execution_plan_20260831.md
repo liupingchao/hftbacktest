@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_10_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_11_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -75,6 +75,14 @@ classification.
 | invalid artifact order had no deterministic outcome | ordered A01-A11 artifact-state rules route the first integrity defect to `ARTIFACT_STATE_CORRUPTION`, classification/profile `NONE` |
 | controller blocker was not total across pre-root, observation failure and restart | separate pre/post-attempt-root outcome tables plus ten blocker-specific restart rows freeze every allowed local transition |
 | only one of 49 legal FAIL reports had an exact derivation | the complete profile/error matrix, row count, size range, unique-hash count and aggregate canonical-row SHA256 are frozen |
+
+### 1.3 Revision 11 closure matrix
+
+| Round 10 finding | Revision 11 closure |
+|---|---|
+| `ABSENT` remained legal after durable consumption proof | expected ref sets are split into six receipt-sensitive proof stages; after consumption receipt only consumption SHA is legal, after terminal receipt only terminal SHA is legal |
+| wrong tag target or extra HEAD had no restart outcome | ordered G01-G07 rules bind claim, HEAD, commit parent/message/tree, index/worktree and both annotated tags; G02-G07 route to `ARTIFACT_STATE_CORRUPTION` |
+| restart authority was not machine-total | a 10,368-row proof-stage/ref/claim/HEAD/tag/commit/worktree cross-product freezes 9 legal rows, 10,359 invalid rows and one canonical aggregate SHA256 |
 
 ## 2. Authorization Boundary
 
@@ -224,10 +232,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  8934957274fa083a9a44fec7f1f5d721a7a4609e822ff85eafa491dca32411e2
+  e99920de66b90d558ef5bab697f3df424ab4e2d38a08c4e8bef6afad8ce8fe9a
 
 Git blob:
-  e05b171b6861f6696f6bd022013cc348084911d5
+  2a28f8a15632544ea52c7a8cb26d48c0d9b2f024
 ```
 
 It freezes:
@@ -1791,13 +1799,56 @@ terminal Q0 receipt/report/commit/tag/push = forbidden
 If a terminal receipt already exists, its classification and first error
 remain authoritative, but workflow status is still `阻塞`; a missing local
 terminal commit/tag may be completed and terminal push remains forbidden.
-The ten exact blocker restart rows cover observation publication, claim
+The blocker restart rows cover observation publication, claim
 rename, consumption commit/tag, report rendering from a valid receipt and,
 only for controller blockers with valid immutable receipt/report, local
 terminal commit/tag. Artifact corruption rows preserve any receipt, report or
 terminal Git history without extending it. After a blocker observation is
 committed these rows supersede the ordinary crash matrix; every row restarts
 from the same observed durable state and forbids controller push.
+
+Controller-ref authority is receipt-sensitive:
+
+```text
+attempt root / consumption commit before push:
+  ABSENT
+
+consumption push attempted but no durable receipt:
+  ABSENT or consumption SHA
+
+durable consumption receipt:
+  consumption SHA only
+
+terminal push attempted but no durable receipt:
+  consumption SHA or terminal SHA
+
+durable terminal push receipt:
+  terminal SHA only
+```
+
+Thus disappearance to `ABSENT` after a durable consumption receipt is
+`CONTROLLER_REF_DIVERGENCE`, not a recoverable absent-ref state.
+
+Before any restart row is selected, the ordered local Git state machine checks:
+
+```text
+G01 expected controller ref for the exact proof stage
+G02 armed/claimed state
+G03 exact HEAD
+G04 exact commit object, parent, message and tree delta
+G05 empty index and clean tracked worktree
+G06 exact annotated consumption tag
+G07 exact annotated terminal tag
+```
+
+G01 produces controller divergence. G02-G07 produce
+`ARTIFACT_STATE_CORRUPTION` and prohibit further commit, tag or push. After a
+controller blocker receipt is committed, its remote observation is frozen and
+restart evaluation skips G01 but still applies G02-G07.
+
+The frozen cross-product has 10,368 rows, 9 legal rows and 10,359 invalid
+rows. Its canonical aggregate SHA256 is
+`624a7b61803cfdfb34715dee40fb4a52beea84f6202b885f856bcc2fe1edf138`.
 
 Any invalid committed process/result/baseline/terminal/report artifact state
 instead records:
