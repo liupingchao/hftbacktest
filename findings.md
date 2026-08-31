@@ -47,6 +47,13 @@
   outside the retained anchor core and before the 60s slice boundary. Its
   full/slice equality therefore tests exclusion of real prior state rather
   than an empty-history case.
+- Revision 3 review failed at `0/9/0/0`. It found a real 17+10 production
+  schema mismatch, prefix/full-window contradiction, stale QF04 censor tuple,
+  vacuous reset memory, unpersisted child receipts, unreachable QF12 error,
+  incomplete CSV dialect, readiness/formal-identity collision and ambiguous
+  one-shot controller transitions.
+- Revision 4 addresses those findings without changing the scientific
+  thresholds or opening historical/outcome access.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

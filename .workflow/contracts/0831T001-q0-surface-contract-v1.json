@@ -33,7 +33,7 @@
     "base_eligible": "ready AND valid_book AND elapsed_from_segment_start_ns >= 30000000000 AND activity_500 >= 44.0 AND finite(ratios_100.trade) AND any finite(ratios_100.depletion, ratios_100.ofi) AND finite(ratios_500.trade) AND any finite(ratios_500.depletion, ratios_500.ofi)",
     "depletion_ratio": "(rolling_sum(ask_depletion)-rolling_sum(bid_depletion))/(rolling_sum(ask_depletion)+rolling_sum(bid_depletion)); NaN iff denominator <= 0",
     "ofi_ratio": "rolling_sum(ofi)/rolling_sum(ofi_abs); NaN iff denominator <= 0",
-    "rolling_boundary": "reset at segment change; first rows use available same-segment prefix without cross-segment backfill",
+    "rolling_boundary": "reset at segment change; output NaN until the complete same-segment window count is available; no prefix substitution or cross-segment backfill",
     "rolling_counts": {
       "100ms": 5,
       "500ms": 25
@@ -79,8 +79,7 @@
         "bid_depth",
         "midpoint",
         "obi",
-        "spread_ticks",
-        "tick_size"
+        "spread_ticks"
       ]
     }
   },
@@ -110,8 +109,8 @@
       "probe_id": "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION"
     },
     {
-      "baseline": "QF12 slice worker with published slice and no terminal package",
-      "expected_first_error": "TERMINAL_CLOSURE_ABSENT",
+      "baseline": "QF12 A/B/P inputs exist and one slice is durably published, but the 57-call physical consumer closure and structural package do not exist",
+      "expected_first_error": "BUILD_INPUT_BINDING",
       "mutation": "SIGKILL orchestrator after slice parent-directory fsync and before structural package creation",
       "probe_id": "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION"
     },
@@ -147,6 +146,12 @@
     },
     {
       "baseline": "clean terminal package copied to a new regular directory",
+      "expected_first_error": "PACKAGE_CANONICAL_CSV",
+      "mutation": "rewrite builds/A/structural/support/slice_invariance.csv using QUOTE_ALL while preserving parsed cells and LF line endings",
+      "probe_id": "NONCANONICAL_CSV_QUOTE_ALL"
+    },
+    {
+      "baseline": "clean terminal package copied to a new regular directory",
       "expected_first_error": "FIXTURE_TRUTH_OBSERVED_MISMATCH",
       "mutation": "change QF02 observed cause to EXPLICIT_CONTRADICTION and recompute every affected raw/sealed/evidence/terminal manifest hash consistently",
       "probe_id": "SYNCHRONIZED_LINEAGE_MUTATION"
@@ -154,13 +159,13 @@
     {
       "baseline": "clean terminal package copied to a new regular directory",
       "expected_first_error": "RESET_IDENTITY_MISMATCH",
-      "mutation": "change QF15 observed_identity_sha256 to 64 ASCII zeroes and recompute every affected manifest hash",
+      "mutation": "change QF15 support/reset_state.csv post_memory_trade from 9 to -1 and recompute every affected manifest hash",
       "probe_id": "RESET_IDENTITY_MISMATCH"
     },
     {
       "baseline": "clean terminal package copied to a new regular directory",
       "expected_first_error": "CROSS_SEGMENT_CARRY_NONZERO",
-      "mutation": "change QF15 reset cross_segment_carry_count from 0 to 1 and recompute every affected manifest hash",
+      "mutation": "change QF15 support/reset_state.csv cross_segment_carry_count from 0 to 1 and recompute every affected manifest hash",
       "probe_id": "CROSS_SEGMENT_CARRY_NONZERO"
     }
   ],
@@ -229,6 +234,7 @@
       "attempt_root",
       "claim_sha256",
       "consumption_commit",
+      "consumption_push_receipt_sha256",
       "consumption_tag",
       "controller_pre_sha",
       "controller_ref",
@@ -271,7 +277,7 @@
     "feature_contract.json": "exact projection of source_schema_v4, feature_formulas, canonical_hashes and FeatureBundle sentinel constants",
     "fixture_source_evidence.json": "derive from independently opened physical cache bytes, feature-call receipts and field-access rows",
     "fixture_truth_binding.json": "derive from tracked truth bytes, Git blob and parsed fixture_order",
-    "formal_identity.json": "derive from claimed bytes, attempt-lock, consumption Git identity and controller pre/post observations",
+    "formal_identity.json": "derive from claimed bytes, attempt-lock, consumption Git identity, controller pre/post observations and the durable consumption push receipt; terminal-push evidence is necessarily post-package and belongs to independent QA",
     "qualification_summary.json": "derive counts from fixture, slice, access and A/B/P artifacts; classification is Q0_PIPELINE_QUALIFIED iff every registered gate passes",
     "state_contract.json": "derive exact constants from frozen master and accepted authority callables"
   },
@@ -333,12 +339,25 @@
     ],
     "consumption_commit_message": "audit: consume 0831T001 Q0 attempt",
     "crash_states": {
+      "before_attempt_root": "UNCONSUMED_RETRY_ALLOWED",
       "after_attempt_root_before_lock": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_attempt_lock": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_claim_rename": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_consumption_commit": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_consumption_controller_update": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "before_attempt_root": "UNCONSUMED_RETRY_ALLOWED"
+      "after_attempt_lock_before_claim_rename": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_claim_rename_before_consumption_commit": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_consumption_commit_before_tag": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_consumption_tag_before_push": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_consumption_push_before_untracked_receipt": "INTERRUPTED_TERMINAL_NO_RERUN_REMOTE_OBSERVATION_ONLY",
+      "after_untracked_receipt_before_tracked_copy": "INTERRUPTED_TERMINAL_NO_RERUN_RECEIPT_COPY_ONLY",
+      "after_tracked_copy_before_producer": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "during_producer": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_producer_before_terminal_verifier": "INTERRUPTED_TERMINAL_NO_RERUN",
+      "after_terminal_verifier_fail": "FORMAL_FAIL_FIXED_NO_RERUN",
+      "after_terminal_verifier_pass_before_baseline_copy": "FORMAL_PASS_FIXED_NO_RERUN",
+      "after_baseline_copy_before_terminal_receipt": "FORMAL_PASS_FIXED_NO_RERUN",
+      "after_terminal_receipt_before_terminal_commit": "FORMAL_RESULT_FIXED_NO_RERUN",
+      "after_terminal_commit_before_tag": "FORMAL_RESULT_FIXED_NO_RERUN",
+      "after_terminal_tag_before_push": "FORMAL_RESULT_FIXED_NO_RERUN",
+      "after_terminal_push_before_receipt": "TERMINAL_RESULT_FIXED_REMOTE_OBSERVATION_ONLY",
+      "after_terminal_push_receipt": "TERMINAL_COMPLETE"
     },
     "git_config": {
       "commit.gpgSign": "false",
@@ -352,8 +371,8 @@
       ],
       "controller_init": "git init --bare /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
       "controller_observe": "git ls-remote /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git refs/heads/codex/0831T001-controller-ledger",
-      "consumption_push": "git push --porcelain /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git <consumption_sha>:refs/heads/codex/0831T001-controller-ledger",
-      "terminal_push": "git push --porcelain /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git <terminal_sha>:refs/heads/codex/0831T001-controller-ledger"
+      "consumption_push": "git push --porcelain --force-with-lease=refs/heads/codex/0831T001-controller-ledger: /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git <consumption_sha>:refs/heads/codex/0831T001-controller-ledger",
+      "terminal_push": "git push --porcelain --force-with-lease=refs/heads/codex/0831T001-controller-ledger:<consumption_sha> /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git <terminal_sha>:refs/heads/codex/0831T001-controller-ledger"
     },
     "push_receipt_fields": [
       "command",
@@ -372,6 +391,7 @@
     "terminal_receipt_fields": [
       "classification",
       "consumption_commit",
+      "consumption_push_receipt_sha256",
       "formal_exit_code",
       "package_terminal_manifest_sha256",
       "schema_version",
@@ -379,25 +399,33 @@
       "terminal_verifier_result_sha256"
     ],
     "transition_order": [
-      "preflight",
+      "preflight validates the armed claim and verifies the controller ref absent without writing state",
       "create attempt root with mkdir no-replace",
       "create attempt-lock.json with O_CREAT|O_EXCL and fsync",
       "rename armed claim to claimed and fsync parent",
       "create consumption commit whose only tracked delta is armed-to-claimed rename",
       "create annotated consumption tag",
-      "observe controller ref absent",
-      "push consumption commit to controller ref",
-      "record consumption push receipt",
+      "push consumption commit with absent-ref force-with-lease CAS",
+      "record durable untracked consumption push receipt and copy it to the tracked receipt path",
       "run one formal producer",
       "run one terminal verifier",
       "copy accepted package bytes to tracked baseline",
-      "create terminal receipt and execution report",
+      "create terminal receipt and execution report including consumption receipt SHA256",
       "create terminal commit descendant of consumption commit",
       "create annotated terminal tag",
-      "observe controller ref at consumption commit",
-      "push terminal commit as fast-forward",
-      "record terminal push receipt"
-    ]
+      "push terminal commit with force-with-lease expected consumption SHA",
+      "record durable untracked terminal push receipt",
+      "independent QA records terminal push receipt SHA256 in QA report; no producer or verifier rerun"
+    ],
+    "receipt_paths": {
+      "consumption_untracked": "<attempt_root>/control/consumption_push_receipt.json",
+      "consumption_tracked": ".workflow/attempt-receipts/0831T001.consumption-push.json",
+      "terminal_untracked": "<attempt_root>/control/terminal_push_receipt.json",
+      "terminal_tracked_ownership": "terminal receipt bytes remain under the immutable attempt root; SHA256 is recorded in both exact QA report paths and their QA commit",
+      "terminal_qa_report": ".workflow/reports/0831T001-qa.md",
+      "terminal_qa_mirror": "docs/qa-acceptance-report.md"
+    },
+    "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; write O_CREAT|O_EXCL, fsync file, fsync parent"
   },
   "package_directories": [
     "builds",
@@ -422,34 +450,92 @@
     "detector_boundary": "spawned detector receives one feature frame, closes sender, observes EOF, clears environment, changes cwd to /, and rejects inherited regular/directory FDs",
     "feature_frame": "4-byte big-endian header length + canonical compact JSON header + concatenated normalized feature payloads",
     "hasher": "independent spawned process hashes the exact regular non-symlink input before loader start",
-    "loader": "spawned loader wraps numpy.load; exact input path only; first accepted build_features call reads 12 frozen fields; second staged extension reads six H0 fields; any metadata value read is forbidden",
+    "loader": "spawned loader wraps numpy.load; exact input path only; accepted build_features reads 12 frozen row fields; the staged extension reads five row fields; tick_size scalar metadata is schema-validated by the independent input verifier and is not exposed to feature consumers; any metadata value read by the production loader is forbidden",
     "per_call_receipt_fields": [
       "build_label",
       "call_index",
-      "consumer_input_sha256",
-      "detector_exit_sha256",
-      "detector_exitcode",
-      "field_access_sha256",
       "fixture_id",
-      "forbidden_value_read_count",
-      "frame_sha256",
-      "hasher_exitcode",
+      "unit_kind",
+      "relative_input_path",
       "input_file_sha256",
+      "canonical_array_sha256",
+      "consumer_input_sha256",
+      "feature_output_sha256",
+      "frame_sha256",
+      "field_access_sha256",
+      "detector_exit_sha256",
+      "inherited_fd_violation_count",
+      "detector_cwd",
+      "detector_environment_entry_count",
+      "hasher_exitcode",
       "loader_exitcode",
-      "receiver_eof_observed",
+      "detector_exitcode",
+      "consumed_field_count",
+      "forbidden_value_read_count",
+      "sender_process_id",
       "sender_closed",
-      "unit_kind"
-    ]
+      "receiver_eof_observed"
+    ],
+    "receipt_derivations": {
+      "input_file_sha256": "independent hasher SHA256 over exact regular input bytes before loader start",
+      "canonical_array_sha256": "array_bundle_sha256 over independently opened source arrays",
+      "consumer_input_sha256": "loader-observed exact input bytes; must equal input_file_sha256",
+      "feature_output_sha256": "array_bundle_sha256 over received FeatureBundle arrays",
+      "frame_sha256": "SHA256 over exact 4-byte header length, canonical header bytes and normalized payload bytes transmitted to detector",
+      "field_access_sha256": "canonical_json_sha256 over sorted typed field-access rows for the call",
+      "detector_exit_sha256": "canonical_json_sha256 over {detector_exitcode,detector_environment_entry_count,detector_cwd,inherited_fd_violation_count,receiver_eof_observed,sender_closed}",
+      "exitcodes": "actual waitpid exit status for each child; all must be zero",
+      "detector_environment_entry_count": "environment entry count after detector clears its environment; must be 0",
+      "detector_cwd": "detector getcwd result after chdir; must be /",
+      "inherited_fd_violation_count": "count of inherited regular-file or directory descriptors after closing the frame receiver; must be 0"
+    }
   },
   "readiness_comparison": {
-    "exact_byte_projection": [
-      "builds/A/structural",
-      "builds/B/structural",
-      "builds/P/structural",
+    "mode": "READINESS_STRUCTURAL_ONLY",
+    "formal_identity_required": false,
+    "projection_files": [
+      "builds/A/structural/contracts/authority_binding.json",
+      "builds/A/structural/contracts/feature_contract.json",
+      "builds/A/structural/contracts/state_contract.json",
+      "builds/A/structural/support/fixture_summary.csv",
+      "builds/A/structural/support/anchor_ledger.csv",
+      "builds/A/structural/support/structural_outcomes.csv",
+      "builds/A/structural/support/slice_invariance.csv",
+      "builds/A/structural/support/model_inputs.csv",
+      "builds/A/structural/support/reset_state.csv",
+      "builds/A/structural/raw_manifest.json",
+      "builds/A/structural/qualification_summary.json",
+      "builds/A/structural/sealed_manifest.json",
+      "builds/B/structural/contracts/authority_binding.json",
+      "builds/B/structural/contracts/feature_contract.json",
+      "builds/B/structural/contracts/state_contract.json",
+      "builds/B/structural/support/fixture_summary.csv",
+      "builds/B/structural/support/anchor_ledger.csv",
+      "builds/B/structural/support/structural_outcomes.csv",
+      "builds/B/structural/support/slice_invariance.csv",
+      "builds/B/structural/support/model_inputs.csv",
+      "builds/B/structural/support/reset_state.csv",
+      "builds/B/structural/raw_manifest.json",
+      "builds/B/structural/qualification_summary.json",
+      "builds/B/structural/sealed_manifest.json",
+      "builds/P/structural/contracts/authority_binding.json",
+      "builds/P/structural/contracts/feature_contract.json",
+      "builds/P/structural/contracts/state_contract.json",
+      "builds/P/structural/support/fixture_summary.csv",
+      "builds/P/structural/support/anchor_ledger.csv",
+      "builds/P/structural/support/structural_outcomes.csv",
+      "builds/P/structural/support/slice_invariance.csv",
+      "builds/P/structural/support/model_inputs.csv",
+      "builds/P/structural/support/reset_state.csv",
+      "builds/P/structural/raw_manifest.json",
+      "builds/P/structural/qualification_summary.json",
+      "builds/P/structural/sealed_manifest.json",
       "abp_comparison.json"
     ],
-    "evidence_normalization": "drop sender_process_id and replace exact cwd/input/output roots with ROOT before canonical CSV/JSON comparison",
-    "physical_evidence_requirement": "both primary and detached readiness evidence packages independently pass verifier before normalized comparison",
+    "projection_file_count": 37,
+    "tree_hash_preimage": "canonical compact sorted-key ASCII JSON array of {path,size_bytes,sha256} rows in ASCII path order",
+    "physical_evidence_requirement": "each readiness run must independently complete all 57 instrumented feature calls and pass the readiness verifier before projection comparison; runtime evidence is ephemeral and is not normalized or compared",
+    "comparison": "the two 37-file projections must be byte-identical file by file and have equal tree hashes",
     "post_formal_regeneration": false
   },
   "schema_version": 1,
@@ -509,6 +595,13 @@
         "shape": [
           1
         ]
+      },
+      "tick_size": {
+        "dtype": "<f4",
+        "shape": [
+          1
+        ],
+        "value": 1
       }
     },
     "row_fields": {
@@ -590,12 +683,6 @@
           "n"
         ]
       },
-      "tick_size": {
-        "dtype": "<f4",
-        "shape": [
-          "n"
-        ]
-      },
       "trade_signed": {
         "dtype": "<f4",
         "shape": [
@@ -620,6 +707,360 @@
           "n"
         ]
       }
+    }
+  },
+  "csv_contract": {
+    "dialect": {
+      "encoding": "ASCII",
+      "delimiter": ",",
+      "quotechar": "\"",
+      "quoting": "QUOTE_MINIMAL",
+      "doublequote": true,
+      "escapechar": null,
+      "lineterminator": "\n",
+      "final_record_newline_required": true,
+      "header_required": true,
+      "embedded_cr_or_lf": "forbidden",
+      "quote_rule": "quote a cell iff it contains comma, quote, CR, or LF; double each embedded quote; QUOTE_ALL is noncanonical"
+    },
+    "tokens": {
+      "empty_optional": "NONE",
+      "boolean_false": "false",
+      "boolean_true": "true",
+      "finite_float": "Python repr(float); non-finite forbidden",
+      "integer": "base-10 without decimal point"
+    },
+    "schemas": {
+      "support/fixture_summary.csv": {
+        "fields": [
+          "fixture_id",
+          "expected_anchor_count",
+          "observed_anchor_count",
+          "expected_cause",
+          "observed_cause",
+          "expected_event_ts_ns",
+          "observed_event_ts_ns",
+          "passed"
+        ],
+        "sort": [
+          "fixture authority order"
+        ]
+      },
+      "support/anchor_ledger.csv": {
+        "fields": [
+          "fixture_id",
+          "anchor_id",
+          "epoch_id",
+          "segment_id",
+          "direction",
+          "anchor_ts_ns",
+          "anchor_event_seq",
+          "dependence_cluster_id",
+          "retained_rank",
+          "suppressed_count"
+        ],
+        "sort": [
+          "fixture_id",
+          "anchor_ts_ns",
+          "anchor_event_seq",
+          "direction"
+        ]
+      },
+      "support/structural_outcomes.csv": {
+        "fields": [
+          "fixture_id",
+          "anchor_id",
+          "cause",
+          "detail",
+          "event_ts_ns",
+          "event_seq",
+          "latency_ms",
+          "censor_reason"
+        ],
+        "sort": [
+          "fixture_id",
+          "anchor_id"
+        ]
+      },
+      "support/slice_invariance.csv": {
+        "fields": [
+          "fixture_id",
+          "nominal_start_ns",
+          "actual_start_ns",
+          "common_epoch_ids_json",
+          "comparable_epoch_count",
+          "comparable_anchor_count",
+          "expected_identity_sha256",
+          "observed_identity_sha256",
+          "mismatch_reason"
+        ],
+        "sort": [
+          "fixture_id",
+          "nominal_start_ns"
+        ]
+      },
+      "support/model_inputs.csv": {
+        "fields": [
+          "fixture_id",
+          "anchor_id",
+          "input_name",
+          "canonical_value",
+          "causal_max_index",
+          "access_count"
+        ],
+        "sort": [
+          "fixture_id",
+          "anchor_id",
+          "input_name"
+        ]
+      },
+      "support/reset_state.csv": {
+        "fields": [
+          "fixture_id",
+          "boundary_index",
+          "pre_action_trade",
+          "pre_action_depletion",
+          "pre_action_ofi",
+          "pre_memory_trade",
+          "pre_memory_depletion",
+          "pre_memory_ofi",
+          "pre_age_trade_ms",
+          "pre_age_depletion_ms",
+          "pre_age_ofi_ms",
+          "post_memory_trade",
+          "post_memory_depletion",
+          "post_memory_ofi",
+          "cross_segment_carry_count"
+        ],
+        "sort": [
+          "fixture_id",
+          "boundary_index"
+        ]
+      },
+      "evidence/input_inventory.csv": {
+        "fields": [
+          "build_label",
+          "fixture_id",
+          "relative_path",
+          "canonical_file_sha256",
+          "canonical_array_sha256",
+          "size_bytes",
+          "poison_status"
+        ],
+        "sort": [
+          "build_label",
+          "fixture_id"
+        ]
+      },
+      "evidence/feature_calls.csv": {
+        "fields": [
+          "build_label",
+          "call_index",
+          "fixture_id",
+          "unit_kind",
+          "relative_input_path",
+          "input_file_sha256",
+          "canonical_array_sha256",
+          "consumer_input_sha256",
+          "feature_output_sha256",
+          "frame_sha256",
+          "field_access_sha256",
+          "detector_exit_sha256",
+          "inherited_fd_violation_count",
+          "detector_cwd",
+          "detector_environment_entry_count",
+          "hasher_exitcode",
+          "loader_exitcode",
+          "detector_exitcode",
+          "consumed_field_count",
+          "forbidden_value_read_count",
+          "sender_process_id",
+          "sender_closed",
+          "receiver_eof_observed"
+        ],
+        "sort": [
+          "build_label",
+          "call_index"
+        ]
+      },
+      "evidence/field_accesses.csv": {
+        "fields": [
+          "build_label",
+          "call_index",
+          "stage",
+          "fixture_id",
+          "anchor_ts_ns",
+          "field",
+          "minimum_index",
+          "maximum_index",
+          "authorization",
+          "read_count"
+        ],
+        "sort": [
+          "build_label",
+          "call_index",
+          "stage",
+          "anchor_ts_ns",
+          "field",
+          "minimum_index",
+          "maximum_index"
+        ]
+      },
+      "evidence/slice_work.csv": {
+        "fields": [
+          "build_label",
+          "fixture_id",
+          "slice_ordinal",
+          "relative_path",
+          "nominal_start_ns",
+          "actual_start_ns",
+          "canonical_file_sha256",
+          "publication_state"
+        ],
+        "sort": [
+          "build_label",
+          "fixture_id",
+          "slice_ordinal"
+        ]
+      },
+      "negative_boundary_results.csv": {
+        "fields": [
+          "probe_ordinal",
+          "probe_id",
+          "expected_first_error",
+          "observed_first_error",
+          "verifier_exit_code",
+          "passed"
+        ],
+        "sort": [
+          "probe_ordinal"
+        ]
+      }
+    }
+  },
+  "package_layout": {
+    "structural_files_per_build": [
+      "contracts/authority_binding.json",
+      "contracts/feature_contract.json",
+      "contracts/state_contract.json",
+      "support/fixture_summary.csv",
+      "support/anchor_ledger.csv",
+      "support/structural_outcomes.csv",
+      "support/slice_invariance.csv",
+      "support/model_inputs.csv",
+      "support/reset_state.csv",
+      "raw_manifest.json",
+      "qualification_summary.json",
+      "sealed_manifest.json"
+    ],
+    "evidence_files_per_build": [
+      "input_inventory.csv",
+      "feature_calls.csv",
+      "field_accesses.csv",
+      "slice_work.csv",
+      "evidence_manifest.json"
+    ],
+    "terminal_files": [
+      "contracts/formal_identity.json",
+      "contracts/fixture_truth_binding.json",
+      "abp_comparison.json",
+      "negative_boundary_results.csv",
+      "fixture_source_evidence.json",
+      "terminal_manifest.json"
+    ],
+    "total_file_count": 57,
+    "terminal_manifest_preimage_file_count": 56,
+    "package_files": [
+      "builds/A/structural/contracts/authority_binding.json",
+      "builds/A/structural/contracts/feature_contract.json",
+      "builds/A/structural/contracts/state_contract.json",
+      "builds/A/structural/support/fixture_summary.csv",
+      "builds/A/structural/support/anchor_ledger.csv",
+      "builds/A/structural/support/structural_outcomes.csv",
+      "builds/A/structural/support/slice_invariance.csv",
+      "builds/A/structural/support/model_inputs.csv",
+      "builds/A/structural/support/reset_state.csv",
+      "builds/A/structural/raw_manifest.json",
+      "builds/A/structural/qualification_summary.json",
+      "builds/A/structural/sealed_manifest.json",
+      "builds/A/evidence/input_inventory.csv",
+      "builds/A/evidence/feature_calls.csv",
+      "builds/A/evidence/field_accesses.csv",
+      "builds/A/evidence/slice_work.csv",
+      "builds/A/evidence/evidence_manifest.json",
+      "builds/B/structural/contracts/authority_binding.json",
+      "builds/B/structural/contracts/feature_contract.json",
+      "builds/B/structural/contracts/state_contract.json",
+      "builds/B/structural/support/fixture_summary.csv",
+      "builds/B/structural/support/anchor_ledger.csv",
+      "builds/B/structural/support/structural_outcomes.csv",
+      "builds/B/structural/support/slice_invariance.csv",
+      "builds/B/structural/support/model_inputs.csv",
+      "builds/B/structural/support/reset_state.csv",
+      "builds/B/structural/raw_manifest.json",
+      "builds/B/structural/qualification_summary.json",
+      "builds/B/structural/sealed_manifest.json",
+      "builds/B/evidence/input_inventory.csv",
+      "builds/B/evidence/feature_calls.csv",
+      "builds/B/evidence/field_accesses.csv",
+      "builds/B/evidence/slice_work.csv",
+      "builds/B/evidence/evidence_manifest.json",
+      "builds/P/structural/contracts/authority_binding.json",
+      "builds/P/structural/contracts/feature_contract.json",
+      "builds/P/structural/contracts/state_contract.json",
+      "builds/P/structural/support/fixture_summary.csv",
+      "builds/P/structural/support/anchor_ledger.csv",
+      "builds/P/structural/support/structural_outcomes.csv",
+      "builds/P/structural/support/slice_invariance.csv",
+      "builds/P/structural/support/model_inputs.csv",
+      "builds/P/structural/support/reset_state.csv",
+      "builds/P/structural/raw_manifest.json",
+      "builds/P/structural/qualification_summary.json",
+      "builds/P/structural/sealed_manifest.json",
+      "builds/P/evidence/input_inventory.csv",
+      "builds/P/evidence/feature_calls.csv",
+      "builds/P/evidence/field_accesses.csv",
+      "builds/P/evidence/slice_work.csv",
+      "builds/P/evidence/evidence_manifest.json",
+      "contracts/formal_identity.json",
+      "contracts/fixture_truth_binding.json",
+      "abp_comparison.json",
+      "negative_boundary_results.csv",
+      "fixture_source_evidence.json",
+      "terminal_manifest.json"
+    ],
+    "manifest_membership": {
+      "raw_manifest": [
+        "contracts/authority_binding.json",
+        "contracts/feature_contract.json",
+        "contracts/state_contract.json",
+        "support/fixture_summary.csv",
+        "support/anchor_ledger.csv",
+        "support/structural_outcomes.csv",
+        "support/slice_invariance.csv",
+        "support/model_inputs.csv",
+        "support/reset_state.csv"
+      ],
+      "sealed_manifest": [
+        "contracts/authority_binding.json",
+        "contracts/feature_contract.json",
+        "contracts/state_contract.json",
+        "support/fixture_summary.csv",
+        "support/anchor_ledger.csv",
+        "support/structural_outcomes.csv",
+        "support/slice_invariance.csv",
+        "support/model_inputs.csv",
+        "support/reset_state.csv",
+        "raw_manifest.json",
+        "qualification_summary.json"
+      ],
+      "evidence_manifest": [
+        "input_inventory.csv",
+        "feature_calls.csv",
+        "field_accesses.csv",
+        "slice_work.csv"
+      ],
+      "terminal_manifest": "all package_files except terminal_manifest.json"
     }
   }
 }

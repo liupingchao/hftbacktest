@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_3_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_4_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -51,6 +51,20 @@ stage-specific entry points.
 
 Q0 does not test market support and cannot produce a scientific
 classification.
+
+### 1.1 Revision 4 closure matrix
+
+| Round 3 finding | Revision 4 closure |
+|---|---|
+| production partition | exact accepted `17` row + `10` metadata fields; scalar `tick_size` is not row-expanded |
+| rolling boundary | accepted complete-window semantics; no prefix substitution |
+| QF04 censor | independently derived `150.2s / 7510 / 60000ms` |
+| reset non-vacuity | actual `NEW_NEG` and `[-1,0,0]` memory at `2999`, cleared at `3000` |
+| child receipts | all loader/hasher/detector/FD/EOF fields persisted in `feature_calls.csv` |
+| QF12 first error | post-publication interruption now expects reachable `BUILD_INPUT_BINDING` |
+| CSV bytes | exact dialect, final LF and QUOTE_ALL hostile probe |
+| readiness identity | separate 37-file structural-only mode; no formal identity |
+| one-shot | claim-first preflight, root/lock/rename order, lease CAS, exact receipt paths and crash states |
 
 ## 2. Authorization Boundary
 
@@ -166,10 +180,10 @@ The independent machine-readable oracle is:
 .workflow/contracts/0831T001-fixture-truth-v1.json
 
 SHA256:
-  1640b76a690e0e17a1ed2ff788b412a36f04f73e21e9f893aff6d7854cdae6b2
+  6d96e3ce580da85a30f349c346bcee4a390031ac1280c1233ded1591d6273006
 
 Git blob:
-  f4ca3b35d01bae9f10e0eb36fd75b3a87c8ce798
+  ebc9a085b64dc6036260bcaa94f44945f8af4ee3
 ```
 
 It freezes:
@@ -200,10 +214,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  b4b6cd7bc5335e05746a26a677f29e03db42513668ace4a5bca69aec99cac64a
+  a78497bb5a207c5772f5c4e9218e95d01eadaa691b4990ce87956ade2228d5b2
 
 Git blob:
-  4ef330fe363532079fc3b54a7fbd9fc25f9c1e90
+  fe878b2539b44e165655b2ed50b218eba69a9ebd
 ```
 
 It freezes:
@@ -225,8 +239,8 @@ rather than selecting one interpretation.
 
 ### 4.3 Accepted fixed-epoch authorities
 
-The new feature authority consumes exactly the raw fields registered in the
-master protocol:
+The new feature authority consumes exactly the 17 row-aligned fields
+registered by the accepted production cache:
 
 ```text
 activity
@@ -242,17 +256,17 @@ ofi_abs
 ready
 segment_id
 spread_ticks
-tick_size
 trade_signed
 trade_total
 ts_ns
 valid_book
 ```
 
-The production cache also contains the nine schema-v4 metadata fields frozen
-in the surface contract. Their names, dtypes and shapes are validated by the
-independent input verifier. Their values are not consumed by the production
-feature loader. QF10 changes only the existing
+The production cache also contains the ten schema-v4 metadata fields frozen
+in the surface contract, including scalar `tick_size float32[1]`. Their names,
+dtypes, shapes and registered constants are validated by the independent
+input verifier. Their values are not exposed to the production feature
+loader. QF10 changes only the existing
 `bin_boundary_violations` metadata value.
 
 The structural core directly calls the accepted authorities for:
@@ -335,7 +349,7 @@ epoch_support_ledger AST:
 The fixture cache is exact-isomorphic to production cache schema v4:
 
 ```text
-18 row-aligned fields:
+17 row-aligned fields:
   ts_ns int64[n]
   event_seq int32[n]
   segment_id int32[n]
@@ -346,9 +360,9 @@ The fixture cache is exact-isomorphic to production cache schema v4:
   ask_depletion/bid_depletion float32[n]
   ofi/ofi_abs float32[n]
   bid_depth/ask_depth float32[n]
-  obi/spread_ticks/midpoint/tick_size float32[n]
+  obi/spread_ticks/midpoint float32[n]
 
-9 metadata fields:
+10 metadata fields:
   cache_schema_version int32[1] = 4
   bin_boundary_violations int32[1]
   initial_bridge_failure_count int32[1]
@@ -358,6 +372,7 @@ The fixture cache is exact-isomorphic to production cache schema v4:
   sequence_gap_count int32[1]
   segment_end_ids int32[segment_count]
   segment_end_ts int64[segment_count]
+  tick_size float32[1] = 1.0
 ```
 
 No additional field is permitted. Exact dtype strings, shapes and value
@@ -369,18 +384,18 @@ strictly increasing. Segment IDs may change only at a row boundary and may
 not return to a previously closed segment.
 
 The independent input verifier checks all 27 physical arrays. The production
-loader sees the exact field-name schema but reads values from exactly 18 row
+loader sees the exact field-name schema but reads values from exactly 17 row
 fields:
 
 ```text
 12 through accepted build_features
-6 through the new staged H0 extension
+5 through the new staged H0 extension
 0 metadata value reads
 ```
 
-The new staged extension is a production adapter, not a synthetic-only
-schema. It appends OBI, spread, depth, midpoint and tick size to the accepted
-flow feature output.
+The new staged extension appends OBI, spread, depth and midpoint row arrays to
+the accepted flow feature output. `tick_size` remains scalar metadata and is
+not converted into a synthetic time series.
 
 ### 5.2 Canonical fixture serialization
 
@@ -411,7 +426,7 @@ undocumented dictionary key such as `_features`.
 The bundle contains:
 
 ```text
-raw: the 18 consumed arrays, read-only, exact raw dtype
+raw: the 17 consumed row arrays, read-only, exact raw dtype
 event_masks: bool[n,3]
 ratios_100: float64[n,3]
 ratios_500: float64[n,3]
@@ -429,7 +444,8 @@ Ratio, rolling, segment and base-eligibility formulas are exactly those in
 ```text
 100ms = five checkpoints
 500ms = 25 checkpoints
-rolling sums include current and available same-segment prefix rows
+rolling sums include current but remain NaN until the complete same-segment
+window is available
 activity_500 threshold = 44.0
 detector cooldown = 30s from segment start
 ```
@@ -542,6 +558,22 @@ therefore at `90.2s`. This makes the full/slice comparison non-vacuous while
 preventing the fixture oracle from assuming neutral memory that the production
 base mask would never admit.
 
+QF14/QF15 separately establish a real pre-boundary negative trade state:
+joint neutral seed at `2989`, trade refresh at `2993`, follower refresh at
+`2995`, negative trade onset at `2999`, and segment change at `3000`.
+Production primitives must yield:
+
+```text
+actions[2999] = [NEW_NEG, NO_UPDATE, NO_UPDATE] = [3,5,5]
+memories[2999] = [-1,0,0]
+memory_ages_ms[2999] = [0,80,80]
+memories[3000] = [9,9,9]
+cross_segment_carry_count = 0
+```
+
+These rows are persisted in `support/reset_state.csv`; reset verification is
+therefore non-vacuous.
+
 | Fixture | Registered expectation |
 |---|---|
 | QF01 | no retained anchor; valid terminal package |
@@ -588,6 +620,19 @@ canonical semantic preimage SHA256
 For QF13 it freezes all 14 model-input values and the exact causal access
 row ranges. Equality without matching these independent values is not a
 qualification result.
+
+QF04 censor truth is not accepted as a hand-written tuple. A static oracle
+independently computes:
+
+```text
+min(anchor_ts + 60s, first segment/gap/invalid/source-end boundary)
+= 150.2s
+event_seq = 7510
+latency_ms = 60000
+```
+
+Any registered censor tuple inconsistent with this calculation fails before
+runner implementation or formal execution.
 
 The expected anchor ID format is exact:
 
@@ -704,18 +749,35 @@ Every physical cache call produces typed evidence:
 
 ```text
 build_label
+call_index
 fixture_id
 unit_kind = FULL or SLICE
-call_index
 relative_input_path
-canonical_file_sha256
+input_file_sha256
 canonical_array_sha256
-feature_output_sha256
 consumer_input_sha256
+feature_output_sha256
+frame_sha256
+field_access_sha256
+detector_exit_sha256
+detector_environment_entry_count
+detector_cwd
+inherited_fd_violation_count
+hasher_exitcode
+loader_exitcode
+detector_exitcode
 consumed_field_count
-forbidden_field_count
+forbidden_value_read_count
 sender_process_id
+sender_closed
+receiver_eof_observed
 ```
+
+`detector_exit_sha256` is the canonical hash of the explicit exit record
+containing exit code, environment-entry count, cwd, inherited-FD violation
+count, EOF observation and sender-close state. The accepted values are
+respectively `0`, `0`, `/`, `0`, `true`, and `true`; a hash without these
+persisted typed fields is insufficient.
 
 Process IDs are evidence-only and excluded from deterministic structural
 package bytes.
@@ -741,11 +803,11 @@ surface contract:
 ```
 
 The accepted `build_features` call reads 12 fields and the staged extension
-reads six. A loader metadata-value read is a forbidden access.
+reads five. A loader metadata-value read is a forbidden access.
 
 ## 10. Package Contract
 
-Each `builds/<label>/structural` directory contains exactly 11 regular,
+Each `builds/<label>/structural` directory contains exactly 12 regular,
 non-symlink files:
 
 ```text
@@ -757,6 +819,7 @@ support/anchor_ledger.csv
 support/structural_outcomes.csv
 support/slice_invariance.csv
 support/model_inputs.csv
+support/reset_state.csv
 raw_manifest.json
 qualification_summary.json
 sealed_manifest.json
@@ -788,7 +851,7 @@ terminal_manifest.json
 The complete terminal artifact count is therefore:
 
 ```text
-3 * (11 structural + 5 evidence) + 6 terminal = 54 files
+3 * (12 structural + 5 evidence) + 6 terminal = 57 files
 ```
 
 No extra path, directory artifact, symlink, FIFO, socket or device is
@@ -850,10 +913,13 @@ evidence/input_inventory.csv
 
 evidence/feature_calls.csv
   fields:
-    build_label, call_index, fixture_id, unit_kind,
-    relative_input_path, canonical_file_sha256,
-    feature_output_sha256, consumer_input_sha256,
-    consumed_field_count, forbidden_field_count, sender_process_id
+    build_label, call_index, fixture_id, unit_kind, relative_input_path,
+    input_file_sha256, canonical_array_sha256, consumer_input_sha256,
+    feature_output_sha256, frame_sha256, field_access_sha256,
+    detector_exit_sha256, detector_environment_entry_count, detector_cwd,
+    inherited_fd_violation_count, hasher_exitcode, loader_exitcode,
+    detector_exitcode, consumed_field_count, forbidden_value_read_count,
+    sender_process_id, sender_closed, receiver_eof_observed
   sort:
     build_label, call_index
 
@@ -873,6 +939,17 @@ evidence/slice_work.csv
   sort:
     build_label, fixture_id, slice_ordinal
 
+support/reset_state.csv
+  fields:
+    fixture_id, boundary_index,
+    pre_action_trade, pre_action_depletion, pre_action_ofi,
+    pre_memory_trade, pre_memory_depletion, pre_memory_ofi,
+    pre_age_trade_ms, pre_age_depletion_ms, pre_age_ofi_ms,
+    post_memory_trade, post_memory_depletion, post_memory_ofi,
+    cross_segment_carry_count
+  sort:
+    fixture_id, boundary_index
+
 negative_boundary_results.csv
   fields:
     probe_ordinal, probe_id, expected_first_error,
@@ -888,7 +965,26 @@ Empty optional values use the ASCII token `NONE`. Booleans use only
 ### 10.2 JSON and manifest contract
 
 All JSON uses sorted keys, ASCII, compact separators and one trailing
-newline. All CSV uses the registered headers, ASCII and `\n`.
+newline. CSV canonicalization is fully frozen by `csv_contract` in the
+surface authority:
+
+```text
+encoding = ASCII
+delimiter = comma
+quotechar = double quote
+quoting = QUOTE_MINIMAL
+doublequote = true
+escapechar = NONE
+line terminator = LF
+header required
+final record newline required
+embedded CR/LF forbidden
+quote a cell iff it contains comma or quote
+```
+
+Thus `[1,2]` is serialized as `"[1,2]"`; `QUOTE_ALL`, alternate escaping,
+CRLF or a missing final LF is noncanonical even when a generic CSV parser
+would return the same cells.
 
 The exact field sets for:
 
@@ -912,17 +1008,17 @@ Manifest preimages are exact:
 
 ```text
 raw_manifest.json:
-  hashes the eight contract/support files before itself
+  hashes the nine contract/support files before itself
 
 sealed_manifest.json:
-  hashes the eight contract/support files, raw_manifest.json and
+  hashes the nine contract/support files, raw_manifest.json and
   qualification_summary.json; excludes itself
 
 evidence_manifest.json:
   hashes the four evidence CSV files; excludes itself
 
 terminal_manifest.json:
-  hashes all 53 preceding package files; excludes itself
+  hashes all 56 preceding package files; excludes itself
 ```
 
 Manifest rows are sorted by relative ASCII path and contain exactly:
@@ -954,7 +1050,7 @@ QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION
   -> SLICE_PUBLICATION_ABSENT
 
 QF12_INTERRUPT_AFTER_SLICE_PUBLICATION
-  -> TERMINAL_CLOSURE_ABSENT
+  -> BUILD_INPUT_BINDING
 
 QF13_CAUSAL_PREFIX_MUTATION
   -> CAUSAL_ACCESS_BOUNDARY
@@ -971,6 +1067,9 @@ NONCANONICAL_JSON
 NONCANONICAL_CSV
   -> PACKAGE_CANONICAL_CSV
 
+NONCANONICAL_CSV_QUOTE_ALL
+  -> PACKAGE_CANONICAL_CSV
+
 SYNCHRONIZED_LINEAGE_MUTATION
   -> FIXTURE_TRUTH_OBSERVED_MISMATCH
 
@@ -980,6 +1079,12 @@ RESET_IDENTITY_MISMATCH
 CROSS_SEGMENT_CARRY_NONZERO
   -> CROSS_SEGMENT_CARRY_NONZERO
 ```
+
+The post-publication QF12 baseline has durable A/B/P fixture roots and one
+published slice but lacks the complete 57-call consumer closure. Gates before
+physical build binding remain evaluable; `BUILD_INPUT_BINDING` is therefore
+the registered earliest reachable error. It does not claim that terminal
+closure can be reached without a package.
 
 Verifier gate precedence is the exact `error_precedence` array in the fixture
 truth authority. After the first failed gate, every later gate is
@@ -1016,8 +1121,8 @@ contract. No additional formal hostile probe is permitted in V1.
 ## 12. Formal Run
 
 Development tests may be repeated before implementation freeze. After
-implementation is committed, independent readiness first runs the complete
-qualification in a detached worktree:
+implementation is committed, independent readiness runs the distinct
+`READINESS_STRUCTURAL_ONLY` mode in both the primary and detached worktrees:
 
 ```text
 readiness worktree:
@@ -1028,9 +1133,12 @@ readiness output:
 ```
 
 This happens before claim consumption. It is repeatable software readiness,
-not the formal Q0 attempt. The readiness worktree checks out the exact
-implementation commit in detached state, regenerates the synthetic package,
-runs the verifier and compares only the frozen deterministic projection:
+not the formal Q0 attempt and not terminal-package verification. The
+readiness verifier does not require or fabricate `formal_identity.json`,
+claimed bytes, attempt-lock, consumption commit or controller observations.
+Each worktree independently completes and checks all 57 instrumented feature
+calls, then publishes only the exact 37-file projection frozen in
+`readiness_comparison.projection_files`:
 
 ```text
 builds/A/structural
@@ -1039,11 +1147,11 @@ builds/P/structural
 abp_comparison.json
 ```
 
-Both readiness evidence packages must independently verify. Their normalized
-evidence projection drops only `sender_process_id` and replaces exact roots
-with `ROOT`; every other evidence value must match. Complete package byte
-equality is not claimed because PID and root evidence is intentionally
-physical.
+Each projection tree hash is canonical compact JSON over sorted
+`{path,size_bytes,sha256}` rows. The two 37-file projections must be
+byte-identical file by file and have equal tree hashes. Runtime/PID/root
+evidence is independently checked in each readiness process but is ephemeral:
+it is neither normalized nor compared and cannot enter structural bytes.
 
 Formal identities are:
 
@@ -1079,19 +1187,26 @@ controller ref:
   refs/heads/codex/0831T001-controller-ledger
 ```
 
-Before any formal fixture is generated:
+Before any formal fixture is generated, the state machine executes in this
+single order:
 
 ```text
-the armed claim binds:
+preflight validates all armed-claim bindings and verifies the controller ref
+is absent without writing state
+create the no-replace attempt root
+create and fsync O_EXCL attempt-lock.json
+
+the validated armed claim binds:
   implementation commit and tag
   parent/master/plan/task/truth/runner/verifier/tests hashes
   exact cwd, roots and argv
   zero historical/outcome authorization
 
-the claim is atomically renamed armed -> claimed
-the no-replace attempt root and O_EXCL attempt-lock are created
+atomically rename armed -> claimed and fsync the parent
 the consumption commit and annotated tag are created
-the local controller ref moves from absent to consumption commit exactly once
+push the consumption commit with an absent-ref --force-with-lease CAS
+write and fsync the exact consumption push receipt
+copy that receipt byte-for-byte to the tracked receipt path
 ```
 
 Exact claim, attempt-lock, push-receipt and terminal-receipt fields; Git fsync
@@ -1108,6 +1223,31 @@ failure before no-replace attempt-root creation
 Any state at or after successful no-replace attempt-root creation is terminal
 for this task, even if attempt-lock, claim rename, commit, tag or controller
 update did not complete.
+
+Receipt ownership is exact:
+
+```text
+<attempt_root>/control/consumption_push_receipt.json
+  durable immediately after the consumption CAS
+
+.workflow/attempt-receipts/0831T001.consumption-push.json
+  exact copy included in the terminal commit
+
+<attempt_root>/control/terminal_push_receipt.json
+  durable immediately after the terminal CAS
+  cannot be in the commit whose push it observes
+
+independent QA report
+  `.workflow/reports/0831T001-qa.md` and
+  `docs/qa-acceptance-report.md` record and verify
+  terminal_push_receipt.json SHA256 in the QA commit
+```
+
+The terminal push uses `--force-with-lease` expecting the exact consumption
+commit. Plain observe-then-push is prohibited. Every crash boundary from
+attempt-root creation through terminal-push receipt has the single
+interpretation frozen in `one_shot.crash_states`; recovery may only observe
+and report durable/remote state, never rerun the producer or verifier.
 
 The exact formal cwd is:
 
@@ -1132,7 +1272,7 @@ python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualifi
 ```
 
 No post-formal regeneration is permitted. If the verifier passes, the exact
-54 package files are copied byte-for-byte, without regeneration, to:
+57 package files are copied byte-for-byte, without regeneration, to:
 
 ```text
 baselines/skhynix_trade_led_depth_follower_q0_v1/
@@ -1165,7 +1305,7 @@ terminal verifier PASS
 focused tests PASS
 accepted fixed-epoch regression PASS
 pre-consumption fresh detached-worktree readiness PASS
-formal package file count = 54
+formal package file count = 57
 baseline bytes equal the accepted formal package
 ```
 

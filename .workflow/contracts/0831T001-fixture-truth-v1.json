@@ -22,7 +22,6 @@
       "ready": true,
       "segment_id": 0,
       "spread_ticks": 1,
-      "tick_size": 1,
       "trade_signed": 0,
       "trade_total": 0,
       "valid_book": true
@@ -50,6 +49,9 @@
       "segment_end_ts_rule": "for each sorted segment_id, maximum ts_ns in that segment",
       "sequence_gap_count": [
         0
+      ],
+      "tick_size": [
+        1
       ]
     },
     "row_count": 9000,
@@ -290,9 +292,9 @@
         "outcome": {
           "cause": "CENSOR_60S",
           "detail": "RIGHT_CENSOR",
-          "event_seq": 6750,
-          "latency_ms": 44800,
-          "ts_ns": 135000000000
+          "event_seq": 7510,
+          "latency_ms": 60000,
+          "ts_ns": 150200000000
         }
       },
       "fixture_id": "QF04",
@@ -892,7 +894,7 @@
         "anchor_id": "QF10:1:1:0:90200000000:4510",
         "anchor_count": 1,
         "canonical_poison_file_sha_different": true,
-        "consumed_value_access_count": 18,
+        "consumed_value_access_count": 17,
         "forbidden_value_access_count": 0,
         "poison_field": "bin_boundary_violations",
         "structural_package_equal": true
@@ -1047,17 +1049,17 @@
         "anchor_time_input_mismatch_count": 0,
         "causal_access_violation_count": 0,
         "causal_access_rows": [
-        {
-          "field": "actions.trade",
-          "maximum_index": 4509,
-          "minimum_index": 1510,
-          "purpose": "time_since_last_opposite_trade_update"
-        },
-        {
-          "field": "activity",
-          "maximum_index": 4510,
-          "minimum_index": 4486,
-          "purpose": "log_activity"
+          {
+            "field": "actions.trade",
+            "maximum_index": 4509,
+            "minimum_index": 1510,
+            "purpose": "time_since_last_opposite_trade_update"
+          },
+          {
+            "field": "activity",
+            "maximum_index": 4510,
+            "minimum_index": 4486,
+            "purpose": "log_activity"
           },
           {
             "field": "memories.trade",
@@ -1065,11 +1067,11 @@
             "minimum_index": 4504,
             "purpose": "leader_background_run_length"
           },
-        {
-          "field": "midpoint",
-          "maximum_index": 4510,
-          "minimum_index": 4460,
-          "purpose": "trailing_realized_volatility"
+          {
+            "field": "midpoint",
+            "maximum_index": 4510,
+            "minimum_index": 4460,
+            "purpose": "trailing_realized_volatility"
           },
           {
             "field": "ratios_100.trade",
@@ -1120,7 +1122,6 @@
         "ofi",
         "ofi_abs",
         "spread_ticks",
-        "tick_size",
         "trade_signed",
         "trade_total"
       ],
@@ -1188,7 +1189,6 @@
           "ofi": "1.0 if i % 2 == 0 else -1.0",
           "ofi_abs": "2.0",
           "spread_ticks": "2.0 + float(i % 2)",
-          "tick_size": "0.5",
           "trade_signed": "1.0 if i % 2 == 0 else -1.0",
           "trade_total": "2.0"
         },
@@ -1219,10 +1219,70 @@
           "latency_ms": 60000,
           "ts_ns": 150200000000
         },
-        "segment_boundary_index": 3000
+        "segment_boundary_index": 3000,
+        "action_at_index_2999": [
+          3,
+          5,
+          5
+        ],
+        "memory_at_index_2999": [
+          -1,
+          0,
+          0
+        ],
+        "memory_age_ms_at_index_2999": [
+          0,
+          80,
+          80
+        ],
+        "memory_at_index_3000": [
+          9,
+          9,
+          9
+        ]
       },
       "fixture_id": "QF14",
       "patches": [
+        {
+          "field": "trade_total",
+          "index": 2989,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
+          "index": 2989,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 2989,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 2989,
+          "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 2993,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
+          "index": 2995,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 2995,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 2995,
+          "value": 1
+        },
         {
           "field": "trade_signed",
           "index": 2999,
@@ -1347,16 +1407,91 @@
                 9,
                 9,
                 9
+              ],
+              "action_at_index_2999": [
+                3,
+                5,
+                5
+              ],
+              "memory_at_index_2999": [
+                -1,
+                0,
+                0
+              ],
+              "memory_age_ms_at_index_2999": [
+                0,
+                80,
+                80
               ]
             }
           ]
         },
-        "semantic_preimage_sha256": "b4a5a21c38be1e5768ef774108783b7a4944bee647e24a3ef4c0e0edbd52a673",
+        "semantic_preimage_sha256": "6123577f8350d47cde4adfafc43c85d165aa7e86f0e9fad722a79114d1123bb2",
         "slice_actual_start_ns": 60000000000,
-        "slice_nominal_start_ns": 60000000000
+        "slice_nominal_start_ns": 60000000000,
+        "action_at_index_2999": [
+          3,
+          5,
+          5
+        ],
+        "memory_at_index_2999": [
+          -1,
+          0,
+          0
+        ],
+        "memory_age_ms_at_index_2999": [
+          0,
+          80,
+          80
+        ],
+        "memory_at_index_3000": [
+          9,
+          9,
+          9
+        ]
       },
       "fixture_id": "QF15",
       "patches": [
+        {
+          "field": "trade_total",
+          "index": 2989,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
+          "index": 2989,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 2989,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 2989,
+          "value": 1
+        },
+        {
+          "field": "trade_total",
+          "index": 2993,
+          "value": 1
+        },
+        {
+          "field": "bid_depletion",
+          "index": 2995,
+          "value": 1
+        },
+        {
+          "field": "ask_depletion",
+          "index": 2995,
+          "value": 1
+        },
+        {
+          "field": "ofi_abs",
+          "index": 2995,
+          "value": 1
+        },
         {
           "field": "trade_signed",
           "index": 2999,
@@ -1445,7 +1580,7 @@
       "probe_id": "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION"
     },
     {
-      "error_code": "TERMINAL_CLOSURE_ABSENT",
+      "error_code": "BUILD_INPUT_BINDING",
       "probe_id": "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION"
     },
     {
@@ -1467,6 +1602,10 @@
     {
       "error_code": "PACKAGE_CANONICAL_CSV",
       "probe_id": "NONCANONICAL_CSV"
+    },
+    {
+      "error_code": "PACKAGE_CANONICAL_CSV",
+      "probe_id": "NONCANONICAL_CSV_QUOTE_ALL"
     },
     {
       "error_code": "FIXTURE_TRUTH_OBSERVED_MISMATCH",

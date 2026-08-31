@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 3 Candidate
+## 2026-08-31 0831T001 Q0 Revision 4 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -22,7 +22,14 @@
 - Production-authority simulation passes all registered full-fixture
   anchor/outcome/reset expectations and all four nonempty full/slice retained
   anchor comparisons after moving the fixture anchor to 90.2s.
-- Implementation is locked pending independent Revision 3 plan review.
+- Revision 3 independent review failed at `P0/P1/P2/P3=0/9/0/0`;
+  implementation and formal execution remained locked.
+- Revision 4 restores the accepted 17-row/10-metadata schema, full-window
+  rolling semantics, correct QF04 censor tuple and a non-vacuous pre-boundary
+  reset state. It also persists child runtime receipts, freezes canonical CSV,
+  separates readiness from formal identity and replaces observe-then-push
+  with lease-bound controller transitions.
+- Implementation is locked pending independent Revision 4 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 
