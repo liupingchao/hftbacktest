@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 14 Candidate
+## 2026-08-31 0831T001 Q0 Revision 14 Plan Review Failed
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -124,9 +124,16 @@
   `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
 - A full current-worktree inventory checked 6,057 indexed paths in 50.354s;
   the only mismatch was the intentionally modified surface contract itself.
+- Independent Revision 14 review passed raw empty/nonempty framing, complete
+  HEAD-to-index and index-to-physical derivation, filemode/autocrlf hostile
+  detection, 8 transition states, 22 variants and PASS60/FAIL3 expansion.
+- Revision 14 independent review failed at
+  `P0/P1/P2/P3=0/1/0/0`: the registered 704-row hash is reproducible only
+  with an unstated snake_case `repository_config` object and zero-based
+  `variant_ordinal`; the surface does not freeze either encoding.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation and formal execution remain locked pending independent
-  Revision 14 plan review.
+- Implementation and formal execution remain locked pending a corrected
+  revision and a new independent plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

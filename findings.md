@@ -172,6 +172,15 @@
 - Git emits an empty byte string, not a lone NUL, when raw or untracked output
   has zero rows. An executable parser must accept exactly that empty case and
   require final-NUL framing only for nonempty output.
+- Revision 14 independent review confirms that the raw parser and complete
+  physical inventory close the Round 13 Git-observation counterexamples.
+- The 704-row aggregate is not derivation-total. Its registered hash matches
+  only when `repository_config` uses unstated snake_case keys and
+  `variant_ordinal` is a zero-based integer; dotted keys or one-based ordinals
+  produce different hashes.
+- A canonical aggregate cannot substitute for an exact row schema. The
+  repository-configuration object keys, boolean representation, ordinal base
+  and PATH-probe formatting must be frozen explicitly before implementation.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

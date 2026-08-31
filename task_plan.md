@@ -61,6 +61,10 @@
   registered unstaged/untracked delta. It freezes exact raw/index NUL grammar,
   22 phase/branch preimages and a 704-row path/mode/blob/staging mutation
   matrix across rename, filemode and autocrlf configurations.
+- Revision 14 independent review failed at `P0/P1/P2/P3=0/1/0/0`.
+  Raw framing, physical mode/byte binding and phase/path expansion passed,
+  but the 704-row aggregate does not freeze the exact `repository_config`
+  object schema or `variant_ordinal` encoding that produces its hash.
 - Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
   negative boundaries, causal access proof, terminal verification and
   pre-consumption detached-worktree readiness.
@@ -69,8 +73,8 @@
   anchor.
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
-- Implementation and formal execution remain locked pending independent
-  Revision 14 plan review.
+- Implementation and formal execution remain locked pending a corrected
+  revision and a new independent plan review.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 
