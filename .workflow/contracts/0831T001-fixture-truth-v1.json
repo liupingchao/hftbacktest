@@ -1299,7 +1299,7 @@
           {
             "field": "memories.trade",
             "maximum_index": 4509,
-            "minimum_index": 4504,
+            "minimum_index": 4499,
             "purpose": "leader_background_run_length"
           },
           {
@@ -1330,7 +1330,7 @@
         "model_inputs": {
           "is_causal_trade_onset": 1,
           "joint_threshold_overshoot": 0.05769230769230771,
-          "leader_background_run_length": 0,
+          "leader_background_run_length": 4.394449154672439,
           "log_activity": 3.9318256327243257,
           "log_visible_depth": 5.303304908059076,
           "signed_fast_minus_medium_acceleration": 0.49230769230769234,

@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 5 Candidate
+## 2026-08-31 0831T001 Q0 Revision 6 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -35,7 +35,12 @@
   maps partial QF12 publication to `SLICE_PUBLICATION`, makes receipt header
   order byte-identical, and adds retryable controller preparation plus
   durable PASS/FAIL terminalization.
-- Implementation is locked pending independent Revision 5 plan review.
+- Revision 5 independent review failed at `P0/P1/P2/P3=0/3/0/0`;
+  implementation and formal execution remained locked.
+- Revision 6 corrects the QF13 background-run oracle, freezes exact
+  outer/producer/verifier/recovery argv, adds O_EXCL invocation claims and
+  runtime locks, and defines typed ref-observation recovery receipts.
+- Implementation is locked pending independent Revision 6 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

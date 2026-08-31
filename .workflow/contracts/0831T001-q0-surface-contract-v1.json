@@ -277,7 +277,7 @@
     "feature_contract.json": "exact projection of source_schema_v4, feature_formulas, canonical_hashes and FeatureBundle sentinel constants",
     "fixture_source_evidence.json": "derive from independently opened physical cache bytes, feature-call receipts and field-access rows",
     "fixture_truth_binding.json": "derive from tracked truth bytes, Git blob and parsed fixture_order",
-    "formal_identity.json": "derive from claimed bytes, attempt-lock, consumption Git identity, controller pre/post observations and the durable consumption push receipt; terminal-push evidence is necessarily post-package and belongs to independent QA",
+    "formal_identity.json": "derive from claimed bytes, attempt-lock, consumption Git identity, controller pre/post observations and the durable member of the consumption PUSH_CALL|REF_OBSERVATION receipt union; controller_pre_sha is exactly ABSENT; terminal-push evidence is necessarily post-package and belongs to independent QA",
     "qualification_summary.json": "derive counts from fixture, slice, access and A/B/P artifacts; classification is Q0_PIPELINE_QUALIFIED iff every registered gate passes",
     "state_contract.json": "derive exact constants from frozen master and accepted authority callables"
   },
@@ -340,23 +340,24 @@
     "consumption_commit_message": "audit: consume 0831T001 Q0 attempt",
     "crash_states": {
       "before_attempt_root": "UNCONSUMED_RETRY_ALLOWED_INCLUDING_CONTROLLER_PREPARATION",
-      "after_attempt_root_before_lock": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_attempt_lock_before_claim_rename": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_claim_rename_before_consumption_commit": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_consumption_commit_before_tag": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_consumption_tag_before_push": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_consumption_push_before_untracked_receipt": "INTERRUPTED_TERMINAL_NO_RERUN_REMOTE_OBSERVATION_ONLY",
-      "after_untracked_receipt_before_tracked_copy": "INTERRUPTED_TERMINAL_NO_RERUN_RECEIPT_COPY_ONLY",
-      "after_tracked_copy_before_producer": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "during_producer": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_producer_before_terminal_verifier": "INTERRUPTED_TERMINAL_NO_RERUN",
-      "after_terminal_verifier_fail": "FORMAL_FAIL_FIXED_TERMINALIZE_FAIL_BRANCH_NO_RERUN",
-      "after_terminal_verifier_pass_before_baseline_copy": "FORMAL_PASS_FIXED_NO_RERUN",
-      "after_baseline_copy_before_terminal_receipt": "FORMAL_PASS_FIXED_NO_RERUN",
-      "after_terminal_receipt_before_terminal_commit": "FORMAL_RESULT_FIXED_NO_RERUN",
-      "after_terminal_commit_before_tag": "FORMAL_RESULT_FIXED_NO_RERUN",
-      "after_terminal_tag_before_push": "FORMAL_RESULT_FIXED_NO_RERUN",
-      "after_terminal_push_before_receipt": "TERMINAL_RESULT_FIXED_REMOTE_OBSERVATION_ONLY",
+      "after_attempt_root_before_lock": "RECOVER_CONSUMPTION_THEN_FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+      "after_attempt_lock_before_claim_rename": "RECOVER_CONSUMPTION_THEN_FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+      "after_claim_rename_before_consumption_commit": "RECOVER_CONSUMPTION_THEN_FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+      "after_consumption_commit_before_tag": "RECOVER_CONSUMPTION_THEN_FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+      "after_consumption_tag_before_push": "RECOVER_CONSUMPTION_THEN_FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+      "after_consumption_push_before_untracked_receipt": "OBSERVE_CONSUMPTION_REF_WRITE_OBSERVATION_RECEIPT_THEN_FAIL_PRE_PRODUCER",
+      "after_untracked_receipt_before_tracked_copy": "COPY_EXISTING_RECEIPT_THEN_FAIL_PRE_PRODUCER",
+      "after_tracked_copy_before_producer_invocation": "FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
+      "after_producer_invocation_before_exit_receipt": "FAIL_FORMAL_PRODUCER_INTERRUPTED_NO_CHILD_RERUN",
+      "after_producer_exit_before_verifier_invocation": "FAIL_FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER",
+      "after_verifier_invocation_before_exit_receipt": "FAIL_TERMINAL_VERIFIER_INTERRUPTED_NO_CHILD_RERUN",
+      "after_terminal_verifier_fail": "FORMAL_FAIL_FIXED_COMPLETE_FAIL_BRANCH",
+      "after_terminal_verifier_pass_before_baseline_copy": "FORMAL_PASS_FIXED_COMPLETE_PASS_BRANCH",
+      "after_baseline_copy_before_terminal_receipt": "FORMAL_PASS_FIXED_COMPLETE_PASS_BRANCH",
+      "after_terminal_receipt_before_terminal_commit": "FORMAL_RESULT_FIXED_COMPLETE_CONTROLLER_TRANSITIONS",
+      "after_terminal_commit_before_tag": "FORMAL_RESULT_FIXED_COMPLETE_CONTROLLER_TRANSITIONS",
+      "after_terminal_tag_before_push": "FORMAL_RESULT_FIXED_COMPLETE_CONTROLLER_TRANSITIONS",
+      "after_terminal_push_before_receipt": "OBSERVE_TERMINAL_REF_WRITE_OBSERVATION_RECEIPT",
       "after_terminal_push_receipt": "TERMINAL_COMPLETE"
     },
     "git_config": {
@@ -382,11 +383,36 @@
       "old_sha",
       "post_ls_remote_sha",
       "pre_ls_remote_sha",
+      "receipt_kind",
       "schema_version",
       "stderr_sha256",
       "stdout_sha256",
       "transition_kind"
     ],
+    "push_observation_receipt_fields": [
+      "controller_ref",
+      "expected_old_sha",
+      "observation_command",
+      "observation_exit_code",
+      "observation_stderr_sha256",
+      "observation_stdout_sha256",
+      "observed_new_sha",
+      "receipt_kind",
+      "schema_version",
+      "transition_kind"
+    ],
+    "push_receipt_value_domains": {
+      "consumption_PUSH_CALL": "old_sha=ABSENT, pre_ls_remote_sha=ABSENT, post_ls_remote_sha=new_sha=<consumption_sha>, receipt_kind=PUSH_CALL",
+      "consumption_REF_OBSERVATION": "expected_old_sha=ABSENT, observed_new_sha=<consumption_sha>, receipt_kind=REF_OBSERVATION",
+      "terminal_PUSH_CALL": "old_sha=pre_ls_remote_sha=<consumption_sha>, post_ls_remote_sha=new_sha=<terminal_sha>, receipt_kind=PUSH_CALL",
+      "terminal_REF_OBSERVATION": "expected_old_sha=<consumption_sha>, observed_new_sha=<terminal_sha>, receipt_kind=REF_OBSERVATION"
+    },
+    "sha_tokens": {
+      "absent_ref": "ABSENT",
+      "missing_artifact": "NONE",
+      "sha1": "exactly 40 lowercase hexadecimal characters",
+      "sha256": "exactly 64 lowercase hexadecimal characters"
+    },
     "terminal_commit_message": "audit: seal 0831T001 Q0 result",
     "terminal_receipt_fields": [
       "classification",
@@ -397,6 +423,7 @@
       "formal_exit_code",
       "missing_stages_json",
       "package_terminal_manifest_sha256",
+      "recovery_observation_sha256",
       "schema_version",
       "terminal_verifier_exit_code",
       "terminal_verifier_result_sha256"
@@ -409,27 +436,32 @@
       "create consumption commit whose only tracked delta is armed-to-claimed rename",
       "create annotated consumption tag",
       "push consumption commit with absent-ref force-with-lease CAS",
-      "record durable untracked consumption push receipt and copy it to the tracked receipt path",
-      "run one formal producer exactly once",
+      "record durable consumption PUSH_CALL receipt, or after interruption record a distinct REF_OBSERVATION receipt, and copy the chosen receipt to the tracked path",
+      "create and fsync the producer invocation claim with O_CREAT|O_EXCL",
+      "run the exact formal producer child argv at most once",
       "write and fsync formal_producer_exit.json",
-      "run one terminal verifier exactly once even when producer failed",
+      "create and fsync the verifier invocation claim with O_CREAT|O_EXCL",
+      "run the exact terminal verifier child argv at most once even when producer failed",
       "write and fsync terminal_verifier_exit.json",
       "branch on terminal verifier result: PASS copies accepted package to baseline; FAIL forbids baseline copy",
-      "create PASS or FAIL terminal result receipt and execution report including consumption receipt SHA256",
+      "create PASS or FAIL terminal result receipt and execution report including consumption receipt SHA256 and recovery observation SHA256",
       "create terminal commit descendant of consumption commit",
       "create annotated terminal tag",
       "push terminal commit with force-with-lease expected consumption SHA",
-      "record durable untracked terminal push receipt",
+      "record durable terminal PUSH_CALL receipt, or after interruption record a distinct REF_OBSERVATION receipt",
       "independent QA records terminal push receipt SHA256 in report; no producer or verifier rerun"
     ],
     "receipt_paths": {
       "consumption_untracked": "<attempt_root>/control/consumption_push_receipt.json",
+      "consumption_observation_untracked": "<attempt_root>/control/consumption_push_observation.json",
       "consumption_tracked": ".workflow/attempt-receipts/0831T001.consumption-push.json",
       "terminal_untracked": "<attempt_root>/control/terminal_push_receipt.json",
+      "terminal_observation_untracked": "<attempt_root>/control/terminal_push_observation.json",
+      "recovery_observation_untracked": "<attempt_root>/control/recovery_observation.json",
       "terminal_qa_report": ".workflow/reports/0831T001-qa.md",
       "terminal_qa_mirror": "docs/qa-acceptance-report.md",
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
-      "terminal_push_ownership": "untracked immutable attempt-root receipt; SHA256 recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md"
+      "terminal_push_ownership": "untracked immutable selected member of the terminal PUSH_CALL|REF_OBSERVATION receipt union; its SHA256 is recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md"
     },
     "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; write O_CREAT|O_EXCL, fsync file, fsync parent",
     "controller_preparation": {
@@ -452,26 +484,81 @@
       "PASS": {
         "classification": "Q0_PIPELINE_QUALIFIED",
         "package_terminal_manifest_sha256": "required 64-lowercase-hex",
-        "baseline_copy": "required exact 57-file copy before terminal receipt",
+        "baseline_copy": "required exact atomic 57-file baseline publication before terminal receipt",
         "first_error": "NONE",
         "completed_stages": "all registered stages",
-        "missing_stages": "NONE"
+        "missing_stages": "NONE",
+        "recovery_observation_sha256": "NONE on the normal path; required 64-lowercase-hex when PASS is completed by recovery from an existing successful verifier exit receipt"
       },
       "FAIL": {
         "classification": "Q0_PIPELINE_NOT_QUALIFIED",
         "package_terminal_manifest_sha256": "NONE when no valid terminal manifest exists; otherwise observed 64-lowercase-hex",
         "baseline_copy": "forbidden",
-        "first_error": "required registered error code or FORMAL_PRODUCER_EXIT_NONZERO",
+        "first_error": "registered verifier error, FORMAL_PRODUCER_EXIT_NONZERO, FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER, FORMAL_PRODUCER_INTERRUPTED, FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER, or TERMINAL_VERIFIER_INTERRUPTED",
         "completed_stages": "canonical compact JSON array of completed stage IDs",
         "missing_stages": "canonical compact JSON array of uncompleted stage IDs",
         "terminal_verifier_result_sha256": "required 64-lowercase-hex when canonical result bytes exist; otherwise NONE",
-        "recovery": "derive receipt/report only from durable producer/verifier exit receipts and observed filesystem/controller state; no child rerun",
-        "first_error_precedence": "FORMAL_PRODUCER_EXIT_NONZERO when formal_exit_code != 0; otherwise terminal verifier first_error",
+        "formal_exit_code": "base-10 integer only when formal_producer_exit.json exists; otherwise NONE",
+        "terminal_verifier_exit_code": "base-10 integer only when terminal_verifier_exit.json exists; otherwise NONE",
+        "recovery_observation_sha256": "required 64-lowercase-hex on recovery; NONE on a normal verifier FAIL path",
+        "recovery": "after attempt-root creation, complete missing claim/consumption/controller transitions, write one recovery observation, and terminalize from durable invocation/exit receipts plus observed refs; never launch or relaunch a child in recovery",
+        "first_error_precedence": "producer invocation without exit -> FORMAL_PRODUCER_INTERRUPTED; producer nonzero exit -> FORMAL_PRODUCER_EXIT_NONZERO; producer exit without verifier invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER; verifier invocation without exit -> TERMINAL_VERIFIER_INTERRUPTED; verifier exit -> registered verifier first_error; no producer invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER",
         "stage_lists": "derive from the frozen transition_order prefix completed before failure; no producer-authored stage list is trusted"
       }
     },
     "formal_process_receipts": {
       "serialization": "canonical compact sorted-key ASCII JSON plus LF; write O_CREAT|O_EXCL, fsync file, fsync parent",
+      "outer_driver_argv": [
+        "/Users/liu/.local/conda/bin/python",
+        "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+        "--formal",
+        "--claim",
+        ".workflow/attempt-claims/0831T001.armed.json",
+        "--attempt-root",
+        "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1"
+      ],
+      "recovery_driver_argv": [
+        "/Users/liu/.local/conda/bin/python",
+        "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+        "--recover",
+        "--attempt-root",
+        "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1"
+      ],
+      "producer_argv": [
+        "/Users/liu/.local/conda/bin/python",
+        "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py",
+        "--formal-producer",
+        "--attempt-root",
+        "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1",
+        "--package-root",
+        "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package",
+        "--truth",
+        ".workflow/contracts/0831T001-fixture-truth-v1.json",
+        "--surface-contract",
+        ".workflow/contracts/0831T001-q0-surface-contract-v1.json"
+      ],
+      "verifier_argv": [
+        "/Users/liu/.local/conda/bin/python",
+        "examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py",
+        "--package-root",
+        "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package",
+        "--result",
+        "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/control/terminal_verifier_result.json"
+      ],
+      "process_topology": "the outer driver is the only Git/claim/baseline owner; producer and verifier are separate direct children with the exact argv arrays and cwd equal to the formal cwd",
+      "orchestrator_lock": "<attempt_root>/control/orchestrator.lock is created before any consumed transition and held with exclusive flock by the outer or recovery driver; recovery may proceed only after it acquires that lock, proving the prior orchestrator no longer owns the state machine",
+      "child_runtime_locks": {
+        "producer": "<attempt_root>/control/formal_producer_runtime.lock",
+        "verifier": "<attempt_root>/control/terminal_verifier_runtime.lock"
+      },
+      "child_runtime_lock_semantics": "each child acquires and holds its exclusive flock before reading or writing attempt state and releases it only on exit; recovery must acquire and release the corresponding nonblocking lock before classifying a claimed invocation without an exit receipt, so it cannot terminalize while an orphan child is still running",
+      "invocation_claim_fields": [
+        "argv",
+        "child_kind",
+        "invocation_ordinal",
+        "schema_version"
+      ],
+      "producer_invocation_path": "<attempt_root>/control/formal_producer_invocation.json",
       "producer_path": "<attempt_root>/control/formal_producer_exit.json",
       "producer_fields": [
         "argv",
@@ -479,6 +566,7 @@
         "stderr_sha256",
         "stdout_sha256"
       ],
+      "verifier_invocation_path": "<attempt_root>/control/terminal_verifier_invocation.json",
       "verifier_path": "<attempt_root>/control/terminal_verifier_exit.json",
       "verifier_fields": [
         "argv",
@@ -490,7 +578,49 @@
         "stdout_sha256"
       ],
       "missing_token": "NONE",
-      "durability": "write O_CREAT|O_EXCL and fsync immediately after child waitpid; fsync control directory before next transition"
+      "invocation_semantics": "write and fsync the O_CREAT|O_EXCL invocation claim before Popen; its existence consumes the sole launch right even if the child never starts; recovery never launches a child whose invocation claim exists and never creates a missing invocation claim",
+      "durability": "write O_CREAT|O_EXCL exit receipt and fsync immediately after child waitpid; fsync control directory before next transition"
+    },
+    "recovery": {
+      "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
+      "entry_precondition": "acquire the exclusive orchestrator flock; for each invocation claim lacking an exit receipt, also prove the child runtime flock is acquirable before terminal classification",
+      "consumption_receipt_union": "exactly one of consumption_push_receipt.json with receipt_kind PUSH_CALL or consumption_push_observation.json with receipt_kind REF_OBSERVATION; copy the chosen bytes to the tracked consumption receipt path",
+      "terminal_receipt_union": "exactly one of terminal_push_receipt.json with receipt_kind PUSH_CALL or terminal_push_observation.json with receipt_kind REF_OBSERVATION",
+      "push_observation_rule": "REF_OBSERVATION is allowed only when exact ls-remote observes the expected new SHA after a crash and the normal PUSH_CALL receipt is absent; it records the observation command outputs, never reconstructed push outputs",
+      "recovery_observation_fields": [
+        "crash_boundary",
+        "first_error",
+        "observed_consumption_sha",
+        "observed_terminal_sha",
+        "producer_invocation_state",
+        "producer_exit_state",
+        "recovery_mode",
+        "schema_version",
+        "verifier_invocation_state",
+        "verifier_exit_state"
+      ],
+      "normal_path_recovery_observation_sha256": "NONE",
+      "recovery_path": "<attempt_root>/control/recovery_observation.json",
+      "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every write is O_CREAT|O_EXCL or an exact-byte idempotent observation, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
+      "remote_state_rules": {
+        "ABSENT": "complete consumption transition, using absent-ref lease when push is still required",
+        "<consumption_sha>": "complete or recover terminalization; terminal push may still be required",
+        "<terminal_sha>": "write terminal REF_OBSERVATION if normal receipt is absent, then finish QA handoff",
+        "other": "fail closed as CONTROLLER_REF_DIVERGENCE; do not push"
+      }
+    },
+    "controller_push_runtime_locks": {
+      "consumption": "<attempt_root>/control/consumption_push_runtime.lock",
+      "terminal": "<attempt_root>/control/terminal_push_runtime.lock",
+      "semantics": "the driver holds an exclusive flock and deliberately passes that lock fd only to the exact git push child; recovery acquires the same lock before ls-remote or retry, proving no orphan push remains in flight"
+    },
+    "baseline_publication": {
+      "candidate_root": "<attempt_root>/control/baseline_candidate",
+      "destination": "baselines/skhynix_trade_led_depth_follower_q0_v1",
+      "preimage": "the verifier-accepted exact 57 package files",
+      "preparation": "copy to the attempt-owned candidate, verify every byte against terminal_manifest.json, fsync every file and directory",
+      "publication": "atomic no-replace directory rename to destination followed by destination-parent fsync",
+      "recovery": "if destination is absent, resume and verify the candidate before publication; if destination exists, require exact 57-file identity; any extra, missing or mismatched byte fails closed"
     }
   },
   "package_directories": [

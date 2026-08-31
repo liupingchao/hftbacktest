@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_5_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_6_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -62,9 +62,10 @@ classification.
 | reset non-vacuity | actual `NEW_NEG` and `[-1,0,0]` memory at `2999`, cleared at `3000` |
 | child receipts | all loader/hasher/detector/FD/EOF fields persisted in `feature_calls.csv` |
 | QF12 first error | one published slice with other required slices absent expects `SLICE_PUBLICATION` |
+| QF13 background run | production-derived `log1p(200ms-120ms)=log(81)` with boundary probe |
 | CSV bytes | exact dialect, final LF and QUOTE_ALL hostile probe |
 | readiness identity | separate 37-file structural-only mode; no formal identity |
-| one-shot | retryable controller preparation, root/lock/rename order, lease CAS and explicit PASS/FAIL terminalization |
+| one-shot | invocation claims, observation receipts and recoverable controller-only terminalization |
 
 ## 2. Authorization Boundary
 
@@ -180,10 +181,10 @@ The independent machine-readable oracle is:
 .workflow/contracts/0831T001-fixture-truth-v1.json
 
 SHA256:
-  fd1ea67f97e9d282e8fd12ae9bae4198e6742201d4bb630ed54e8dbdc6b57d85
+  c9e1c5dba760309add5e0debfdfff6be3387e8978b1e5506b6d1fff9df87f529
 
 Git blob:
-  33e78f7fa060f368b9ebfb517c61cb615b0405bc
+  ea66f4ff2e7cddf9302215d62c3268299682add7
 ```
 
 It freezes:
@@ -214,10 +215,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  3f23b5d5964224606d33e6d7e7cb071e698746b76fbb6f422459d824fc49007b
+  62a7a3d751ec46bc702b4242f85fdea425eb9c5c4879c233c4dfdf5a0d4d8851
 
 Git blob:
-  ed65e8181b8dbb281adffa2440b9edcb69c59f0c
+  9f3ab2c13f0f8ea03cffc65dcd7e0abb9cf5f25b
 ```
 
 It freezes:
@@ -626,6 +627,18 @@ canonical semantic preimage SHA256
 For QF13 it freezes all 14 model-input values and the exact causal access
 row ranges. Equality without matching these independent values is not a
 qualification result.
+
+The `leader_background_run_length` implementation scans backward from
+`t-20ms` for at most 100 checkpoints. It reads each TRADE memory row until
+the first non-`BACKGROUND` row, including that boundary probe; if all 100
+rows are `BACKGROUND`, it stops at the 2000ms cap without reading an earlier
+row. QF13 therefore reads `memories.trade[4499..4509]`: indices
+`4500..4509` contribute 200ms and index `4499` proves the run boundary. Its
+frozen value is:
+
+```text
+log1p(200ms - 120ms) = log(81) = 4.394449154672439
+```
 
 QF04 censor truth is not accepted as a hand-written tuple. A static oracle
 independently computes:
@@ -1235,12 +1248,17 @@ the validated armed claim binds:
 atomically rename armed -> claimed and fsync the parent
 the consumption commit and annotated tag are created
 push the consumption commit with an absent-ref --force-with-lease CAS
-write and fsync the exact consumption push receipt
-copy that receipt byte-for-byte to the tracked receipt path
-run the formal producer exactly once and immediately fsync
-`<attempt_root>/control/formal_producer_exit.json`
-run the terminal verifier exactly once and immediately fsync
-`<attempt_root>/control/terminal_verifier_exit.json`
+write and fsync either the normal consumption PUSH_CALL receipt or, only
+after crash recovery observes the expected ref, the distinct REF_OBSERVATION
+receipt
+copy the chosen consumption-transition receipt byte-for-byte to the tracked
+receipt path
+create and fsync the O_EXCL producer invocation claim
+run the exact formal producer child argv at most once and immediately fsync
+`<attempt_root>/control/formal_producer_exit.json` after waitpid
+create and fsync the O_EXCL verifier invocation claim
+run the exact terminal verifier child argv at most once and immediately fsync
+`<attempt_root>/control/terminal_verifier_exit.json` after waitpid
 ```
 
 Exact claim, attempt-lock, push-receipt and terminal-receipt fields; Git fsync
@@ -1263,18 +1281,28 @@ Receipt ownership is exact:
 
 ```text
 <attempt_root>/control/consumption_push_receipt.json
-  durable immediately after the consumption CAS
+  normal-path `PUSH_CALL`, durable immediately after the consumption CAS
+
+<attempt_root>/control/consumption_push_observation.json
+  recovery-only `REF_OBSERVATION`; allowed only when the normal receipt is
+  absent and exact ls-remote observes the expected consumption SHA
 
 .workflow/attempt-receipts/0831T001.consumption-push.json
-  exact copy included in the terminal commit
+  exact copy of whichever consumption-transition receipt exists, included in
+  the terminal commit
 
 .workflow/attempt-receipts/0831T001.terminal.json
   tracked PASS/FAIL terminal result receipt included in the terminal commit
 
 <attempt_root>/control/terminal_push_receipt.json
-  untracked terminal-push observation, durable immediately after the terminal
-  CAS
-  cannot be in the commit whose push it observes
+  normal-path `PUSH_CALL`, durable immediately after the terminal CAS
+
+<attempt_root>/control/terminal_push_observation.json
+  recovery-only `REF_OBSERVATION`; allowed only when the normal receipt is
+  absent and exact ls-remote observes the expected terminal SHA
+
+<attempt_root>/control/recovery_observation.json
+  required exactly once on every recovery path; forbidden on the normal path
 
 independent QA report
   `.workflow/reports/0831T001-qa.md` and
@@ -1285,15 +1313,64 @@ independent QA report
 The terminal push uses `--force-with-lease` expecting the exact consumption
 commit. Plain observe-then-push is prohibited. Every crash boundary from
 attempt-root creation through terminal-push receipt has the single
-interpretation frozen in `one_shot.crash_states`; recovery may only observe
-and report durable/remote state, never rerun the producer or verifier.
+interpretation frozen in `one_shot.crash_states`.
+
+Recovery may complete only deterministic controller/filesystem transitions:
+attempt lock, claim rename, consumption commit/tag/push, receipt copy,
+PASS/FAIL receipt/report, accepted baseline copy, terminal commit/tag/push
+and observation receipts. Recovery never launches a producer or verifier.
+An existing invocation claim consumes that child's sole launch right even
+when no exit receipt exists. A missing invocation claim is not created by
+recovery; it maps to the registered pre-producer or pre-verifier interruption
+error.
+
+If a push succeeded but the process crashed before persisting its normal
+receipt, recovery does not reconstruct lost push stdout/stderr. It runs the
+exact `ls-remote` observation and writes the separately typed
+`REF_OBSERVATION` receipt. The tracked consumption receipt and QA terminal
+receipt hash bind to the actually present member of the corresponding
+`PUSH_CALL | REF_OBSERVATION` union.
+
+The exact recovery-driver argv is:
+
+```text
+/Users/liu/.local/conda/bin/python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py --recover --attempt-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1
+```
+
+The recovery driver itself may be restarted after a recovery-process crash.
+Its writes are O_EXCL or exact-byte idempotent, and every Git action is
+selected from observed ref state and guarded by the registered lease. A
+recovery restart may never create a producer or verifier invocation claim.
+
+The outer driver and recovery driver serialize on an exclusive flock held on
+`<attempt_root>/control/orchestrator.lock`. Recovery cannot begin until it
+acquires that lock. Each producer/verifier child similarly holds its own
+runtime flock for its entire execution. Before an invocation-without-exit is
+classified as interrupted, recovery must acquire and release that child lock;
+therefore it cannot race an orphan child that survived its parent.
+
+Each Git push has a separate runtime flock. The driver passes that locked file
+descriptor only to the exact `git push` child, so an orphan push retains the
+lock after its parent exits. Recovery must acquire the same lock before
+`ls-remote` or a side-effect-free retry; observed ref state is therefore
+post-child, not a race with an in-flight push.
 
 The two formal process receipts use the exact field sets and canonical
-serializer in `one_shot.formal_process_receipts`. They persist child argv,
+serializer in `one_shot.formal_process_receipts`. Before each `Popen`, the
+outer driver writes and fsyncs an O_EXCL invocation claim containing the
+exact child argv, kind and ordinal. The exit receipts persist child argv,
 exit codes and stdout/stderr hashes before the next transition. The verifier
 receipt additionally persists `first_error`, result SHA and terminal-manifest
-SHA, using `NONE` only where the frozen FAIL branch permits absence. Recovery
-terminalizes from these durable receipts and observed state only.
+SHA. Invocation claim without exit receipt maps to
+`FORMAL_PRODUCER_INTERRUPTED` or `TERMINAL_VERIFIER_INTERRUPTED`; it never
+authorizes a rerun.
+
+All SHA fields use the exact domains in `one_shot.sha_tokens`. In particular,
+an absent controller ref is the ASCII token `ABSENT`; an unavailable process
+exit, result or recovery artifact is `NONE`. Empty string and all-zero SHA
+sentinels are forbidden. `contracts/formal_identity.json.controller_pre_sha`
+is therefore exactly `ABSENT` for Q0, and the normal consumption
+`old_sha/pre_ls_remote_sha` fields are also exactly `ABSENT`.
 
 The exact formal cwd is:
 
@@ -1301,21 +1378,27 @@ The exact formal cwd is:
 /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol
 ```
 
-The exact formal argv is:
+The exact outer-driver argv is:
 
 ```text
-python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py --formal --claim .workflow/attempt-claims/0831T001.armed.json --attempt-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1
+/Users/liu/.local/conda/bin/python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py --formal --claim .workflow/attempt-claims/0831T001.armed.json --attempt-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1
 ```
 
 The runner consumes the armed claim before generating fixtures; the path
 argument remains the pre-consumption authority named by the claim and is
 renamed by the runner.
 
-After the formal producer stops, the terminal verifier runs exactly once even
-if the producer exit code is nonzero:
+The exact producer child argv is:
 
 ```text
-python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package
+/Users/liu/.local/conda/bin/python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification.py --formal-producer --attempt-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1 --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package --truth .workflow/contracts/0831T001-fixture-truth-v1.json --surface-contract .workflow/contracts/0831T001-q0-surface-contract-v1.json
+```
+
+After the formal producer stops, the terminal verifier runs at most once even
+if the producer exit code is nonzero. Its exact child argv is:
+
+```text
+/Users/liu/.local/conda/bin/python examples/hyperliquid/skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py --package-root /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/package --result /Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol/local_live_analysis/skhynix_trade_led_depth_follower_q0_0831T001_formal_v1/control/terminal_verifier_result.json
 ```
 
 No post-formal regeneration is permitted. Terminalization has two exact
@@ -1332,8 +1415,16 @@ FAIL:
   classification = Q0_PIPELINE_NOT_QUALIFIED
   baseline copy = forbidden
   terminal manifest SHA256 = NONE if no valid manifest exists
-  first_error = FORMAL_PRODUCER_EXIT_NONZERO if producer exit is nonzero;
-    otherwise the terminal verifier's registered first error
+  process exit/result fields = integer/hash when the durable exit receipt
+    exists, otherwise NONE
+  first_error precedence:
+    producer invocation without exit -> FORMAL_PRODUCER_INTERRUPTED
+    producer nonzero exit -> FORMAL_PRODUCER_EXIT_NONZERO
+    producer exit without verifier invocation ->
+      FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER
+    verifier invocation without exit -> TERMINAL_VERIFIER_INTERRUPTED
+    verifier exit -> verifier registered first error
+    no producer invocation -> FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER
   completed_stages_json and missing_stages_json are required
 ```
 
@@ -1352,9 +1443,17 @@ without regeneration, to:
 baselines/skhynix_trade_led_depth_follower_q0_v1/
 ```
 
-The PASS baseline copy is checked against the accepted formal
-`terminal_manifest.json`. The terminal result receipt fields and PASS/FAIL
-sentinels are frozen in `one_shot.terminal_receipt_fields` and
+PASS publication first prepares the exact 57 files under
+`<attempt_root>/control/baseline_candidate`, verifies every byte against the
+accepted `terminal_manifest.json`, and fsyncs every file and directory. It
+then atomically renames that directory no-replace to the baseline path and
+fsyncs the baseline parent. Recovery may resume an incomplete attempt-owned
+candidate; an already published baseline is accepted only if its exact path
+set and bytes match. This prevents a crash during copy from exposing a
+partial tracked baseline.
+
+The terminal result receipt fields and PASS/FAIL sentinels are frozen in
+`one_shot.terminal_receipt_fields` and
 `one_shot.terminalization_branches`.
 
 ## 13. Acceptance

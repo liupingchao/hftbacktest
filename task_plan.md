@@ -15,7 +15,8 @@
   implementation or formal execution was authorized.
 - Revision 3 was independently rejected at `P0/P1/P2/P3=0/9/0/0`.
 - Revision 4 was independently rejected at `P0/P1/P2/P3=0/4/0/0`.
-- Revision 5 adds a tracked fixture-truth authority, production-isomorphic
+- Revision 5 was independently rejected at `P0/P1/P2/P3=0/3/0/0`.
+- Revision 6 adds a tracked fixture-truth authority, production-isomorphic
   schema-v4 adapter, accepted build_features/base_masks formulas,
   schemas, distinct causal/outcome stage entry points, non-vacuous
   slice/reset fixtures, typed A/B/P physical-input ledgers, exact package
@@ -30,7 +31,7 @@
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
 - Implementation and formal execution remain locked pending independent plan
-  review of Revision 5.
+  review of Revision 6.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 

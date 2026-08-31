@@ -60,6 +60,13 @@
 - Revision 5 adds exact observability refreshes, the reachable slice error,
   one receipt header and durable producer/verifier exit receipts feeding
   explicit PASS/FAIL terminal branches.
+- Revision 5 review failed at `0/3/0/0`: QF13 froze a zero background-run
+  value despite a 200ms production memory run, interruption windows lacked
+  executable terminal recovery, and child/absent-ref receipt bytes were not
+  uniquely frozen.
+- Revision 6 derives QF13 as `log(81)`, uses explicit invocation claims and
+  runtime flocks for at-most-once children, and separates normal push receipts
+  from recovery-only ref-observation receipts with `ABSENT`/`NONE` sentinels.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 
