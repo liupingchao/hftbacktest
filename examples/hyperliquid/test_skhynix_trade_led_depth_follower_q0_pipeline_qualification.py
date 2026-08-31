@@ -1478,9 +1478,35 @@ def test_runner_negative_probes_do_not_invoke_terminal_verifier() -> None:
     assert "subprocess.run" not in probe_text
 
 
+def test_qf12_and_qf13_runner_probes_execute_production_boundaries() -> None:
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    qf12_reachable = _reachable_functions(calls, "_replay_negative_qf12_probe")
+    qf12_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(qf12_reachable & set(functions))
+    )
+    qf12_text += _function_text(
+        RUNNER_PATH,
+        functions["_qf12_interruption_worker"],
+    )
+    assert "materialize_slice" in qf12_text
+    assert "SIGKILL" in qf12_text
+    assert "Process(" in qf12_text
+
+    qf13_reachable = _reachable_functions(calls, "_replay_negative_qf13_probe")
+    qf13_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(qf13_reachable & set(functions))
+    )
+    assert "CausalView" in qf13_text
+    assert ".read(" in qf13_text
+    assert "mutated_index <= anchor_index" not in qf13_text
+
+
 def test_development_formal_pipeline_replays_all_registered_negatives(
     tmp_path: Path,
     runner: ModuleType,
+    verifier: ModuleType,
     truth: Mapping[str, Any],
     surface: Mapping[str, Any],
 ) -> None:
@@ -1536,6 +1562,15 @@ def test_development_formal_pipeline_replays_all_registered_negatives(
     assert len(rows) == 14
     assert all(row["passed"] == "true" for row in rows)
 
+    verifier_code, verifier_result = verifier.verify(package_root)
+    assert verifier_code == 2
+    assert verifier_result["result"] == "FAIL"
+    assert verifier_result["first_error"] == "TERMINAL_CLOSURE"
+    assert verifier_result["gate_rows"] == [
+        *[{"gate_id": f"Q0-{index}", "status": "PASS"} for index in range(12)],
+        {"gate_id": "Q0-12", "status": "FAIL"},
+    ]
+
 
 def test_terminal_verifier_independently_replays_negative_boundaries() -> None:
     functions, calls = _module_function_graph(VERIFIER_PATH)
@@ -1551,6 +1586,32 @@ def test_terminal_verifier_independently_replays_negative_boundaries() -> None:
         for marker in ("copytree", "TemporaryDirectory", "mkdtemp")
     )
     assert "observed_first_error" in reachable_text
+
+
+def test_terminal_verifier_executes_production_qf12_and_qf13_boundaries() -> None:
+    functions, calls = _module_function_graph(VERIFIER_PATH)
+    qf12_reachable = _reachable_functions(calls, "replay_qf12_interruption")
+    qf12_text = "\n".join(
+        _function_text(VERIFIER_PATH, functions[name])
+        for name in sorted(qf12_reachable & set(functions))
+    )
+    qf12_text += _function_text(
+        VERIFIER_PATH,
+        functions["qf12_interruption_worker"],
+    )
+    assert "load_production_core" in qf12_text
+    assert "materialize_slice" in qf12_text
+    assert "SIGKILL" in qf12_text
+
+    qf13_reachable = _reachable_functions(calls, "replay_qf13_causal_boundary")
+    qf13_text = "\n".join(
+        _function_text(VERIFIER_PATH, functions[name])
+        for name in sorted(qf13_reachable & set(functions))
+    )
+    assert "load_production_core" in qf13_text
+    assert "CausalView" in qf13_text
+    assert ".read(" in qf13_text
+    assert "independent_causal_read" not in VERIFIER_PATH.read_text(encoding="ascii")
 
 
 def test_raw_git_parser_accepts_exact_empty_and_nonempty_framing(
@@ -1732,6 +1793,30 @@ def test_formal_and_recovery_reach_observe_git_backed_g01_g07_gate(
         )
 
 
+def test_git_phase_evaluator_checks_controller_by_default(
+    runner: ModuleType,
+) -> None:
+    signature = inspect.signature(runner.verify_git_action_phase)
+    assert signature.parameters["skip_controller"].default is False
+
+
+def test_formal_and_recovery_reference_all_frozen_action_phases(
+    surface: Mapping[str, Any],
+) -> None:
+    machine = surface["one_shot"]["workflow_blockers"]["local_git_state_machine"]
+    expected = set(machine["action_phase_order"])
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    reachable = set()
+    for entrypoint in ("execute_formal_outer", "recover_formal"):
+        reachable.update(_reachable_functions(calls, entrypoint))
+    reachable_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(reachable & set(functions))
+    )
+    missing = sorted(phase for phase in expected if f'"{phase}"' not in reachable_text)
+    assert not missing, f"formal/recovery paths omit frozen action phases: {missing}"
+
+
 def test_shared_recovery_resolver_covers_legal_interruption_profiles(
     surface: Mapping[str, Any],
 ) -> None:
@@ -1807,31 +1892,177 @@ def test_push_receipt_is_published_before_runtime_lock_release() -> None:
 
 
 def test_recovery_waits_for_both_child_runtime_locks_before_resolution() -> None:
-    functions, _ = _module_function_graph(RUNNER_PATH)
+    functions, calls = _module_function_graph(RUNNER_PATH)
     text = _function_text(RUNNER_PATH, functions["recover_formal"])
     producer_offset = text.find("formal_producer_runtime.lock")
     verifier_offset = text.find("terminal_verifier_runtime.lock")
-    resolver_offset = text.find("resolve_durable_terminal_state(")
+    terminalize_offset = text.find("_terminalize_local_result(")
     assert producer_offset >= 0
     assert verifier_offset >= 0
-    assert resolver_offset > max(producer_offset, verifier_offset)
+    assert terminalize_offset > max(producer_offset, verifier_offset)
+    assert _reachable_call(
+        calls,
+        "recover_formal",
+        {"resolve_durable_terminal_state"},
+    )
 
 
 def test_recovery_start_is_committed_before_terminal_recovery_mutation() -> None:
     functions, calls = _module_function_graph(RUNNER_PATH)
     recovery_text = _function_text(RUNNER_PATH, functions["recover_formal"])
     start_offset = recovery_text.find("recovery_start.json")
-    resolver_offset = recovery_text.find("resolve_durable_terminal_state(")
-    receipt_offset = recovery_text.find("TERMINAL_RECEIPT_PATH")
+    terminalize_offset = recovery_text.find("_terminalize_local_result(")
     assert start_offset >= 0
-    assert start_offset < resolver_offset
-    assert start_offset < receipt_offset
+    assert start_offset < terminalize_offset
     reachable = _reachable_functions(calls, "recover_formal")
     reachable_text = "\n".join(
         _function_text(RUNNER_PATH, functions[name])
         for name in sorted(reachable & set(functions))
     )
     assert "CONTROL_PUBLICATION_EXISTING_BYTES" in reachable_text
+
+
+def test_recovery_implements_frozen_workflow_blocker_restart_authority(
+    surface: Mapping[str, Any],
+) -> None:
+    rows = surface["one_shot"]["workflow_blockers"]["workflow_blocker_restart_rows"]
+    assert len(rows) == 14
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    assert _reachable_call(
+        calls,
+        "recover_formal",
+        {"_resume_workflow_blocker"},
+    )
+    reachable = _reachable_functions(calls, "_resume_workflow_blocker")
+    reachable_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(reachable & set(functions))
+    )
+    for row in rows:
+        assert f'"{row["state"]}"' in reachable_text
+    assert "workflow_blocker_restart_rows" in reachable_text
+
+
+def test_blocker_restart_freezes_controller_and_forbids_push() -> None:
+    functions, _ = _module_function_graph(RUNNER_PATH)
+    restart_text = _function_text(
+        RUNNER_PATH,
+        functions["_resume_workflow_blocker"],
+    )
+    assert "_observe_controller_status" not in restart_text
+    assert "push_transition(" not in restart_text
+    assert "publish_push_observation(" not in restart_text
+    assert "allow_controller_push=False" in restart_text
+    assert "skip_controller=True" in restart_text
+    assert "recovery_start.json" not in restart_text
+
+
+def test_recovery_selects_existing_blocker_before_controller_observation() -> None:
+    functions, _ = _module_function_graph(RUNNER_PATH)
+    recovery_text = _function_text(RUNNER_PATH, functions["recover_formal"])
+    blocker_offset = recovery_text.find("_selected_workflow_blocker(")
+    observation_offset = recovery_text.find("_observe_controller_status(")
+    recovery_start_offset = recovery_text.find("recovery_start.json")
+    assert blocker_offset >= 0
+    assert blocker_offset < observation_offset
+    assert blocker_offset < recovery_start_offset
+
+
+def test_crash_boundary_classifier_covers_frozen_twenty_state_matrix(
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    state = {
+        "attempt_root_present": False,
+        "attempt_lock_present": False,
+        "claim_state": "ARMED",
+        "head_state": "ARMING_COMMIT",
+        "consumption_tag_exact": False,
+        "controller_state": "ABSENT",
+        "consumption_transition_receipt_present": False,
+        "tracked_consumption_receipt_present": False,
+        "producer_invocation_present": False,
+        "producer_exit_present": False,
+        "verifier_invocation_present": False,
+        "verifier_exit_present": False,
+        "verifier_result_kind": "ABSENT",
+        "baseline_present": False,
+        "terminal_receipt_present": False,
+        "terminal_tag_exact": False,
+        "terminal_transition_receipt_present": False,
+    }
+    cases = [("before_attempt_root", dict(state))]
+
+    def advance(boundary: str, **updates: Any) -> None:
+        state.update(updates)
+        cases.append((boundary, dict(state)))
+
+    advance("after_attempt_root_before_lock", attempt_root_present=True)
+    advance("after_attempt_lock_before_claim_rename", attempt_lock_present=True)
+    advance("after_claim_rename_before_consumption_commit", claim_state="CLAIMED")
+    advance(
+        "after_consumption_commit_before_tag",
+        head_state="CONSUMPTION_COMMIT",
+    )
+    advance("after_consumption_tag_before_push", consumption_tag_exact=True)
+    advance(
+        "after_consumption_push_before_untracked_receipt",
+        controller_state="CONSUMPTION_SHA",
+    )
+    advance(
+        "after_untracked_receipt_before_tracked_copy",
+        consumption_transition_receipt_present=True,
+    )
+    advance(
+        "after_tracked_copy_before_producer_invocation",
+        tracked_consumption_receipt_present=True,
+    )
+    advance(
+        "after_producer_invocation_before_exit_receipt",
+        producer_invocation_present=True,
+    )
+    advance(
+        "after_producer_exit_before_verifier_invocation",
+        producer_exit_present=True,
+    )
+    advance(
+        "after_verifier_invocation_before_exit_receipt",
+        verifier_invocation_present=True,
+    )
+    advance(
+        "after_terminal_verifier_fail",
+        verifier_exit_present=True,
+        verifier_result_kind="FAIL",
+    )
+    advance(
+        "after_terminal_verifier_pass_before_baseline_copy",
+        verifier_result_kind="PASS",
+    )
+    advance("after_baseline_copy_before_terminal_receipt", baseline_present=True)
+    advance(
+        "after_terminal_receipt_before_terminal_commit",
+        terminal_receipt_present=True,
+    )
+    advance(
+        "after_terminal_commit_before_tag",
+        head_state="TERMINAL_COMMIT",
+    )
+    advance("after_terminal_tag_before_push", terminal_tag_exact=True)
+    advance(
+        "after_terminal_push_before_receipt",
+        controller_state="TERMINAL_SHA",
+    )
+    advance(
+        "after_terminal_push_receipt",
+        terminal_transition_receipt_present=True,
+    )
+
+    assert [boundary for boundary, _ in cases] == list(
+        surface["one_shot"]["crash_recovery_matrix"]
+    )
+    assert [runner.classify_crash_boundary(snapshot) for _, snapshot in cases] == [
+        boundary for boundary, _ in cases
+    ]
 
 
 @pytest.mark.parametrize(

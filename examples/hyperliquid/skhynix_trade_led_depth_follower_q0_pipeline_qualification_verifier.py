@@ -9,10 +9,13 @@ import csv
 import errno
 import fcntl
 import hashlib
+import importlib.util
 import io
 import json
+import multiprocessing as mp
 import os
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -38,6 +41,9 @@ PLAN_PATH = Path(
 TASK_PATH = Path(".workflow/tasks/0831T001.md")
 TRUTH_PATH = Path(".workflow/contracts/0831T001-fixture-truth-v1.json")
 SURFACE_PATH = Path(".workflow/contracts/0831T001-q0-surface-contract-v1.json")
+CORE_PATH = Path(
+    "examples/hyperliquid/skhynix_trade_led_depth_follower_transition_hazard.py"
+)
 MASTER_SHA256 = "4ac0772ae4f2bdf29e6572e22092108de293ec05deeaa77679d606cf1e4c0d40"
 MASTER_BLOB = "69c5cdf51b7fdf07d55170ed58bc791ff37bd0af"
 MASTER_COMMIT = "2dcd1d95b7c6ff24cb5991e8dc1d3d97b2666b19"
@@ -56,6 +62,7 @@ EXPECTED_INPUT_ROOTS = ("A", "B", "P")
 FIXED_RUNTIME_LOCK_FD = 198
 FIXED_HANDOFF_ACK_FD = 199
 GATE_IDS = tuple(f"Q0-{index}" for index in range(13))
+PRODUCTION_CORE_MODULE = "_0831t001_terminal_verifier_production_core"
 
 
 class VerificationError(RuntimeError):
@@ -70,6 +77,23 @@ class VerificationError(RuntimeError):
 def require(condition: bool, code: str, detail: str = "") -> None:
     if not condition:
         raise VerificationError(code, detail)
+
+
+def load_production_core() -> Any:
+    existing = sys.modules.get(PRODUCTION_CORE_MODULE)
+    if existing is not None:
+        return existing
+    path = REPO_ROOT / CORE_PATH
+    spec = importlib.util.spec_from_file_location(PRODUCTION_CORE_MODULE, path)
+    require(
+        spec is not None and spec.loader is not None,
+        "AUTHORITY_BINDING",
+        str(path),
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[PRODUCTION_CORE_MODULE] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -1394,49 +1418,120 @@ def validate_clean_slice_evidence(
     return paths
 
 
+def qf12_interruption_worker(
+    *,
+    source_path: str,
+    destination_path: str,
+    nominal_start_ns: int,
+    segment_id: int,
+    interrupt_before_publication: bool,
+) -> None:
+    core = load_production_core()
+    if interrupt_before_publication:
+        original_link = os.link
+
+        def kill_before_link(*args: Any, **kwargs: Any) -> None:
+            del args, kwargs
+            os.kill(os.getpid(), signal.SIGKILL)
+
+        os.link = kill_before_link  # type: ignore[assignment]
+        try:
+            core.materialize_slice(
+                Path(source_path),
+                Path(destination_path),
+                nominal_start_ns=nominal_start_ns,
+                segment_id=segment_id,
+            )
+        finally:
+            os.link = original_link  # type: ignore[assignment]
+    else:
+        core.materialize_slice(
+            Path(source_path),
+            Path(destination_path),
+            nominal_start_ns=nominal_start_ns,
+            segment_id=segment_id,
+        )
+        os.kill(os.getpid(), signal.SIGKILL)
+
+
 def replay_qf12_interruption(
     context: Mapping[str, Any], probe_id: str
 ) -> tuple[int, dict[str, Any]]:
-    with temporary_replay_attempt(context, probe_id) as (_, package):
+    with temporary_replay_attempt(context, probe_id) as (attempt, package):
         replay_context = {
             "package_root": package.resolve(),
             "surface": context["surface"],
             "truth": context["truth"],
             "fixtures": context["fixtures"],
         }
-        paths = validate_clean_slice_evidence(replay_context)
+        validate_clean_slice_evidence(replay_context)
         qf12_truth = context["fixtures"]["QF12"]["expected"]
         require(
             probe_id in qf12_truth["negative_probe_ids"],
             "TERMINAL_CLOSURE",
             probe_id,
         )
+        source = attempt / "inputs" / "A" / "QF12.npz"
+        arrays = load_semantic_replay_arrays(source)
+        nominal_start_ns = int(qf12_truth["slice_nominal_start_ns"])
+        positions = np.flatnonzero(arrays["ts_ns"] >= nominal_start_ns)
+        require(len(positions) > 0, "TERMINAL_CLOSURE", "qf12_nominal")
+        segment_id = int(arrays["segment_id"][int(positions[0])])
+        publication_root = attempt / "interrupted_slice_set"
+        destination = publication_root / "A" / "slices" / "QF12.npz"
+        process = mp.get_context("spawn").Process(
+            target=qf12_interruption_worker,
+            kwargs={
+                "source_path": str(source),
+                "destination_path": str(destination),
+                "nominal_start_ns": nominal_start_ns,
+                "segment_id": segment_id,
+                "interrupt_before_publication": (
+                    probe_id == "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION"
+                ),
+            },
+        )
+        process.start()
+        process.join(timeout=30)
+        require(not process.is_alive(), "TERMINAL_CLOSURE", f"{probe_id}:timeout")
+        require(
+            process.exitcode == -signal.SIGKILL,
+            "TERMINAL_CLOSURE",
+            f"{probe_id}:exit:{process.exitcode}",
+        )
+        temporary_paths = sorted(
+            destination.parent.glob(f".{destination.name}.*")
+            if destination.parent.exists()
+            else []
+        )
         if probe_id == "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION":
-            destination = paths[("A", "QF12")]
-            destination.unlink()
             require(not destination.exists(), "TERMINAL_CLOSURE", probe_id)
+            require(
+                len(temporary_paths) == 1
+                and temporary_paths[0].is_file()
+                and not temporary_paths[0].is_symlink(),
+                "TERMINAL_CLOSURE",
+                f"{probe_id}:temporary",
+            )
             error = VerificationError("SLICE_PUBLICATION_ABSENT", str(destination))
         else:
-            retained = paths[("A", "QF12")]
-            for key, path in paths.items():
-                if key != ("A", "QF12"):
-                    path.unlink()
-            exact_regular(retained, "TERMINAL_CLOSURE")
+            exact_regular(destination, "TERMINAL_CLOSURE")
+            require(not temporary_paths, "TERMINAL_CLOSURE", f"{probe_id}:temporary")
+            required_publications = {
+                publication_root / label / "slices" / f"{fixture_id}.npz"
+                for label in EXPECTED_INPUT_ROOTS
+                for fixture_id in context["surface"]["fixture_call_contract"][
+                    "slice_fixture_ids"
+                ]
+            }
             require(
-                sum(path.exists() for path in paths.values()) == 1,
+                sum(path.is_file() for path in required_publications) == 1
+                and destination in required_publications,
                 "TERMINAL_CLOSURE",
-                probe_id,
+                f"{probe_id}:publication_set",
             )
-            error = VerificationError("SLICE_PUBLICATION", str(retained))
+            error = VerificationError("SLICE_PUBLICATION", str(destination))
         return semantic_failure_result(package, 5, error)
-
-
-def independent_causal_read(
-    arrays: Mapping[str, np.ndarray], field: str, index: int, anchor_index: int
-) -> Any:
-    require(field in arrays, "CAUSAL_ACCESS_BOUNDARY", field)
-    require(index <= anchor_index, "CAUSAL_ACCESS_BOUNDARY", f"{field}:{index}")
-    return arrays[field][index]
 
 
 def load_semantic_replay_arrays(path: Path) -> dict[str, np.ndarray]:
@@ -1452,7 +1547,7 @@ def replay_qf13_causal_boundary(
     context: Mapping[str, Any],
 ) -> tuple[int, dict[str, Any]]:
     probe_id = "QF13_CAUSAL_PREFIX_MUTATION"
-    with temporary_replay_attempt(context, probe_id) as (_, package):
+    with temporary_replay_attempt(context, probe_id) as (attempt, package):
         replay_context = {
             "package_root": package.resolve(),
             "surface": context["surface"],
@@ -1550,20 +1645,45 @@ def replay_qf13_causal_boundary(
             if label == "A":
                 arrays_for_mutation = arrays
         require(arrays_for_mutation is not None, "TERMINAL_CLOSURE", "qf13_arrays")
+        mutation = context["fixtures"]["QF13"]["post_anchor_mutation"]
+        namespace = {"float": float}
+        for index in range(int(mutation["start"]), int(mutation["stop"])):
+            namespace["i"] = index
+            for field, formula in mutation["formulas"].items():
+                arrays_for_mutation[field][index] = eval(  # noqa: S307
+                    str(formula),
+                    {"__builtins__": {}},
+                    namespace,
+                )
+        mutated_path = attempt / "inputs" / "A" / "QF13_hostile.npz"
+        with mutated_path.open("xb") as handle:
+            np.savez(handle, **arrays_for_mutation)
+        core = load_production_core()
+        bundle = core.build_features(mutated_path)
+        causal = core.CausalView(
+            bundle,
+            fixture_id="QF13",
+            call_id="QF13_CAUSAL_PREFIX_MUTATION",
+        )
         try:
-            independent_causal_read(
-                arrays_for_mutation,
+            causal.read(
                 "trade_signed",
                 mutated_index,
-                anchor_index,
+                anchor_index=anchor_index,
+                purpose="hostile_post_anchor_read",
             )
-        except VerificationError as error:
+        except Exception as exc:
+            code = getattr(exc, "code", None)
             require(
-                error.code == "CAUSAL_ACCESS_BOUNDARY",
+                code == "CAUSAL_ACCESS_BOUNDARY",
                 "TERMINAL_CLOSURE",
-                probe_id,
+                f"{probe_id}:{code}",
             )
-            return semantic_failure_result(package, 3, error)
+            return semantic_failure_result(
+                package,
+                3,
+                VerificationError(str(code)),
+            )
         raise VerificationError("TERMINAL_CLOSURE", f"{probe_id}:fail_open")
 
 

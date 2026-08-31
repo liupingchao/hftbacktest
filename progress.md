@@ -10009,3 +10009,21 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Push-receipt lock ordering, child-runtime-lock waits and readiness projection
   identity are accepted as closed.
 - Implementation tag, arming and formal execution remain forbidden.
+
+## 2026-08-31 0831T001 Q0 Implementation Candidate Round 3
+
+- G01 is enabled by default and all 15 frozen Git action phases are reachable
+  from the formal or recovery production paths.
+- Recovery now classifies all 20 frozen crash boundaries from durable state
+  and binds the original boundary into immutable recovery-start evidence.
+- All 14 workflow-blocker restart rows are production authority. Controller
+  blocker restarts freeze the committed remote observation, skip only G01,
+  continue G02-G07 and never push the controller ref.
+- QF12 now executes production slice publication under real SIGKILL
+  interruption; QF13 executes production `CausalView.read`. The independent
+  verifier repeats both hostile boundaries itself.
+- Focused tests pass `83/83`; accepted fixed-epoch/fresh-channel regressions
+  pass `328` with one expected skip; static, compile, format, CLI and diff
+  checks pass.
+- Formal artifacts remain absent. This checkpoint requests independent
+  implementation readiness review only; arming and formal remain locked.
