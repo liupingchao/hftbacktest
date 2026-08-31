@@ -10364,3 +10364,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   A10 state select zero phases and fail G05 before artifact classification.
 - Revision 24 remains historical evidence only. Implementation and formal
   execution remain locked.
+
+## 2026-08-31 0831T001 Plan Amendment Round 25
+
+- Removed terminal receipt/report presence from the pre-artifact
+  `BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE` phase predicate, restoring a unique
+  phase for report-present A10 states.
+- Retained both absence requirements in the later blocker restart row, so
+  pre-terminal and post-receipt artifact restart rows remain disjoint.
+- New plan/task/surface SHA256 values are `6b1e8040...`, `dba38d07...` and
+  `da72d818...`. Implementation and formal remain locked pending independent
+  plan review.

@@ -2604,7 +2604,7 @@
             },
             {
               "action_phase": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
-              "predicate": "history depth 2, exact consumption tag, both consumption receipt-union members and tracked receipt absent, terminal receipt absent, business report absent, tracked transition CLEAN, and controller observation does not canonically equal consumption SHA"
+              "predicate": "history depth 2, exact consumption tag, both consumption receipt-union members and tracked receipt absent, tracked transition CLEAN, and controller observation does not canonically equal consumption SHA; terminal receipt/report presence is intentionally not a phase input because ordered A01-A12 artifact classification runs after this unique phase is derived"
             },
             {
               "action_phase": "BLOCKER_TERMINAL_COMMITTED",

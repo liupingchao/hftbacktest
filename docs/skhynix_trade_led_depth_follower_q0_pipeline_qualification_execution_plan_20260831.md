@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_24_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_25_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -213,6 +213,16 @@ accepted and retained.
 | two exclusions retained the old quarantine name | make both recovery reconciliation ownership and `initial_committed_paths_json` exclude exactly `.abandoned.<sha256>.<ordinal>` evidence paths |
 | A10 pre-terminal and post-receipt rows overlapped | require both terminal receipt and business report absent in `BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE`; any present receipt or report with A01-A12 belongs only to the artifact post-receipt row |
 
+Revision 24 was rejected with one phase-reachability finding. Its mandatory
+witness observation, quarantine row grammar, ordinal exclusions and
+restart-row disjointness are accepted and retained.
+
+### 1.17 Revision 25 closure matrix
+
+| Round 24 finding | Revision 25 closure |
+|---|---|
+| adding receipt/report absence to the pre-artifact phase predicate made report-present A10 states select zero phases and fail G05 | remove receipt/report presence from that phase predicate so durable Git/controller state still derives the unique pre-terminal phase; keep both absence requirements in the later blocker restart row, allowing ordered A01-A12 to route any present receipt/report uniquely to the post-receipt artifact row |
+
 ## 2. Authorization Boundary
 
 Permitted inputs:
@@ -361,10 +371,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  c4639ed4b01d1d310224d88734f96bf01f3110437f28743e9040d43510d790c0
+  da72d818a88f244581dde17866a5e42b8464df2265f1c10702f44d453a552fd1
 
 Git blob:
-  f257bddb44fad8c6efeeb9023b24be16028cd01d
+  a59e67dcca5cebf183e7dbe949d3ad5b532d24d1
 ```
 
 It freezes:
