@@ -1959,7 +1959,7 @@
         "blocker_code": "CONTROLLER_REF_DIVERGENCE",
         "controller_ref": "exact registered controller ref",
         "expected_sha_set_json": "canonical compact ASCII JSON string array in ASCII order containing exactly the legal SHA tokens for the observed durable stage",
-        "observed_sha": "one 40 lowercase hex SHA outside expected_sha_set_json",
+        "observed_sha": "ABSENT or one 40 lowercase hex SHA outside expected_sha_set_json",
         "observation_command": "exact git_commands.controller_observe JSON string array",
         "observation_exit_code": 0,
         "observation_stdout_sha256": "64 lowercase hex over exact stdout bytes",

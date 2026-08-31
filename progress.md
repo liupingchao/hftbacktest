@@ -10041,3 +10041,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   one skip, but these gaps are implementation-readiness blockers.
 - Formal execution, arming, controller creation and task tags remain
   forbidden.
+
+## 2026-08-31 0831T001 Q0 Plan Amendment Round 16
+
+- Round 3 review exposed one authority contradiction: prose and
+  receipt-sensitive controller rules classify ref disappearance to `ABSENT`
+  as divergence, while the divergence receipt value domain allowed only a
+  40-hex SHA.
+- Revision 16 changes only that value domain to `ABSENT or 40-hex`; all
+  fields, expected sets, restart rows and scientific boundaries are
+  unchanged.
+- New surface SHA256/blob are `6d6ce0e7...2066f9` /
+  `1dfd67e1...066f9`.
+- This amendment is pending independent plan review. Round 4 implementation
+  and formal execution remain locked.

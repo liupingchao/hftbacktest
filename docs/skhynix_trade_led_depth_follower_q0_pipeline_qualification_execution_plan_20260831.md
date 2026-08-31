@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_15_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_16_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -117,6 +117,12 @@ classification.
 | `variant_ordinal` base/type was implicit | persist zero-based integer ordinals `0..21` directly in all 22 phase/branch rows and require equality with array index |
 | PATH probe formatting was ambiguous | freeze exactly two zero-padded ASCII decimal digits, yielding `00` through `21` |
 | aggregate preimage was not unique | freeze row nesting, exact fields and array orders; the explicit 704 rows independently rederive the unchanged aggregate `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c` |
+
+### 1.8 Revision 16 closure matrix
+
+| Round 3 implementation-readiness finding | Revision 16 closure |
+|---|---|
+| controller ref disappearance after durable consumption proof is defined as divergence, but `controller_divergence_value_domains.observed_sha` allowed only a 40-hex SHA | amend that single value domain to `ABSENT or one 40 lowercase hex SHA outside expected_sha_set_json`; all receipt fields, expected-set rules, blocker code, restart semantics and other surface bytes remain unchanged |
 
 ## 2. Authorization Boundary
 
@@ -266,10 +272,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  b92d69e40e58f2c7277b3c2f11a29198274e6936992142c22eb6e7839a1de402
+  6d6ce0e7733ed17d888bfa7dd0fd1033f854f8dd4df3a7f82b503dedbe2066f9
 
 Git blob:
-  3d281f8430581c143c59d227ee3e259a23000236
+  1dfd67e18786a797796cff5e12e1d84b5c5cef81
 ```
 
 It freezes:
