@@ -10444,3 +10444,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Formal state remained absent throughout review. The implementation-readiness
   gate is now open for frozen arming/controller preparation and the single
   formal attempt.
+
+## 2026-09-01 0831T001 Q0 Formal Invocation Failed Pre-Attempt
+
+- Exact implementation freeze commit `243f5694` and arming commit `8dc37435`
+  satisfy the registered tag/message/parent/claim chronology.
+- The one registered outer-driver command exited `1` at
+  `SOURCE_ROOT_NOT_CLOSED:argv` before attempt-root creation.
+- The armed claim remains tracked and unconsumed; claimed state, receipts,
+  business report, baseline, controller refs/objects and terminal tags are
+  absent.
+- No producer, verifier, fixture, historical cache or future outcome access
+  occurred.
+- Scientific classification is `NONE`; prediction is `NOT_EVALUATED`.
+- No repair, alternate argv, recovery or second formal invocation is
+  authorized in 0831T001. The execution record is now pending independent QA.

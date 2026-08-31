@@ -9170,3 +9170,19 @@ Drift guard:
 - 0828T014 QA Round 2 independently reproduced the 1,692-row supplemental
   audit and accepted the package with no P0-P3 findings. This is execution
   acceptance of a negative A-1 result, not support for the hypothesis.
+
+## 2026-09-01 0831T001 Pre-Attempt Formal Failure
+
+- The frozen surface stores `outer_driver_argv` with the Python interpreter
+  as its first element, while the runner compares that array directly with
+  Python `sys.argv`.
+- The registered exact command therefore failed deterministically at
+  `SOURCE_ROOT_NOT_CLOSED:argv` before no-replace attempt-root creation.
+- The failure produced no formal package or scientific classification:
+  classification is `NONE` and prediction is `NOT_EVALUATED`.
+- Durable evidence is limited to the exact implementation tag, arming commit
+  and still-armed claim. Controller refs/objects, claimed state, receipts,
+  baseline and terminal tags remain absent.
+- Do not reuse the armed claim or reinterpret the absence of a Q0 result as
+  market evidence. Any correction requires a new reviewed task and new
+  one-shot identity.
