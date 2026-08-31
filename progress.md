@@ -10474,3 +10474,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `NOT_EVALUATED`.
 - 0831T001 is closed against repair, re-arming, recovery or rerun. A correction
   requires a new reviewed formal task.
+
+## 2026-09-01 0831T001 Workflow Closed
+
+- Execution report commit `82ab944e` and final QA commit `fcb0766c` preserve
+  separate formal-result and acceptance history.
+- Task status is `未通过`; final QA remains `0/1/0/0`.
+- Production authorities are unchanged from the implementation tag.
+- The armed claim and arming history are retained as non-reusable evidence;
+  all consumed/terminal/formal package state remains absent.
+- Readiness temporary worktree/output were removed. The controller repository
+  is retained empty as registered infrastructure evidence.
+- 0831T001 is paused and requires a new task for any correction.

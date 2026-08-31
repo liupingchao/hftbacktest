@@ -2,8 +2,8 @@
 
 ## 2026-08-31 0831T001 Trade-Led Depth-Follower Q0
 
-- Register `0831T001 / TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
-  as the current unique formal task.
+- `0831T001 / TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1` was the
+  unique formal task and is now closed as `未通过`.
 - Qualify only the shared causal feature, anchor, structural-outcome, slice
   and package core on deterministic synthetic fixtures.
 - Bind the accepted fixed-epoch action, 100ms memory and epoch authorities;
