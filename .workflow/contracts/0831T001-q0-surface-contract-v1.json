@@ -1716,7 +1716,7 @@
       "temporary_creation": "open the sibling temporary path with O_WRONLY|O_CREAT|O_EXCL; never create the committed target directly",
       "write_order": "write all expected bytes, verify full byte count, fsync temporary file, hard-link temporary to committed target no-replace, fsync parent, unlink temporary, fsync parent",
       "committed_definition": "only the final target path is committed; a .publishing path is never authority",
-      "existing_target": "accept only when bytes are exactly the independently derived expected bytes; otherwise fail closed",
+      "existing_target": "inspect with no-follow lstat and accept only a regular non-symlink final target whose bytes are exactly the independently derived expected bytes; callers must not resolve the final path component before publication or validation",
       "abandoned_deterministic_temporary": "while holding orchestrator flock and with target absent, remove a truncated or mismatched temporary only when expected bytes are independently derivable, fsync parent, then rebuild",
       "abandoned_observational_temporary": "for PUSH_CALL or child-exit bytes that cannot be reconstructed after interruption, remove the uncommitted temporary after the corresponding runtime lock is acquirable; select REF_OBSERVATION or interruption semantics instead",
       "claim_payloads": "attempt lock and invocation claims are deterministic payloads published by this same protocol; the atomic hard-link, not temporary creation, consumes the claim",
@@ -2163,10 +2163,10 @@
         "tag_identity": "every present task tag is one annotated tag object with the exact registered message and peeled target; any wrong, lightweight, duplicate/conflicting or unexpected tag is G06 or G07",
         "head": "must equal the exact commit named by the selected row; detached or additional successor HEAD is G03"
       },
-      "workflow_blocker_restart_authority": "first evaluate local_git_state_machine; G01 enters CONTROLLER_REF_DIVERGENCE and G02-G07 enter ARTIFACT_STATE_CORRUPTION. Only a row with no G-rule match may be selected. After any blocker observation target is committed, workflow_blocker_restart_rows supersede crash_recovery_matrix and repeat the exact selected row after interruption until its next_action commits",
+      "workflow_blocker_restart_authority": "first evaluate local_git_state_machine from canonical validated local inputs; an invalid or source-mismatched receipt cannot select a proof stage. G01 enters CONTROLLER_REF_DIVERGENCE and G02-G07 enter ARTIFACT_STATE_CORRUPTION. Only a row with no G-rule match may be selected, and A01-A11 artifact classification runs only after that PRE_BLOCKER evaluation. After any blocker observation target is committed, workflow_blocker_restart_rows supersede crash_recovery_matrix and repeat the exact selected row after interruption until its next_action commits",
       "local_git_state_machine": {
         "evaluation_modes": {
-          "PRE_BLOCKER_OBSERVATION": "evaluate G01-G07 in order; G01 publishes CONTROLLER_REF_DIVERGENCE, while G02-G07 publish ARTIFACT_STATE_CORRUPTION",
+          "PRE_BLOCKER_OBSERVATION": "derive candidate action phases only from canonical validated receipt unions and tracked-copy equality, then evaluate G01-G07 in order before A01-A11; G01 publishes CONTROLLER_REF_DIVERGENCE, while G02-G07 publish ARTIFACT_STATE_CORRUPTION",
           "POST_CONTROLLER_BLOCKER_OBSERVATION": "verify the immutable controller blocker receipt, freeze its observed ref or unverifiable observation as evidence, skip G01, then evaluate G02-G07 against each restart state before selecting a workflow_blocker_restart_rows row",
           "POST_ARTIFACT_BLOCKER_OBSERVATION": "verify immutable ARTIFACT_STATE_CORRUPTION and perform no additional Git mutation other than a local claim consumption transition already authorized by a previously selected valid pre-terminal row"
         },
@@ -2818,7 +2818,7 @@
     },
     "recovery": {
       "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
-      "entry_precondition": "acquire the exclusive orchestrator flock, apply workflow_blockers.controller_precheck_phase_table under the relevant controller runtime lock, exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed, otherwise atomically publish or verify recovery_start.json before any recovery state change, and for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
+      "entry_precondition": "acquire the exclusive orchestrator flock; reconcile only registered non-authority publication temporaries; evaluate the exact PRE_BLOCKER local Git phase before artifact rules or proof-stage selection; exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed; otherwise publish and seal recovery_start.json before any recovery state change; for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
       "recovery_start_fields": [
         "attempt_lock_sha256",
         "claimed_or_armed_sha256",
@@ -2837,7 +2837,15 @@
         "initial_committed_paths_json": "canonical compact JSON string array of all committed control target paths in ASCII order before recovery changes state",
         "recovery_id": "SHA256 of canonical compact sorted-key ASCII JSON over the other six fields excluding recovery_id"
       },
-      "recovery_start_rule": "on every legal controller-ref path publish recovery_start.json before rename, commit, tag, push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses exact committed bytes and original crash_boundary; all workflow_blockers codes are exceptions and follow workflow_blocker_restart_rows without creating a new recovery_start",
+      "recovery_start_rule": "on every legal controller-ref path derive recovery_start.json from the unchanged snapshot, hard-link the exact bytes no-replace, then complete recovery_start_seal before rename, commit, tag, push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses exact sealed bytes and original crash_boundary; all workflow_blockers codes are exceptions and follow workflow_blocker_restart_rows without creating a new recovery_start",
+      "recovery_start_seal": {
+        "platform": "the exact formal runtime is macOS and must expose os.chflags, stat.UF_IMMUTABLE and st_flags; absence fails before recovery mutation",
+        "pre_seal_authority": "a hard-linked but unsealed recovery_start.json is not recovery authority and no recovery state mutation is allowed after its link until the seal completes",
+        "seal_order": "no-follow lstat regular target and exact independently derived bytes; chmod 0444; set UF_IMMUTABLE while preserving other flags; fsync parent; no-follow lstat again",
+        "sealed_definition": "regular non-symlink final target, exact canonical bytes, permission mode 0444 and UF_IMMUTABLE set",
+        "interrupted_seal": "because no recovery mutation may precede the seal, restart re-derives exact bytes from the unchanged current snapshot; it may seal only an exact regular target, otherwise fail closed",
+        "sealed_restart": "verify exact bytes, mode and immutable flag before trusting any recovery_start field; missing flag/mode, symlink or byte mismatch is integrity corruption and is never repaired or re-self-hashed"
+      },
       "consumption_receipt_union": "exactly one of consumption_push_receipt.json with receipt_kind PUSH_CALL or consumption_push_observation.json with receipt_kind REF_OBSERVATION; copy the chosen bytes to the tracked consumption receipt path",
       "terminal_receipt_union": "exactly one of terminal_push_receipt.json with receipt_kind PUSH_CALL or terminal_push_observation.json with receipt_kind REF_OBSERVATION",
       "push_observation_rule": "REF_OBSERVATION is allowed only when exact ls-remote observes the expected new SHA after a crash and the normal PUSH_CALL receipt is absent; it records the observation command outputs, never reconstructed push outputs",

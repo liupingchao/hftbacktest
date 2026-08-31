@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_17_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_18_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -129,6 +129,14 @@ classification.
 | Round 16 finding | Revision 17 closure |
 |---|---|
 | value-domain amendment still conflicted with a trigger, POST_ATTEMPT_ROOT table and plan prose that treated `ABSENT` as globally legal | define the observed token domain as `ABSENT or 40-hex`, then make legality depend only on membership in the exact receipt-sensitive expected set for the current durable proof stage; any token outside that set, including `ABSENT`, is divergence |
+
+### 1.10 Revision 18 closure matrix
+
+| Round 6 implementation-readiness finding | Revision 18 closure |
+|---|---|
+| an invalid tracked receipt could advance controller proof-stage before G02-G07 | PRE_BLOCKER first evaluates the exact local Git phase; a receipt may select a proof-stage only after its canonical schema, transition tuple, source-union bytes and tracked-copy bytes validate |
+| `recovery_start.json` could be edited and re-self-hashed | the final target becomes recovery authority only after exact-byte hard-link publication, mode `0444`, macOS `UF_IMMUTABLE`, parent fsync and no-follow seal verification; no recovery mutation is legal before the seal, so an interrupted unsealed publication must be independently regenerated from the unchanged snapshot |
+| durable control publication accepted symlink targets | every target and sibling temporary is inspected with no-follow `lstat`; committed targets must be regular files, and callers may not resolve the final component before publication or validation |
 
 ## 2. Authorization Boundary
 
@@ -278,10 +286,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  a77f6fd0d4a36b2be9974c8fcf2d2d920f7ab7b5a2e17b1eead81695bc98600a
+  6ed73252048a4e501580dac1a3b810f2a4f649d02f06dc361a6b71262ccb8e2a
 
 Git blob:
-  74533850d2bf173c3d2acefb71f2d83bfe7a9999
+  a2a83d89727346ecff184be261f64312c19aadcd
 ```
 
 It freezes:
@@ -1521,13 +1529,39 @@ recovery; it maps to the registered pre-producer or pre-verifier interruption
 error.
 
 After acquiring the orchestrator lock, recovery first observes the controller
-ref under the relevant push-runtime lock. On a legal ref it publishes
-`recovery_start.json` from the unchanged initial state. Its `recovery_id`,
-original crash boundary, initial controller SHA and committed-control path
-set never change even if recovery later advances refs or commits and then
-crashes. The terminal receipt contains no recovery hash and is never
-rewritten. Late recovery after terminal-receipt publication is represented
-only by the immutable recovery files and the independent QA evidence fields.
+ref under the relevant push-runtime lock. PRE_BLOCKER then evaluates the
+exact local Git phase before artifact rules or proof-stage selection. A
+tracked receipt cannot advance the phase unless its canonical receipt, exact
+transition tuple, selected untracked source bytes and tracked-copy bytes all
+validate.
+
+On a legal ref, recovery derives `recovery_start.json` from the unchanged
+initial state. The sibling-temporary hard-link is not yet recovery authority.
+Before any rename, commit, tag, push, receipt copy, child-state
+classification, baseline publication or terminalization, recovery must:
+
+```text
+lstat final target and sibling temporary without following symlinks
+verify the final target is a regular file with exact independently derived bytes
+chmod final target to 0444
+set macOS UF_IMMUTABLE
+fsync the parent directory
+lstat again and verify regular/no-symlink, mode 0444 and UF_IMMUTABLE
+```
+
+Only the sealed final target is committed recovery authority. A crash before
+the seal cannot have advanced recovery state, so restart re-derives the same
+bytes from the still-unchanged snapshot and either seals that exact regular
+target or fails closed. A sealed target with missing mode/flag, a symlink, or
+different bytes is integrity corruption; it is never repaired or
+re-self-hashed.
+
+The sealed file's `recovery_id`, original crash boundary, initial controller
+SHA and committed-control path set never change even if recovery later
+advances refs or commits and then crashes. The terminal receipt contains no
+recovery hash and is never rewritten. Late recovery after terminal-receipt
+publication is represented only by the immutable recovery files and the
+independent QA evidence fields.
 
 Before publishing a new `recovery_start.json`, recovery observes the
 controller ref under the corresponding push-runtime lock. The exact legal

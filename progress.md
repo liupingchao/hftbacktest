@@ -10189,3 +10189,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   temporary and recovery identity remain only partially closed.
 - Formal, arming, controller creation, receipts and task tags remain absent
   and locked. No historical cache or future market outcome was accessed.
+
+## 2026-08-31 0831T001 Plan Amendment Round 18
+
+- Round 6 exposed an authority gap: a recovery-start self-hash cannot by
+  itself prove that legal fields were not rewritten and re-self-hashed.
+- Revision 18 defines recovery-start authority as a no-follow regular file
+  sealed to mode `0444` with macOS `UF_IMMUTABLE` before any recovery state
+  mutation. An interrupted pre-seal state must be independently re-derived
+  from the unchanged snapshot.
+- The amendment also freezes PRE_BLOCKER G evaluation before artifact rules
+  and forbids symlink-following or final-component resolution in durable
+  control publication.
+- New plan/task/surface SHA256 values are `cd958a03...`, `3205ec73...` and
+  `6ed73252...`. Independent plan review is required before implementation.
