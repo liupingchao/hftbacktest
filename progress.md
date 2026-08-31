@@ -9996,3 +9996,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   push-receipt lock ordering and child-runtime-lock waits are closed.
 - G01-G07 total action-phase coverage, the 20-state crash matrix and 14-row
   controller restart closure remain pending; formal execution stays locked.
+
+## 2026-08-31 0831T001 Q0 Implementation Readiness Round 2 Rejected
+
+- Independent review of immutable commit `a5233065` failed with
+  `P0/P1/P2/P3 = 0/4/0/0`.
+- G01/15-phase coverage, the 20-state crash matrix and the 14-row controller
+  restart machine remain open.
+- The review additionally found that QF12/QF13 negative semantic probes still
+  construct expected failures instead of executing the frozen publication and
+  production `CausalView.read` hostile paths.
+- Push-receipt lock ordering, child-runtime-lock waits and readiness projection
+  identity are accepted as closed.
+- Implementation tag, arming and formal execution remain forbidden.
