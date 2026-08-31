@@ -10151,3 +10151,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   checks pass.
 - No formal one-shot state exists. Round 5 exact-commit readiness and
   independent review remain required before any arming or formal execution.
+
+## 2026-08-31 0831T001 Q0 Implementation Readiness Round 5
+
+- Exact-commit readiness completed in the primary and fresh detached
+  worktrees: both performed 57 feature calls and emitted 37 byte-identical
+  projection files.
+- The preflight failed before independent review because the runner hashed
+  projection rows in registered order while the frozen surface requires ASCII
+  path order.
+- Runner tree SHA256 was `763e9a0d...e34f3`; independent contract-conforming
+  recomputation was `05db53ca...b57b7`.
+- Formal, arming, controller creation, receipts and task tags remain absent
+  and locked. No historical cache or future market outcome was accessed.
