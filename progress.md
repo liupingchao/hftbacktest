@@ -10228,3 +10228,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   with aggregate `8f1b2d43...`.
 - New plan/task/surface SHA256 values are `7d1d2751...`, `2c24aeca...` and
   `54801b63...`. Implementation remains locked pending independent review.
+
+## 2026-08-31 0831T001 Plan Review Round 19
+
+- Independent review accepted the witness architecture, no-follow descriptor
+  publication, 16-phase derivation and both recomputed aggregates.
+- Review still failed with four P1 boundary gaps: no registered witness
+  corruption outcome, incomplete exact-temporary resume, stale ordinal
+  maximum/prose, and missing QA witness fields.
+- Revision 19 remains historical evidence and implementation stays locked.
