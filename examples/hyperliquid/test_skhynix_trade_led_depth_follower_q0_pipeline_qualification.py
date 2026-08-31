@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import csv
+import errno
 import hashlib
 import importlib
 import inspect
@@ -48,9 +49,9 @@ VERIFIER_MODULE = (
 )
 
 TRUTH_SHA256 = "c9e1c5dba760309add5e0debfdfff6be3387e8978b1e5506b6d1fff9df87f529"
-SURFACE_SHA256 = "a77f6fd0d4a36b2be9974c8fcf2d2d920f7ab7b5a2e17b1eead81695bc98600a"
+SURFACE_SHA256 = "096b70b70ce723f30d2c719309d3431081041a195933c050d78157b6a4f91657"
 MUTATION_MATRIX_SHA256 = (
-    "8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c"
+    "4f28bc0e5f99e795600064219ceea2c5c192b2a5f8d80ae92b3822392f4504cd"
 )
 
 EXPECTED_CORE_SYMBOLS = (
@@ -119,6 +120,31 @@ def _canonical_json_bytes(value: object, *, final_lf: bool = False) -> bytes:
         sort_keys=True,
     ).encode("ascii")
     return payload + (b"\n" if final_lf else b"")
+
+
+def _surface_with_controller_repo(
+    surface: Mapping[str, Any],
+    controller_repo: Path,
+) -> dict[str, Any]:
+    copied = json.loads(json.dumps(surface))
+    witness = copied["one_shot"]["recovery"]["recovery_start_witness"]
+    witness["controller_repo"] = str(controller_repo)
+    for command_name in (
+        "blob_write_command",
+        "ref_create_command",
+        "ref_observe_command",
+        "object_type_command",
+        "blob_read_command",
+    ):
+        witness[command_name] = [
+            (
+                f"--git-dir={controller_repo}"
+                if str(argument).startswith("--git-dir=")
+                else argument
+            )
+            for argument in witness[command_name]
+        ]
+    return copied
 
 
 def _required_module(module_name: str, path: Path) -> ModuleType:
@@ -1701,12 +1727,12 @@ def test_physical_inventory_detects_mode_and_exact_byte_mutations(
     assert byte_physical != baseline_physical
 
 
-def test_revision15_22_variants_rederive_exact_704_row_aggregate(
+def test_revision25_23_variants_rederive_exact_736_row_aggregate(
     surface: Mapping[str, Any], runner: ModuleType
 ) -> None:
     contract = surface["one_shot"]["git_history_contract"]["git_observation_contract"]
     variants = contract["action_phase_preimage_variants"]
-    assert [row["variant_ordinal"] for row in variants] == list(range(22))
+    assert [row["variant_ordinal"] for row in variants] == list(range(23))
     matrix = contract["mutation_probe_matrix"]
     assert matrix["repository_config_rows"] == [
         {
@@ -1751,7 +1777,7 @@ def test_revision15_22_variants_rederive_exact_704_row_aggregate(
         },
     ]
     rows = _rederive_mutation_rows(surface)
-    assert len(rows) == matrix["row_count"] == 704
+    assert len(rows) == matrix["row_count"] == 736
     assert _sha256_bytes(_canonical_json_bytes(rows)) == MUTATION_MATRIX_SHA256
     assert matrix["canonical_rows_sha256"] == MUTATION_MATRIX_SHA256
 
@@ -1892,6 +1918,122 @@ def test_formal_and_recovery_reference_all_frozen_action_phases(
     assert not missing, f"formal/recovery paths omit frozen action phases: {missing}"
 
 
+def test_pre_recovery_phase_keeps_report_without_receipt_reachable_as_a10(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    repo_root = tmp_path / "repo"
+    attempt_root = repo_root / "attempt"
+    (attempt_root / "control").mkdir(parents=True)
+    report_path = repo_root / runner.BUSINESS_REPORT_PATH
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_bytes(b"orphan report\n")
+    consumption_commit = "c" * 40
+    monkeypatch.setattr(
+        runner,
+        "_history_ids",
+        lambda *_: {
+            "depth": 2,
+            "head": consumption_commit,
+            "arming_commit": "b" * 40,
+            "consumption_commit": consumption_commit,
+        },
+    )
+    monkeypatch.setattr(runner, "_selected_push_receipt", lambda **_: None)
+    monkeypatch.setattr(runner, "_tag_state", lambda *_, **__: "EXACT")
+    observed_phases: list[str] = []
+
+    def verify_phase(**kwargs: Any) -> dict[str, Any]:
+        phase = str(kwargs["action_phase"])
+        observed_phases.append(phase)
+        if phase == "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE":
+            return {}
+        raise runner.QualificationError("G01_CONTROLLER_REF_NOT_EXPECTED", phase)
+
+    monkeypatch.setattr(runner, "verify_git_action_phase", verify_phase)
+    phase = runner._verify_pre_recovery_git_state(
+        repo_root=repo_root,
+        attempt_root=attempt_root,
+        surface=surface,
+        claim={"implementation_commit": "a" * 40},
+        claim_bytes=b'{"implementation_commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
+        controller_token=runner.ABSENT,
+    )
+    resolution = runner._pre_recovery_artifact_resolution(
+        repo_root=repo_root,
+        attempt_root=attempt_root,
+        surface=surface,
+        claim={"implementation_commit": "a" * 40},
+    )
+
+    assert phase == "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE"
+    assert observed_phases == ["BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE"]
+    assert resolution is not None
+    assert (
+        resolution["first_invalid_rule"]
+        == "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT"
+    )
+
+
+@pytest.mark.parametrize(
+    ("git_failure", "expected_code"),
+    [
+        ("G03_HEAD_MISMATCH", "G03_HEAD_MISMATCH"),
+        (None, "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY"),
+    ],
+)
+def test_invalid_receipt_never_advances_proof_stage_and_preserves_g_rule_order(
+    git_failure: str | None,
+    expected_code: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    repo_root = tmp_path / "repo"
+    attempt_root = repo_root / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    (control / "consumption_push_receipt.json").write_bytes(b"not-json\n")
+    consumption_commit = "c" * 40
+    monkeypatch.setattr(
+        runner,
+        "_history_ids",
+        lambda *_: {
+            "depth": 2,
+            "head": consumption_commit,
+            "arming_commit": "b" * 40,
+            "consumption_commit": consumption_commit,
+        },
+    )
+    monkeypatch.setattr(runner, "_tag_state", lambda *_, **__: "EXACT")
+    attempted: list[str] = []
+
+    def verify_phase(**kwargs: Any) -> dict[str, Any]:
+        attempted.append(str(kwargs["action_phase"]))
+        if git_failure is not None:
+            raise runner.QualificationError(git_failure, "injected drift")
+        return {}
+
+    monkeypatch.setattr(runner, "verify_git_action_phase", verify_phase)
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._verify_pre_recovery_git_state(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim={"implementation_commit": "a" * 40},
+            claim_bytes=(
+                b'{"implementation_commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
+            ),
+            controller_token=runner.ABSENT,
+        )
+
+    assert caught.value.code == expected_code
+    assert attempted
+
+
 def test_shared_recovery_resolver_covers_legal_interruption_profiles(
     surface: Mapping[str, Any],
 ) -> None:
@@ -1994,7 +2136,8 @@ def test_recovery_start_is_committed_before_terminal_recovery_mutation() -> None
         _function_text(RUNNER_PATH, functions[name])
         for name in sorted(reachable & set(functions))
     )
-    assert "CONTROL_PUBLICATION_EXISTING_BYTES" in reachable_text
+    assert "CONTROL_PUBLICATION_FINAL_IDENTITY" in reachable_text
+    assert "_ensure_recovery_witness" in reachable_text
 
 
 def test_recovery_identity_excludes_runtime_locks_and_precomputes_attempt_lock(
@@ -2034,7 +2177,7 @@ def test_recovery_publishes_identity_before_attempt_lock() -> None:
     functions, _ = _module_function_graph(RUNNER_PATH)
     recovery_text = _function_text(RUNNER_PATH, functions["recover_formal"])
     publish_offset = recovery_text.find(
-        "publish_json(\n            recovery_start_path"
+        "publish_control_no_replace(recovery_start_path"
     )
     attempt_lock_offset = recovery_text.find(
         "_ensure_attempt_lock(",
@@ -2060,6 +2203,356 @@ def test_control_publication_resumes_complete_pre_link_temporary(
     assert not temporary.exists()
     runner.publish_control_no_replace(target, content)
     assert target.read_bytes() == content
+
+
+def test_control_publication_rejects_same_byte_symlink_target_without_mutation(
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    content = b'{"schema_version":1}\n'
+    external = tmp_path / "external.json"
+    external.write_bytes(content)
+    target = tmp_path / "control" / "receipt.json"
+    target.parent.mkdir()
+    target.symlink_to(external)
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner.publish_control_no_replace(target, content)
+
+    assert caught.value.code == "CONTROL_PUBLICATION_PATH_KIND"
+    assert target.is_symlink()
+    assert external.read_bytes() == content
+    assert not Path(f"{target}.publishing").exists()
+
+
+def test_control_publication_quarantines_repeated_mismatch_with_contiguous_ordinals(
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    target = tmp_path / "control" / "receipt.json"
+    target.parent.mkdir()
+    temporary = Path(f"{target}.publishing")
+    expected = b'{"expected":true}\n'
+    abandoned = b'{"partial":true}\n'
+    suffix = _sha256_bytes(abandoned)
+
+    for ordinal in range(2):
+        temporary.write_bytes(abandoned)
+        runner.publish_control_no_replace(target, expected)
+        quarantine = Path(f"{target}.abandoned.{suffix}.{ordinal}")
+        assert quarantine.read_bytes() == abandoned
+        assert target.read_bytes() == expected
+        target.unlink()
+
+    inventory = runner._quarantine_inventory(target)
+    assert inventory["state"] == "VALID_INVENTORY"
+    assert [row["ordinal"] for row in inventory["rows"]] == [0, 1]
+    assert all(row["path_state"] == "VALID_REGULAR" for row in inventory["rows"])
+
+
+@pytest.mark.parametrize("inventory_kind", ["noncanonical", "symlink"])
+def test_control_publication_rejects_invalid_quarantine_inventory_without_rebuild(
+    inventory_kind: str,
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    target = tmp_path / "control" / "receipt.json"
+    target.parent.mkdir()
+    temporary = Path(f"{target}.publishing")
+    temporary.write_bytes(b"abandoned")
+    if inventory_kind == "noncanonical":
+        quarantine = Path(f"{target}.abandoned.not-canonical")
+        quarantine.write_bytes(b"evidence")
+    else:
+        suffix = "0" * 64
+        quarantine = Path(f"{target}.abandoned.{suffix}.0")
+        quarantine.symlink_to(temporary)
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner.publish_control_no_replace(target, b"expected")
+
+    assert caught.value.code == "CONTROL_PUBLICATION_QUARANTINE_INVENTORY"
+    assert not target.exists()
+    assert temporary.read_bytes() == b"abandoned"
+    assert quarantine.exists() or quarantine.is_symlink()
+
+
+@pytest.mark.parametrize(
+    ("inventory_kind", "expected_path_state"),
+    [
+        ("invalid_regular", "INVALID_REGULAR"),
+        ("directory", "DIRECTORY"),
+        ("fifo", "FIFO"),
+        ("ordinal_gap", "VALID_REGULAR"),
+    ],
+)
+def test_quarantine_inventory_classifies_invalid_rows_and_ordinal_gaps(
+    inventory_kind: str,
+    expected_path_state: str,
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    target = tmp_path / "control" / "receipt.json"
+    target.parent.mkdir()
+    content = b"evidence"
+    suffix = _sha256_bytes(content)
+    ordinal = 1 if inventory_kind == "ordinal_gap" else 0
+    quarantine = Path(f"{target}.abandoned.{suffix}.{ordinal}")
+    if inventory_kind in {"invalid_regular", "ordinal_gap"}:
+        quarantine.write_bytes(
+            b"different" if inventory_kind == "invalid_regular" else content
+        )
+    elif inventory_kind == "directory":
+        quarantine.mkdir()
+    else:
+        os.mkfifo(quarantine)
+
+    inventory = runner._quarantine_inventory(target)
+
+    assert inventory["state"] == "INVALID_INVENTORY"
+    assert inventory["rows"][0]["path_state"] == expected_path_state
+    assert inventory["entries_hex"] == [os.fsencode(quarantine.name).hex()]
+
+
+def test_control_publication_eexist_preserves_exact_race_temporary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: ModuleType,
+) -> None:
+    target = tmp_path / "control" / "receipt.json"
+    target.parent.mkdir()
+    temporary = Path(f"{target}.publishing")
+    content = b'{"race":"exact"}\n'
+
+    def inject_exact_target(source: Path, destination: Path) -> None:
+        assert source == temporary
+        destination.write_bytes(content)
+        raise FileExistsError(errno.EEXIST, "injected", str(destination))
+
+    monkeypatch.setattr(runner, "_rename_exclusive", inject_exact_target)
+    runner.publish_control_no_replace(target, content)
+
+    assert target.read_bytes() == content
+    assert temporary.read_bytes() == content
+    assert target.stat().st_ino != temporary.stat().st_ino
+
+
+def test_control_publication_eexist_rejects_symlink_race_target(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: ModuleType,
+) -> None:
+    target = tmp_path / "control" / "receipt.json"
+    target.parent.mkdir()
+    temporary = Path(f"{target}.publishing")
+    content = b'{"race":"symlink"}\n'
+    external = tmp_path / "external.json"
+    external.write_bytes(content)
+
+    def inject_symlink_target(source: Path, destination: Path) -> None:
+        assert source == temporary
+        destination.symlink_to(external)
+        raise FileExistsError(errno.EEXIST, "injected", str(destination))
+
+    monkeypatch.setattr(runner, "_rename_exclusive", inject_symlink_target)
+    with pytest.raises(runner.QualificationError) as caught:
+        runner.publish_control_no_replace(target, content)
+
+    assert caught.value.code == "CONTROL_PUBLICATION_RACE_BYTES"
+    assert target.is_symlink()
+    assert temporary.read_bytes() == content
+    assert external.read_bytes() == content
+
+
+def test_control_publication_authority_path_has_no_unlink() -> None:
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    reachable = _reachable_functions(calls, "publish_control_no_replace")
+    reachable_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(reachable & set(functions))
+    )
+    assert ".unlink(" not in reachable_text
+    assert "renamex_np" in reachable_text
+    assert "O_NOFOLLOW" in reachable_text
+
+
+def test_recovery_witness_cas_commits_exact_blob_before_local_publication(
+    tmp_path: Path,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    controller_repo = tmp_path / "controller.git"
+    subprocess.run(
+        ["git", "init", "--bare", str(controller_repo)],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    local_surface = _surface_with_controller_repo(surface, controller_repo)
+    attempt_root = tmp_path / "attempt"
+    (attempt_root / "control").mkdir(parents=True)
+    expected = b'{"immutable":"recovery-start"}\n'
+
+    witnessed, evidence = runner._ensure_recovery_witness(
+        attempt_root=attempt_root,
+        surface=local_surface,
+        expected_bytes=expected,
+    )
+
+    assert witnessed == expected
+    assert evidence["ref_state"] == "EXACT_BLOB"
+    assert evidence["witness_blob_oid"] == runner.git_blob_oid(expected)
+    blob = subprocess.run(
+        [
+            "git",
+            f"--git-dir={controller_repo}",
+            "cat-file",
+            "blob",
+            evidence["witness_blob_oid"],
+        ],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ).stdout
+    assert blob == expected
+    assert not (attempt_root / "control" / "recovery_start.json").exists()
+
+
+@pytest.mark.parametrize("local_kind", ["target", "temporary", "quarantine"])
+def test_recovery_witness_absent_rejects_every_preexisting_local_path(
+    local_kind: str,
+    tmp_path: Path,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    controller_repo = tmp_path / "controller.git"
+    subprocess.run(
+        ["git", "init", "--bare", str(controller_repo)],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    local_surface = _surface_with_controller_repo(surface, controller_repo)
+    attempt_root = tmp_path / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    target = control / "recovery_start.json"
+    if local_kind == "target":
+        target.write_bytes(b"local")
+    elif local_kind == "temporary":
+        Path(f"{target}.publishing").write_bytes(b"local")
+    else:
+        content = b"local"
+        Path(f"{target}.abandoned.{_sha256_bytes(content)}.0").write_bytes(content)
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._ensure_recovery_witness(
+            attempt_root=attempt_root,
+            surface=local_surface,
+            expected_bytes=b"expected\n",
+        )
+
+    assert caught.value.code == "A12_RECOVERY_WITNESS_MISMATCH"
+    evidence = json.loads(caught.value.detail)
+    assert evidence["ref_state"] == "ABSENT"
+    assert evidence[f"{local_kind}_state"] != "ABSENT"
+
+
+def test_recovery_witness_rejects_same_byte_symlink_target(
+    tmp_path: Path,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    controller_repo = tmp_path / "controller.git"
+    subprocess.run(
+        ["git", "init", "--bare", str(controller_repo)],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    local_surface = _surface_with_controller_repo(surface, controller_repo)
+    attempt_root = tmp_path / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    expected = b'{"immutable":"original"}\n'
+    runner._ensure_recovery_witness(
+        attempt_root=attempt_root,
+        surface=local_surface,
+        expected_bytes=expected,
+    )
+    external = tmp_path / "external.json"
+    external.write_bytes(expected)
+    (control / "recovery_start.json").symlink_to(external)
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._ensure_recovery_witness(
+            attempt_root=attempt_root,
+            surface=local_surface,
+            expected_bytes=expected,
+        )
+
+    assert caught.value.code == "A12_RECOVERY_WITNESS_MISMATCH"
+    evidence = json.loads(caught.value.detail)
+    assert evidence["ref_state"] == "EXACT_BLOB"
+    assert evidence["target_state"] == "SYMLINK"
+    assert external.read_bytes() == expected
+
+
+def test_recovery_witness_rejects_valid_field_rewrite_with_recomputed_id(
+    tmp_path: Path,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    controller_repo = tmp_path / "controller.git"
+    subprocess.run(
+        ["git", "init", "--bare", str(controller_repo)],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    local_surface = _surface_with_controller_repo(surface, controller_repo)
+    attempt_root = tmp_path / "attempt"
+    (attempt_root / "control").mkdir(parents=True)
+    original_base = {
+        "attempt_lock_sha256": "a" * 64,
+        "claimed_or_armed_sha256": "b" * 64,
+        "crash_boundary": "after_attempt_root_before_lock",
+        "initial_committed_paths_json": "[]",
+        "initial_controller_sha": runner.ABSENT,
+        "schema_version": 1,
+    }
+    original = {
+        **original_base,
+        "recovery_id": runner.canonical_json_sha256(original_base),
+    }
+    original_bytes = runner.canonical_json_bytes(original, trailing_lf=True)
+    runner._ensure_recovery_witness(
+        attempt_root=attempt_root,
+        surface=local_surface,
+        expected_bytes=original_bytes,
+    )
+    mutated_base = {
+        **original_base,
+        "crash_boundary": "after_lock_before_claim_rename",
+    }
+    mutated = {
+        **mutated_base,
+        "recovery_id": runner.canonical_json_sha256(mutated_base),
+    }
+    mutated_bytes = runner.canonical_json_bytes(mutated, trailing_lf=True)
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._ensure_recovery_witness(
+            attempt_root=attempt_root,
+            surface=local_surface,
+            expected_bytes=mutated_bytes,
+        )
+
+    assert caught.value.code == "A12_RECOVERY_WITNESS_MISMATCH"
+    evidence = json.loads(caught.value.detail)
+    assert evidence["ref_state"] == "CONFLICTING_BLOB"
+    assert evidence["witness_blob_oid"] == runner.git_blob_oid(original_bytes)
+    assert not (attempt_root / "control" / "recovery_start.json").exists()
 
 
 def test_recovery_links_independently_valid_controller_blocker_temporary(
@@ -2265,7 +2758,7 @@ def test_malformed_controller_observation_requires_zero_exit_code(
     assert caught.value.code == "TERMINAL_CLOSURE"
 
 
-def test_recovery_discards_only_registered_nonblocker_temporaries(
+def test_recovery_quarantines_only_observational_nonblocker_temporaries(
     tmp_path: Path,
     runner: ModuleType,
 ) -> None:
@@ -2279,7 +2772,7 @@ def test_recovery_discards_only_registered_nonblocker_temporaries(
     attempt_lock = attempt_root / "attempt-lock.json"
     attempt_lock.write_bytes(b"committed")
     attempt_lock_temporary = Path(f"{attempt_lock}.publishing")
-    attempt_lock_temporary.write_bytes(b"leftover")
+    attempt_lock_temporary.write_bytes(b"committed")
     recovery_start_temporary = control / "recovery_start.json.publishing"
     recovery_start_temporary.write_bytes(b"preserve-for-deterministic-rebuild")
 
@@ -2290,12 +2783,16 @@ def test_recovery_discards_only_registered_nonblocker_temporaries(
 
     assert not exit_target.exists()
     assert not exit_temporary.exists()
+    exit_suffix = _sha256_bytes(b"uncommitted")
+    assert Path(f"{exit_target}.abandoned.{exit_suffix}.0").read_bytes() == (
+        b"uncommitted"
+    )
     assert attempt_lock.read_bytes() == b"committed"
-    assert not attempt_lock_temporary.exists()
+    assert attempt_lock_temporary.read_bytes() == b"committed"
     assert recovery_start_temporary.exists()
 
 
-def test_recovery_discards_artifact_blocker_temporary_for_exact_rebuild(
+def test_recovery_defers_artifact_blocker_temporary_until_rule_resolution(
     tmp_path: Path,
     runner: ModuleType,
 ) -> None:
@@ -2309,10 +2806,78 @@ def test_recovery_discards_artifact_blocker_temporary_for_exact_rebuild(
     runner._reconcile_artifact_blocker_temporary(attempt_root)
 
     assert not target.exists()
-    assert not temporary.exists()
+    assert temporary.read_bytes() == b"uncommitted"
 
 
-def test_recovery_removes_only_post_link_recovery_start_temporary(
+def test_recovery_preserves_exact_observational_race_residue(
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    attempt_root = tmp_path / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    target = control / "formal_producer_exit.json"
+    temporary = Path(f"{target}.publishing")
+    content = b'{"exact":"race"}\n'
+    target.write_bytes(content)
+    temporary.write_bytes(content)
+
+    runner._reconcile_nonblocker_publication_temporaries(
+        repo_root=tmp_path,
+        attempt_root=attempt_root,
+    )
+
+    assert target.read_bytes() == content
+    assert temporary.read_bytes() == content
+
+
+def test_recovery_defers_deterministic_temporary_when_target_is_absent(
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    repo_root = tmp_path / "repo"
+    attempt_root = repo_root / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    target = attempt_root / "attempt-lock.json"
+    temporary = Path(f"{target}.publishing")
+    temporary.write_bytes(b"independently-derivable")
+
+    runner._reconcile_nonblocker_publication_temporaries(
+        repo_root=repo_root,
+        attempt_root=attempt_root,
+    )
+
+    assert not target.exists()
+    assert temporary.read_bytes() == b"independently-derivable"
+
+
+def test_recovery_rejects_mismatched_deterministic_race_residue(
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    repo_root = tmp_path / "repo"
+    attempt_root = repo_root / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    target = repo_root / runner.TERMINAL_RECEIPT_PATH
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"committed")
+    temporary = Path(f"{target}.publishing")
+    temporary.write_bytes(b"mismatch")
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._reconcile_nonblocker_publication_temporaries(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+        )
+
+    assert caught.value.code == "CONTROL_PUBLICATION_RACE_TEMPORARY"
+    assert target.read_bytes() == b"committed"
+    assert temporary.read_bytes() == b"mismatch"
+
+
+def test_recovery_start_never_unlinks_mismatched_post_commit_temporary(
     tmp_path: Path,
     runner: ModuleType,
 ) -> None:
@@ -2327,9 +2892,11 @@ def test_recovery_removes_only_post_link_recovery_start_temporary(
     assert temporary.exists()
 
     target.write_bytes(b"committed")
-    runner._reconcile_committed_recovery_start_temporary(attempt_root)
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._reconcile_committed_recovery_start_temporary(attempt_root)
+    assert caught.value.code == "A12_RECOVERY_WITNESS_MISMATCH"
     assert target.read_bytes() == b"committed"
-    assert not temporary.exists()
+    assert temporary.read_bytes() == b"pre-link"
 
 
 @pytest.mark.parametrize(
@@ -2771,10 +3338,10 @@ def test_recovery_selects_existing_blocker_before_controller_observation() -> No
     assert reconcile_offset >= 0
     assert blocker_offset >= 0
     assert nonblocker_offset >= 0
-    assert reconcile_offset < blocker_offset
     assert nonblocker_offset < blocker_offset
     assert blocker_offset < observation_offset
     assert nonblocker_offset < observation_offset
+    assert observation_offset < reconcile_offset
     assert blocker_offset < recovery_start_offset
 
 

@@ -10408,3 +10408,23 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   controller repo/ref, witness ref and task tags remain absent.
 - Authority-dependent implementation is unlocked; formal remains locked
   pending independent implementation readiness.
+
+## 2026-09-01 0831T001 Q0 Implementation Candidate Round 7
+
+- PRE_BLOCKER now preserves G01-G07 order when receipt bytes are invalid and
+  keeps the Revision 25 report-without-receipt A10 state reachable.
+- Recovery-start identity is externally bound by the Revision 26 direct Git
+  blob witness; valid-field rewrites, symlink targets and local-before-witness
+  states fail as A12.
+- Generic control publication now uses no-follow atomic no-replace rename,
+  permanent content-addressed quarantine and exact EEXIST residue semantics.
+- Recovery distinguishes observational temporaries from deterministic
+  temporaries so it does not destroy resumable bytes or ignore mismatched
+  committed-target race residues.
+- Focused tests pass `130/130`; expanded predecessor regressions pass
+  `410` with one expected skip. Static, format, compile, CLI and diff checks
+  pass. A full optional `git fsck --no-dangling` was interrupted after about
+  nine minutes without output and is not claimed as passing.
+- Formal artifacts, controller repo/ref, witness ref, claim, baseline and task
+  tags remain absent. Exact-commit detached readiness and independent review
+  remain required.

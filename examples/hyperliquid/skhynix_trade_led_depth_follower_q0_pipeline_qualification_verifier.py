@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import ctypes
 import csv
 import errno
 import fcntl
@@ -47,12 +48,14 @@ CORE_PATH = Path(
 MASTER_SHA256 = "4ac0772ae4f2bdf29e6572e22092108de293ec05deeaa77679d606cf1e4c0d40"
 MASTER_BLOB = "69c5cdf51b7fdf07d55170ed58bc791ff37bd0af"
 MASTER_COMMIT = "2dcd1d95b7c6ff24cb5991e8dc1d3d97b2666b19"
-PLAN_SHA256 = "0369379087dab0b1f2cd9ab4c6be5b6a34e56c6765a0a0b67e935c41384352ab"
-PLAN_BLOB = "858484e6bedcafc8a6a50aae5bc63e3c47f89e20"
+PLAN_SHA256 = "bdc934202cd9ee9e1743830121eec80f1cf3ab7e8bb4f3bbc1f8728c3619f7dc"
+PLAN_BLOB = "87ffe9e70d050342b74b258e9ae5578f56319368"
+TASK_SHA256 = "19585d2501994535eca3d462b62860be76c54cc1196609ce9fd9a788255b138b"
+TASK_BLOB = "f9bcdef809a02635cacfe0da2b2d0aed142862f3"
 TRUTH_SHA256 = "c9e1c5dba760309add5e0debfdfff6be3387e8978b1e5506b6d1fff9df87f529"
 TRUTH_BLOB = "ea66f4ff2e7cddf9302215d62c3268299682add7"
-SURFACE_SHA256 = "a77f6fd0d4a36b2be9974c8fcf2d2d920f7ab7b5a2e17b1eead81695bc98600a"
-SURFACE_BLOB = "74533850d2bf173c3d2acefb71f2d83bfe7a9999"
+SURFACE_SHA256 = "096b70b70ce723f30d2c719309d3431081041a195933c050d78157b6a4f91657"
+SURFACE_BLOB = "5db7f47abcb47935b2c28d93035086d21a47ea1b"
 EXPECTED_CWD = (
     "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol"
 )
@@ -61,6 +64,7 @@ EXPECTED_CONTROLLER_REF = "refs/heads/codex/0831T001-controller-ledger"
 EXPECTED_INPUT_ROOTS = ("A", "B", "P")
 FIXED_RUNTIME_LOCK_FD = 198
 FIXED_HANDOFF_ACK_FD = 199
+RENAME_EXCL = 0x00000004
 GATE_IDS = tuple(f"Q0-{index}" for index in range(13))
 PRODUCTION_CORE_MODULE = "_0831t001_terminal_verifier_production_core"
 
@@ -447,13 +451,25 @@ def check_q00(context: dict[str, Any]) -> None:
     exact_directory(package, "SOURCE_ROOT_NOT_CLOSED")
     for label in EXPECTED_INPUT_ROOTS:
         exact_directory(input_root(context, label), "SOURCE_PATH_KIND")
+    plan_path = REPO_ROOT / PLAN_PATH
+    task_path = REPO_ROOT / TASK_PATH
     truth_path = REPO_ROOT / TRUTH_PATH
     surface_path = REPO_ROOT / SURFACE_PATH
-    exact_regular(truth_path, "AUTHORITY_BINDING")
-    exact_regular(surface_path, "AUTHORITY_BINDING")
+    for path in (plan_path, task_path, truth_path, surface_path):
+        exact_regular(path, "AUTHORITY_BINDING")
+    require(sha256_file(plan_path) == PLAN_SHA256, "AUTHORITY_BINDING", "plan_sha")
+    require(sha256_file(task_path) == TASK_SHA256, "AUTHORITY_BINDING", "task_sha")
     require(sha256_file(truth_path) == TRUTH_SHA256, "AUTHORITY_BINDING", "truth_sha")
     require(
         sha256_file(surface_path) == SURFACE_SHA256, "AUTHORITY_BINDING", "surface_sha"
+    )
+    require(
+        git_text("hash-object", PLAN_PATH.as_posix()) == PLAN_BLOB,
+        "AUTHORITY_BINDING",
+    )
+    require(
+        git_text("hash-object", TASK_PATH.as_posix()) == TASK_BLOB,
+        "AUTHORITY_BINDING",
     )
     require(
         git_text("hash-object", TRUTH_PATH.as_posix()) == TRUTH_BLOB,
@@ -1956,24 +1972,76 @@ def acknowledge_handoff(
 def publish_no_replace(path: Path, content: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(path.name + ".publishing")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
     try:
+        os.lstat(path)
+    except FileNotFoundError:
+        pass
+    else:
+        raise VerificationError("INTERNAL_ERROR", "result_exists")
+    descriptor = os.open(
+        temporary,
+        os.O_WRONLY
+        | os.O_CREAT
+        | os.O_EXCL
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_CLOEXEC", 0),
+        0o644,
+    )
+    try:
+        temporary_stat = os.fstat(descriptor)
+        require(
+            stat.S_ISREG(temporary_stat.st_mode),
+            "INTERNAL_ERROR",
+            "result_temporary_kind",
+        )
         total = 0
         while total < len(content):
             total += os.write(descriptor, content[total:])
         require(total == len(content), "INTERNAL_ERROR", "short_write")
         os.fsync(descriptor)
+        libc = ctypes.CDLL(None, use_errno=True)
+        renamex_np = getattr(libc, "renamex_np", None)
+        require(renamex_np is not None, "INTERNAL_ERROR", "renamex_np")
+        renamex_np.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+        renamex_np.restype = ctypes.c_int
+        result = renamex_np(
+            os.fsencode(temporary),
+            os.fsencode(path),
+            ctypes.c_uint(RENAME_EXCL),
+        )
+        if result != 0:
+            error = ctypes.get_errno()
+            raise VerificationError("INTERNAL_ERROR", f"result_rename:{error}")
+        final_descriptor = os.open(
+            path,
+            os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0),
+        )
+        try:
+            final_stat = os.fstat(final_descriptor)
+            final_bytes = b""
+            while True:
+                chunk = os.read(final_descriptor, 1024 * 1024)
+                if not chunk:
+                    break
+                final_bytes += chunk
+            require(
+                stat.S_ISREG(final_stat.st_mode)
+                and (final_stat.st_dev, final_stat.st_ino)
+                == (temporary_stat.st_dev, temporary_stat.st_ino)
+                and final_bytes == content,
+                "INTERNAL_ERROR",
+                "result_final_identity",
+            )
+            os.fsync(final_descriptor)
+        finally:
+            os.close(final_descriptor)
     finally:
         os.close(descriptor)
+    directory = os.open(
+        path.parent,
+        os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
+    )
     try:
-        os.link(temporary, path)
-    except FileExistsError as exc:
-        temporary.unlink(missing_ok=True)
-        raise VerificationError("INTERNAL_ERROR", "result_exists") from exc
-    directory = os.open(path.parent, os.O_RDONLY)
-    try:
-        os.fsync(directory)
-        temporary.unlink()
         os.fsync(directory)
     finally:
         os.close(directory)
@@ -2036,7 +2104,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         code, result = verify(args.package_root)
         content = canonical_json_bytes(result)
-        publish_no_replace(args.result.resolve(), content)
+        publish_no_replace(args.result, content)
         sys.stdout.buffer.write(content)
         sys.stdout.buffer.flush()
         return code

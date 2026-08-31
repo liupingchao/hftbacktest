@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import csv
 import dataclasses
 import errno
@@ -46,7 +47,7 @@ SLICE_FIXTURE_IDS = ("QF07", "QF08", "QF12", "QF15")
 FORMAL_CLASSIFICATION_PASS = "Q0_PIPELINE_QUALIFIED"
 FORMAL_CLASSIFICATION_FAIL = "Q0_PIPELINE_NOT_QUALIFIED"
 GIT_MUTATION_MATRIX_SHA256 = (
-    "8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c"
+    "4f28bc0e5f99e795600064219ceea2c5c192b2a5f8d80ae92b3822392f4504cd"
 )
 GIT_DIRTY_RULE = "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY"
 
@@ -83,12 +84,14 @@ BASELINE_PATH = Path("baselines/skhynix_trade_led_depth_follower_q0_v1")
 MASTER_SHA256 = "4ac0772ae4f2bdf29e6572e22092108de293ec05deeaa77679d606cf1e4c0d40"
 MASTER_BLOB = "69c5cdf51b7fdf07d55170ed58bc791ff37bd0af"
 MASTER_COMMIT = "2dcd1d95b7c6ff24cb5991e8dc1d3d97b2666b19"
-PLAN_SHA256 = "0369379087dab0b1f2cd9ab4c6be5b6a34e56c6765a0a0b67e935c41384352ab"
-PLAN_BLOB = "858484e6bedcafc8a6a50aae5bc63e3c47f89e20"
+PLAN_SHA256 = "bdc934202cd9ee9e1743830121eec80f1cf3ab7e8bb4f3bbc1f8728c3619f7dc"
+PLAN_BLOB = "87ffe9e70d050342b74b258e9ae5578f56319368"
 TRUTH_SHA256 = "c9e1c5dba760309add5e0debfdfff6be3387e8978b1e5506b6d1fff9df87f529"
 TRUTH_BLOB = "ea66f4ff2e7cddf9302215d62c3268299682add7"
-SURFACE_SHA256 = "a77f6fd0d4a36b2be9974c8fcf2d2d920f7ab7b5a2e17b1eead81695bc98600a"
-SURFACE_BLOB = "74533850d2bf173c3d2acefb71f2d83bfe7a9999"
+SURFACE_SHA256 = "096b70b70ce723f30d2c719309d3431081041a195933c050d78157b6a4f91657"
+SURFACE_BLOB = "5db7f47abcb47935b2c28d93035086d21a47ea1b"
+TASK_SHA256 = "19585d2501994535eca3d462b62860be76c54cc1196609ce9fd9a788255b138b"
+TASK_BLOB = "f9bcdef809a02635cacfe0da2b2d0aed142862f3"
 
 IMPLEMENTATION_TAG = "skhynix-trade-led-depth-follower-q0-implementation-v1"
 CONSUMPTION_TAG = "skhynix-trade-led-depth-follower-q0-consumed-v1"
@@ -115,6 +118,7 @@ TREE_RECORD_RE = re.compile(rb"^([0-7]{6}) blob ([0-9a-f]{40})\t(.+)$")
 INDEX_RECORD_RE = re.compile(rb"^([0-7]{6}) ([0-9a-f]{40}) ([0-3])\t(.+)$")
 INDEX_FLAG_RE = re.compile(rb"^([A-Za-z?S]) (.+)$")
 READ_CHUNK_BYTES = 8 * 1024 * 1024
+RENAME_EXCL = 0x00000004
 FRAME_LENGTH_STRUCT = struct.Struct(">I")
 RUNTIME_LOCK_FD = 198
 HANDOFF_ACK_FD = 199
@@ -185,6 +189,326 @@ def fsync_directory(path: Path) -> None:
         os.close(descriptor)
 
 
+def _read_all(descriptor: int) -> bytes:
+    chunks: list[bytes] = []
+    while True:
+        chunk = os.read(descriptor, READ_CHUNK_BYTES)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+
+
+def _path_kind(mode: int) -> str:
+    if stat.S_ISLNK(mode):
+        return "SYMLINK"
+    if stat.S_ISDIR(mode):
+        return "DIRECTORY"
+    if stat.S_ISFIFO(mode):
+        return "FIFO"
+    return "OTHER_NONREGULAR"
+
+
+def _observe_path_no_follow(
+    path: Path,
+    *,
+    expected: bytes | None = None,
+) -> dict[str, Any]:
+    try:
+        before = os.lstat(path)
+    except FileNotFoundError:
+        return {
+            "data": None,
+            "error": NONE,
+            "sha256": NONE,
+            "state": "ABSENT",
+            "stat": None,
+        }
+    except OSError as exc:
+        return {
+            "data": None,
+            "error": f"LSTAT:{exc.errno}",
+            "sha256": NONE,
+            "state": "OBSERVATION_ERROR",
+            "stat": None,
+        }
+    if not stat.S_ISREG(before.st_mode):
+        return {
+            "data": None,
+            "error": NONE,
+            "sha256": NONE,
+            "state": _path_kind(before.st_mode),
+            "stat": before,
+        }
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as exc:
+        return {
+            "data": None,
+            "error": f"OPEN:{exc.errno}",
+            "sha256": NONE,
+            "state": "OBSERVATION_ERROR",
+            "stat": before,
+        }
+    try:
+        try:
+            after = os.fstat(descriptor)
+        except OSError as exc:
+            return {
+                "data": None,
+                "error": f"FSTAT:{exc.errno}",
+                "sha256": NONE,
+                "state": "OBSERVATION_ERROR",
+                "stat": before,
+            }
+        if not stat.S_ISREG(after.st_mode) or (before.st_dev, before.st_ino) != (
+            after.st_dev,
+            after.st_ino,
+        ):
+            return {
+                "data": None,
+                "error": "FSTAT:0",
+                "sha256": NONE,
+                "state": "OBSERVATION_ERROR",
+                "stat": before,
+            }
+        try:
+            data = _read_all(descriptor)
+        except OSError as exc:
+            return {
+                "data": None,
+                "error": f"READ:{exc.errno}",
+                "sha256": NONE,
+                "state": "OBSERVATION_ERROR",
+                "stat": after,
+            }
+    finally:
+        os.close(descriptor)
+    state = "REGULAR"
+    if expected is not None:
+        state = "EXACT_REGULAR" if data == expected else "MISMATCH_REGULAR"
+    return {
+        "data": data,
+        "error": NONE,
+        "sha256": sha256_bytes(data),
+        "state": state,
+        "stat": after,
+    }
+
+
+def _open_verified_regular(
+    path: Path,
+    expected: bytes,
+    *,
+    kind_code: str = "CONTROL_PUBLICATION_TEMP_PATH_KIND",
+    identity_code: str = "CONTROL_PUBLICATION_TEMP_IDENTITY",
+    bytes_code: str = "CONTROL_PUBLICATION_TEMP_BYTES",
+) -> tuple[int, os.stat_result]:
+    before = os.lstat(path)
+    require(stat.S_ISREG(before.st_mode), kind_code)
+    descriptor = os.open(
+        path,
+        os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0),
+    )
+    try:
+        after = os.fstat(descriptor)
+        require(
+            stat.S_ISREG(after.st_mode)
+            and (before.st_dev, before.st_ino) == (after.st_dev, after.st_ino),
+            identity_code,
+        )
+        require(_read_all(descriptor) == expected, bytes_code)
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        return descriptor, after
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def _rename_exclusive(source: Path, target: Path) -> None:
+    require(source.parent == target.parent, "CONTROL_PUBLICATION_PATH")
+    libc = ctypes.CDLL(None, use_errno=True)
+    renamex_np = getattr(libc, "renamex_np", None)
+    require(renamex_np is not None, "CONTROL_PUBLICATION_RENAME_UNAVAILABLE")
+    renamex_np.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+    renamex_np.restype = ctypes.c_int
+    result = renamex_np(
+        os.fsencode(source),
+        os.fsencode(target),
+        ctypes.c_uint(RENAME_EXCL),
+    )
+    if result == 0:
+        return
+    error = ctypes.get_errno()
+    if error == errno.EEXIST:
+        raise FileExistsError(error, os.strerror(error), str(target))
+    raise OSError(error, os.strerror(error), str(source), str(target))
+
+
+_QUARANTINE_NAME_RE = re.compile(
+    rb"^(?P<prefix>.+\.abandoned\.)(?P<sha>[0-9a-f]{64})\."
+    rb"(?P<ordinal>0|[1-9][0-9]*)$"
+)
+
+
+def _quarantine_inventory(target: Path) -> dict[str, Any]:
+    prefix = os.fsencode(target.name + ".abandoned.")
+    try:
+        parent_descriptor = os.open(
+            os.fsencode(target.parent),
+            os.O_RDONLY
+            | getattr(os, "O_DIRECTORY", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_CLOEXEC", 0),
+        )
+    except OSError as exc:
+        return {
+            "entries_hex": [],
+            "error": f"PARENT:OPEN:{exc.errno}",
+            "rows": [],
+            "state": "OBSERVATION_ERROR",
+        }
+    try:
+        try:
+            names = sorted(
+                name
+                for name in (
+                    os.fsencode(entry) for entry in os.listdir(parent_descriptor)
+                )
+                if name.startswith(prefix)
+            )
+        except OSError as exc:
+            return {
+                "entries_hex": [],
+                "error": f"PARENT:READDIR:{exc.errno}",
+                "rows": [],
+                "state": "OBSERVATION_ERROR",
+            }
+    finally:
+        os.close(parent_descriptor)
+    rows: list[dict[str, Any]] = []
+    first_error = NONE
+    for name in names:
+        match = _QUARANTINE_NAME_RE.fullmatch(name)
+        name_hex = name.hex()
+        if match is None or match.group("prefix") != prefix:
+            rows.append(
+                {
+                    "name_hex": name_hex,
+                    "observed_sha256": NONE,
+                    "observation_error": NONE,
+                    "ordinal": NONE,
+                    "path_state": "NONCANONICAL_NAME",
+                    "sha256_suffix": NONE,
+                }
+            )
+            continue
+        suffix = match.group("sha").decode("ascii")
+        ordinal = int(match.group("ordinal"))
+        observation = _observe_path_no_follow(target.parent / os.fsdecode(name))
+        state = observation["state"]
+        if state == "REGULAR":
+            row_state = (
+                "VALID_REGULAR"
+                if observation["sha256"] == suffix
+                else "INVALID_REGULAR"
+            )
+            observed_sha = observation["sha256"]
+            observation_error = NONE
+        elif state == "OBSERVATION_ERROR":
+            row_state = state
+            observed_sha = NONE
+            observation_error = observation["error"]
+            if first_error == NONE:
+                first_error = f"{name_hex}:{observation_error}"
+        else:
+            row_state = state
+            observed_sha = NONE
+            observation_error = NONE
+        rows.append(
+            {
+                "name_hex": name_hex,
+                "observed_sha256": observed_sha,
+                "observation_error": observation_error,
+                "ordinal": ordinal,
+                "path_state": row_state,
+                "sha256_suffix": suffix,
+            }
+        )
+    entries_hex = [name.hex() for name in names]
+    if not rows:
+        state = "ABSENT"
+    elif first_error != NONE:
+        state = "OBSERVATION_ERROR"
+    elif any(row["path_state"] != "VALID_REGULAR" for row in rows):
+        state = "INVALID_INVENTORY"
+    else:
+        grouped: dict[str, list[int]] = {}
+        for row in rows:
+            grouped.setdefault(str(row["sha256_suffix"]), []).append(
+                int(row["ordinal"])
+            )
+        state = (
+            "VALID_INVENTORY"
+            if all(
+                sorted(values) == list(range(len(values)))
+                for values in grouped.values()
+            )
+            else "INVALID_INVENTORY"
+        )
+    return {
+        "entries_hex": entries_hex,
+        "error": first_error,
+        "rows": rows,
+        "state": state,
+    }
+
+
+def _quarantine_regular_temporary(
+    target: Path,
+    temporary: Path,
+    observation: Mapping[str, Any],
+) -> Path:
+    require(observation["state"] == "REGULAR", "CONTROL_PUBLICATION_TEMP_PATH_KIND")
+    inventory = _quarantine_inventory(target)
+    require(
+        inventory["state"] in {"ABSENT", "VALID_INVENTORY"},
+        "CONTROL_PUBLICATION_QUARANTINE_INVENTORY",
+        str(inventory["state"]),
+    )
+    content = bytes(observation["data"])
+    suffix = sha256_bytes(content)
+    ordinal = sum(
+        1
+        for row in inventory["rows"]
+        if row["path_state"] == "VALID_REGULAR" and row["sha256_suffix"] == suffix
+    )
+    quarantine = Path(f"{target}.abandoned.{suffix}.{ordinal}")
+    descriptor, identity = _open_verified_regular(temporary, content)
+    try:
+        _rename_exclusive(temporary, quarantine)
+        final_descriptor, final_identity = _open_verified_regular(
+            quarantine,
+            content,
+            kind_code="CONTROL_PUBLICATION_QUARANTINE_PATH_KIND",
+            identity_code="CONTROL_PUBLICATION_QUARANTINE_IDENTITY",
+            bytes_code="CONTROL_PUBLICATION_QUARANTINE_BYTES",
+        )
+        try:
+            require(
+                (final_identity.st_dev, final_identity.st_ino)
+                == (identity.st_dev, identity.st_ino),
+                "CONTROL_PUBLICATION_QUARANTINE_IDENTITY",
+            )
+            os.fsync(final_descriptor)
+        finally:
+            os.close(final_descriptor)
+        fsync_directory(target.parent)
+    finally:
+        os.close(descriptor)
+    return quarantine
+
+
 def _write_all(descriptor: int, content: bytes) -> None:
     offset = 0
     while offset < len(content):
@@ -194,51 +518,96 @@ def _write_all(descriptor: int, content: bytes) -> None:
 
 
 def publish_control_no_replace(path: Path, content: bytes) -> None:
-    """Publish exact bytes using the frozen sibling .publishing protocol."""
+    """Publish exact bytes with no-follow observation and atomic no-replace rename."""
 
-    require(path.is_absolute(), "CONTROL_PUBLICATION_PATH")
+    require(
+        path.is_absolute() and path.name not in {"", ".", ".."},
+        "CONTROL_PUBLICATION_PATH",
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(f"{path}.publishing")
-    if path.exists():
-        require(path.is_file(), "CONTROL_PUBLICATION_PATH_KIND", str(path))
-        require(path.read_bytes() == content, "CONTROL_PUBLICATION_EXISTING_BYTES")
-        if temporary.exists():
-            temporary.unlink()
-            fsync_directory(path.parent)
-        return
-    if temporary.exists():
-        require(temporary.is_file(), "CONTROL_PUBLICATION_TEMP_PATH_KIND")
-        if temporary.read_bytes() == content:
-            try:
-                os.link(temporary, path)
-            except FileExistsError:
-                require(
-                    path.read_bytes() == content,
-                    "CONTROL_PUBLICATION_RACE_BYTES",
-                )
-            fsync_directory(path.parent)
-            temporary.unlink()
-            fsync_directory(path.parent)
-            return
-        temporary.unlink()
-        fsync_directory(path.parent)
-    descriptor = os.open(
-        temporary,
-        os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-        0o644,
+    target = _observe_path_no_follow(path, expected=content)
+    temporary_state = _observe_path_no_follow(temporary, expected=content)
+    inventory = _quarantine_inventory(path)
+    require(
+        inventory["state"] in {"ABSENT", "VALID_INVENTORY"},
+        "CONTROL_PUBLICATION_QUARANTINE_INVENTORY",
+        str(inventory["state"]),
     )
+    if target["state"] == "EXACT_REGULAR":
+        require(
+            temporary_state["state"] in {"ABSENT", "EXACT_REGULAR"},
+            "CONTROL_PUBLICATION_RACE_TEMPORARY",
+            str(temporary_state["state"]),
+        )
+        return
+    require(
+        target["state"] == "ABSENT",
+        "CONTROL_PUBLICATION_PATH_KIND",
+        str(target["state"]),
+    )
+    if temporary_state["state"] == "MISMATCH_REGULAR":
+        _quarantine_regular_temporary(
+            path,
+            temporary,
+            {**temporary_state, "state": "REGULAR"},
+        )
+        temporary_state = _observe_path_no_follow(temporary, expected=content)
+    require(
+        temporary_state["state"] in {"ABSENT", "EXACT_REGULAR"},
+        "CONTROL_PUBLICATION_TEMP_PATH_KIND",
+        str(temporary_state["state"]),
+    )
+    if temporary_state["state"] == "ABSENT":
+        descriptor = os.open(
+            temporary,
+            os.O_WRONLY
+            | os.O_CREAT
+            | os.O_EXCL
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_CLOEXEC", 0),
+            0o644,
+        )
+        try:
+            created = os.fstat(descriptor)
+            require(stat.S_ISREG(created.st_mode), "CONTROL_PUBLICATION_TEMP_PATH_KIND")
+            _write_all(descriptor, content)
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    descriptor, identity = _open_verified_regular(temporary, content)
     try:
-        _write_all(descriptor, content)
         os.fsync(descriptor)
+        try:
+            _rename_exclusive(temporary, path)
+        except FileExistsError:
+            race_target = _observe_path_no_follow(path, expected=content)
+            race_temporary = _observe_path_no_follow(temporary, expected=content)
+            require(
+                race_target["state"] == "EXACT_REGULAR"
+                and race_temporary["state"] == "EXACT_REGULAR",
+                "CONTROL_PUBLICATION_RACE_BYTES",
+            )
+            return
+        final_descriptor, final_identity = _open_verified_regular(
+            path,
+            content,
+            kind_code="CONTROL_PUBLICATION_FINAL_PATH_KIND",
+            identity_code="CONTROL_PUBLICATION_FINAL_IDENTITY",
+            bytes_code="CONTROL_PUBLICATION_FINAL_BYTES",
+        )
+        try:
+            require(
+                (final_identity.st_dev, final_identity.st_ino)
+                == (identity.st_dev, identity.st_ino),
+                "CONTROL_PUBLICATION_FINAL_IDENTITY",
+            )
+            os.fsync(final_descriptor)
+        finally:
+            os.close(final_descriptor)
+        fsync_directory(path.parent)
     finally:
         os.close(descriptor)
-    try:
-        os.link(temporary, path)
-    except FileExistsError:
-        require(path.read_bytes() == content, "CONTROL_PUBLICATION_RACE_BYTES")
-    fsync_directory(path.parent)
-    temporary.unlink(missing_ok=True)
-    fsync_directory(path.parent)
 
 
 def publish_regular_no_replace(path: Path, content: bytes) -> None:
@@ -434,6 +803,7 @@ def load_authorities(
     )
     _verify_bound_file(repo_root, MASTER_PATH, MASTER_SHA256, MASTER_BLOB)
     _verify_bound_file(repo_root, PLAN_PATH, PLAN_SHA256, PLAN_BLOB)
+    _verify_bound_file(repo_root, TASK_PATH, TASK_SHA256, TASK_BLOB)
     _verify_bound_file(repo_root, TRUTH_PATH, TRUTH_SHA256, TRUTH_BLOB)
     _verify_bound_file(repo_root, SURFACE_PATH, SURFACE_SHA256, SURFACE_BLOB)
     truth = strict_json_file(truth_path)
@@ -3139,6 +3509,30 @@ def git_write(
     return _git(repo_root, *values[1:])
 
 
+def _run_registered_command(
+    args: Sequence[str],
+    *,
+    cwd: Path,
+    replacements: Mapping[str, str] | None = None,
+    stdin: bytes | None = None,
+) -> subprocess.CompletedProcess[bytes]:
+    values: list[str] = []
+    for token in args:
+        value = token
+        for old, new in (replacements or {}).items():
+            value = value.replace(old, new)
+        values.append(value)
+    require(values and values[0] == "git", "TERMINAL_CLOSURE", "registered argv")
+    return subprocess.run(
+        values,
+        cwd=cwd,
+        input=stdin,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+
 def _strict_ascii_path(raw: bytes) -> str:
     try:
         value = raw.decode("ascii")
@@ -3467,7 +3861,7 @@ def build_git_mutation_probe_rows() -> list[dict[str, Any]]:
     variants = contract["action_phase_preimage_variants"]
     matrix = contract["mutation_probe_matrix"]
     require(
-        [row["variant_ordinal"] for row in variants] == list(range(22)),
+        [row["variant_ordinal"] for row in variants] == list(range(23)),
         "TERMINAL_CLOSURE",
         "variant ordinals",
     )
@@ -3486,7 +3880,7 @@ def build_git_mutation_probe_rows() -> list[dict[str, Any]]:
                         "variant_ordinal": variant["variant_ordinal"],
                     }
                 )
-    require(len(rows) == 704, "TERMINAL_CLOSURE", "mutation row count")
+    require(len(rows) == 736, "TERMINAL_CLOSURE", "mutation row count")
     require(
         canonical_json_sha256(rows) == GIT_MUTATION_MATRIX_SHA256,
         "TERMINAL_CLOSURE",
@@ -3501,9 +3895,14 @@ def build_git_mutation_probe_rows() -> list[dict[str, Any]]:
 
 
 def _committed_regular(path: Path) -> bool:
-    if not path.exists():
+    observation = _observe_path_no_follow(path)
+    if observation["state"] == "ABSENT":
         return False
-    require(path.is_file() and not path.is_symlink(), "TERMINAL_CLOSURE", str(path))
+    require(
+        observation["state"] == "REGULAR",
+        "TERMINAL_CLOSURE",
+        f"{path}:{observation['state']}",
+    )
     return True
 
 
@@ -4406,6 +4805,30 @@ def _validate_workflow_blocker_value(
             "TERMINAL_CLOSURE",
             "artifact blocker rule",
         )
+        first_invalid = str(value["first_invalid_rule"])
+        evidence = value.get("recovery_witness_evidence_json")
+        if first_invalid == "A12_RECOVERY_WITNESS_MISMATCH":
+            require(
+                isinstance(evidence, str) and evidence != NONE,
+                "TERMINAL_CLOSURE",
+                "A12 witness evidence",
+            )
+            parsed = strict_canonical_json_bytes(
+                evidence.encode("ascii"),
+                detail="A12 witness evidence",
+            )
+            schema = blockers["recovery_witness_evidence_schema"]
+            require(
+                set(parsed) == set(schema["fields"])
+                and parsed["witness_ref"]
+                == surface["one_shot"]["recovery"]["recovery_start_witness"][
+                    "witness_ref"
+                ],
+                "TERMINAL_CLOSURE",
+                "A12 witness evidence schema",
+            )
+        else:
+            require(evidence == NONE, "TERMINAL_CLOSURE", "non-A12 witness evidence")
 
 
 def _selected_workflow_blocker(
@@ -4437,17 +4860,69 @@ def _publication_temporary(path: Path) -> Path:
     return Path(f"{path}.publishing")
 
 
-def _remove_publication_temporary(path: Path) -> None:
+def _quarantine_publication_temporary(path: Path) -> Path | None:
     temporary = _publication_temporary(path)
-    if not temporary.exists():
+    observation = _observe_path_no_follow(temporary)
+    if observation["state"] == "ABSENT":
+        return None
+    require(
+        observation["state"] == "REGULAR",
+        "CONTROL_PUBLICATION_TEMP_PATH_KIND",
+        str(observation["state"]),
+    )
+    return _quarantine_regular_temporary(path, temporary, observation)
+
+
+def _reconcile_observational_publication_temporary(path: Path) -> None:
+    target = _observe_path_no_follow(path)
+    temporary_path = _publication_temporary(path)
+    temporary = _observe_path_no_follow(temporary_path)
+    if temporary["state"] == "ABSENT":
         return
     require(
-        temporary.is_file() and not temporary.is_symlink(),
+        temporary["state"] == "REGULAR",
         "CONTROL_PUBLICATION_TEMP_PATH_KIND",
-        str(temporary),
+        str(temporary["state"]),
     )
-    temporary.unlink()
-    fsync_directory(path.parent)
+    if target["state"] == "REGULAR":
+        require(
+            target["data"] == temporary["data"],
+            "CONTROL_PUBLICATION_RACE_TEMPORARY",
+        )
+        return
+    require(
+        target["state"] == "ABSENT",
+        "CONTROL_PUBLICATION_PATH_KIND",
+        str(target["state"]),
+    )
+    _quarantine_regular_temporary(
+        path,
+        temporary_path,
+        temporary,
+    )
+
+
+def _validate_deterministic_publication_temporary(path: Path) -> None:
+    target = _observe_path_no_follow(path)
+    temporary = _observe_path_no_follow(_publication_temporary(path))
+    if temporary["state"] == "ABSENT":
+        return
+    require(
+        temporary["state"] == "REGULAR",
+        "CONTROL_PUBLICATION_TEMP_PATH_KIND",
+        str(temporary["state"]),
+    )
+    if target["state"] == "ABSENT":
+        return
+    require(
+        target["state"] == "REGULAR",
+        "CONTROL_PUBLICATION_PATH_KIND",
+        str(target["state"]),
+    )
+    require(
+        target["data"] == temporary["data"],
+        "CONTROL_PUBLICATION_RACE_TEMPORARY",
+    )
 
 
 def _reconcile_controller_blocker_temporaries(
@@ -4456,6 +4931,7 @@ def _reconcile_controller_blocker_temporaries(
     attempt_root: Path,
     surface: Mapping[str, Any],
     claim: Mapping[str, Any],
+    action_phase: str | None = None,
 ) -> None:
     paths = _workflow_blocker_paths(attempt_root)
     controller_paths = {
@@ -4466,31 +4942,53 @@ def _reconcile_controller_blocker_temporaries(
     committed = [path for path in controller_paths.values() if _committed_regular(path)]
     if committed:
         for path in controller_paths.values():
-            _remove_publication_temporary(path)
+            target = _observe_path_no_follow(path)
+            temporary = _observe_path_no_follow(_publication_temporary(path))
+            if temporary["state"] == "REGULAR":
+                require(
+                    target["state"] == "REGULAR"
+                    and target["data"] == temporary["data"],
+                    "CONTROL_PUBLICATION_RACE_TEMPORARY",
+                )
+            else:
+                require(
+                    temporary["state"] == "ABSENT",
+                    "CONTROL_PUBLICATION_TEMP_PATH_KIND",
+                )
         return
 
     temporaries: list[Path] = []
     contents: dict[Path, bytes] = {}
     for path in controller_paths.values():
         temporary = _publication_temporary(path)
-        if not temporary.exists():
+        observation = _observe_path_no_follow(temporary)
+        if observation["state"] == "ABSENT":
             continue
         require(
-            temporary.is_file() and not temporary.is_symlink(),
+            observation["state"] == "REGULAR",
             "CONTROL_PUBLICATION_TEMP_PATH_KIND",
-            str(temporary),
+            str(observation["state"]),
         )
         temporaries.append(path)
-        contents[path] = temporary.read_bytes()
+        contents[path] = bytes(observation["data"])
     if not temporaries:
         return
 
     try:
-        proof_stage, consumption_sha, terminal_sha = _recovery_controller_proof_stage(
-            repo_root=repo_root,
-            attempt_root=attempt_root,
-            surface=surface,
-            claim=claim,
+        proof_stage, consumption_sha, terminal_sha = (
+            _proof_context_for_action_phase(
+                repo_root=repo_root,
+                surface=surface,
+                claim=claim,
+                action_phase=action_phase,
+            )
+            if action_phase is not None
+            else _recovery_controller_proof_stage(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim=claim,
+            )
         )
         expected_tokens = _expected_controller_tokens(
             surface,
@@ -4535,11 +5033,11 @@ def _reconcile_controller_blocker_temporaries(
     if selected_path is not None:
         for path in temporaries:
             if path != selected_path:
-                _remove_publication_temporary(path)
-        publish_control_no_replace(selected_path.resolve(), expected_content)
+                _quarantine_publication_temporary(path)
+        publish_control_no_replace(selected_path, expected_content)
         return
     for path in temporaries:
-        _remove_publication_temporary(path)
+        _quarantine_publication_temporary(path)
 
 
 def _reconcile_nonblocker_publication_temporaries(
@@ -4549,7 +5047,6 @@ def _reconcile_nonblocker_publication_temporaries(
 ) -> None:
     control = attempt_root / "control"
     targets = [
-        attempt_root / "attempt-lock.json",
         control / "formal_producer_invocation.json",
         control / "terminal_verifier_invocation.json",
         control / "formal_producer_exit.json",
@@ -4559,24 +5056,59 @@ def _reconcile_nonblocker_publication_temporaries(
         control / "consumption_push_observation.json",
         control / "terminal_push_observation.json",
         control / "terminal_verifier_result.json",
+    ]
+    for path in targets:
+        _reconcile_observational_publication_temporary(path)
+    deterministic_targets = [
+        attempt_root / "attempt-lock.json",
         control / "recovery_observation.json",
         repo_root / CONSUMPTION_RECEIPT_PATH,
         repo_root / TERMINAL_RECEIPT_PATH,
         repo_root / BUSINESS_REPORT_PATH,
     ]
-    for path in targets:
-        _remove_publication_temporary(path.resolve())
+    for path in deterministic_targets:
+        _validate_deterministic_publication_temporary(path)
 
 
 def _reconcile_artifact_blocker_temporary(attempt_root: Path) -> None:
     path = _workflow_blocker_paths(attempt_root)["ARTIFACT_STATE_CORRUPTION"]
-    _remove_publication_temporary(path)
+    target = _observe_path_no_follow(path)
+    temporary = _observe_path_no_follow(_publication_temporary(path))
+    if temporary["state"] == "ABSENT":
+        return
+    require(
+        temporary["state"] == "REGULAR",
+        "CONTROL_PUBLICATION_TEMP_PATH_KIND",
+        str(temporary["state"]),
+    )
+    if target["state"] == "REGULAR":
+        require(
+            target["data"] == temporary["data"],
+            "CONTROL_PUBLICATION_RACE_TEMPORARY",
+        )
+        return
+    require(
+        target["state"] == "ABSENT",
+        "CONTROL_PUBLICATION_PATH_KIND",
+        str(target["state"]),
+    )
 
 
 def _reconcile_committed_recovery_start_temporary(attempt_root: Path) -> None:
     path = attempt_root / "control" / "recovery_start.json"
     if _committed_regular(path):
-        _remove_publication_temporary(path)
+        target = _observe_path_no_follow(path)
+        temporary = _observe_path_no_follow(_publication_temporary(path))
+        if temporary["state"] == "REGULAR":
+            require(
+                target["state"] == "REGULAR" and target["data"] == temporary["data"],
+                "A12_RECOVERY_WITNESS_MISMATCH",
+            )
+        else:
+            require(
+                temporary["state"] == "ABSENT",
+                "A12_RECOVERY_WITNESS_MISMATCH",
+            )
 
 
 def _recovery_controller_proof_stage(
@@ -4653,6 +5185,23 @@ def _recovery_controller_proof_stage(
             terminal_commit,
         )
     raise QualificationError("G03_HEAD_MISMATCH", f"recovery depth:{depth}")
+
+
+def _proof_context_for_action_phase(
+    *,
+    repo_root: Path,
+    surface: Mapping[str, Any],
+    claim: Mapping[str, Any],
+    action_phase: str,
+) -> tuple[str, str | None, str | None]:
+    machine = surface["one_shot"]["workflow_blockers"]["local_git_state_machine"]
+    expected = machine["expected_local_state_by_action_phase"].get(action_phase)
+    require(expected is not None, "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY")
+    history = _history_ids(repo_root, str(claim["implementation_commit"]))
+    depth = int(history["depth"])
+    consumption_sha = str(history["consumption_commit"]) if depth >= 2 else None
+    terminal_sha = str(history["terminal_commit"]) if depth >= 3 else None
+    return str(expected["proof_stage"]), consumption_sha, terminal_sha
 
 
 def _acquire_flock(path: Path) -> int:
@@ -4928,7 +5477,7 @@ def publish_push_observation(
 
 
 def _copy_receipt_to_tracked(source: Path, destination: Path) -> None:
-    publish_control_no_replace(destination.resolve(), source.read_bytes())
+    publish_control_no_replace(destination, source.read_bytes())
 
 
 def _claim_authority(repo_root: Path) -> tuple[str, Path, dict[str, Any], bytes]:
@@ -5659,6 +6208,11 @@ def _artifact_corruption_payload(
         "observed_artifact_sha256_json": canonical_json_bytes(
             dict(sorted(observed.items()))
         ).decode("ascii"),
+        "recovery_witness_evidence_json": (
+            str(resolution["recovery_witness_evidence_json"])
+            if first_invalid_rule == "A12_RECOVERY_WITNESS_MISMATCH"
+            else NONE
+        ),
         "schema_version": 1,
         "terminal_receipt_state": ("VALID" if terminal_valid else "INVALID")
         if terminal_path.exists()
@@ -6136,6 +6690,14 @@ def _ensure_consumption_transition_receipt(
             )
             path = attempt_root / "control" / "consumption_push_receipt.json"
         content = path.read_bytes()
+        verify_git_action_phase(
+            repo_root=repo_root,
+            surface=surface,
+            action_phase="NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED",
+            terminal_branch="NONE",
+            claim_bytes=(repo_root / CLAIMED_PATH).read_bytes(),
+            attempt_root=attempt_root,
+        )
     else:
         path, value, content = selected
         require(controller_sha == consumption_commit, "CONTROLLER_REF_DIVERGENCE")
@@ -6311,7 +6873,7 @@ def _terminalize_local_result(
             package_root=attempt_root / "package",
             skip_controller=True,
         )
-    publish_control_no_replace(report_path.resolve(), report_bytes)
+    publish_control_no_replace(report_path, report_bytes)
     branch = (
         "PASS" if receipt["classification"] == FORMAL_CLASSIFICATION_PASS else "FAIL"
     )
@@ -6614,6 +7176,14 @@ def execute_formal_outer(
         old_sha=ABSENT,
         new_sha=consumption_commit,
     )
+    verify_git_action_phase(
+        repo_root=repo_root,
+        surface=surface,
+        action_phase="NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED",
+        terminal_branch="NONE",
+        claim_bytes=claim_bytes,
+        attempt_root=attempt_root,
+    )
     untracked_consumption = attempt_root / "control" / "consumption_push_receipt.json"
     _copy_receipt_to_tracked(
         untracked_consumption,
@@ -6710,7 +7280,7 @@ def execute_formal_outer(
     )
     publish_json(repo_root / TERMINAL_RECEIPT_PATH, receipt, control=True)
     report = render_business_report(surface, receipt, claim["implementation_commit"])
-    publish_control_no_replace((repo_root / BUSINESS_REPORT_PATH).resolve(), report)
+    publish_control_no_replace(repo_root / BUSINESS_REPORT_PATH, report)
     terminal_receipt_bytes = (repo_root / TERMINAL_RECEIPT_PATH).read_bytes()
     branch = "PASS" if profile == "PASS_COMPLETE" else "FAIL"
     verify_git_action_phase(
@@ -6894,17 +7464,25 @@ def classify_crash_boundary(snapshot: Mapping[str, Any]) -> str:
 
 
 def _recovery_committed_paths_json(attempt_root: Path) -> str:
-    return canonical_json_bytes(
-        sorted(
-            str(control_path.relative_to(attempt_root))
-            for control_path in (attempt_root / "control").iterdir()
-            if control_path.is_file()
-            and not control_path.name.endswith(".lock")
-            and control_path.name
-            not in {"recovery_start.json", "recovery_observation.json"}
-            and not control_path.name.endswith(".publishing")
-        )
-    ).decode("ascii")
+    control = attempt_root / "control"
+    paths: list[str] = []
+    for name in os.listdir(control):
+        if (
+            name.endswith(".lock")
+            or name.endswith(".publishing")
+            or re.fullmatch(
+                r".+\.abandoned\.[0-9a-f]{64}\.(?:0|[1-9][0-9]*)",
+                name,
+            )
+            is not None
+            or name in {"recovery_start.json", "recovery_observation.json"}
+        ):
+            continue
+        path = control / name
+        observation = _observe_path_no_follow(path)
+        if observation["state"] == "REGULAR":
+            paths.append(str(path.relative_to(attempt_root)))
+    return canonical_json_bytes(sorted(paths)).decode("ascii")
 
 
 def observe_recovery_snapshot(
@@ -7083,6 +7661,211 @@ def _pre_recovery_artifact_resolution(
     return resolution if resolution["first_invalid_rule"] != NONE else None
 
 
+def _witness_evidence_json(evidence: Mapping[str, Any]) -> str:
+    fields = strict_json_file(REPO_BOOTSTRAP / SURFACE_PATH)["one_shot"][
+        "workflow_blockers"
+    ]["recovery_witness_evidence_schema"]["fields"]
+    payload = {field: evidence[field] for field in fields}
+    require(set(payload) == set(fields), "A12_RECOVERY_WITNESS_MISMATCH")
+    return canonical_json_bytes(payload).decode("ascii")
+
+
+def _observe_recovery_witness(
+    *,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    expected_bytes: bytes,
+) -> dict[str, Any]:
+    witness = surface["one_shot"]["recovery"]["recovery_start_witness"]
+    ref_result = _run_registered_command(
+        witness["ref_observe_command"],
+        cwd=REPO_BOOTSTRAP,
+    )
+    observed_oid = NONE
+    object_type = NONE
+    object_result: subprocess.CompletedProcess[bytes] | None = None
+    blob_result: subprocess.CompletedProcess[bytes] | None = None
+    blob_bytes: bytes | None = None
+    if (
+        ref_result.returncode == 1
+        and ref_result.stdout == b""
+        and ref_result.stderr == b""
+    ):
+        ref_state = "ABSENT"
+    elif (
+        ref_result.returncode == 0
+        and ref_result.stderr == b""
+        and re.fullmatch(rb"[0-9a-f]{40}\n", ref_result.stdout) is not None
+    ):
+        observed_oid = ref_result.stdout[:-1].decode("ascii")
+        object_result = _run_registered_command(
+            witness["object_type_command"],
+            cwd=REPO_BOOTSTRAP,
+            replacements={"<observed_oid>": observed_oid},
+        )
+        if (
+            object_result.returncode != 0
+            or object_result.stderr != b""
+            or re.fullmatch(rb"[a-z][a-z0-9-]*\n", object_result.stdout) is None
+        ):
+            ref_state = "UNREADABLE"
+        else:
+            object_type = object_result.stdout[:-1].decode("ascii")
+            if object_type != "blob":
+                ref_state = "INVALID_OBJECT_TYPE"
+            else:
+                blob_result = _run_registered_command(
+                    witness["blob_read_command"],
+                    cwd=REPO_BOOTSTRAP,
+                    replacements={"<observed_oid>": observed_oid},
+                )
+                if blob_result.returncode != 0 or blob_result.stderr != b"":
+                    ref_state = "UNREADABLE"
+                else:
+                    blob_bytes = blob_result.stdout
+                    ref_state = (
+                        "EXACT_BLOB"
+                        if blob_bytes == expected_bytes
+                        else "CONFLICTING_BLOB"
+                    )
+    else:
+        ref_state = "UNREADABLE"
+    target = attempt_root / "control" / "recovery_start.json"
+    target_observation = _observe_path_no_follow(target, expected=expected_bytes)
+    temporary_observation = _observe_path_no_follow(
+        _publication_temporary(target),
+        expected=expected_bytes,
+    )
+    quarantine = _quarantine_inventory(target)
+    return {
+        "blob_bytes": blob_bytes,
+        "blob_read_exit_code": (
+            blob_result.returncode if blob_result is not None else NONE
+        ),
+        "blob_read_stderr_sha256": (
+            sha256_bytes(blob_result.stderr) if blob_result is not None else NONE
+        ),
+        "blob_read_stdout_sha256": (
+            sha256_bytes(blob_result.stdout) if blob_result is not None else NONE
+        ),
+        "object_type": object_type,
+        "object_type_exit_code": (
+            object_result.returncode if object_result is not None else NONE
+        ),
+        "object_type_stderr_sha256": (
+            sha256_bytes(object_result.stderr) if object_result is not None else NONE
+        ),
+        "object_type_stdout_sha256": (
+            sha256_bytes(object_result.stdout) if object_result is not None else NONE
+        ),
+        "observed_oid": observed_oid,
+        "quarantine_inventory_json": canonical_json_bytes(
+            {
+                "entries_hex": quarantine["entries_hex"],
+                "rows": quarantine["rows"],
+            }
+        ).decode("ascii"),
+        "quarantine_observation_error": quarantine["error"],
+        "quarantine_state": quarantine["state"],
+        "ref_observation_exit_code": ref_result.returncode,
+        "ref_observation_stderr_sha256": sha256_bytes(ref_result.stderr),
+        "ref_observation_stdout_sha256": sha256_bytes(ref_result.stdout),
+        "ref_state": ref_state,
+        "target_observation_error": target_observation["error"],
+        "target_sha256": target_observation["sha256"],
+        "target_state": target_observation["state"],
+        "temporary_observation_error": temporary_observation["error"],
+        "temporary_sha256": temporary_observation["sha256"],
+        "temporary_state": temporary_observation["state"],
+        "witness_blob_oid": (
+            observed_oid if ref_state in {"EXACT_BLOB", "CONFLICTING_BLOB"} else NONE
+        ),
+        "witness_ref": witness["witness_ref"],
+    }
+
+
+def _ensure_recovery_witness(
+    *,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    expected_bytes: bytes,
+) -> tuple[bytes, dict[str, Any]]:
+    witness = surface["one_shot"]["recovery"]["recovery_start_witness"]
+    evidence = _observe_recovery_witness(
+        attempt_root=attempt_root,
+        surface=surface,
+        expected_bytes=expected_bytes,
+    )
+    if evidence["ref_state"] == "EXACT_BLOB":
+        legal_inventory = evidence["quarantine_state"] in {
+            "ABSENT",
+            "VALID_INVENTORY",
+        }
+        legal_local = (
+            evidence["target_state"] == "ABSENT"
+            and evidence["temporary_state"]
+            in {"ABSENT", "EXACT_REGULAR", "MISMATCH_REGULAR"}
+        ) or (
+            evidence["target_state"] == "EXACT_REGULAR"
+            and evidence["temporary_state"] in {"ABSENT", "EXACT_REGULAR"}
+        )
+        if legal_inventory and legal_local:
+            return expected_bytes, evidence
+        raise QualificationError(
+            "A12_RECOVERY_WITNESS_MISMATCH",
+            _witness_evidence_json(evidence),
+        )
+    if evidence["ref_state"] != "ABSENT":
+        raise QualificationError(
+            "A12_RECOVERY_WITNESS_MISMATCH",
+            _witness_evidence_json(evidence),
+        )
+    if (
+        evidence["target_state"] != "ABSENT"
+        or evidence["temporary_state"] != "ABSENT"
+        or evidence["quarantine_state"] != "ABSENT"
+    ):
+        raise QualificationError(
+            "A12_RECOVERY_WITNESS_MISMATCH",
+            _witness_evidence_json(evidence),
+        )
+    expected_oid = git_blob_oid(expected_bytes)
+    write_result = _run_registered_command(
+        witness["blob_write_command"],
+        cwd=REPO_BOOTSTRAP,
+        stdin=expected_bytes,
+    )
+    require(
+        write_result.returncode == 0
+        and write_result.stderr == b""
+        and write_result.stdout == expected_oid.encode("ascii") + b"\n",
+        "A12_RECOVERY_WITNESS_MISMATCH",
+        "blob write",
+    )
+    create_result = _run_registered_command(
+        witness["ref_create_command"],
+        cwd=REPO_BOOTSTRAP,
+        replacements={"<recovery_start_blob_oid>": expected_oid},
+    )
+    controller_repo = Path(str(witness["controller_repo"]))
+    if controller_repo.is_dir():
+        fsync_directory(controller_repo)
+        fsync_directory(controller_repo.parent)
+    final = _observe_recovery_witness(
+        attempt_root=attempt_root,
+        surface=surface,
+        expected_bytes=expected_bytes,
+    )
+    require(
+        (create_result.returncode == 0 or final["ref_state"] == "EXACT_BLOB")
+        and final["ref_state"] == "EXACT_BLOB"
+        and final["witness_blob_oid"] == expected_oid,
+        "A12_RECOVERY_WITNESS_MISMATCH",
+        _witness_evidence_json(final),
+    )
+    return expected_bytes, final
+
+
 def _verify_pre_recovery_git_state(
     *,
     repo_root: Path,
@@ -7117,13 +7900,18 @@ def _verify_pre_recovery_git_state(
         )
     require(depth in {2, 3}, "G03_HEAD_MISMATCH", f"pre-recovery:{depth}")
     consumption_commit = str(history["consumption_commit"])
-    selected_consumption = _selected_push_receipt(
-        attempt_root=attempt_root,
-        surface=surface,
-        transition_kind="CONSUMPTION",
-        expected_old_sha=ABSENT,
-        expected_new_sha=consumption_commit,
-    )
+    receipt_preimage_error = NONE
+    try:
+        selected_consumption = _selected_push_receipt(
+            attempt_root=attempt_root,
+            surface=surface,
+            transition_kind="CONSUMPTION",
+            expected_old_sha=ABSENT,
+            expected_new_sha=consumption_commit,
+        )
+    except QualificationError as exc:
+        selected_consumption = None
+        receipt_preimage_error = f"consumption:{exc.code}:{exc.detail}"
     consumption_receipt_bytes = (
         selected_consumption[2] if selected_consumption is not None else None
     )
@@ -7183,12 +7971,18 @@ def _verify_pre_recovery_git_state(
                 )
             )
         elif _committed_regular(repo_root / CONSUMPTION_RECEIPT_PATH):
-            require(
-                consumption_receipt_bytes is not None,
-                "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
-                "tracked consumption receipt source",
-            )
-            candidates = (("NORMAL_CONSUMPTION_RECEIPT_COMMITTED", "NONE"),)
+            if consumption_receipt_bytes is None:
+                receipt_preimage_error = (
+                    receipt_preimage_error
+                    if receipt_preimage_error != NONE
+                    else "tracked consumption receipt source"
+                )
+                candidates = (
+                    ("BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE", "NONE"),
+                    ("NORMAL_CONSUMPTION_PUSH_UNRECEIPTED", "NONE"),
+                )
+            else:
+                candidates = (("NORMAL_CONSUMPTION_RECEIPT_COMMITTED", "NONE"),)
         elif consumption_tag == "ABSENT":
             candidates = (("BLOCKER_CONSUMPTION_COMMITTED", "NONE"),)
         else:
@@ -7197,13 +7991,16 @@ def _verify_pre_recovery_git_state(
                 ("NORMAL_CONSUMPTION_PUSH_UNRECEIPTED", "NONE"),
             )
     else:
-        require(
-            terminal_receipt_bytes is not None
-            and business_report_bytes is not None
-            and consumption_receipt_bytes is not None,
-            "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
-            "terminal history preimage",
-        )
+        if (
+            terminal_receipt_bytes is None
+            or business_report_bytes is None
+            or consumption_receipt_bytes is None
+        ):
+            receipt_preimage_error = (
+                receipt_preimage_error
+                if receipt_preimage_error != NONE
+                else "terminal history preimage"
+            )
         terminal_commit = str(history["terminal_commit"])
         terminal_tag = _tag_state(
             repo_root,
@@ -7211,20 +8008,36 @@ def _verify_pre_recovery_git_state(
             expected_target=terminal_commit,
             expected_message=surface["one_shot"]["annotated_tag_messages"]["terminal"],
         )
-        candidates = (
-            tuple(("BLOCKER_TERMINAL_COMMITTED", branch) for branch in branches)
-            if terminal_tag == "ABSENT"
-            else tuple(
+        try:
+            selected_terminal = _selected_push_receipt(
+                attempt_root=attempt_root,
+                surface=surface,
+                transition_kind="TERMINAL",
+                expected_old_sha=consumption_commit,
+                expected_new_sha=terminal_commit,
+            )
+        except QualificationError as exc:
+            selected_terminal = None
+            receipt_preimage_error = f"terminal:{exc.code}:{exc.detail}"
+        if terminal_tag == "ABSENT":
+            candidates = tuple(
+                ("BLOCKER_TERMINAL_COMMITTED", branch) for branch in branches
+            )
+        elif selected_terminal is None:
+            candidates = tuple(
                 (phase, branch)
                 for branch in branches
                 for phase in (
                     "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
                     "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
-                    "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
                 )
             )
-        )
-    return _match_git_phase(
+        else:
+            candidates = tuple(
+                ("NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED", branch)
+                for branch in branches
+            )
+    phase = _match_git_phase(
         repo_root=repo_root,
         surface=surface,
         candidates=candidates,
@@ -7237,6 +8050,12 @@ def _verify_pre_recovery_git_state(
         controller_token=controller_token,
         skip_controller=skip_controller,
     )
+    require(
+        receipt_preimage_error == NONE,
+        "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
+        receipt_preimage_error,
+    )
+    return phase
 
 
 def _recovery_start_payload(
@@ -7251,7 +8070,7 @@ def _recovery_start_payload(
     initial_controller_sha: str,
 ) -> dict[str, Any]:
     path = attempt_root / "control" / "recovery_start.json"
-    if path.is_file():
+    if _observe_path_no_follow(path)["state"] != "ABSENT":
         return _validate_committed_recovery_start(
             path=path,
             surface=surface,
@@ -7275,15 +8094,15 @@ def _recovery_start_payload(
     return {**base, "recovery_id": canonical_json_sha256(base)}
 
 
-def _validate_committed_recovery_start(
+def _validate_recovery_start_bytes(
     *,
-    path: Path,
+    content: bytes,
+    attempt_root: Path,
     surface: Mapping[str, Any],
     claim_path: Path,
     attempt_lock_sha256: str,
 ) -> dict[str, Any]:
-    content = path.read_bytes()
-    value = strict_canonical_json_bytes(content, detail=str(path))
+    value = strict_canonical_json_bytes(content, detail="recovery_start.json")
     recovery = surface["one_shot"]["recovery"]
     require(
         set(value) == set(recovery["recovery_start_fields"])
@@ -7319,7 +8138,6 @@ def _validate_committed_recovery_start(
             "TERMINAL_CLOSURE",
             "recovery start committed paths",
         ) from exc
-    attempt_root = path.parent.parent
     current_committed_paths = set(
         json.loads(_recovery_committed_paths_json(attempt_root))
     )
@@ -7334,6 +8152,11 @@ def _validate_committed_recovery_start(
             and all(part not in {"", ".", ".."} for part in Path(relative).parts)
             and Path(relative).as_posix() == relative
             and not relative.endswith((".lock", ".publishing"))
+            and re.fullmatch(
+                r".+\.abandoned\.[0-9a-f]{64}\.(?:0|[1-9][0-9]*)",
+                relative,
+            )
+            is None
             and relative
             not in {
                 "control/recovery_start.json",
@@ -7354,6 +8177,36 @@ def _validate_committed_recovery_start(
         "recovery start id",
     )
     return value
+
+
+def _validate_committed_recovery_start(
+    *,
+    path: Path,
+    surface: Mapping[str, Any],
+    claim_path: Path,
+    attempt_lock_sha256: str,
+    expected_bytes: bytes | None = None,
+) -> dict[str, Any]:
+    observation = _observe_path_no_follow(path)
+    require(
+        observation["state"] == "REGULAR",
+        "A12_RECOVERY_WITNESS_MISMATCH",
+        f"recovery start:{observation['state']}",
+    )
+    content = bytes(observation["data"])
+    if expected_bytes is not None:
+        require(
+            content == expected_bytes,
+            "A12_RECOVERY_WITNESS_MISMATCH",
+            "recovery start witness bytes",
+        )
+    return _validate_recovery_start_bytes(
+        content=content,
+        attempt_root=path.parent.parent,
+        surface=surface,
+        claim_path=claim_path,
+        attempt_lock_sha256=attempt_lock_sha256,
+    )
 
 
 def _workflow_blocker_restart_states(surface: Mapping[str, Any]) -> list[str]:
@@ -7412,13 +8265,13 @@ def classify_workflow_blocker_restart_state(
     if blocker_code == "ARTIFACT_STATE_CORRUPTION":
         if snapshot["head_state"] == "TERMINAL_COMMIT":
             return "ARTIFACT_BLOCKER_TERMINAL_HISTORY_PRESENT"
-        if first_invalid in {
-            "A09_TERMINAL_RECEIPT_PROFILE_MISMATCH",
-            "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT",
-            "A11_BUSINESS_REPORT_BYTES_MISMATCH",
-        } and (
-            snapshot["terminal_receipt_state"] != "ABSENT"
-            or snapshot["business_report_state"] != "ABSENT"
+        if (
+            first_invalid.startswith("A")
+            and int(first_invalid[1:3]) <= 12
+            and (
+                snapshot["terminal_receipt_state"] != "ABSENT"
+                or snapshot["business_report_state"] != "ABSENT"
+            )
         ):
             return "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT"
         require(
@@ -7645,7 +8498,17 @@ def _verify_preserved_artifact_blocker(
     blocker_receipt: Mapping[str, Any],
 ) -> dict[str, Any]:
     first_invalid_rule = str(blocker_receipt["first_invalid_rule"])
-    if first_invalid_rule.startswith("G0"):
+    if first_invalid_rule == "A12_RECOVERY_WITNESS_MISMATCH":
+        bits, _ = _artifact_presence(repo_root, attempt_root)
+        resolution = {
+            "artifact_presence_bits": bits,
+            "first_invalid_rule": first_invalid_rule,
+            "recovery_witness_evidence_json": blocker_receipt[
+                "recovery_witness_evidence_json"
+            ],
+            "terminal_receipt": None,
+        }
+    elif first_invalid_rule.startswith("G0"):
         try:
             _verify_pre_recovery_git_state(
                 repo_root=repo_root,
@@ -7755,12 +8618,8 @@ def _resume_workflow_blocker(
             restart_state = "ARTIFACT_BLOCKER_TERMINAL_HISTORY_PRESENT"
         elif (
             depth == 2
-            and first_invalid
-            in {
-                "A09_TERMINAL_RECEIPT_PROFILE_MISMATCH",
-                "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT",
-                "A11_BUSINESS_REPORT_BYTES_MISMATCH",
-            }
+            and first_invalid.startswith("A")
+            and int(first_invalid[1:3]) <= 12
             and (terminal_state != "ABSENT" or report_state != "ABSENT")
         ):
             consumption_commit = str(history["consumption_commit"])
@@ -8042,6 +8901,66 @@ def _resume_workflow_blocker(
         raise
 
 
+def _prepare_recovery_start_bytes(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    claim_state: str,
+    claim_path: Path,
+    claim: Mapping[str, Any],
+    controller_token: str,
+    attempt_lock_sha256: str,
+    initial_committed_paths_json: str,
+) -> tuple[bytes, dict[str, Any]]:
+    probe = _observe_recovery_witness(
+        attempt_root=attempt_root,
+        surface=surface,
+        expected_bytes=b"",
+    )
+    witnessed_bytes = probe.get("blob_bytes")
+    if isinstance(witnessed_bytes, bytes):
+        try:
+            value = _validate_recovery_start_bytes(
+                content=witnessed_bytes,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim_path=claim_path,
+                attempt_lock_sha256=attempt_lock_sha256,
+            )
+        except QualificationError as exc:
+            evidence = _observe_recovery_witness(
+                attempt_root=attempt_root,
+                surface=surface,
+                expected_bytes=witnessed_bytes,
+            )
+            raise QualificationError(
+                "A12_RECOVERY_WITNESS_MISMATCH",
+                _witness_evidence_json(evidence),
+            ) from exc
+        return witnessed_bytes, value
+    snapshot = observe_recovery_snapshot(
+        repo_root=repo_root,
+        attempt_root=attempt_root,
+        surface=surface,
+        claim_state=claim_state,
+        claim=claim,
+        controller_token=controller_token,
+    )
+    crash_boundary = classify_crash_boundary(snapshot)
+    require(crash_boundary != "before_attempt_root", "TERMINAL_CLOSURE")
+    base = {
+        "attempt_lock_sha256": attempt_lock_sha256,
+        "claimed_or_armed_sha256": sha256_file(claim_path),
+        "crash_boundary": crash_boundary,
+        "initial_committed_paths_json": initial_committed_paths_json,
+        "initial_controller_sha": controller_token,
+        "schema_version": 1,
+    }
+    value = {**base, "recovery_id": canonical_json_sha256(base)}
+    return canonical_json_bytes(value, trailing_lf=True), value
+
+
 def recover_formal(
     *,
     repo_root: Path,
@@ -8090,18 +9009,11 @@ def recover_formal(
                     "restart_state": "BLOCKER_LOCAL_GIT_STATE_CORRUPTION",
                 }
             raise
-        _reconcile_controller_blocker_temporaries(
-            repo_root=repo_root,
-            attempt_root=attempt_root,
-            surface=surface,
-            claim=claim,
-        )
         _reconcile_artifact_blocker_temporary(attempt_root)
         _reconcile_nonblocker_publication_temporaries(
             repo_root=repo_root,
             attempt_root=attempt_root,
         )
-        _reconcile_committed_recovery_start_temporary(attempt_root)
         _verify_committed_attempt_lock(
             attempt_root=attempt_root,
             claim=claim,
@@ -8125,12 +9037,42 @@ def recover_formal(
         initial_committed_paths_json = _recovery_committed_paths_json(attempt_root)
         controller_observation = _observe_controller_status(repo_root, surface)
         try:
-            proof_stage, consumption_sha, terminal_sha = (
-                _recovery_controller_proof_stage(
+            pre_action_phase = _verify_pre_recovery_git_state(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim=claim,
+                claim_bytes=claim_bytes,
+                controller_token=(
+                    str(controller_observation["token"])
+                    if controller_observation["parse_status"] == "OK"
+                    else ABSENT
+                ),
+                skip_controller=controller_observation["parse_status"] != "OK",
+            )
+        except QualificationError as exc:
+            if exc.code.startswith("G0") and exc.code != (
+                "G01_CONTROLLER_REF_NOT_EXPECTED"
+            ):
+                artifact = _publish_local_git_corruption(
                     repo_root=repo_root,
                     attempt_root=attempt_root,
+                    first_invalid_rule=exc.code,
+                )
+                return {
+                    "blocker": artifact["blocker_code"],
+                    "classification": NONE,
+                    "first_invalid_rule": artifact["first_invalid_rule"],
+                    "restart_state": "BLOCKER_LOCAL_GIT_STATE_CORRUPTION",
+                }
+            raise
+        try:
+            proof_stage, consumption_sha, terminal_sha = (
+                _proof_context_for_action_phase(
+                    repo_root=repo_root,
                     surface=surface,
                     claim=claim,
+                    action_phase=pre_action_phase,
                 )
             )
         except QualificationError as exc:
@@ -8147,6 +9089,28 @@ def recover_formal(
                     "restart_state": "BLOCKER_LOCAL_GIT_STATE_CORRUPTION",
                 }
             raise
+        _reconcile_controller_blocker_temporaries(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim=claim,
+            action_phase=pre_action_phase,
+        )
+        selected_blocker = _selected_workflow_blocker(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim=claim,
+        )
+        if selected_blocker is not None:
+            return _resume_workflow_blocker(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim=claim,
+                claim_bytes=claim_bytes,
+                selected_blocker=selected_blocker,
+            )
         expected_controller_tokens = _expected_controller_tokens(
             surface,
             proof_stage,
@@ -8207,31 +9171,9 @@ def recover_formal(
                     else "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT"
                 ),
             }
-        try:
-            _verify_pre_recovery_git_state(
-                repo_root=repo_root,
-                attempt_root=attempt_root,
-                surface=surface,
-                claim=claim,
-                claim_bytes=claim_bytes,
-                controller_token=str(controller_observation["token"]),
-            )
-        except QualificationError as exc:
-            if exc.code.startswith("G0") and exc.code != (
-                "G01_CONTROLLER_REF_NOT_EXPECTED"
-            ):
-                artifact = _publish_local_git_corruption(
-                    repo_root=repo_root,
-                    attempt_root=attempt_root,
-                    first_invalid_rule=exc.code,
-                )
-                return {
-                    "blocker": artifact["blocker_code"],
-                    "classification": NONE,
-                    "first_invalid_rule": artifact["first_invalid_rule"],
-                    "restart_state": "BLOCKER_LOCAL_GIT_STATE_CORRUPTION",
-                }
-            raise
+        _quarantine_publication_temporary(
+            _workflow_blocker_paths(attempt_root)["ARTIFACT_STATE_CORRUPTION"]
+        )
         recovery_start_path = attempt_root / "control" / "recovery_start.json"
         derived_attempt_lock_sha256 = canonical_json_sha256(
             _attempt_lock_value(
@@ -8240,42 +9182,69 @@ def recover_formal(
                 attempt_root=attempt_root,
             )
         )
-        if recovery_start_path.is_file():
-            committed_recovery_start = _validate_committed_recovery_start(
-                path=recovery_start_path,
-                surface=surface,
-                claim_path=claim_path,
-                attempt_lock_sha256=derived_attempt_lock_sha256,
-            )
-            crash_boundary = str(committed_recovery_start["crash_boundary"])
-            attempt_lock_sha256 = derived_attempt_lock_sha256
-        else:
-            snapshot = observe_recovery_snapshot(
+        try:
+            recovery_start_bytes, recovery_start = _prepare_recovery_start_bytes(
                 repo_root=repo_root,
                 attempt_root=attempt_root,
                 surface=surface,
                 claim_state=claim_state,
+                claim_path=claim_path,
                 claim=claim,
                 controller_token=str(controller_observation["token"]),
+                attempt_lock_sha256=derived_attempt_lock_sha256,
+                initial_committed_paths_json=initial_committed_paths_json,
             )
-            crash_boundary = classify_crash_boundary(snapshot)
-            require(crash_boundary != "before_attempt_root", "TERMINAL_CLOSURE")
-            attempt_lock_sha256 = derived_attempt_lock_sha256
-        recovery_start = _recovery_start_payload(
-            repo_root=repo_root,
-            attempt_root=attempt_root,
-            surface=surface,
-            crash_boundary=crash_boundary,
-            claim_path=claim_path,
-            attempt_lock_sha256=attempt_lock_sha256,
-            initial_committed_paths_json=initial_committed_paths_json,
-            initial_controller_sha=str(controller_observation["token"]),
-        )
-        publish_json(
-            recovery_start_path,
-            recovery_start,
-            control=True,
-        )
+            recovery_start_bytes, _ = _ensure_recovery_witness(
+                attempt_root=attempt_root,
+                surface=surface,
+                expected_bytes=recovery_start_bytes,
+            )
+            publish_control_no_replace(recovery_start_path, recovery_start_bytes)
+            recovery_start = _validate_committed_recovery_start(
+                path=recovery_start_path,
+                surface=surface,
+                claim_path=claim_path,
+                attempt_lock_sha256=derived_attempt_lock_sha256,
+                expected_bytes=recovery_start_bytes,
+            )
+        except QualificationError as exc:
+            if exc.code != "A12_RECOVERY_WITNESS_MISMATCH":
+                raise
+            evidence_json = exc.detail
+            if not evidence_json.startswith("{"):
+                evidence_json = _witness_evidence_json(
+                    _observe_recovery_witness(
+                        attempt_root=attempt_root,
+                        surface=surface,
+                        expected_bytes=recovery_start_bytes,
+                    )
+                )
+            bits, _ = _artifact_presence(repo_root, attempt_root)
+            artifact = _publish_artifact_corruption(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                resolution={
+                    "artifact_presence_bits": bits,
+                    "first_invalid_rule": "A12_RECOVERY_WITNESS_MISMATCH",
+                    "recovery_witness_evidence_json": evidence_json,
+                    "terminal_receipt": None,
+                },
+            )
+            selected_blocker = _selected_workflow_blocker(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim=claim,
+            )
+            require(selected_blocker is not None, "TERMINAL_CLOSURE")
+            return _resume_workflow_blocker(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim=claim,
+                claim_bytes=claim_bytes,
+                selected_blocker=selected_blocker,
+            )
         _ensure_attempt_lock(
             attempt_root=attempt_root,
             claim=claim,
