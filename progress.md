@@ -10300,3 +10300,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Accepted table aggregates remain unchanged. New plan/task/surface SHA256
   values are `f6f196c1...`, `61da7f86...` and `8b7160d5...`.
 - Implementation and formal remain locked pending independent plan review.
+
+## 2026-08-31 0831T001 Plan Review Round 22
+
+- Independent review accepted atomic Darwin no-replace rename, final FD/inode
+  binding, the no-unlink rule and non-authority inventory ownership.
+- Review failed with four P1 findings: recovery evidence states are neither
+  complete nor disjoint, QA cannot encode nonregular invalid paths, a second
+  rebuild crash cannot coexist with the single quarantine, and A01-A08 remain
+  absent from post-receipt artifact restart.
+- Revision 22 remains historical evidence and implementation stays locked.
