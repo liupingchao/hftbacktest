@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_23_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_24_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -200,6 +200,19 @@ retained.
 | second rebuild crash could not coexist with quarantine | make quarantine an unbounded canonical inventory `<target>.abandoned.<sha256>.<ordinal>` with contiguous ordinals per SHA; each new abandoned temporary takes the next ordinal |
 | post-receipt row omitted A01-A08 | make `ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT` own every A01-A12 first match whenever terminal receipt or report exists before terminal commit |
 
+Revision 23 was rejected with four residual mechanical-determinism findings.
+Its recovery partition formula and ordinal quarantine architecture are
+accepted and retained.
+
+### 1.16 Revision 24 closure matrix
+
+| Round 23 finding | Revision 24 closure |
+|---|---|
+| `NOT_OBSERVED` could not be distinguished from an absent witness | remove `NOT_OBSERVED`; every QA handoff must execute and record the exact witness observation tuple, so normal no-recovery is mechanically `ABSENT + ABSENT + ABSENT` |
+| quarantine rows lacked a frozen field grammar | freeze exact row keys, eight `path_state` values and all state-specific SHA/suffix/ordinal/error cross-field bindings; no other row tuple is valid |
+| two exclusions retained the old quarantine name | make both recovery reconciliation ownership and `initial_committed_paths_json` exclude exactly `.abandoned.<sha256>.<ordinal>` evidence paths |
+| A10 pre-terminal and post-receipt rows overlapped | require both terminal receipt and business report absent in `BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE`; any present receipt or report with A01-A12 belongs only to the artifact post-receipt row |
+
 ## 2. Authorization Boundary
 
 Permitted inputs:
@@ -348,10 +361,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  e7696f64a040b7ead3a32ff21fce0a52003863361264f5d76fb4259de0154dda
+  c4639ed4b01d1d310224d88734f96bf01f3110437f28743e9040d43510d790c0
 
 Git blob:
-  d4fd7f8d729a98eafe88dc04fb06cbbcf67543b1
+  f257bddb44fad8c6efeeb9023b24be16028cd01d
 ```
 
 It freezes:
@@ -1583,7 +1596,10 @@ independent QA report
   `COMPLETE`, `ABNORMAL`). Terminal result/transition and recovery start/
   observation each record absent, valid/invalid regular, explicit nonregular
   kind or observation error. SHA256 exists only for regular bytes; syscall
-  error stage/errno is recorded separately.
+  error stage/errno is recorded separately. QA always executes the exact
+  witness ref/type/blob observation function and records its canonical command
+  tuple, even when formal execution never entered recovery. There is no
+  optional or inferred `NOT_OBSERVED` state.
 ```
 
 The terminal push uses `--force-with-lease` expecting the exact consumption
@@ -1733,6 +1749,12 @@ The recovery driver itself may be restarted after a recovery-process crash.
 Its writes use the atomic control-publication protocol, and every Git action
 is selected from observed ref state and guarded by the registered lease. A
 recovery restart may never create a producer or verifier invocation claim.
+Generic publication reconciliation excludes
+`recovery_start.json.publishing` and every exact
+`recovery_start.json.abandoned.<sha256>.<ordinal>` path because the witness
+restart matrix owns them. The recovery-start committed-path snapshot likewise
+excludes every `.publishing` and `.abandoned.<sha256>.<ordinal>`
+non-authority evidence path.
 
 Every content-bearing control artifact is published as:
 
@@ -1759,10 +1781,12 @@ hashed through its retained FD, atomically renamed no-replace to
 content-addressed sibling `<target>.abandoned.<sha256>.<ordinal>`, reopened
 no-follow and required to retain the original temporary FD `st_dev/st_ino`,
 exact bytes and matching path suffix. The full parent inventory is valid only
-when every entry is canonical and ordinals for each SHA are contiguous from
-zero; the next quarantine takes the current count. Noncanonical inventory,
-nonregular temporary, identity mismatch or observation failure blocks instead
-of deleting or overwriting any path. No pathname
+when every row uses the exact frozen six-key schema, each `path_state` obeys
+its SHA/suffix/ordinal/error cross-field binding, every valid row is a regular
+file whose observed hash equals its path suffix, and ordinals for each SHA are
+contiguous from zero. The next quarantine takes the current count.
+Noncanonical names, invalid/nonregular rows, ordinal gaps or observation
+failure block instead of deleting or overwriting any path. No pathname
 `exists/is_file/read_bytes` check or final-component `resolve()` is
 publication authority.
 

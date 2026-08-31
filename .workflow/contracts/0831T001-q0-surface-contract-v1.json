@@ -1715,7 +1715,7 @@
       "terminal_qa_mirror": "docs/qa-acceptance-report.md",
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
       "terminal_push_ownership": "untracked immutable selected member of the terminal PUSH_CALL|REF_OBSERVATION receipt union; its SHA256 is recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md",
-      "recovery_ownership": "terminal receipt never contains a recovery hash; independent QA derives orthogonal workflow_outcome_mode and recovery_evidence_state values, records explicit ABSENT|VALID|INVALID states plus raw SHA256 for terminal/recovery files, and binds any A12 outcome to the exact artifact blocker and frozen witness diagnostic evidence"
+      "recovery_ownership": "terminal receipt never contains a recovery hash; at every QA handoff independent QA must run and record the exact witness observation command tuple, then derive orthogonal workflow_outcome_mode and recovery_evidence_state values; terminal/recovery files use the frozen common file-state domain and regular-file SHA256 bindings, and any A12 outcome binds to the exact artifact blocker and frozen witness diagnostic evidence"
     },
     "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
     "control_publication": {
@@ -2075,8 +2075,33 @@
             "INVALID_INVENTORY",
             "OBSERVATION_ERROR"
           ],
-          "quarantine_inventory_json": "canonical compact sorted-key ASCII JSON string object with entries_hex and rows arrays. entries_hex contains every selected sibling basename encoded as lowercase hex in raw-byte order. rows contains one object per selected entry in the same order with exact keys name_hex, observed_sha256, observation_error, ordinal, path_state and sha256_suffix; absent or inapplicable values use NONE. VALID_INVENTORY requires every row regular and identity-stable, observed_sha256=sha256_suffix, and ordinals per suffix exactly 0..count-1. ABSENT uses both empty arrays; invalid/error states preserve all successfully observed rows",
-          "quarantine_observation_error": "NONE unless quarantine_state=OBSERVATION_ERROR; otherwise <name_hex>:<LSTAT|OPEN|FSTAT|READ>:<base-10-errno>, using FSTAT:0 for kind or inode-identity mismatch",
+          "quarantine_inventory_json": "canonical compact sorted-key ASCII JSON string object with exactly entries_hex and rows arrays. entries_hex contains every selected sibling basename encoded as lowercase hex in raw-byte order. rows contains exactly one object per selected entry in the same order and every row has exactly the sorted keys name_hex, observed_sha256, observation_error, ordinal, path_state and sha256_suffix. The row value domains and cross-field bindings are frozen by quarantine_inventory_row_schema. ABSENT uses both empty arrays; every other state preserves one row for every selected entry, including the first error row and all later rows whose directory entry was listed",
+          "quarantine_inventory_row_schema": {
+            "name_hex": "lowercase even-length hex encoding of the exact raw selected basename bytes; never NONE",
+            "observed_sha256": "64 lowercase hex only when path_state=VALID_REGULAR or INVALID_REGULAR; otherwise NONE",
+            "observation_error": "NONE unless path_state=OBSERVATION_ERROR; then exactly LSTAT:<base-10-errno>, OPEN:<base-10-errno>, FSTAT:<base-10-errno> or READ:<base-10-errno>, using FSTAT:0 for kind or st_dev/st_ino mismatch after open",
+            "ordinal": "base-10 nonnegative integer only for a canonical basename; otherwise NONE",
+            "path_state": [
+              "NONCANONICAL_NAME",
+              "VALID_REGULAR",
+              "INVALID_REGULAR",
+              "SYMLINK",
+              "DIRECTORY",
+              "FIFO",
+              "OTHER_NONREGULAR",
+              "OBSERVATION_ERROR"
+            ],
+            "sha256_suffix": "64 lowercase hex parsed from a canonical basename; otherwise NONE",
+            "cross_field_bindings": [
+              "NONCANONICAL_NAME requires sha256_suffix=NONE, ordinal=NONE, observed_sha256=NONE and observation_error=NONE; no path open is attempted",
+              "VALID_REGULAR requires canonical sha256_suffix and ordinal, observed_sha256=sha256_suffix and observation_error=NONE",
+              "INVALID_REGULAR requires canonical sha256_suffix and ordinal, a 64-lowercase-hex observed_sha256 different from sha256_suffix and observation_error=NONE",
+              "SYMLINK, DIRECTORY, FIFO or OTHER_NONREGULAR requires canonical sha256_suffix and ordinal, observed_sha256=NONE and observation_error=NONE",
+              "OBSERVATION_ERROR requires canonical sha256_suffix and ordinal, observed_sha256=NONE and the exact first observation_error",
+              "no other field tuple is valid"
+            ]
+          },
+          "quarantine_observation_error": "NONE unless quarantine_state=OBSERVATION_ERROR; a parent listing failure is PARENT:<OPEN|READDIR>:<base-10-errno>; otherwise it is <name_hex>:<LSTAT|OPEN|FSTAT|READ>:<base-10-errno> copied from the first OBSERVATION_ERROR row in entries_hex order",
           "ref_observation_exit_code": "base-10 integer from the exact registered ref observation command",
           "ref_observation_stdout_sha256": "64 lowercase hex over exact stdout bytes",
           "ref_observation_stderr_sha256": "64 lowercase hex over exact stderr bytes",
@@ -2132,11 +2157,13 @@
         "quarantine_state_derivation": [
           "list the parent directory through one opened no-follow directory descriptor and select every sibling beginning exactly <target-name>.abandoned.",
           "zero selected names -> ABSENT with quarantine_inventory_json containing empty entries_hex and rows arrays",
-          "each selected name must match <target-name>.abandoned.<64-lowercase-hex>.<base-10-nonnegative-ordinal-with-no-leading-zero-except-zero>; any noncanonical selected name -> INVALID_INVENTORY",
-          "for every selected raw basename in byte order, append its hex encoding and mechanically parsed row; for canonical names apply the ordered local regular-file lstat/open/fstat/read identity checks; any syscall error -> OBSERVATION_ERROR with the first name_hex/stage/errno while preserving all observed rows",
-          "nonregular kind, lstat/fstat identity mismatch, or content SHA256 different from the path SHA suffix -> INVALID_INVENTORY",
-          "group rows by sha256 and require ordinals exactly 0..count-1 with no duplicate path or ordinal; violation -> INVALID_INVENTORY",
-          "otherwise -> VALID_INVENTORY with the exact canonical row array"
+          "for every selected raw basename in byte order, append its name_hex and emit exactly one row under quarantine_inventory_row_schema",
+          "a name that does not match <target-name>.abandoned.<64-lowercase-hex>.<base-10-nonnegative-ordinal-with-no-leading-zero-except-zero> emits NONCANONICAL_NAME and is not opened",
+          "for a canonical name apply the ordered no-follow lstat/open/fstat/read function: direct lstat nonregular kinds emit their exact kind; readable identity-stable regular bytes emit VALID_REGULAR when content SHA256 equals the path suffix and INVALID_REGULAR otherwise; the first syscall, kind-after-open or inode-identity failure emits OBSERVATION_ERROR",
+          "any OBSERVATION_ERROR row or parent listing failure -> OBSERVATION_ERROR and quarantine_observation_error binds the first error in the frozen order",
+          "otherwise any NONCANONICAL_NAME, INVALID_REGULAR or nonregular row -> INVALID_INVENTORY",
+          "otherwise group VALID_REGULAR rows by sha256_suffix and require ordinals exactly 0..count-1 with no duplicate path or ordinal; violation -> INVALID_INVENTORY",
+          "otherwise -> VALID_INVENTORY; therefore every VALID_INVENTORY row is VALID_REGULAR with observed_sha256=sha256_suffix and contiguous per-SHA ordinals"
         ],
         "legal_restart_state_tuples": [
           "ABSENT witness + ABSENT target + ABSENT temporary + ABSENT quarantine",
@@ -2225,7 +2252,7 @@
         {
           "state": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
           "applies_to": "all workflow_blockers codes",
-          "required": "HEAD is exact consumption commit; annotated consumption tag has exact message and peels to consumption commit; terminal tag absent; terminal receipt absent",
+          "required": "HEAD is exact consumption commit; annotated consumption tag has exact message and peels to consumption commit; terminal tag absent; terminal receipt absent; business report absent",
           "next_action": "independent QA and workflow status 阻塞",
           "crash_restart": "same row"
         },
@@ -2577,7 +2604,7 @@
             },
             {
               "action_phase": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
-              "predicate": "history depth 2, exact consumption tag, both consumption receipt-union members and tracked receipt absent, tracked transition CLEAN, and controller observation does not canonically equal consumption SHA"
+              "predicate": "history depth 2, exact consumption tag, both consumption receipt-union members and tracked receipt absent, terminal receipt absent, business report absent, tracked transition CLEAN, and controller observation does not canonically equal consumption SHA"
             },
             {
               "action_phase": "BLOCKER_TERMINAL_COMMITTED",
@@ -3039,7 +3066,7 @@
     },
     "recovery": {
       "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
-      "entry_precondition": "acquire the exclusive orchestrator flock; reconcile registered non-authority publication temporaries and quarantines except recovery_start.json.publishing and every recovery_start.json.abandoned.<sha256> path, whose fates are owned exclusively by recovery_start_witness.restart_matrix; mechanically derive the unique PRE_BLOCKER action phase from canonical durable observations before artifact rules or proof-stage selection; exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed; otherwise create or verify recovery_start_witness before publishing recovery_start.json and before any recovery state change; for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
+      "entry_precondition": "acquire the exclusive orchestrator flock; reconcile registered non-authority publication temporaries and quarantines except recovery_start.json.publishing and every recovery_start.json.abandoned.<sha256>.<ordinal> path, whose fates are owned exclusively by recovery_start_witness.restart_matrix; mechanically derive the unique PRE_BLOCKER action phase from canonical durable observations before artifact rules or proof-stage selection; exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed; otherwise create or verify recovery_start_witness before publishing recovery_start.json and before any recovery state change; for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
       "recovery_start_fields": [
         "attempt_lock_sha256",
         "claimed_or_armed_sha256",
@@ -3055,7 +3082,7 @@
         "claimed_or_armed_sha256": "64 lowercase hex over the exact committed claimed path when present, otherwise armed path",
         "crash_boundary": "one exact key from crash_recovery_matrix other than before_attempt_root",
         "initial_controller_sha": "40 lowercase hex or ABSENT",
-        "initial_committed_paths_json": "canonical compact JSON string array of all committed control target paths in ASCII order before recovery changes state; .publishing and .abandoned.<sha256> non-authority evidence paths are excluded",
+        "initial_committed_paths_json": "canonical compact JSON string array of all committed control target paths in ASCII order before recovery changes state; every .publishing and .abandoned.<sha256>.<ordinal> non-authority evidence path is excluded",
         "recovery_id": "SHA256 of canonical compact sorted-key ASCII JSON over the other six fields excluding recovery_id"
       },
       "recovery_start_rule": "on every legal controller-ref path derive canonical recovery_start bytes from the unchanged snapshot, create or verify recovery_start_witness in the controller bare repository, then publish the exact witnessed bytes locally before rename, commit, tag, ledger-ref push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses the exact witnessed bytes and original crash_boundary; all workflow_blockers codes are exceptions and follow workflow_blocker_restart_rows without creating a new recovery_start",
@@ -3202,6 +3229,7 @@
         "recovery_start_error",
         "recovery_start_sha256",
         "recovery_start_state",
+        "recovery_witness_observation_json",
         "recovery_witness_blob_oid",
         "recovery_witness_ref",
         "recovery_witness_state",
@@ -3231,7 +3259,6 @@
         "recovery_start_state": "common_file_state_domain",
         "recovery_observation_state": "common_file_state_domain",
         "recovery_witness_state": [
-          "NOT_OBSERVED",
           "ABSENT",
           "EXACT_BLOB",
           "INVALID_OBJECT_TYPE",
@@ -3241,7 +3268,9 @@
         "file_state_derivation": "apply recovery_witness_evidence_schema.local_path_state_derivation independently to each terminal/recovery file using its registered expected schema/bytes; VALID_REGULAR means exact valid canonical bytes, INVALID_REGULAR means regular readable bytes that fail validation, and nonregular/error states preserve no-follow kind or first syscall error",
         "sha_binding": "for each file-state/SHA256 pair, VALID_REGULAR or INVALID_REGULAR requires the exact no-follow raw-file SHA256; ABSENT, every nonregular kind and OBSERVATION_ERROR require SHA256=NONE",
         "error_binding": "each *_error field is NONE unless its state=OBSERVATION_ERROR; then it is the exact first failing LSTAT|OPEN|FSTAT|READ stage plus base-10 errno, using FSTAT:0 for kind or inode-identity mismatch",
-        "witness_binding": "NOT_OBSERVED requires witness ref/blob OID NONE; every other state requires the exact witness ref; EXACT_BLOB or CONFLICTING_BLOB requires the observed 40-hex blob OID and all other states require blob OID NONE"
+        "witness_observation_policy": "at every terminal or blocker QA handoff, including a normal path that never entered recovery, run the exact recovery_start_witness ref_observe_command once and then the registered object-type/blob-read commands exactly when selected by ref_state_derivation; omission is a QA schema failure and is not an artifact state",
+        "witness_observation_json_binding": "recovery_witness_observation_json is canonical compact sorted-key ASCII JSON containing exactly blob_read_exit_code, blob_read_stderr_sha256, blob_read_stdout_sha256, object_type, object_type_exit_code, object_type_stderr_sha256, object_type_stdout_sha256, observed_oid, ref_observation_exit_code, ref_observation_stderr_sha256, ref_observation_stdout_sha256, ref_state, witness_blob_oid and witness_ref, with values derived by recovery_witness_evidence_schema.ref_state_derivation and value_domains",
+        "witness_binding": "recovery_witness_ref always equals the exact registered witness ref and recovery_witness_state equals recovery_witness_observation_json.ref_state; EXACT_BLOB or CONFLICTING_BLOB requires recovery_witness_blob_oid equal the observed 40-hex blob OID, and ABSENT, INVALID_OBJECT_TYPE or UNREADABLE requires recovery_witness_blob_oid=NONE"
       },
       "qa_workflow_outcome_modes": {
         "TERMINAL": "workflow_blocker_code=NONE, workflow_blocker_sha256=NONE, first_invalid_rule=NONE, terminal result and terminal transition receipt states are both VALID_REGULAR, classification is the immutable PASS/FAIL classification, and recovery_evidence_state is NOT_STARTED or COMPLETE",
@@ -3250,13 +3279,13 @@
       },
       "qa_recovery_evidence_states": {
         "ordered_partition": [
-          "NOT_STARTED when recovery_witness_state=NOT_OBSERVED and both recovery file states are ABSENT",
+          "NOT_STARTED when recovery_witness_state=ABSENT and both recovery file states are ABSENT",
           "WITNESS_ONLY when recovery_witness_state=EXACT_BLOB and both recovery file states are ABSENT",
           "START_ONLY when recovery_witness_state=EXACT_BLOB, recovery_start_state=VALID_REGULAR and recovery_observation_state=ABSENT",
           "COMPLETE when recovery_witness_state=EXACT_BLOB and both recovery file states are VALID_REGULAR, the blob bytes equal recovery_start.json and recovery_observation binds its SHA256",
           "ABNORMAL for every remaining tuple"
         ],
-        "derivation_rule": "apply ordered_partition top to bottom using only witness/start/observation states and bytes; the first four predicates are mutually exclusive and ABNORMAL is the exact complement, so workflow outcome is not an input"
+        "derivation_rule": "first enforce the mandatory exact witness observation policy, then apply ordered_partition top to bottom using only witness/start/observation states and bytes; the first four predicates are mutually exclusive and ABNORMAL is the exact complement, so workflow outcome is not an input"
       },
       "qa_evidence_totality": "derive no-follow file states/errors/hashes, derive the recovery evidence partition without workflow inputs, then derive workflow outcome mode; every terminal or blocker handoff selects exactly one recovery state and one workflow outcome mode, otherwise QA is 阻塞 with QA schema failure",
       "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every content write uses control_publication or verifies exact committed bytes, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",

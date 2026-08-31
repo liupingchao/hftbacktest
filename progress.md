@@ -10337,3 +10337,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   business report exists without a receipt.
 - Revision 23 remains historical evidence only. Implementation and formal
   execution remain locked.
+
+## 2026-08-31 0831T001 Plan Amendment Round 24
+
+- Removed the non-mechanical `NOT_OBSERVED` witness state. Every QA handoff
+  now executes and records the exact witness observation tuple, making the
+  no-recovery state exactly witness/start/observation all `ABSENT`.
+- Frozen quarantine rows now have an exact six-key schema, an eight-value
+  path-state domain and state-specific SHA/suffix/ordinal/error bindings.
+- Updated generic recovery ownership and committed-path snapshot exclusions
+  to the exact `.abandoned.<sha256>.<ordinal>` path grammar.
+- Required both terminal receipt and business report absent in the
+  pre-terminal blocker restart row and its phase predicate, eliminating the
+  post-receipt artifact-row overlap.
+- New plan/task/surface SHA256 values are `92431c6c...`, `2aca596a...` and
+  `c4639ed4...`. Implementation and formal remain locked pending independent
+  plan review.
