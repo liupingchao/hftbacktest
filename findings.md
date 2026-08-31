@@ -110,6 +110,21 @@
 - The Revision 9 FAIL report is conservative across every early-stop profile:
   it records exact completed/missing stage arrays and does not infer absent
   producer or verifier work.
+- Revision 9 review found that legal producer/verifier `POPEN_ERROR` receipts
+  require exit code `NONE`; receipt existence alone cannot imply an integer
+  exit code.
+- Chronological resolver prose is insufficient for corrupted durable state.
+  Revision 10 evaluates 64 process/result/baseline presence shapes first,
+  then tuple, terminal-receipt and report semantics through ordered A01-A11
+  predicates. The first invalid predicate has one non-scientific blocker
+  outcome rather than being misclassified as an earlier interruption.
+- Controller ref handling must distinguish retryable infrastructure before
+  no-replace attempt-root creation from consumed one-shot state afterward.
+  Post-root unexpected refs and unverifiable observations have separate
+  blocker receipts but share exact local restart rows and never push.
+- Stage-truthful prose does not by itself prove byte determinism. Revision 10
+  freezes the complete 49-row legal FAIL rendering domain by canonical
+  aggregate, with every report hash unique.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

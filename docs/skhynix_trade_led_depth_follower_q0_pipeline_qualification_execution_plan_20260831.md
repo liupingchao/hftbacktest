@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_9_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_10_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -66,6 +66,15 @@ classification.
 | CSV bytes | exact dialect, final LF and QUOTE_ALL hostile probe |
 | readiness identity | separate 37-file structural-only mode; no formal identity |
 | one-shot | durable-state resolver, blocked controller divergence and stage-truthful exact reports |
+
+### 1.2 Revision 10 closure matrix
+
+| Round 9 finding | Revision 10 closure |
+|---|---|
+| legal `Popen` errors could not render a terminal receipt | producer/verifier exit fields are `NONE` for `POPEN_ERROR` and integers only for `STARTED` |
+| invalid artifact order had no deterministic outcome | ordered A01-A11 artifact-state rules route the first integrity defect to `ARTIFACT_STATE_CORRUPTION`, classification/profile `NONE` |
+| controller blocker was not total across pre-root, observation failure and restart | separate pre/post-attempt-root outcome tables plus ten blocker-specific restart rows freeze every allowed local transition |
+| only one of 49 legal FAIL reports had an exact derivation | the complete profile/error matrix, row count, size range, unique-hash count and aggregate canonical-row SHA256 are frozen |
 
 ## 2. Authorization Boundary
 
@@ -215,10 +224,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  07b41192fcf46b36bff29d7bc9e663dcacd360f5f644d2b8dbd60075ac5eed40
+  8934957274fa083a9a44fec7f1f5d721a7a4609e822ff85eafa491dca32411e2
 
 Git blob:
-  6c48931fd54df49bc05d3009ea56699980f5a234
+  e05b171b6861f6696f6bd022013cc348084911d5
 ```
 
 It freezes:
@@ -1570,8 +1579,10 @@ FAIL:
   classification = Q0_PIPELINE_NOT_QUALIFIED
   baseline copy = forbidden
   terminal manifest SHA256 = NONE if no valid manifest exists
-  process exit/result fields = integer/hash when the durable exit receipt
-    exists, otherwise NONE
+  producer/verifier exit field = NONE when its exit receipt is absent or its
+    legal tuple is POPEN_ERROR; integer only for STARTED
+  result field = hash exactly when the legal verifier tuple carries a result,
+    otherwise NONE
   first_error = one result from the shared durable-state resolver:
     committed terminal receipt is immutable authority
     absent producer invocation -> pre-producer interruption
@@ -1585,13 +1596,45 @@ FAIL:
   completed_stages_json and missing_stages_json are required
 ```
 
-The normal outer driver and recovery call the same resolver. Its 10 explicit
-cases cover absent invocation, absent exit, producer error with or without
-later verifier artifacts, successful producer with each verifier state, and
-accepted PASS. Crash boundaries select recovery mode; they cannot overwrite
-a committed producer error. Stage lists are selected from the frozen machine
-profiles after independently observing committed invocation/exit/result
-artifacts; producer-supplied stage claims are not trusted.
+The normal outer driver and recovery call the same resolver. Before the
+10 chronological cases, both apply the ordered artifact-state machine:
+
+```text
+presence bits:
+  producer invocation
+  producer exit
+  verifier invocation
+  verifier exit
+  verifier result
+  baseline
+
+A01-A05:
+  reject impossible predecessor order
+
+A06-A08:
+  reject unregistered process tuples, result-presence mismatch and baseline
+  without a successful producer plus accepted verifier
+
+A09-A11:
+  reject a terminal receipt/profile mismatch or a report without exact
+  terminal-receipt authority
+```
+
+The 64 presence combinations have a canonical derived table: 7 legal shapes,
+57 invalid shapes, aggregate SHA256
+`f902794088e1b7649ca78fbc7053856fa51126d45e9d0347e061a73c65dd251b`.
+The first matching invalid rule publishes
+`artifact_state_corruption.json`, consumes the one-shot claim locally and
+sets workflow status `阻塞`, classification/profile `NONE`; it never creates
+or rewrites a terminal receipt/report and never pushes the controller ref.
+
+For a valid artifact shape, the resolver's 10 explicit cases cover absent
+invocation, absent exit, producer error with or without later verifier
+artifacts, successful producer with each verifier state, and accepted PASS.
+Crash boundaries select recovery mode; they cannot overwrite a committed
+producer error. Stage lists are selected from the frozen machine profiles
+after independently observing committed invocation/exit/result artifacts;
+producer-supplied stage claims are not trusted.
 
 The terminal receipt does not use prose as stage identity. It uses only:
 
@@ -1625,7 +1668,15 @@ The business execution report is exactly
 complete PASS/FAIL line arrays, placeholder sources, join rule and example
 hashes are `one_shot.execution_report`; FAIL has no baseline line and makes
 no claim that absent producer/verifier stages executed. It prints the exact
-committed and missing stage arrays from the terminal receipt. The
+committed and missing stage arrays from the terminal receipt.
+The allowed FAIL domain contains exactly 49 profile/error renderings. Their
+canonical derivation uses implementation commit `1111...1111`, produces
+49 unique report SHA256 values with sizes from 1472 to 1537 bytes, and has
+canonical-row aggregate SHA256
+`73f050f783e7659a955c8a6650f28550665abb358b06db9c4ab9e15111bcdc48`.
+The registered pre-producer example is 1537 bytes with SHA256
+`17305de4942f54c75f837dd0e17abb0405dd7752b427c252ac514e545cebc2ec`.
+The
 terminal commit parent is the exact consumption commit. Its common tracked
 delta is exactly:
 
@@ -1713,13 +1764,26 @@ completed and missing package stages
 Q0_PIPELINE_NOT_QUALIFIED
 ```
 
-An unexpected controller ref is a workflow integrity blocker. Before a
-terminal receipt exists it is recorded as:
+Controller observation has separate phases:
+
+```text
+before attempt-root:
+  only ABSENT is legal
+  unexpected SHA, command failure or malformed output writes no state
+  armed claim remains retryable after controller repair
+
+after attempt-root:
+  unexpected SHA -> CONTROLLER_REF_DIVERGENCE
+  nonzero command or malformed output -> CONTROLLER_OBSERVATION_FAILURE
+```
+
+After attempt-root, either controller blocker is a workflow integrity
+blocker. Before a terminal receipt exists it is recorded as:
 
 ```text
 workflow status = 阻塞
 classification = NONE
-blocker = CONTROLLER_REF_DIVERGENCE
+blocker = CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE
 claim = consumed and never reusable
 terminal Q0 receipt/report/commit/tag/push = forbidden
 ```
@@ -1727,6 +1791,24 @@ terminal Q0 receipt/report/commit/tag/push = forbidden
 If a terminal receipt already exists, its classification and first error
 remain authoritative, but workflow status is still `阻塞`; a missing local
 terminal commit/tag may be completed and terminal push remains forbidden.
+The ten exact blocker restart rows cover observation publication, claim
+rename, consumption commit/tag, report rendering from a valid receipt and,
+only for controller blockers with valid immutable receipt/report, local
+terminal commit/tag. Artifact corruption rows preserve any receipt, report or
+terminal Git history without extending it. After a blocker observation is
+committed these rows supersede the ordinary crash matrix; every row restarts
+from the same observed durable state and forbids controller push.
+
+Any invalid committed process/result/baseline/terminal/report artifact state
+instead records:
+
+```text
+workflow status = 阻塞
+classification = NONE
+blocker = ARTIFACT_STATE_CORRUPTION
+first_invalid_rule = first A01-A11 match
+terminal receipt/report rewrite and controller push = forbidden
+```
 
 No repair, diagnosis, plan change or rerun is permitted inside the consumed
 formal run. A software correction requires a new task and a new independent

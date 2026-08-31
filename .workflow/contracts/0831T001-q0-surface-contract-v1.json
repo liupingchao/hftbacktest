@@ -798,6 +798,38 @@
         },
         "canonical_bytes_sha256": "a3edd59a990182b7dabc19e196911a270bafd8f404de59be22d38922800429f9"
       },
+      "PRODUCER_POPEN_FAIL_PRE_VERIFIER": {
+        "preimage": {
+          "classification": "Q0_PIPELINE_NOT_QUALIFIED",
+          "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\"]",
+          "consumption_commit": "1111111111111111111111111111111111111111",
+          "consumption_push_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "first_error": "FORMAL_PRODUCER_LAUNCH_ERROR",
+          "formal_exit_code": "NONE",
+          "missing_stages_json": "[\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]",
+          "package_terminal_manifest_sha256": "NONE",
+          "schema_version": 1,
+          "terminal_verifier_exit_code": "NONE",
+          "terminal_verifier_result_sha256": "NONE"
+        },
+        "canonical_bytes_sha256": "4ab52ad4ca9cc5c74f4bf1fd2c233e0310892fd56dbdb4b29a59b81d403d240f"
+      },
+      "VERIFIER_POPEN_FAIL_CLASSIFIED": {
+        "preimage": {
+          "classification": "Q0_PIPELINE_NOT_QUALIFIED",
+          "completed_stages_json": "[\"F00_PREFLIGHT\",\"F01_CONSUMPTION_CLOSED\",\"F02_PRODUCER_INVOCATION\",\"F03_PRODUCER_EXIT\",\"F04_VERIFIER_INVOCATION\",\"F05_VERIFIER_EXIT\",\"F06_RESULT_CLASSIFIED\"]",
+          "consumption_commit": "1111111111111111111111111111111111111111",
+          "consumption_push_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "first_error": "TERMINAL_VERIFIER_LAUNCH_ERROR",
+          "formal_exit_code": 0,
+          "missing_stages_json": "[]",
+          "package_terminal_manifest_sha256": "NONE",
+          "schema_version": 1,
+          "terminal_verifier_exit_code": "NONE",
+          "terminal_verifier_result_sha256": "NONE"
+        },
+        "canonical_bytes_sha256": "d674cdf16b53e322c3ecabf1e1e803ec35bd88bd7168890973504226ed1847c1"
+      },
       "serialization": "canonical compact sorted-key ASCII JSON plus LF"
     },
     "transition_order": [
@@ -982,6 +1014,8 @@
       "recovery_start_untracked": "<attempt_root>/control/recovery_start.json",
       "recovery_observation_untracked": "<attempt_root>/control/recovery_observation.json",
       "controller_divergence_untracked": "<attempt_root>/control/controller_ref_divergence.json",
+      "controller_observation_failure_untracked": "<attempt_root>/control/controller_observation_failure.json",
+      "artifact_state_corruption_untracked": "<attempt_root>/control/artifact_state_corruption.json",
       "terminal_qa_report": ".workflow/reports/0831T001-qa.md",
       "terminal_qa_mirror": "docs/qa-acceptance-report.md",
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
@@ -1058,6 +1092,14 @@
         "before_hard_link": "if the temporary is complete and independently valid, link those exact bytes; otherwise remove it after parent fsync and rerun exact ls-remote under the controller runtime lock: publish a new blocker observation only if the current ref is still divergent, otherwise resume the legal remote-state rule because no blocker observation was committed",
         "after_hard_link": "verify committed blocker bytes and follow the exact pre_terminal_receipt_branch or post_terminal_receipt_branch; terminal push remains forbidden"
       },
+      "controller_observation_failure.json": {
+        "before_hard_link": "if the temporary is complete and independently valid, link those exact bytes; otherwise remove it after parent fsync and rerun exact ls-remote under the controller runtime lock: publish a new failure observation only when command failure or malformed output recurs, otherwise resume the newly observed legal or divergent state",
+        "after_hard_link": "verify committed blocker bytes and resume workflow_blocker_restart_rows; controller push remains forbidden"
+      },
+      "artifact_state_corruption.json": {
+        "before_hard_link": "remove and deterministically rebuild from exact committed path presence, file hashes, Git identities and the first ordered invalid predicate",
+        "after_hard_link": "verify committed blocker bytes; no terminal receipt/report rewrite or controller push is permitted"
+      },
       "terminal_result_receipt": {
         "before_hard_link": "remove/rebuild deterministic receipt from committed state/profile",
         "after_hard_link": "verify exact bytes and remove any temporary"
@@ -1101,8 +1143,8 @@
         "completed_stages_json": "one exact terminal_stage_profiles value",
         "missing_stages_json": "the paired exact terminal_stage_profiles value",
         "terminal_verifier_result_sha256": "required 64-lowercase-hex when canonical result bytes exist; otherwise NONE",
-        "formal_exit_code": "base-10 integer only when formal_producer_exit.json exists; otherwise NONE",
-        "terminal_verifier_exit_code": "base-10 integer only when terminal_verifier_exit.json exists; otherwise NONE",
+        "formal_exit_code": "NONE when formal_producer_exit.json is absent or its launch_status is POPEN_ERROR; exact base-10 exit_code when launch_status is STARTED",
+        "terminal_verifier_exit_code": "NONE when terminal_verifier_exit.json is absent or its launch_status is POPEN_ERROR; exact base-10 exit_code when launch_status is STARTED",
         "late_recovery": "immutable terminal receipt remains authoritative; recovery evidence is bound only by independent QA",
         "recovery": "after attempt-root creation, complete missing claim/consumption/controller transitions, write one recovery observation, and terminalize from durable invocation/exit receipts plus observed refs; never launch or relaunch a child in recovery",
         "first_error_precedence": "apply formal_process_receipts.terminal_state_resolver.first_error_rules_in_precedence_order; the normal driver and recovery use identical rules",
@@ -1156,8 +1198,35 @@
     ],
     "workflow_blockers": {
       "codes": [
+        "ARTIFACT_STATE_CORRUPTION",
+        "CONTROLLER_OBSERVATION_FAILURE",
         "CONTROLLER_REF_DIVERGENCE"
       ],
+      "ARTIFACT_STATE_CORRUPTION": {
+        "trigger": "the first ordered artifact_state_machine invalid predicate matches, including an invalid committed terminal receipt/profile",
+        "task_status": "阻塞",
+        "claim_state": "consumed and never reusable",
+        "classification": "NONE because the artifact chain or terminal receipt is not trustworthy",
+        "artifact_state_corruption_observation": "required canonical artifact_state_corruption.json",
+        "allowed_actions": "complete missing local claim consumption commit/tag through the pre-terminal workflow_blocker_restart_rows, verify immutable artifacts and blocker observation, independent QA and workflow status update only",
+        "terminal_receipt": "do not create; never rewrite an existing invalid receipt",
+        "business_execution_report": "do not create or rewrite",
+        "terminal_commit": "do not create; preserve an already committed terminal commit only as immutable corruption evidence",
+        "terminal_tag": "do not create; preserve an already created terminal tag only as immutable corruption evidence",
+        "controller_push": "forbidden",
+        "qa_outcome": "independent QA records status 阻塞, classification NONE, blocker_code ARTIFACT_STATE_CORRUPTION, first_invalid_rule and blocker SHA256"
+      },
+      "CONTROLLER_OBSERVATION_FAILURE": {
+        "trigger": "after no-replace attempt-root creation, exact controller observation exits nonzero or exit 0 output is malformed",
+        "task_status": "阻塞",
+        "claim_state": "consumed and never reusable",
+        "local_consumption": "complete local armed-to-claimed rename, consumption commit and consumption tag through workflow_blocker_restart_rows; controller push is forbidden",
+        "controller_observation_failure": "required canonical controller_observation_failure.json",
+        "terminal_push": "forbidden",
+        "pre_terminal_receipt_branch": "classification NONE; terminal receipt/report/commit/tag forbidden",
+        "post_terminal_receipt_branch": "preserve immutable Q0 receipt/report and complete only a missing local terminal commit/tag",
+        "qa_outcome": "independent QA records status 阻塞, preserved classification or NONE, blocker_code CONTROLLER_OBSERVATION_FAILURE and blocker SHA256"
+      },
       "CONTROLLER_REF_DIVERGENCE": {
         "trigger": "the exact controller ref observation is neither ABSENT nor the locally expected consumption or terminal SHA for the current durable stage",
         "task_status": "阻塞",
@@ -1208,6 +1277,57 @@
         "observation_stdout_sha256": "64 lowercase hex over exact stdout bytes",
         "observation_stderr_sha256": "64 lowercase hex over exact stderr bytes"
       },
+      "controller_observation_failure_fields": [
+        "blocker_code",
+        "controller_ref",
+        "expected_sha_set_json",
+        "observation_command",
+        "observation_exit_code",
+        "observation_stderr_sha256",
+        "observation_stdout_sha256",
+        "parse_status",
+        "schema_version"
+      ],
+      "controller_observation_failure_value_domains": {
+        "schema_version": 1,
+        "blocker_code": "CONTROLLER_OBSERVATION_FAILURE",
+        "controller_ref": "exact registered controller ref",
+        "expected_sha_set_json": "canonical compact ASCII JSON string array copied from expected_sha_sets_by_local_state for the observed durable stage",
+        "observation_command": "exact git_commands.controller_observe JSON string array",
+        "observation_exit_code": "nonzero base-10 integer when parse_status=COMMAND_FAILED; zero when parse_status=MALFORMED_OUTPUT",
+        "observation_stdout_sha256": "64 lowercase hex over exact stdout bytes",
+        "observation_stderr_sha256": "64 lowercase hex over exact stderr bytes",
+        "parse_status": [
+          "COMMAND_FAILED",
+          "MALFORMED_OUTPUT"
+        ]
+      },
+      "artifact_state_corruption_fields": [
+        "artifact_presence_bits",
+        "blocker_code",
+        "business_report_state",
+        "first_invalid_rule",
+        "observed_artifact_sha256_json",
+        "schema_version",
+        "terminal_receipt_state"
+      ],
+      "artifact_state_corruption_value_domains": {
+        "schema_version": 1,
+        "blocker_code": "ARTIFACT_STATE_CORRUPTION",
+        "artifact_presence_bits": "six-character 0/1 string in artifact_state_machine.presence_bit_order",
+        "terminal_receipt_state": [
+          "ABSENT",
+          "VALID",
+          "INVALID"
+        ],
+        "business_report_state": [
+          "ABSENT",
+          "VALID",
+          "INVALID"
+        ],
+        "first_invalid_rule": "one exact ordered artifact_state_machine invalid rule id",
+        "observed_artifact_sha256_json": "canonical compact ASCII JSON object mapping every present committed process, result, baseline, terminal-receipt and business-report path to its exact SHA256 in ASCII path order"
+      },
       "expected_sha_sets_by_local_state": {
         "before_consumption_commit": [
           "ABSENT"
@@ -1224,7 +1344,95 @@
         "terminal_push_receipt_committed": [
           "<terminal_sha>"
         ]
-      }
+      },
+      "controller_precheck_phase_table": {
+        "PRE_ATTEMPT_ROOT": {
+          "ABSENT": "continue by creating the no-replace attempt root",
+          "EXPECTED_SHA": "not applicable because only ABSENT is legal before attempt-root creation",
+          "UNEXPECTED_SHA": "PRE_ATTEMPT_CONTROLLER_REF_NOT_ABSENT; no attempt root, blocker artifact, claim consumption or Git change; armed claim remains unconsumed and retryable after controller repair",
+          "COMMAND_FAILED": "PRE_ATTEMPT_CONTROLLER_OBSERVATION_RETRYABLE; no state write and armed claim remains unconsumed",
+          "MALFORMED_OUTPUT": "PRE_ATTEMPT_CONTROLLER_OBSERVATION_RETRYABLE; no state write and armed claim remains unconsumed"
+        },
+        "POST_ATTEMPT_ROOT": {
+          "ABSENT_OR_EXPECTED_SHA": "continue the legal remote-state rule",
+          "UNEXPECTED_SHA": "publish CONTROLLER_REF_DIVERGENCE blocker and enter workflow_blocker_restart_rows",
+          "COMMAND_FAILED": "publish CONTROLLER_OBSERVATION_FAILURE blocker and enter workflow_blocker_restart_rows",
+          "MALFORMED_OUTPUT": "publish CONTROLLER_OBSERVATION_FAILURE blocker and enter workflow_blocker_restart_rows"
+        }
+      },
+      "workflow_blocker_restart_rows": [
+        {
+          "state": "BLOCKER_OBSERVATION_COMMITTED_ARMED",
+          "applies_to": "all workflow_blockers codes",
+          "required": "blocker observation committed; armed exists; claimed absent; HEAD is arming commit",
+          "next_action": "rename armed to claimed, fsync parent",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_CLAIM_RENAMED",
+          "applies_to": "all workflow_blockers codes",
+          "required": "blocker observation committed; claimed exists; armed absent; HEAD is arming commit",
+          "next_action": "run exact consumption_stage and consumption_commit; no controller push",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_CONSUMPTION_COMMITTED",
+          "applies_to": "all workflow_blockers codes",
+          "required": "HEAD is exact consumption commit; consumption tag absent",
+          "next_action": "create exact annotated consumption tag; no controller push",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+          "applies_to": "all workflow_blockers codes",
+          "required": "consumption tag targets consumption commit; terminal receipt absent",
+          "next_action": "independent QA and workflow status 阻塞",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+          "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only",
+          "required": "valid immutable terminal receipt exists; business report absent; HEAD is consumption commit",
+          "next_action": "render and publish the exact execution_report bytes from the immutable receipt; no controller push",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+          "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only; ARTIFACT_STATE_CORRUPTION forbids terminal commit",
+          "required": "valid immutable terminal receipt/report exist; HEAD is consumption commit",
+          "next_action": "stage exact terminal delta and create terminal commit locally; no controller push",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_TERMINAL_COMMITTED",
+          "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only",
+          "required": "HEAD is exact terminal commit; terminal tag absent",
+          "next_action": "create exact annotated terminal tag; no controller push",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+          "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only",
+          "required": "terminal tag targets terminal commit",
+          "next_action": "independent QA and workflow status 阻塞",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT",
+          "applies_to": "ARTIFACT_STATE_CORRUPTION only",
+          "required": "terminal receipt or business report exists and A09, A10 or A11 matched; HEAD is consumption commit",
+          "next_action": "preserve all bytes, do not render or commit terminal artifacts, independent QA and workflow status 阻塞",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "ARTIFACT_BLOCKER_TERMINAL_HISTORY_PRESENT",
+          "applies_to": "ARTIFACT_STATE_CORRUPTION only",
+          "required": "a terminal commit or terminal tag already exists when corruption is detected",
+          "next_action": "preserve existing Git history and all artifact bytes, independent QA and workflow status 阻塞",
+          "crash_restart": "same row"
+        }
+      ],
+      "workflow_blocker_restart_authority": "after any blocker observation target is committed, workflow_blocker_restart_rows supersede crash_recovery_matrix; select exactly one row from blocker code plus durable claim/HEAD/tag/receipt/report state, and repeat that row after interruption until its next_action commits"
     },
     "formal_process_receipts": {
       "serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
@@ -1439,7 +1647,104 @@
       ],
       "terminal_state_resolver": {
         "scope": "the normal outer driver and every recovery path use this same resolver; crash_recovery_matrix supplies recovery mode and durable stage boundary but never overrides an already committed process error",
-        "controller_precheck": "before resolving a Q0 terminal state, observe the controller ref under the relevant runtime lock; an unexpected ref exits this resolver through workflow_blockers.CONTROLLER_REF_DIVERGENCE",
+        "controller_precheck": "before resolving a Q0 terminal state, apply workflow_blockers.controller_precheck_phase_table under the relevant runtime lock; post-attempt unexpected refs and observation failures exit through their exact blocker contract",
+        "artifact_state_machine": {
+          "presence_bit_order": [
+            "producer_invocation",
+            "producer_exit",
+            "verifier_invocation",
+            "verifier_exit",
+            "verifier_result",
+            "baseline"
+          ],
+          "presence_encoding": "one character per presence_bit_order member; 1 means the committed no-replace target exists as the exact required path kind, 0 means absent; temporary .publishing paths are ignored",
+          "ordered_invalid_rules": [
+            {
+              "rule_id": "A01_PRODUCER_EXIT_WITHOUT_INVOCATION",
+              "predicate": "producer_exit=1 AND producer_invocation=0"
+            },
+            {
+              "rule_id": "A02_VERIFIER_INVOCATION_WITHOUT_PRODUCER_EXIT",
+              "predicate": "verifier_invocation=1 AND producer_exit=0"
+            },
+            {
+              "rule_id": "A03_VERIFIER_EXIT_WITHOUT_INVOCATION",
+              "predicate": "verifier_exit=1 AND verifier_invocation=0"
+            },
+            {
+              "rule_id": "A04_VERIFIER_RESULT_WITHOUT_EXIT",
+              "predicate": "verifier_result=1 AND verifier_exit=0"
+            },
+            {
+              "rule_id": "A05_BASELINE_WITHOUT_VERIFIER_RESULT",
+              "predicate": "baseline=1 AND verifier_result=0"
+            },
+            {
+              "rule_id": "A06_PROCESS_TUPLE_NOT_REGISTERED",
+              "predicate": "a committed producer or verifier invocation/exit artifact fails its exact schema, identity or registered tuple table"
+            },
+            {
+              "rule_id": "A07_VERIFIER_RESULT_PRESENCE_MISMATCH",
+              "predicate": "verifier_result is required exactly for STARTED+ACKED verifier exit 0 or 2 and forbidden for every other verifier tuple"
+            },
+            {
+              "rule_id": "A08_BASELINE_PROCESS_OUTCOME_MISMATCH",
+              "predicate": "baseline exists unless producer is STARTED+ACKED exit 0 and verifier is STARTED+ACKED exit 0 with one accepted canonical result and exact package identity"
+            },
+            {
+              "rule_id": "A09_TERMINAL_RECEIPT_PROFILE_MISMATCH",
+              "predicate": "a committed terminal receipt fails schema/value derivation or its classification, first_error, exit fields, result/manifest hashes and stage profile do not exactly match the independently resolved committed artifact state"
+            },
+            {
+              "rule_id": "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT",
+              "predicate": "the committed business report exists while the terminal receipt is absent or invalid"
+            },
+            {
+              "rule_id": "A11_BUSINESS_REPORT_BYTES_MISMATCH",
+              "predicate": "the committed terminal receipt is valid and the committed business report exists but its bytes differ from the exact execution_report rendering"
+            }
+          ],
+          "presence_table_derivation": {
+            "scope": "rules A01-A05 only; tuple, receipt and report semantic rules A06-A11 are evaluated after the presence row",
+            "row_order": "binary strings 000000 through 111111 in ascending integer order",
+            "row_fields": [
+              "artifact_presence_bits",
+              "first_invalid_rule",
+              "presence_shape_valid"
+            ],
+            "first_invalid_rule": "first matching A01-A05 rule_id, otherwise NONE",
+            "presence_shape_valid": "true iff first_invalid_rule is NONE",
+            "row_count": 64,
+            "canonical_rows": "canonical compact sorted-key ASCII JSON array with no trailing LF",
+            "canonical_rows_sha256": "f902794088e1b7649ca78fbc7053856fa51126d45e9d0347e061a73c65dd251b",
+            "valid_row_count": 7,
+            "invalid_row_count": 57
+          },
+          "valid_presence_profiles": {
+            "000000": "FAIL_PRE_PRODUCER",
+            "100000": "FAIL_PRODUCER_INTERRUPTED",
+            "110000": "FAIL_PRE_VERIFIER",
+            "111000": "FAIL_VERIFIER_INTERRUPTED",
+            "111100": "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS only for a registered verifier tuple that forbids result",
+            "111110": "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS for verifier exit 2; PASS_RECOVERY_PENDING_BASELINE for successful producer plus accepted verifier exit 0",
+            "111111": "PASS_COMPLETE only after A08 and exact baseline verification"
+          },
+          "terminal_receipt_policy": {
+            "absent": "resolve from committed process/result/baseline state and create a receipt only for a terminal FAIL profile or PASS_COMPLETE",
+            "valid": "immutable authority; recovery may only render or verify the matching report and complete registered local Git transitions",
+            "invalid": "publish ARTIFACT_STATE_CORRUPTION observation when absent, never overwrite receipt/report, never create terminal commit/tag or controller push",
+            "report_absent_with_valid_receipt": "recover the exact deterministic report before terminal commit",
+            "report_present_without_valid_receipt": "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT"
+          },
+          "invalid_outcome": {
+            "workflow_blocker": "ARTIFACT_STATE_CORRUPTION",
+            "classification": "NONE",
+            "terminal_profile": "NONE",
+            "terminal_receipt_publication": "forbidden",
+            "business_report_publication": "forbidden except preserving already committed bytes as evidence",
+            "controller_push": "forbidden"
+          }
+        },
         "stage_profile_rules": [
           "committed terminal receipt -> exact completed_stages_json and missing_stages_json already in that receipt",
           "producer invocation absent -> FAIL_PRE_PRODUCER",
@@ -1476,7 +1781,7 @@
           "RESOLVE_FROM_DURABLE_STATE": "apply first_error_rules_in_precedence_order and stage_profile_rules to committed invocation and exit receipts; after verifier exit=0 but before baseline publication this resolves to PASS recovery only when producer also succeeded, otherwise to FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
           "FROM_COMMITTED_TERMINAL_RECEIPT": "use immutable classification, first_error, completed_stages_json and missing_stages_json from the committed terminal receipt"
         },
-        "result_totality": "every non-divergent durable artifact combination either resolves to one PASS or FAIL terminal tuple or fails closed as an invalid receipt tuple before terminal publication"
+        "result_totality": "first apply artifact_state_machine A01-A11 in order; every valid non-controller-blocked durable artifact combination resolves to one PASS or FAIL terminal tuple, while the first invalid rule deterministically enters ARTIFACT_STATE_CORRUPTION with classification/profile NONE"
       },
       "missing_token": "NONE",
       "invocation_semantics": "acquire runtime flock, atomically publish the deterministic invocation claim, then call Popen exactly once; committed invocation existence consumes the sole launch right even if Popen fails; recovery never launches a child whose invocation claim exists and never creates a missing invocation claim",
@@ -1484,7 +1789,7 @@
     },
     "recovery": {
       "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
-      "entry_precondition": "acquire the exclusive orchestrator flock, observe the controller ref under the relevant controller runtime lock, exit through workflow_blockers.CONTROLLER_REF_DIVERGENCE when it is unexpected, otherwise atomically publish or verify recovery_start.json before any recovery state change, and for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
+      "entry_precondition": "acquire the exclusive orchestrator flock, apply workflow_blockers.controller_precheck_phase_table under the relevant controller runtime lock, exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed, otherwise atomically publish or verify recovery_start.json before any recovery state change, and for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
       "recovery_start_fields": [
         "attempt_lock_sha256",
         "claimed_or_armed_sha256",
@@ -1503,7 +1808,7 @@
         "initial_committed_paths_json": "canonical compact JSON string array of all committed control target paths in ASCII order before recovery changes state",
         "recovery_id": "SHA256 of canonical compact sorted-key ASCII JSON over the other six fields excluding recovery_id"
       },
-      "recovery_start_rule": "on every legal controller-ref path publish recovery_start.json before rename, commit, tag, push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses exact committed bytes and original crash_boundary; workflow_blockers.CONTROLLER_REF_DIVERGENCE is the sole exception and follows its restricted local-consumption branches without creating a new recovery_start",
+      "recovery_start_rule": "on every legal controller-ref path publish recovery_start.json before rename, commit, tag, push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses exact committed bytes and original crash_boundary; all workflow_blockers codes are exceptions and follow workflow_blocker_restart_rows without creating a new recovery_start",
       "consumption_receipt_union": "exactly one of consumption_push_receipt.json with receipt_kind PUSH_CALL or consumption_push_observation.json with receipt_kind REF_OBSERVATION; copy the chosen bytes to the tracked consumption receipt path",
       "terminal_receipt_union": "exactly one of terminal_push_receipt.json with receipt_kind PUSH_CALL or terminal_push_observation.json with receipt_kind REF_OBSERVATION",
       "push_observation_rule": "REF_OBSERVATION is allowed only when exact ls-remote observes the expected new SHA after a crash and the normal PUSH_CALL receipt is absent; it records the observation command outputs, never reconstructed push outputs",
@@ -1562,7 +1867,7 @@
         "ABSENT": "complete consumption transition, using absent-ref lease when push is still required",
         "<consumption_sha>": "complete or recover terminalization; terminal push may still be required",
         "<terminal_sha>": "write terminal REF_OBSERVATION if normal receipt is absent, then finish QA handoff",
-        "other": "exit through workflow_blockers.CONTROLLER_REF_DIVERGENCE: before terminal receipt classification is NONE and terminal artifacts are forbidden; after terminal receipt preserve its immutable Q0 classification and allow only missing local terminal commit/tag completion; terminal push is always forbidden"
+        "other": "an unexpected 40-hex SHA exits through CONTROLLER_REF_DIVERGENCE; command failure or malformed output exits through CONTROLLER_OBSERVATION_FAILURE; before a terminal receipt classification is NONE and terminal artifacts are forbidden, after a valid terminal receipt preserve its immutable Q0 classification and allow only missing local terminal commit/tag completion; controller push is always forbidden"
       }
     },
     "controller_push_runtime_locks": {
@@ -1698,6 +2003,99 @@
           "size_bytes": 1503,
           "sha256": "53bd4a77cf7029117707e01b926cebb8a3c078635019538a9aa607a0debb885c"
         }
+      },
+      "allowed_fail_rendering_matrix": [
+        {
+          "stage_profile": "FAIL_PRE_PRODUCER",
+          "first_errors": [
+            "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_PRODUCER"
+          ]
+        },
+        {
+          "stage_profile": "FAIL_PRODUCER_INTERRUPTED",
+          "first_errors": [
+            "FORMAL_PRODUCER_INTERRUPTED"
+          ]
+        },
+        {
+          "stage_profile": "FAIL_PRE_VERIFIER",
+          "first_errors": [
+            "FORMAL_PRODUCER_LAUNCH_ERROR",
+            "FORMAL_PRODUCER_HANDOFF_ERROR",
+            "FORMAL_PRODUCER_EXIT_NONZERO",
+            "FORMAL_ORCHESTRATOR_INTERRUPTED_PRE_VERIFIER"
+          ]
+        },
+        {
+          "stage_profile": "FAIL_VERIFIER_INTERRUPTED",
+          "first_errors": [
+            "FORMAL_PRODUCER_LAUNCH_ERROR",
+            "FORMAL_PRODUCER_HANDOFF_ERROR",
+            "FORMAL_PRODUCER_EXIT_NONZERO",
+            "TERMINAL_VERIFIER_INTERRUPTED"
+          ]
+        },
+        {
+          "stage_profile": "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
+          "first_errors": [
+            "FORMAL_PRODUCER_LAUNCH_ERROR",
+            "FORMAL_PRODUCER_HANDOFF_ERROR",
+            "FORMAL_PRODUCER_EXIT_NONZERO",
+            "TERMINAL_VERIFIER_LAUNCH_ERROR",
+            "TERMINAL_VERIFIER_HANDOFF_ERROR",
+            "TERMINAL_VERIFIER_INTERNAL_ERROR",
+            "TERMINAL_VERIFIER_UNEXPECTED_EXIT",
+            "SOURCE_ROOT_NOT_CLOSED",
+            "SOURCE_PATH_KIND",
+            "SOURCE_SCHEMA",
+            "SOURCE_CLOCK",
+            "SOURCE_DOMAIN",
+            "AUTHORITY_BINDING",
+            "FEATURE_SCHEMA",
+            "ANCHOR_CONTRACT",
+            "OUTCOME_ACCESS_BOUNDARY",
+            "SLICE_IDENTITY",
+            "BUILD_INPUT_BINDING",
+            "PACKAGE_PATH_SET",
+            "PACKAGE_PATH_KIND",
+            "PACKAGE_SCHEMA",
+            "PACKAGE_CANONICAL_BYTES",
+            "PACKAGE_LINEAGE",
+            "AB_IDENTITY",
+            "AP_IDENTITY",
+            "TERMINAL_CLOSURE",
+            "PACKAGE_PATH_SET_MISSING",
+            "PACKAGE_PATH_SET_EXTRA",
+            "PACKAGE_LINEAGE_ORDER",
+            "SLICE_PUBLICATION_ABSENT",
+            "SLICE_PUBLICATION",
+            "CAUSAL_ACCESS_BOUNDARY",
+            "SOURCE_PATH_KIND_SYMLINK",
+            "PACKAGE_PATH_KIND_FIFO",
+            "PACKAGE_CANONICAL_JSON",
+            "PACKAGE_CANONICAL_CSV",
+            "FIXTURE_TRUTH_OBSERVED_MISMATCH",
+            "RESET_IDENTITY_MISMATCH",
+            "CROSS_SEGMENT_CARRY_NONZERO"
+          ]
+        }
+      ],
+      "exhaustive_fail_derivation": {
+        "implementation_commit": "1111111111111111111111111111111111111111",
+        "row_order": "allowed_fail_rendering_matrix order, then first_errors order within each row",
+        "row_fields": [
+          "first_error",
+          "sha256",
+          "size_bytes",
+          "stage_profile"
+        ],
+        "row_derivation": "render the exact FAIL template with classification Q0_PIPELINE_NOT_QUALIFIED, blocker=first_error, first_error=first_error, implementation_commit fixed above, and completed/missing arrays from terminal_stage_profiles[stage_profile]",
+        "row_count": 49,
+        "canonical_rows": "canonical compact sorted-key ASCII JSON array with no trailing LF",
+        "canonical_rows_sha256": "73f050f783e7659a955c8a6650f28550665abb358b06db9c4ab9e15111bcdc48",
+        "minimum_size_bytes": 1472,
+        "maximum_size_bytes": 1537,
+        "unique_report_sha256_count": 49
       },
       "publication": "publish through control_publication before terminal commit"
     },

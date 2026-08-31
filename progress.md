@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 9 Candidate
+## 2026-08-31 0831T001 Q0 Revision 10 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -72,8 +72,19 @@
 - The exact FAIL report now prints committed/missing stage arrays and makes no
   claim that absent producer or verifier stages executed; its sample is 1503
   bytes with independently recomputed SHA256.
+- Revision 9 independent review failed at
+  `P0/P1/P2/P3=0/2/1/0`: legal `Popen` failures conflicted with terminal
+  receipt fields, invalid artifact order and controller observation/restart
+  outcomes were incomplete, and only one of 49 FAIL renderings was frozen.
+- Revision 10 derives process exit fields from launch tuples, routes the first
+  ordered artifact integrity failure to `ARTIFACT_STATE_CORRUPTION`, and
+  separates retryable pre-attempt controller observation from consumed
+  post-attempt blockers.
+- The artifact presence table covers 64 rows with 7 legal shapes and 57
+  invalid shapes; the complete FAIL rendering matrix covers 49 unique hashes
+  and a 1472-1537 byte range.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation is locked pending independent Revision 9 plan review.
+- Implementation is locked pending independent Revision 10 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 
