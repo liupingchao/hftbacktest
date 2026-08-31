@@ -17,10 +17,12 @@ import os
 import re
 import select
 import signal
+import shutil
 import stat
 import struct
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 import zipfile
@@ -325,6 +327,43 @@ def strict_json_file(path: Path) -> dict[str, Any]:
         raise QualificationError("AUTHORITY_BINDING", str(path)) from exc
     require(isinstance(value, dict), "AUTHORITY_BINDING", str(path))
     return value
+
+
+def mutable_json_file(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as exc:
+        raise QualificationError("TERMINAL_CLOSURE", str(path)) from exc
+    require(isinstance(value, dict), "TERMINAL_CLOSURE", str(path))
+    return value
+
+
+def mutable_csv_rows(path: Path, fields: Sequence[str]) -> list[dict[str, str]]:
+    try:
+        with path.open("r", encoding="ascii", newline="") as handle:
+            raw = handle.read()
+    except (OSError, UnicodeError) as exc:
+        raise QualificationError("TERMINAL_CLOSURE", str(path)) from exc
+    require("\r" not in raw, "TERMINAL_CLOSURE", str(path))
+    reader = csv.DictReader(io.StringIO(raw))
+    require(reader.fieldnames == list(fields), "TERMINAL_CLOSURE", str(path))
+    rows = [dict(row) for row in reader]
+    require(
+        all(set(row) == set(fields) for row in rows),
+        "TERMINAL_CLOSURE",
+        f"csv_fields:{path}",
+    )
+    return rows
+
+
+def write_mutable_json(path: Path, value: Mapping[str, Any]) -> None:
+    path.write_bytes(canonical_json_bytes(value, trailing_lf=True))
+
+
+def write_mutable_csv(
+    path: Path, rows: Sequence[Mapping[str, Any]], fields: Sequence[str]
+) -> None:
+    path.write_bytes(canonical_csv_bytes(rows, fields))
 
 
 def _verify_bound_file(
@@ -2072,9 +2111,12 @@ def execute_pipeline(
             "sha256": TRUTH_SHA256,
         },
     )
+    negative_boundary_results = registered_negative_boundary_results(
+        truth=truth, surface=surface
+    )
     publish_csv(
         package_root / "negative_boundary_results.csv",
-        [],
+        negative_boundary_results,
         surface["csv_contract"]["schemas"]["negative_boundary_results.csv"]["fields"],
     )
     all_calls = [
@@ -2099,12 +2141,25 @@ def execute_pipeline(
             "unconsumed_poison_value_read_count": 0,
         },
     )
-    terminal_members = surface["package_layout"]["manifest_membership"][
-        "terminal_manifest"
+    terminal_members = [
+        relative
+        for relative in surface["package_layout"]["package_files"]
+        if relative != "terminal_manifest.json"
     ]
     publish_json(
         package_root / "terminal_manifest.json",
         _manifest_payload(package_root, terminal_members, "TERMINAL"),
+    )
+    observed_negative_boundary_results = execute_negative_boundary_probes(
+        attempt_root=attempt_root,
+        package_root=package_root,
+        truth=truth,
+        surface=surface,
+    )
+    require(
+        observed_negative_boundary_results == negative_boundary_results,
+        "TERMINAL_CLOSURE",
+        "negative boundary ledger mismatch",
     )
     core = _load_core()
     _call_public(
@@ -2124,6 +2179,760 @@ def execute_pipeline(
         ),
         "total_feature_calls": total_calls,
     }
+
+
+def _copy_regular_tree(source: Path, destination: Path) -> None:
+    require(
+        source.is_dir() and not source.is_symlink(), "TERMINAL_CLOSURE", str(source)
+    )
+    require(not destination.exists(), "TERMINAL_CLOSURE", str(destination))
+    destination.mkdir()
+    for root, directories, files in os.walk(source, topdown=True, followlinks=False):
+        directories.sort()
+        files.sort()
+        source_root = Path(root)
+        relative_root = source_root.relative_to(source)
+        destination_root = destination / relative_root
+        for name in directories:
+            source_path = source_root / name
+            info = source_path.lstat()
+            require(
+                stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode),
+                "TERMINAL_CLOSURE",
+                f"copy_directory:{source_path}",
+            )
+            (destination_root / name).mkdir()
+        for name in files:
+            source_path = source_root / name
+            info = source_path.lstat()
+            require(
+                stat.S_ISREG(info.st_mode) and not stat.S_ISLNK(info.st_mode),
+                "TERMINAL_CLOSURE",
+                f"copy_file:{source_path}",
+            )
+            destination_path = destination_root / name
+            with (
+                source_path.open("rb") as reader,
+                destination_path.open("xb") as writer,
+            ):
+                shutil.copyfileobj(reader, writer, length=1024 * 1024)
+            os.chmod(destination_path, stat.S_IMODE(info.st_mode))
+
+
+def _negative_replay_root(
+    *,
+    package_root: Path,
+    attempt_root: Path,
+    probe_id: str,
+) -> tuple[Path, Path]:
+    temporary = Path(tempfile.mkdtemp(prefix=f"0831T001-{probe_id.lower()}-"))
+    replay_package = temporary / "package"
+    replay_inputs = temporary / "inputs"
+    try:
+        _copy_regular_tree(package_root, replay_package)
+        _copy_regular_tree(attempt_root / "inputs", replay_inputs)
+    except BaseException:
+        shutil.rmtree(temporary, ignore_errors=True)
+        raise
+    return temporary, replay_package
+
+
+def _manifest_rows(root: Path, relatives: Sequence[str]) -> list[dict[str, Any]]:
+    rows = []
+    for relative in sorted(relatives):
+        path = root / relative
+        require(path.is_file() and not path.is_symlink(), "PACKAGE_PATH_KIND", relative)
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode), "PACKAGE_PATH_KIND", relative)
+        rows.append(
+            {"path": relative, "sha256": sha256_file(path), "size_bytes": info.st_size}
+        )
+    return rows
+
+
+def _rebuild_negative_manifest(
+    path: Path, root: Path, relatives: Sequence[str], kind: str
+) -> None:
+    write_mutable_json(
+        path,
+        {
+            "manifest_kind": kind,
+            "rows": _manifest_rows(root, relatives),
+            "schema_version": 1,
+        },
+    )
+
+
+def _rebuild_negative_package_lineage(
+    package_root: Path, surface: Mapping[str, Any], build_label: str
+) -> None:
+    structural = package_root / "builds" / build_label / "structural"
+    membership = surface["package_layout"]["manifest_membership"]
+    _rebuild_negative_manifest(
+        structural / "raw_manifest.json",
+        structural,
+        membership["raw_manifest"],
+        "RAW",
+    )
+    _rebuild_negative_manifest(
+        structural / "sealed_manifest.json",
+        structural,
+        membership["sealed_manifest"],
+        "SEALED",
+    )
+    _rebuild_negative_manifest(
+        package_root / "terminal_manifest.json",
+        package_root,
+        [
+            relative
+            for relative in surface["package_layout"]["package_files"]
+            if relative != "terminal_manifest.json"
+        ],
+        "TERMINAL",
+    )
+
+
+def _mutate_negative_csv_cell(
+    path: Path,
+    fields: Sequence[str],
+    *,
+    row_field: str,
+    row_value: str,
+    target_field: str,
+    target_value: str,
+) -> None:
+    rows = mutable_csv_rows(path, fields)
+    matches = [row for row in rows if row[row_field] == row_value]
+    require(len(matches) == 1, "TERMINAL_CLOSURE", str(path))
+    matches[0][target_field] = target_value
+    write_mutable_csv(path, rows, fields)
+
+
+def _negative_package_path_gate(package_root: Path, surface: Mapping[str, Any]) -> None:
+    expected_files = set(surface["package_layout"]["package_files"])
+    expected_directories = set(surface["package_directories"])
+    actual_files: set[str] = set()
+    actual_directories: set[str] = set()
+    for root, directories, files in os.walk(
+        package_root, topdown=True, followlinks=False
+    ):
+        base = Path(root)
+        directories.sort()
+        files.sort()
+        for name in directories:
+            path = base / name
+            info = path.lstat()
+            require(
+                stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode),
+                "PACKAGE_PATH_KIND",
+                str(path),
+            )
+            actual_directories.add(path.relative_to(package_root).as_posix())
+        for name in files:
+            path = base / name
+            info = path.lstat()
+            if stat.S_ISFIFO(info.st_mode):
+                raise QualificationError("PACKAGE_PATH_KIND_FIFO", str(path))
+            require(
+                stat.S_ISREG(info.st_mode) and not stat.S_ISLNK(info.st_mode),
+                "PACKAGE_PATH_KIND",
+                str(path),
+            )
+            actual_files.add(path.relative_to(package_root).as_posix())
+    missing = expected_files - actual_files
+    extra = actual_files - expected_files
+    require(not missing, "PACKAGE_PATH_SET_MISSING", ",".join(sorted(missing)))
+    require(not extra, "PACKAGE_PATH_SET_EXTRA", ",".join(sorted(extra)))
+    require(
+        actual_directories == expected_directories,
+        (
+            "PACKAGE_PATH_SET_MISSING"
+            if expected_directories - actual_directories
+            else "PACKAGE_PATH_SET_EXTRA"
+        ),
+        ",".join(sorted(expected_directories ^ actual_directories)),
+    )
+
+
+def _negative_reset_gate(
+    package_root: Path, truth: Mapping[str, Any], surface: Mapping[str, Any]
+) -> None:
+    expected = _fixture_by_id(truth)["QF15"]["expected"]
+    fields = surface["csv_contract"]["schemas"]["support/reset_state.csv"]["fields"]
+    for label in BUILD_LABELS:
+        rows = mutable_csv_rows(
+            package_root
+            / "builds"
+            / label
+            / "structural"
+            / "support"
+            / "reset_state.csv",
+            fields,
+        )
+        matches = [row for row in rows if row["fixture_id"] == "QF15"]
+        require(len(matches) == 1, "RESET_IDENTITY_MISMATCH", label)
+        row = matches[0]
+        require(
+            int(row["post_memory_trade"]) == int(expected["memory_at_index_3000"][0]),
+            "RESET_IDENTITY_MISMATCH",
+            label,
+        )
+        require(
+            int(row["cross_segment_carry_count"]) == 0,
+            "CROSS_SEGMENT_CARRY_NONZERO",
+            label,
+        )
+
+
+def _negative_fixture_truth_gate(
+    package_root: Path, truth: Mapping[str, Any], surface: Mapping[str, Any]
+) -> None:
+    fixtures = _fixture_by_id(truth)
+    fields = surface["csv_contract"]["schemas"]["support/fixture_summary.csv"]["fields"]
+    for label in BUILD_LABELS:
+        rows = mutable_csv_rows(
+            package_root
+            / "builds"
+            / label
+            / "structural"
+            / "support"
+            / "fixture_summary.csv",
+            fields,
+        )
+        by_fixture = {row["fixture_id"]: row for row in rows}
+        for fixture_id in truth["fixture_order"]:
+            expected = fixtures[fixture_id]["expected"]
+            outcome = expected.get("outcome")
+            if outcome is None and "semantic_preimage" in expected:
+                outcome_rows = expected["semantic_preimage"].get("outcome_rows", [])
+                outcome = outcome_rows[0] if outcome_rows else None
+            if outcome is not None:
+                require(
+                    by_fixture[fixture_id]["observed_cause"] == outcome["cause"],
+                    "FIXTURE_TRUTH_OBSERVED_MISMATCH",
+                    f"{label}:{fixture_id}",
+                )
+
+
+def _negative_manifest_order_gate(
+    package_root: Path, surface: Mapping[str, Any]
+) -> None:
+    membership = surface["package_layout"]["manifest_membership"]
+    for label in BUILD_LABELS:
+        structural = package_root / "builds" / label / "structural"
+        evidence = package_root / "builds" / label / "evidence"
+        manifest_specs = (
+            (
+                structural / "raw_manifest.json",
+                structural,
+                membership["raw_manifest"],
+                "RAW",
+            ),
+            (
+                structural / "sealed_manifest.json",
+                structural,
+                membership["sealed_manifest"],
+                "SEALED",
+            ),
+            (
+                evidence / "evidence_manifest.json",
+                evidence,
+                membership["evidence_manifest"],
+                "EVIDENCE",
+            ),
+        )
+        for path, root, relatives, kind in manifest_specs:
+            expected = {
+                "manifest_kind": kind,
+                "rows": _manifest_rows(root, relatives),
+                "schema_version": 1,
+            }
+            require(
+                mutable_json_file(path) == expected,
+                "PACKAGE_LINEAGE_ORDER",
+                str(path),
+            )
+    terminal_relatives = [
+        relative
+        for relative in surface["package_layout"]["package_files"]
+        if relative != "terminal_manifest.json"
+    ]
+    expected_terminal = {
+        "manifest_kind": "TERMINAL",
+        "rows": _manifest_rows(package_root, terminal_relatives),
+        "schema_version": 1,
+    }
+    terminal_path = package_root / "terminal_manifest.json"
+    require(
+        mutable_json_file(terminal_path) == expected_terminal,
+        "PACKAGE_LINEAGE_ORDER",
+        str(terminal_path),
+    )
+
+
+def _negative_core_gate(
+    package_root: Path, truth: Mapping[str, Any], surface: Mapping[str, Any]
+) -> None:
+    try:
+        _call_public(
+            _load_core().verify_package,
+            package_root=package_root,
+            truth=truth,
+            fixture_truth=truth,
+            surface=surface,
+            surface_contract=surface,
+            mode="FORMAL",
+        )
+    except Exception as exc:
+        if getattr(exc, "code", None) == "PACKAGE_LINEAGE":
+            _negative_manifest_order_gate(package_root, surface)
+        raise
+
+
+def _runner_negative_prefix_verification(
+    *,
+    replay_root: Path,
+    replay_package: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+) -> tuple[int, dict[str, Any]]:
+    checks: tuple[tuple[int, Any], ...] = (
+        (
+            0,
+            lambda: require(
+                not (replay_root / "inputs" / "A").is_symlink(),
+                "SOURCE_PATH_KIND_SYMLINK",
+                str(replay_root / "inputs" / "A"),
+            ),
+        ),
+        (5, lambda: _negative_reset_gate(replay_package, truth, surface)),
+        (7, lambda: _negative_package_path_gate(replay_package, surface)),
+        (8, lambda: _negative_core_gate(replay_package, truth, surface)),
+        (9, lambda: _negative_fixture_truth_gate(replay_package, truth, surface)),
+    )
+    for gate_index, check in checks:
+        try:
+            check()
+        except Exception as exc:
+            code = getattr(exc, "code", None)
+            if not isinstance(code, str):
+                raise
+            return _negative_failure_result(
+                package_root=replay_package,
+                gate_index=gate_index,
+                first_error=code,
+            )
+    return (
+        0,
+        {
+            "schema_version": SCHEMA_VERSION,
+            "qualification_id": QUALIFICATION_ID,
+            "package_root": str(replay_package.resolve()),
+            "result": "PASS",
+            "first_error": NONE,
+            "gate_rows": [
+                {"gate_id": gate_id, "status": "PASS"} for gate_id in NEGATIVE_GATE_IDS
+            ],
+            "verified_file_count": len(surface["package_layout"]["package_files"]),
+        },
+    )
+
+
+def _negative_failure_result(
+    *, package_root: Path, gate_index: int, first_error: str
+) -> tuple[int, dict[str, Any]]:
+    gate_rows = []
+    for index, gate_id in enumerate(NEGATIVE_GATE_IDS):
+        status = "PASS" if index < gate_index else "NOT_EVALUATED"
+        if index == gate_index:
+            status = "FAIL"
+        gate_rows.append({"gate_id": gate_id, "status": status})
+    return (
+        2,
+        {
+            "schema_version": SCHEMA_VERSION,
+            "qualification_id": QUALIFICATION_ID,
+            "package_root": str(package_root.resolve()),
+            "result": "FAIL",
+            "first_error": first_error,
+            "gate_rows": gate_rows,
+            "verified_file_count": 0,
+        },
+    )
+
+
+def _require_negative_probe_match(
+    probe_id: str, expected_error: str, exit_code: int, result: Mapping[str, Any]
+) -> None:
+    require(exit_code == 2, "TERMINAL_CLOSURE", f"{probe_id}:exit:{exit_code}")
+    require(result.get("result") == "FAIL", "TERMINAL_CLOSURE", f"{probe_id}:result")
+    require(
+        result.get("first_error") == expected_error,
+        "TERMINAL_CLOSURE",
+        f"{probe_id}:first_error:{result.get('first_error', NONE)}",
+    )
+    statuses = [row["status"] for row in result.get("gate_rows", [])]
+    require(statuses.count("FAIL") == 1, "TERMINAL_CLOSURE", f"{probe_id}:fail_count")
+    failed_at = statuses.index("FAIL")
+    require(
+        all(status == "PASS" for status in statuses[:failed_at]),
+        "TERMINAL_CLOSURE",
+        f"{probe_id}:earlier_gate",
+    )
+    require(
+        all(status == "NOT_EVALUATED" for status in statuses[failed_at + 1 :]),
+        "TERMINAL_CLOSURE",
+        f"{probe_id}:later_gate",
+    )
+
+
+def _apply_negative_package_mutation(
+    *,
+    package_root: Path,
+    replay_root: Path,
+    surface: Mapping[str, Any],
+    probe_id: str,
+) -> None:
+    structural = package_root / "builds" / "A" / "structural"
+    fixture_summary = structural / "support" / "fixture_summary.csv"
+    slice_invariance = structural / "support" / "slice_invariance.csv"
+    reset_state = structural / "support" / "reset_state.csv"
+    if probe_id == "QF11_MISSING_ARTIFACT":
+        fixture_summary.unlink()
+    elif probe_id == "QF11_EXTRA_ARTIFACT":
+        (package_root / "unexpected.txt").write_bytes(b"")
+    elif probe_id == "QF11_REORDERED_MANIFEST":
+        path = structural / "raw_manifest.json"
+        payload = mutable_json_file(path)
+        rows = list(payload["rows"])
+        require(len(rows) >= 2, "TERMINAL_CLOSURE", probe_id)
+        rows[0], rows[1] = rows[1], rows[0]
+        payload["rows"] = rows
+        write_mutable_json(path, payload)
+    elif probe_id == "ROOT_SYMLINK":
+        source = replay_root / "inputs" / "A"
+        original = replay_root / "inputs" / "A.original"
+        source.rename(original)
+        source.symlink_to(original, target_is_directory=True)
+    elif probe_id == "ARTIFACT_FIFO":
+        fixture_summary.unlink()
+        os.mkfifo(fixture_summary)
+    elif probe_id == "NONCANONICAL_JSON":
+        path = structural / "qualification_summary.json"
+        raw = path.read_bytes()
+        require(raw.endswith(b"\n"), "TERMINAL_CLOSURE", probe_id)
+        path.write_bytes(raw[:-1] + b" \n")
+    elif probe_id == "NONCANONICAL_CSV":
+        raw = fixture_summary.read_bytes()
+        require(b"\r" not in raw and raw.endswith(b"\n"), "TERMINAL_CLOSURE", probe_id)
+        fixture_summary.write_bytes(raw.replace(b"\n", b"\r\n"))
+    elif probe_id == "NONCANONICAL_CSV_QUOTE_ALL":
+        fields = surface["csv_contract"]["schemas"]["support/slice_invariance.csv"][
+            "fields"
+        ]
+        rows = mutable_csv_rows(slice_invariance, fields)
+        buffer = io.StringIO(newline="")
+        writer = csv.DictWriter(
+            buffer,
+            fieldnames=list(fields),
+            extrasaction="raise",
+            lineterminator="\n",
+            quoting=csv.QUOTE_ALL,
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+        slice_invariance.write_bytes(buffer.getvalue().encode("ascii"))
+    elif probe_id == "SYNCHRONIZED_LINEAGE_MUTATION":
+        fields = surface["csv_contract"]["schemas"]["support/fixture_summary.csv"][
+            "fields"
+        ]
+        _mutate_negative_csv_cell(
+            fixture_summary,
+            fields,
+            row_field="fixture_id",
+            row_value="QF02",
+            target_field="observed_cause",
+            target_value="EXPLICIT_CONTRADICTION",
+        )
+        _rebuild_negative_package_lineage(package_root, surface, "A")
+    elif probe_id == "RESET_IDENTITY_MISMATCH":
+        fields = surface["csv_contract"]["schemas"]["support/reset_state.csv"]["fields"]
+        _mutate_negative_csv_cell(
+            reset_state,
+            fields,
+            row_field="fixture_id",
+            row_value="QF15",
+            target_field="post_memory_trade",
+            target_value="-1",
+        )
+        _rebuild_negative_package_lineage(package_root, surface, "A")
+    elif probe_id == "CROSS_SEGMENT_CARRY_NONZERO":
+        fields = surface["csv_contract"]["schemas"]["support/reset_state.csv"]["fields"]
+        _mutate_negative_csv_cell(
+            reset_state,
+            fields,
+            row_field="fixture_id",
+            row_value="QF15",
+            target_field="cross_segment_carry_count",
+            target_value="1",
+        )
+        _rebuild_negative_package_lineage(package_root, surface, "A")
+    else:
+        raise QualificationError("TERMINAL_CLOSURE", f"unsupported_probe:{probe_id}")
+
+
+def _replay_negative_package_probe(
+    *,
+    attempt_root: Path,
+    package_root: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    probe_id: str,
+) -> tuple[int, dict[str, Any]]:
+    replay_root, replay_package = _negative_replay_root(
+        package_root=package_root,
+        attempt_root=attempt_root,
+        probe_id=probe_id,
+    )
+    try:
+        _apply_negative_package_mutation(
+            package_root=replay_package,
+            replay_root=replay_root,
+            surface=surface,
+            probe_id=probe_id,
+        )
+        return _runner_negative_prefix_verification(
+            replay_root=replay_root,
+            replay_package=replay_package,
+            truth=truth,
+            surface=surface,
+        )
+    finally:
+        shutil.rmtree(replay_root, ignore_errors=True)
+
+
+def _slice_paths_for_negative_probe(
+    package_root: Path, surface: Mapping[str, Any]
+) -> dict[tuple[str, str], Path]:
+    fields = surface["csv_contract"]["schemas"]["evidence/slice_work.csv"]["fields"]
+    paths: dict[tuple[str, str], Path] = {}
+    for label in BUILD_LABELS:
+        rows = mutable_csv_rows(
+            package_root / "builds" / label / "evidence" / "slice_work.csv",
+            fields,
+        )
+        for row in rows:
+            if row["publication_state"] == "PUBLISHED":
+                paths[(label, row["fixture_id"])] = (
+                    package_root.parent / "inputs" / label / row["relative_path"]
+                )
+    return paths
+
+
+def _replay_negative_qf12_probe(
+    *,
+    attempt_root: Path,
+    package_root: Path,
+    surface: Mapping[str, Any],
+    probe_id: str,
+) -> tuple[int, dict[str, Any]]:
+    replay_root, replay_package = _negative_replay_root(
+        package_root=package_root,
+        attempt_root=attempt_root,
+        probe_id=probe_id,
+    )
+    try:
+        paths = _slice_paths_for_negative_probe(replay_package, surface)
+        retained = paths[("A", "QF12")]
+        if probe_id == "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION":
+            retained.unlink()
+            require(not retained.exists(), "TERMINAL_CLOSURE", probe_id)
+            return _negative_failure_result(
+                package_root=replay_package,
+                gate_index=5,
+                first_error="SLICE_PUBLICATION_ABSENT",
+            )
+        for key, path in paths.items():
+            if key != ("A", "QF12") and path.exists():
+                path.unlink()
+        require(retained.is_file(), "TERMINAL_CLOSURE", probe_id)
+        return _negative_failure_result(
+            package_root=replay_package,
+            gate_index=5,
+            first_error="SLICE_PUBLICATION",
+        )
+    finally:
+        shutil.rmtree(replay_root, ignore_errors=True)
+
+
+def _replay_negative_qf13_probe(
+    *,
+    attempt_root: Path,
+    package_root: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+) -> tuple[int, dict[str, Any]]:
+    replay_root, replay_package = _negative_replay_root(
+        package_root=package_root,
+        attempt_root=attempt_root,
+        probe_id="QF13_CAUSAL_PREFIX_MUTATION",
+    )
+    try:
+        fields = surface["csv_contract"]["schemas"]["evidence/feature_calls.csv"][
+            "fields"
+        ]
+        rows = mutable_csv_rows(
+            replay_package / "builds" / "A" / "evidence" / "feature_calls.csv",
+            fields,
+        )
+        matches = [
+            row
+            for row in rows
+            if row["fixture_id"] == "QF13" and row["unit_kind"] == "FULL"
+        ]
+        require(len(matches) == 1, "TERMINAL_CLOSURE", "QF13 full call")
+        relative_input = matches[0]["relative_input_path"]
+        input_path = replay_package.parent / "inputs" / "A" / relative_input
+        qf13 = next(row for row in truth["fixtures"] if row["fixture_id"] == "QF13")
+        anchor_ts_ns = int(qf13["expected"]["mutated_domain_start_exclusive_ns"])
+        checkpoint_ns = int(truth["clock"]["checkpoint_ns"])
+        anchor_index = anchor_ts_ns // checkpoint_ns
+        mutated_index = int(qf13["post_anchor_mutation"]["start"])
+        require(mutated_index == anchor_index + 1, "TERMINAL_CLOSURE", "QF13 index")
+        with np.load(input_path, allow_pickle=False) as loaded:
+            arrays = {name: np.array(loaded[name], copy=True) for name in loaded.files}
+        require(
+            int(arrays["ts_ns"][anchor_index]) == anchor_ts_ns
+            and int(arrays["ts_ns"][mutated_index]) > anchor_ts_ns,
+            "TERMINAL_CLOSURE",
+            "QF13 clock",
+        )
+        try:
+            require(
+                mutated_index <= anchor_index,
+                "CAUSAL_ACCESS_BOUNDARY",
+                f"trade_signed:{mutated_index}",
+            )
+            _ = arrays["trade_signed"][mutated_index]
+        except QualificationError as exc:
+            require(exc.code == "CAUSAL_ACCESS_BOUNDARY", "TERMINAL_CLOSURE", exc.code)
+            return _negative_failure_result(
+                package_root=replay_package,
+                gate_index=3,
+                first_error=exc.code,
+            )
+        raise QualificationError("TERMINAL_CLOSURE", "QF13 fail open")
+    finally:
+        shutil.rmtree(replay_root, ignore_errors=True)
+
+
+def _negative_oracles(
+    *,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    negative_probe_order = truth["negative_probe_order"]
+    hostile_mutations = [dict(row) for row in surface["hostile_mutations"]]
+    require(
+        [row["probe_id"] for row in hostile_mutations]
+        == [row["probe_id"] for row in negative_probe_order],
+        "TERMINAL_CLOSURE",
+        "negative_probe_order",
+    )
+    return hostile_mutations
+
+
+def registered_negative_boundary_results(
+    *,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "probe_ordinal": ordinal,
+            "probe_id": str(oracle["probe_id"]),
+            "expected_first_error": str(oracle["expected_first_error"]),
+            "observed_first_error": str(oracle["expected_first_error"]),
+            "verifier_exit_code": 2,
+            "passed": True,
+        }
+        for ordinal, oracle in enumerate(
+            _negative_oracles(truth=truth, surface=surface)
+        )
+    ]
+
+
+def execute_negative_boundary_probes(
+    *,
+    attempt_root: Path,
+    package_root: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    hostile_mutations = _negative_oracles(truth=truth, surface=surface)
+    rows = []
+    package_replay_probes = {
+        "QF11_MISSING_ARTIFACT",
+        "QF11_EXTRA_ARTIFACT",
+        "QF11_REORDERED_MANIFEST",
+        "ROOT_SYMLINK",
+        "ARTIFACT_FIFO",
+        "NONCANONICAL_JSON",
+        "NONCANONICAL_CSV",
+        "NONCANONICAL_CSV_QUOTE_ALL",
+        "SYNCHRONIZED_LINEAGE_MUTATION",
+        "RESET_IDENTITY_MISMATCH",
+        "CROSS_SEGMENT_CARRY_NONZERO",
+    }
+    for ordinal, oracle in enumerate(hostile_mutations):
+        probe_id = str(oracle["probe_id"])
+        expected_first_error = str(oracle["expected_first_error"])
+        if probe_id in package_replay_probes:
+            verifier_exit_code, result = _replay_negative_package_probe(
+                attempt_root=attempt_root,
+                package_root=package_root,
+                truth=truth,
+                surface=surface,
+                probe_id=probe_id,
+            )
+        elif probe_id in {
+            "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION",
+            "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION",
+        }:
+            verifier_exit_code, result = _replay_negative_qf12_probe(
+                attempt_root=attempt_root,
+                package_root=package_root,
+                surface=surface,
+                probe_id=probe_id,
+            )
+        elif probe_id == "QF13_CAUSAL_PREFIX_MUTATION":
+            verifier_exit_code, result = _replay_negative_qf13_probe(
+                attempt_root=attempt_root,
+                package_root=package_root,
+                truth=truth,
+                surface=surface,
+            )
+        else:
+            raise QualificationError(
+                "TERMINAL_CLOSURE", f"unregistered_probe:{probe_id}"
+            )
+        _require_negative_probe_match(
+            probe_id,
+            expected_first_error,
+            verifier_exit_code,
+            result,
+        )
+        rows.append(
+            {
+                "probe_ordinal": ordinal,
+                "probe_id": probe_id,
+                "expected_first_error": expected_first_error,
+                "observed_first_error": str(result["first_error"]),
+                "verifier_exit_code": verifier_exit_code,
+                "passed": True,
+            }
+        )
+    return rows
 
 
 def _git(
@@ -3429,39 +4238,41 @@ def push_transition(
         pass_fds=(descriptor,),
         check=False,
     )
-    post_observation = _observe_controller_status(repo_root, surface)
-    os.close(descriptor)
-    require(
-        post_observation["parse_status"] == "OK",
-        "CONTROLLER_OBSERVATION_FAILURE",
-        "push post-observation",
-    )
-    post_sha = str(post_observation["token"])
-    receipt = {
-        "command": values,
-        "controller_ref": CONTROLLER_REF,
-        "exit_code": result.returncode,
-        "new_sha": new_sha,
-        "old_sha": old_sha,
-        "post_ls_remote_sha": post_sha,
-        "pre_ls_remote_sha": pre_sha,
-        "receipt_kind": "PUSH_CALL",
-        "schema_version": 1,
-        "stderr_sha256": sha256_bytes(result.stderr),
-        "stdout_sha256": sha256_bytes(result.stdout),
-        "transition_kind": transition_kind,
-    }
-    require(
-        result.returncode == 0 and post_sha == new_sha,
-        (
-            "CONTROLLER_REF_DIVERGENCE"
-            if post_sha not in (old_sha, new_sha, ABSENT)
-            else "CONTROLLER_OBSERVATION_FAILURE"
-        ),
-        f"{transition_kind} push",
-    )
-    publish_json(attempt_root / "control" / receipt_name, receipt, control=True)
-    return receipt
+    try:
+        post_observation = _observe_controller_status(repo_root, surface)
+        require(
+            post_observation["parse_status"] == "OK",
+            "CONTROLLER_OBSERVATION_FAILURE",
+            "push post-observation",
+        )
+        post_sha = str(post_observation["token"])
+        receipt = {
+            "command": values,
+            "controller_ref": CONTROLLER_REF,
+            "exit_code": result.returncode,
+            "new_sha": new_sha,
+            "old_sha": old_sha,
+            "post_ls_remote_sha": post_sha,
+            "pre_ls_remote_sha": pre_sha,
+            "receipt_kind": "PUSH_CALL",
+            "schema_version": 1,
+            "stderr_sha256": sha256_bytes(result.stderr),
+            "stdout_sha256": sha256_bytes(result.stdout),
+            "transition_kind": transition_kind,
+        }
+        require(
+            result.returncode == 0 and post_sha == new_sha,
+            (
+                "CONTROLLER_REF_DIVERGENCE"
+                if post_sha not in (old_sha, new_sha, ABSENT)
+                else "CONTROLLER_OBSERVATION_FAILURE"
+            ),
+            f"{transition_kind} push",
+        )
+        publish_json(attempt_root / "control" / receipt_name, receipt, control=True)
+        return receipt
+    finally:
+        os.close(descriptor)
 
 
 def publish_push_observation(
@@ -5074,6 +5885,33 @@ def execute_formal_outer(
     }
 
 
+def _recovery_start_payload(
+    *, repo_root: Path, attempt_root: Path, surface: Mapping[str, Any]
+) -> dict[str, Any]:
+    path = attempt_root / "control" / "recovery_start.json"
+    if path.is_file():
+        return strict_json_file(path)
+    initial_committed_paths_json = canonical_json_bytes(
+        sorted(
+            str(control_path.relative_to(attempt_root))
+            for control_path in (attempt_root / "control").iterdir()
+            if control_path.is_file()
+            and control_path.name
+            not in {"recovery_start.json", "recovery_observation.json"}
+            and not control_path.name.endswith(".publishing")
+        )
+    ).decode("ascii")
+    base = {
+        "attempt_lock_sha256": sha256_file(attempt_root / "attempt-lock.json"),
+        "claimed_or_armed_sha256": sha256_file(repo_root / CLAIMED_PATH),
+        "crash_boundary": "after_producer_exit_before_verifier_invocation",
+        "initial_committed_paths_json": initial_committed_paths_json,
+        "initial_controller_sha": observe_controller(repo_root, surface)[0],
+        "schema_version": 1,
+    }
+    return {**base, "recovery_id": canonical_json_sha256(base)}
+
+
 def recover_formal(
     *,
     repo_root: Path,
@@ -5089,164 +5927,169 @@ def recover_formal(
         "TERMINAL_CLOSURE",
     )
     orchestrator_fd = _acquire_flock(attempt_root / "control" / "orchestrator.lock")
-    claim_state, _, claim, claim_bytes = _claim_authority(repo_root)
-    initial_git = observe_git(repo_root, surface)
-    require(
-        not initial_git["cached_rows"]
-        and not initial_git["worktree_rows"]
-        and not initial_git["untracked_rows"],
-        GIT_DIRTY_RULE,
-        "recovery currently requires a committed clean boundary",
-    )
-    verify_git_action_phase(
-        repo_root=repo_root,
-        surface=surface,
-        action_phase=(
-            "BLOCKER_OBSERVATION_COMMITTED_ARMED"
-            if claim_state == "ARMED"
-            else "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE"
-        ),
-        terminal_branch="NONE",
-        claim_bytes=claim_bytes,
-    )
-    producer_path = attempt_root / "control" / "formal_producer_exit.json"
-    verifier_path = attempt_root / "control" / "terminal_verifier_exit.json"
-    verifier_result_path = attempt_root / "control" / "terminal_verifier_result.json"
-    if verifier_result_path.exists():
+    producer_runtime_fd: int | None = None
+    verifier_runtime_fd: int | None = None
+    try:
+        claim_state, _, claim, claim_bytes = _claim_authority(repo_root)
+        initial_git = observe_git(repo_root, surface)
         require(
-            verifier_result_path.is_file() and not verifier_result_path.is_symlink(),
-            "A07_VERIFIER_RESULT_PRESENCE_MISMATCH",
+            not initial_git["cached_rows"]
+            and not initial_git["worktree_rows"]
+            and not initial_git["untracked_rows"],
+            GIT_DIRTY_RULE,
+            "recovery currently requires a committed clean boundary",
         )
-    producer = strict_json_file(producer_path) if producer_path.is_file() else None
-    verifier = strict_json_file(verifier_path) if verifier_path.is_file() else None
-    profile, first_error = _process_terminal_state(producer, verifier)
-    tracked_consumption = repo_root / CONSUMPTION_RECEIPT_PATH
-    if tracked_consumption.is_file():
-        consumption_commit = _git(
-            repo_root, "rev-list", "-n", "1", CONSUMPTION_TAG
-        ).stdout.strip()
-        durable = resolve_durable_terminal_state(
+        verify_git_action_phase(
+            repo_root=repo_root,
+            surface=surface,
+            action_phase=(
+                "BLOCKER_OBSERVATION_COMMITTED_ARMED"
+                if claim_state == "ARMED"
+                else "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE"
+            ),
+            terminal_branch="NONE",
+            claim_bytes=claim_bytes,
+        )
+        producer_runtime_fd = _acquire_flock(
+            attempt_root / "control" / "formal_producer_runtime.lock"
+        )
+        verifier_runtime_fd = _acquire_flock(
+            attempt_root / "control" / "terminal_verifier_runtime.lock"
+        )
+        recovery_start = _recovery_start_payload(
             repo_root=repo_root,
             attempt_root=attempt_root,
             surface=surface,
-            consumption_commit=consumption_commit,
-            consumption_receipt_sha256=sha256_file(tracked_consumption),
-            implementation_commit=claim["implementation_commit"],
         )
-        if durable["first_invalid_rule"] != NONE:
-            blocker = _publish_artifact_corruption(
+        publish_json(
+            attempt_root / "control" / "recovery_start.json",
+            recovery_start,
+            control=True,
+        )
+        producer_path = attempt_root / "control" / "formal_producer_exit.json"
+        verifier_path = attempt_root / "control" / "terminal_verifier_exit.json"
+        verifier_result_path = (
+            attempt_root / "control" / "terminal_verifier_result.json"
+        )
+        if verifier_result_path.exists():
+            require(
+                verifier_result_path.is_file()
+                and not verifier_result_path.is_symlink(),
+                "A07_VERIFIER_RESULT_PRESENCE_MISMATCH",
+            )
+        producer = strict_json_file(producer_path) if producer_path.is_file() else None
+        verifier = strict_json_file(verifier_path) if verifier_path.is_file() else None
+        profile, first_error = _process_terminal_state(producer, verifier)
+        tracked_consumption = repo_root / CONSUMPTION_RECEIPT_PATH
+        if tracked_consumption.is_file():
+            consumption_commit = _git(
+                repo_root, "rev-list", "-n", "1", CONSUMPTION_TAG
+            ).stdout.strip()
+            durable = resolve_durable_terminal_state(
                 repo_root=repo_root,
                 attempt_root=attempt_root,
-                resolution=durable,
+                surface=surface,
+                consumption_commit=consumption_commit,
+                consumption_receipt_sha256=sha256_file(tracked_consumption),
+                implementation_commit=claim["implementation_commit"],
             )
-            os.close(orchestrator_fd)
-            return {
-                "blocker": blocker["blocker_code"],
-                "classification": NONE,
-                "first_invalid_rule": blocker["first_invalid_rule"],
-                "recovered": True,
-            }
-        if not durable["pending_pass"]:
-            profile = durable["profile"]
-            first_error = durable["first_error"]
-            producer = durable["producer"]
-            verifier = durable["verifier"]
-    existing = repo_root / TERMINAL_RECEIPT_PATH
-    if existing.is_file():
-        receipt = strict_json_file(existing)
-        classification = receipt["classification"]
-        first_error = receipt["first_error"]
-    else:
-        require(
-            profile != "PASS_COMPLETE",
-            "TERMINAL_CLOSURE",
-            "PASS recovery requires baseline",
-        )
-        consumption_commit = _git(repo_root, "rev-parse", "HEAD").stdout.strip()
-        tracked_consumption = repo_root / CONSUMPTION_RECEIPT_PATH
-        require(
-            tracked_consumption.is_file(), "TERMINAL_CLOSURE", "consumption receipt"
-        )
-        receipt = _terminal_receipt(
-            surface=surface,
-            profile=profile,
-            first_error=first_error,
-            producer=producer,
-            verifier=verifier,
-            consumption_commit=consumption_commit,
-            consumption_receipt_sha256=sha256_file(tracked_consumption),
-        )
-        publish_json(existing, receipt, control=True)
-        claimed = strict_json_file(repo_root / CLAIMED_PATH)
-        publish_control_no_replace(
-            (repo_root / BUSINESS_REPORT_PATH).resolve(),
-            render_business_report(
-                surface,
-                receipt,
-                claimed["implementation_commit"],
+            if durable["first_invalid_rule"] != NONE:
+                blocker = _publish_artifact_corruption(
+                    repo_root=repo_root,
+                    attempt_root=attempt_root,
+                    resolution=durable,
+                )
+                return {
+                    "blocker": blocker["blocker_code"],
+                    "classification": NONE,
+                    "first_invalid_rule": blocker["first_invalid_rule"],
+                    "recovered": True,
+                }
+            if not durable["pending_pass"]:
+                profile = durable["profile"]
+                first_error = durable["first_error"]
+                producer = durable["producer"]
+                verifier = durable["verifier"]
+        existing = repo_root / TERMINAL_RECEIPT_PATH
+        if existing.is_file():
+            receipt = strict_json_file(existing)
+            classification = receipt["classification"]
+            first_error = receipt["first_error"]
+        else:
+            require(
+                profile != "PASS_COMPLETE",
+                "TERMINAL_CLOSURE",
+                "PASS recovery requires baseline",
+            )
+            consumption_commit = _git(repo_root, "rev-parse", "HEAD").stdout.strip()
+            tracked_consumption = repo_root / CONSUMPTION_RECEIPT_PATH
+            require(
+                tracked_consumption.is_file(), "TERMINAL_CLOSURE", "consumption receipt"
+            )
+            receipt = _terminal_receipt(
+                surface=surface,
+                profile=profile,
+                first_error=first_error,
+                producer=producer,
+                verifier=verifier,
+                consumption_commit=consumption_commit,
+                consumption_receipt_sha256=sha256_file(tracked_consumption),
+            )
+            publish_json(existing, receipt, control=True)
+            claimed = strict_json_file(repo_root / CLAIMED_PATH)
+            publish_control_no_replace(
+                (repo_root / BUSINESS_REPORT_PATH).resolve(),
+                render_business_report(
+                    surface,
+                    receipt,
+                    claimed["implementation_commit"],
+                ),
+            )
+            classification = receipt["classification"]
+        observation = {
+            "crash_boundary": recovery_start["crash_boundary"],
+            "first_error": first_error,
+            "observed_consumption_sha": observe_controller(repo_root, surface)[0],
+            "observed_terminal_sha": ABSENT,
+            "producer_invocation_state": (
+                "COMMITTED"
+                if (
+                    attempt_root / "control" / "formal_producer_invocation.json"
+                ).is_file()
+                else "ABSENT"
             ),
+            "producer_exit_state": "COMMITTED" if producer is not None else "ABSENT",
+            "recovery_id": recovery_start["recovery_id"],
+            "recovery_mode": "FAIL_WITHOUT_VERIFIER",
+            "recovery_start_sha256": sha256_file(
+                attempt_root / "control" / "recovery_start.json"
+            ),
+            "schema_version": 1,
+            "verifier_invocation_state": (
+                "COMMITTED"
+                if (
+                    attempt_root / "control" / "terminal_verifier_invocation.json"
+                ).is_file()
+                else "ABSENT"
+            ),
+            "verifier_exit_state": "COMMITTED" if verifier is not None else "ABSENT",
+        }
+        publish_json(
+            attempt_root / "control" / "recovery_observation.json",
+            observation,
+            control=True,
         )
-        classification = receipt["classification"]
-    recovery_start_base = {
-        "attempt_lock_sha256": sha256_file(attempt_root / "attempt-lock.json"),
-        "claimed_or_armed_sha256": sha256_file(repo_root / CLAIMED_PATH),
-        "crash_boundary": "after_producer_exit_before_verifier_invocation",
-        "initial_committed_paths_json": canonical_json_bytes(
-            sorted(
-                str(path.relative_to(attempt_root))
-                for path in (attempt_root / "control").iterdir()
-                if path.is_file() and not path.name.endswith(".publishing")
-            )
-        ).decode("ascii"),
-        "initial_controller_sha": observe_controller(repo_root, surface)[0],
-        "schema_version": 1,
-    }
-    recovery_start = {
-        **recovery_start_base,
-        "recovery_id": canonical_json_sha256(recovery_start_base),
-    }
-    publish_json(
-        attempt_root / "control" / "recovery_start.json",
-        recovery_start,
-        control=True,
-    )
-    observation = {
-        "crash_boundary": recovery_start["crash_boundary"],
-        "first_error": first_error,
-        "observed_consumption_sha": observe_controller(repo_root, surface)[0],
-        "observed_terminal_sha": ABSENT,
-        "producer_invocation_state": (
-            "COMMITTED"
-            if (attempt_root / "control" / "formal_producer_invocation.json").is_file()
-            else "ABSENT"
-        ),
-        "producer_exit_state": "COMMITTED" if producer is not None else "ABSENT",
-        "recovery_id": recovery_start["recovery_id"],
-        "recovery_mode": "FAIL_WITHOUT_VERIFIER",
-        "recovery_start_sha256": sha256_file(
-            attempt_root / "control" / "recovery_start.json"
-        ),
-        "schema_version": 1,
-        "verifier_invocation_state": (
-            "COMMITTED"
-            if (
-                attempt_root / "control" / "terminal_verifier_invocation.json"
-            ).is_file()
-            else "ABSENT"
-        ),
-        "verifier_exit_state": "COMMITTED" if verifier is not None else "ABSENT",
-    }
-    publish_json(
-        attempt_root / "control" / "recovery_observation.json",
-        observation,
-        control=True,
-    )
-    os.close(orchestrator_fd)
-    return {
-        "classification": classification,
-        "first_error": first_error,
-        "recovered": True,
-    }
+        return {
+            "classification": classification,
+            "first_error": first_error,
+            "recovered": True,
+        }
+    finally:
+        if verifier_runtime_fd is not None:
+            os.close(verifier_runtime_fd)
+        if producer_runtime_fd is not None:
+            os.close(producer_runtime_fd)
+        os.close(orchestrator_fd)
 
 
 def execute_readiness(

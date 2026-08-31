@@ -1460,6 +1460,83 @@ def test_formal_pipeline_generates_nonempty_negative_boundary_evidence() -> None
     )
 
 
+def test_runner_negative_probes_do_not_invoke_terminal_verifier() -> None:
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    registration_reachable = _reachable_functions(
+        calls, "registered_negative_boundary_results"
+    )
+    assert "execute_negative_boundary_probes" not in registration_reachable
+    assert "_replay_negative_package_probe" not in registration_reachable
+
+    probe_reachable = _reachable_functions(calls, "execute_negative_boundary_probes")
+    probe_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(probe_reachable & set(functions))
+    )
+    assert "_invoke_negative_verifier" not in probe_text
+    assert "VERIFIER_PATH" not in probe_text
+    assert "subprocess.run" not in probe_text
+
+
+def test_development_formal_pipeline_replays_all_registered_negatives(
+    tmp_path: Path,
+    runner: ModuleType,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+) -> None:
+    attempt_root = tmp_path / "attempt"
+    package_root = attempt_root / "package"
+    formal_identity = {
+        "attempt_root": str(attempt_root),
+        "claim_sha256": "a" * 64,
+        "consumption_commit": "b" * 40,
+        "consumption_push_receipt_sha256": "c" * 64,
+        "consumption_tag": "q0-development-consumption",
+        "controller_pre_sha": "ABSENT",
+        "controller_ref": "refs/heads/q0-development",
+        "controller_repo": str(tmp_path / "controller.git"),
+        "cwd": str(REPO),
+        "implementation_commit": "d" * 40,
+        "implementation_tag": "q0-development-implementation",
+        "package_root": str(package_root),
+        "schema_version": 1,
+        "task_id": "0831T001",
+    }
+    result = runner.execute_pipeline(
+        repo_root=REPO,
+        attempt_root=attempt_root,
+        package_root=package_root,
+        truth_path=TRUTH_PATH,
+        surface_path=SURFACE_PATH,
+        mode="FORMAL",
+        formal_identity=formal_identity,
+    )
+    fields = surface["csv_contract"]["schemas"]["negative_boundary_results.csv"][
+        "fields"
+    ]
+    rows = runner.mutable_csv_rows(
+        package_root / "negative_boundary_results.csv",
+        fields,
+    )
+    assert result["mode"] == "FORMAL"
+    assert result["total_feature_calls"] == 57
+    registered = runner.registered_negative_boundary_results(
+        truth=truth,
+        surface=surface,
+    )
+    assert [row["probe_id"] for row in rows] == [row["probe_id"] for row in registered]
+    assert [row["expected_first_error"] for row in rows] == [
+        row["expected_first_error"] for row in registered
+    ]
+    assert [row["observed_first_error"] for row in rows] == [
+        row["observed_first_error"] for row in registered
+    ]
+    assert [int(row["probe_ordinal"]) for row in rows] == list(range(14))
+    assert all(int(row["verifier_exit_code"]) == 2 for row in rows)
+    assert len(rows) == 14
+    assert all(row["passed"] == "true" for row in rows)
+
+
 def test_terminal_verifier_independently_replays_negative_boundaries() -> None:
     functions, calls = _module_function_graph(VERIFIER_PATH)
     reachable = _reachable_functions(calls, "check_q11")
@@ -1718,6 +1795,43 @@ def test_shared_recovery_resolver_covers_legal_interruption_profiles(
     ):
         assert durable_artifact in recovery_text
     assert "run_one_shot_child" not in recovery_text
+
+
+def test_push_receipt_is_published_before_runtime_lock_release() -> None:
+    functions, _ = _module_function_graph(RUNNER_PATH)
+    text = _function_text(RUNNER_PATH, functions["push_transition"])
+    publish_offset = text.find("publish_json(")
+    close_offset = text.rfind("os.close(descriptor)")
+    assert publish_offset >= 0
+    assert close_offset > publish_offset
+
+
+def test_recovery_waits_for_both_child_runtime_locks_before_resolution() -> None:
+    functions, _ = _module_function_graph(RUNNER_PATH)
+    text = _function_text(RUNNER_PATH, functions["recover_formal"])
+    producer_offset = text.find("formal_producer_runtime.lock")
+    verifier_offset = text.find("terminal_verifier_runtime.lock")
+    resolver_offset = text.find("resolve_durable_terminal_state(")
+    assert producer_offset >= 0
+    assert verifier_offset >= 0
+    assert resolver_offset > max(producer_offset, verifier_offset)
+
+
+def test_recovery_start_is_committed_before_terminal_recovery_mutation() -> None:
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    recovery_text = _function_text(RUNNER_PATH, functions["recover_formal"])
+    start_offset = recovery_text.find("recovery_start.json")
+    resolver_offset = recovery_text.find("resolve_durable_terminal_state(")
+    receipt_offset = recovery_text.find("TERMINAL_RECEIPT_PATH")
+    assert start_offset >= 0
+    assert start_offset < resolver_offset
+    assert start_offset < receipt_offset
+    reachable = _reachable_functions(calls, "recover_formal")
+    reachable_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(reachable & set(functions))
+    )
+    assert "CONTROL_PUBLICATION_EXISTING_BYTES" in reachable_text
 
 
 @pytest.mark.parametrize(

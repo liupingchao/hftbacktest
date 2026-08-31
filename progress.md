@@ -9980,3 +9980,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   now uses activity-matched 10s direction-path permutation within 5m parents,
   symmetric boundary censor, adjacent contiguous component conflict,
   trade-plus-depth availability and pre-refractory density gates.
+
+## 2026-08-31 0831T001 Q0 Implementation Candidate Round 2
+
+- Producer-side negative-boundary evidence now preregisters and independently
+  replays all 14 frozen hostile mutations without invoking terminal verifier.
+- A development FORMAL smoke completed 57 feature calls, generated the complete
+  package and matched all 14 exact first-error oracles.
+- Focused tests pass `75/75`; accepted fixed-epoch/fresh-channel regressions
+  pass `68/68`; ruff, format, py_compile, CLI help and diff checks pass.
+- Detached-style readiness regeneration remains 37 files with A/B/P difference
+  zero and tree SHA256
+  `ebd00e01440b8c287994503fc055f90b902828f797b7ed4a1682c3e98d4e9e77`.
+- Round 1 findings for empty negative evidence, recovery-start ordering,
+  push-receipt lock ordering and child-runtime-lock waits are closed.
+- G01-G07 total action-phase coverage, the 20-state crash matrix and 14-row
+  controller restart closure remain pending; formal execution stays locked.
