@@ -10324,3 +10324,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   plan/task/surface SHA256 values are `7b4616b8...`, `960427e3...` and
   `e7696f64...`.
 - Implementation and formal remain locked pending independent plan review.
+
+## 2026-08-31 0831T001 Plan Review Round 23
+
+- Independent review accepted the no-replace publication primitive, direct
+  Git-blob witness CAS, recovery partition formula, expanded QA file-state
+  domain and content-addressed quarantine inventory direction.
+- Review failed with four P1 findings: optional witness observation is not
+  mechanically distinguishable from absence, quarantine rows lack a frozen
+  cross-field schema, two path exclusions still use the pre-ordinal name,
+  and the A10 pre-terminal row overlaps the post-receipt artifact row when a
+  business report exists without a receipt.
+- Revision 23 remains historical evidence only. Implementation and formal
+  execution remain locked.
