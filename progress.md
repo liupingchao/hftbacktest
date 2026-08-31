@@ -10459,3 +10459,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Scientific classification is `NONE`; prediction is `NOT_EVALUATED`.
 - No repair, alternate argv, recovery or second formal invocation is
   authorized in 0831T001. The execution record is now pending independent QA.
+
+## 2026-09-01 0831T001 Q0 Final QA Rejected
+
+- Independent final QA found `P0/P1/P2/P3 = 0/1/0/0`.
+- Record authenticity passed: implementation/tag/arming/claim identity and
+  the pre-attempt absence state are exact and clean.
+- The frozen `outer_driver_argv` includes the interpreter while the runner
+  compares it directly with Python `sys.argv`; the exact command therefore
+  deterministically fails at `SOURCE_ROOT_NOT_CLOSED:argv`.
+- QA status is `未通过`, not `阻塞`: this is a frozen software/authority defect,
+  not an external-state dependency.
+- Scientific classification remains `NONE`; prediction remains
+  `NOT_EVALUATED`.
+- 0831T001 is closed against repair, re-arming, recovery or rerun. A correction
+  requires a new reviewed formal task.

@@ -81,9 +81,14 @@
   anchor.
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
-- Implementation is authorized under the frozen Revision 15 plan.
-- Formal execution remains locked pending independent implementation
-  readiness.
+- Final implementation readiness and freeze identity passed, but the one
+  exact formal outer command failed at `SOURCE_ROOT_NOT_CLOSED:argv` before
+  attempt-root creation.
+- Independent QA marked 0831T001 `未通过` at `P0/P1/P2/P3=0/1/0/0`.
+  Classification is `NONE`; prediction is `NOT_EVALUATED`.
+- Preserve the implementation tag, arming commit and armed claim as
+  non-reusable failure evidence. No repair, re-arming or rerun is authorized
+  in this task.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 
