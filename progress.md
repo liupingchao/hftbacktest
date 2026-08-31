@@ -10089,3 +10089,25 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   divergence.
 - Revision 17 is the frozen authority for round 4 implementation. Formal
   remains locked pending a new implementation-readiness pass.
+
+## 2026-08-31 0831T001 Q0 Implementation Candidate Round 4
+
+- Round 3 findings are addressed in runner, independent verifier and tests:
+  restartable control publication, restart-invariant recovery identity,
+  immediate post-attempt G01 blocker publication, proof-stage-bound blocker
+  receipts, preserved artifact semantics and QF13 anchor/model projection
+  equality.
+- Recovery now reconciles every frozen `.publishing` crash class under the
+  corresponding acquired runtime locks. A complete independently valid
+  controller blocker temporary is committed verbatim; other uncommitted
+  temporaries are discarded and deterministically rebuilt or re-observed.
+- Artifact/G blocker restart is no longer name-only: artifact payloads are
+  recomputed from committed bytes and hashes, while local Git blockers must
+  reproduce the same first G02-G07 rule through the production verifier.
+- Focused tests pass `97/97`; an expanded accepted predecessor set passes
+  `410` with one expected skip. Static, compile, CLI, diff and Git integrity
+  checks pass.
+- Formal artifacts remain absent. Exact-commit detached readiness and
+  independent implementation review remain required.
+- Per user instruction, work pauses after this audit regardless of PASS/FAIL;
+  arming and formal execution remain locked.

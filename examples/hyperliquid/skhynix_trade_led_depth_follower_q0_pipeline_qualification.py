@@ -83,12 +83,12 @@ BASELINE_PATH = Path("baselines/skhynix_trade_led_depth_follower_q0_v1")
 MASTER_SHA256 = "4ac0772ae4f2bdf29e6572e22092108de293ec05deeaa77679d606cf1e4c0d40"
 MASTER_BLOB = "69c5cdf51b7fdf07d55170ed58bc791ff37bd0af"
 MASTER_COMMIT = "2dcd1d95b7c6ff24cb5991e8dc1d3d97b2666b19"
-PLAN_SHA256 = "4d6cfa2d0d1adf442cdc716fc5a2b5315dec4b7032f134fd4b5c3c73c123edb6"
-PLAN_BLOB = "6c3576b5bd72016b35db8a4b47987c4108c94c20"
+PLAN_SHA256 = "0369379087dab0b1f2cd9ab4c6be5b6a34e56c6765a0a0b67e935c41384352ab"
+PLAN_BLOB = "858484e6bedcafc8a6a50aae5bc63e3c47f89e20"
 TRUTH_SHA256 = "c9e1c5dba760309add5e0debfdfff6be3387e8978b1e5506b6d1fff9df87f529"
 TRUTH_BLOB = "ea66f4ff2e7cddf9302215d62c3268299682add7"
-SURFACE_SHA256 = "b92d69e40e58f2c7277b3c2f11a29198274e6936992142c22eb6e7839a1de402"
-SURFACE_BLOB = "3d281f8430581c143c59d227ee3e259a23000236"
+SURFACE_SHA256 = "a77f6fd0d4a36b2be9974c8fcf2d2d920f7ab7b5a2e17b1eead81695bc98600a"
+SURFACE_BLOB = "74533850d2bf173c3d2acefb71f2d83bfe7a9999"
 
 IMPLEMENTATION_TAG = "skhynix-trade-led-depth-follower-q0-implementation-v1"
 CONSUMPTION_TAG = "skhynix-trade-led-depth-follower-q0-consumed-v1"
@@ -208,9 +208,20 @@ def publish_control_no_replace(path: Path, content: bytes) -> None:
         return
     if temporary.exists():
         require(temporary.is_file(), "CONTROL_PUBLICATION_TEMP_PATH_KIND")
-        if temporary.read_bytes() != content:
+        if temporary.read_bytes() == content:
+            try:
+                os.link(temporary, path)
+            except FileExistsError:
+                require(
+                    path.read_bytes() == content,
+                    "CONTROL_PUBLICATION_RACE_BYTES",
+                )
+            fsync_directory(path.parent)
             temporary.unlink()
             fsync_directory(path.parent)
+            return
+        temporary.unlink()
+        fsync_directory(path.parent)
     descriptor = os.open(
         temporary,
         os.O_WRONLY | os.O_CREAT | os.O_EXCL,
@@ -326,6 +337,33 @@ def strict_json_file(path: Path) -> dict[str, Any]:
     except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as exc:
         raise QualificationError("AUTHORITY_BINDING", str(path)) from exc
     require(isinstance(value, dict), "AUTHORITY_BINDING", str(path))
+    return value
+
+
+def strict_canonical_json_bytes(content: bytes, *, detail: str) -> dict[str, Any]:
+    def reject_duplicate(pairs: Sequence[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            require(key not in result, "AUTHORITY_BINDING", f"duplicate:{key}")
+            result[key] = value
+        return result
+
+    try:
+        value = json.loads(
+            content.decode("ascii"),
+            object_pairs_hook=reject_duplicate,
+            parse_constant=lambda token: (_ for _ in ()).throw(
+                ValueError(f"nonfinite:{token}")
+            ),
+        )
+    except (UnicodeError, ValueError, json.JSONDecodeError) as exc:
+        raise QualificationError("AUTHORITY_BINDING", detail) from exc
+    require(isinstance(value, dict), "AUTHORITY_BINDING", detail)
+    require(
+        canonical_json_bytes(value, trailing_lf=True) == content,
+        "AUTHORITY_BINDING",
+        f"noncanonical:{detail}",
+    )
     return value
 
 
@@ -2858,6 +2896,35 @@ def _replay_negative_qf12_probe(
         shutil.rmtree(replay_root, ignore_errors=True)
 
 
+def _qf13_anchor_model_projection_bytes(core: Any, path: Path) -> bytes:
+    analysis = core.analyze_cache_in_stage(
+        path,
+        fixture_id="QF13",
+        stage="A_MINUS1A",
+    )
+    anchors = []
+    model_inputs = []
+    for anchor in analysis.anchor_analysis.anchors:
+        row = {
+            name: getattr(anchor, name)
+            for name in anchor.__dataclass_fields__
+            if name != "model_inputs"
+        }
+        anchors.append(row)
+        model_inputs.append(
+            {
+                "anchor_id": anchor.anchor_id,
+                "model_inputs": dict(anchor.model_inputs),
+            }
+        )
+    return canonical_json_bytes(
+        {
+            "anchors": anchors,
+            "model_inputs": model_inputs,
+        }
+    )
+
+
 def _replay_negative_qf13_probe(
     *,
     attempt_root: Path,
@@ -2885,6 +2952,7 @@ def _replay_negative_qf13_probe(
             causal_post_anchor_mutation=True,
         )
         write_canonical_npz(input_path, arrays)
+        clean_input_path = replay_root / "inputs" / "A" / "QF13.npz"
         require(
             int(arrays["ts_ns"][anchor_index]) == anchor_ts_ns
             and int(arrays["ts_ns"][mutated_index]) > anchor_ts_ns,
@@ -2892,6 +2960,12 @@ def _replay_negative_qf13_probe(
             "QF13 clock",
         )
         core = _load_core()
+        require(
+            _qf13_anchor_model_projection_bytes(core, clean_input_path)
+            == _qf13_anchor_model_projection_bytes(core, input_path),
+            "TERMINAL_CLOSURE",
+            "QF13 anchor/model projection mutation",
+        )
         bundle = core.build_features(input_path)
         causal = core.CausalView(
             bundle,
@@ -3669,6 +3743,7 @@ def verify_git_action_phase(
     terminal_receipt_bytes: bytes | None = None,
     business_report_bytes: bytes | None = None,
     package_root: Path | None = None,
+    attempt_root: Path | None = None,
     controller_token: str | None = None,
     skip_controller: bool = False,
 ) -> dict[str, Any]:
@@ -3700,15 +3775,12 @@ def verify_git_action_phase(
         "G04_COMMIT_IDENTITY_MISMATCH",
     )
 
+    blocker_root = (
+        attempt_root
+        if attempt_root is not None
+        else (package_root.parent if package_root is not None else None)
+    )
     if not skip_controller:
-        if controller_token is None:
-            controller_observation = _observe_controller_status(repo_root, surface)
-            require(
-                controller_observation["parse_status"] == "OK",
-                "CONTROLLER_OBSERVATION_FAILURE",
-                f"{action_phase}:{controller_observation['parse_status']}",
-            )
-            controller_token = str(controller_observation["token"])
         history_for_controller = _history_ids(repo_root, implementation_commit)
         expected_tokens = _expected_controller_tokens(
             surface,
@@ -3724,11 +3796,39 @@ def verify_git_action_phase(
                 else None
             ),
         )
-        require(
-            controller_token in expected_tokens,
-            "G01_CONTROLLER_REF_NOT_EXPECTED",
-            f"{action_phase}:{controller_token}",
-        )
+        controller_observation: dict[str, Any] | None = None
+        if controller_token is None:
+            controller_observation = _observe_controller_status(repo_root, surface)
+            if controller_observation["parse_status"] != "OK":
+                if blocker_root is not None:
+                    blocker = _publish_controller_blocker(
+                        attempt_root=blocker_root,
+                        surface=surface,
+                        observation=controller_observation,
+                        expected_tokens=expected_tokens,
+                    )
+                    raise QualificationError(
+                        str(blocker["blocker_code"]),
+                        action_phase,
+                    )
+                raise QualificationError(
+                    "CONTROLLER_OBSERVATION_FAILURE",
+                    f"{action_phase}:{controller_observation['parse_status']}",
+                )
+            controller_token = str(controller_observation["token"])
+        if controller_token not in expected_tokens:
+            if blocker_root is not None and controller_observation is not None:
+                blocker = _publish_controller_blocker(
+                    attempt_root=blocker_root,
+                    surface=surface,
+                    observation=controller_observation,
+                    expected_tokens=expected_tokens,
+                )
+                raise QualificationError(str(blocker["blocker_code"]), action_phase)
+            raise QualificationError(
+                "G01_CONTROLLER_REF_NOT_EXPECTED",
+                f"{action_phase}:{controller_token}",
+            )
 
     require(
         _claim_state(repo_root, claim_bytes) == expected_state["claim_state"],
@@ -4164,19 +4264,45 @@ def _workflow_blocker_paths(attempt_root: Path) -> dict[str, Path]:
     }
 
 
-def _selected_workflow_blocker(
+def _allowed_controller_expected_sets(
     *,
-    attempt_root: Path,
+    repo_root: Path,
     surface: Mapping[str, Any],
-) -> tuple[str, dict[str, Any], bytes] | None:
-    paths = _workflow_blocker_paths(attempt_root)
-    present = [(code, path) for code, path in paths.items() if _committed_regular(path)]
-    require(len(present) <= 1, "TERMINAL_CLOSURE", "workflow blocker union")
-    if not present:
-        return None
-    code, path = present[0]
-    content = path.read_bytes()
-    value = strict_json_file(path)
+    claim: Mapping[str, Any],
+) -> set[tuple[str, ...]]:
+    history = _history_ids(repo_root, str(claim["implementation_commit"]))
+    consumption_sha = (
+        str(history["consumption_commit"]) if "consumption_commit" in history else None
+    )
+    terminal_sha = (
+        str(history["terminal_commit"]) if "terminal_commit" in history else None
+    )
+    stages = surface["one_shot"]["workflow_blockers"][
+        "expected_sha_sets_by_local_state"
+    ]
+    allowed: set[tuple[str, ...]] = set()
+    for proof_stage in stages:
+        try:
+            values = _expected_controller_tokens(
+                surface,
+                proof_stage,
+                consumption_sha=consumption_sha,
+                terminal_sha=terminal_sha,
+            )
+        except QualificationError:
+            continue
+        allowed.add(tuple(sorted(values)))
+    return allowed
+
+
+def _validate_workflow_blocker_value(
+    *,
+    repo_root: Path,
+    surface: Mapping[str, Any],
+    claim: Mapping[str, Any],
+    code: str,
+    value: Mapping[str, Any],
+) -> None:
     blockers = surface["one_shot"]["workflow_blockers"]
     fields = {
         "ARTIFACT_STATE_CORRUPTION": blockers["artifact_state_corruption_fields"],
@@ -4222,6 +4348,16 @@ def _selected_workflow_blocker(
             "TERMINAL_CLOSURE",
             f"controller blocker expected set:{code}",
         )
+        require(
+            tuple(expected_tokens)
+            in _allowed_controller_expected_sets(
+                repo_root=repo_root,
+                surface=surface,
+                claim=claim,
+            ),
+            "TERMINAL_CLOSURE",
+            f"controller blocker proof stage:{code}",
+        )
         if code == "CONTROLLER_REF_DIVERGENCE":
             observed = str(value.get("observed_sha", ""))
             require(
@@ -4248,7 +4384,144 @@ def _selected_workflow_blocker(
             "TERMINAL_CLOSURE",
             "artifact blocker rule",
         )
+
+
+def _selected_workflow_blocker(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    claim: Mapping[str, Any],
+) -> tuple[str, dict[str, Any], bytes] | None:
+    paths = _workflow_blocker_paths(attempt_root)
+    present = [(code, path) for code, path in paths.items() if _committed_regular(path)]
+    require(len(present) <= 1, "TERMINAL_CLOSURE", "workflow blocker union")
+    if not present:
+        return None
+    code, path = present[0]
+    content = path.read_bytes()
+    value = strict_json_file(path)
+    _validate_workflow_blocker_value(
+        repo_root=repo_root,
+        surface=surface,
+        claim=claim,
+        code=code,
+        value=value,
+    )
     return code, value, content
+
+
+def _publication_temporary(path: Path) -> Path:
+    return Path(f"{path}.publishing")
+
+
+def _remove_publication_temporary(path: Path) -> None:
+    temporary = _publication_temporary(path)
+    if not temporary.exists():
+        return
+    require(
+        temporary.is_file() and not temporary.is_symlink(),
+        "CONTROL_PUBLICATION_TEMP_PATH_KIND",
+        str(temporary),
+    )
+    temporary.unlink()
+    fsync_directory(path.parent)
+
+
+def _reconcile_controller_blocker_temporaries(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    claim: Mapping[str, Any],
+) -> None:
+    paths = _workflow_blocker_paths(attempt_root)
+    controller_paths = {
+        code: path
+        for code, path in paths.items()
+        if code in {"CONTROLLER_REF_DIVERGENCE", "CONTROLLER_OBSERVATION_FAILURE"}
+    }
+    committed = [path for path in controller_paths.values() if _committed_regular(path)]
+    if committed:
+        for path in controller_paths.values():
+            _remove_publication_temporary(path)
+        return
+
+    valid: list[tuple[Path, bytes]] = []
+    temporaries: list[Path] = []
+    for code, path in controller_paths.items():
+        temporary = _publication_temporary(path)
+        if not temporary.exists():
+            continue
+        require(
+            temporary.is_file() and not temporary.is_symlink(),
+            "CONTROL_PUBLICATION_TEMP_PATH_KIND",
+            str(temporary),
+        )
+        temporaries.append(path)
+        content = temporary.read_bytes()
+        try:
+            value = strict_canonical_json_bytes(
+                content,
+                detail=str(temporary),
+            )
+            _validate_workflow_blocker_value(
+                repo_root=repo_root,
+                surface=surface,
+                claim=claim,
+                code=code,
+                value=value,
+            )
+        except QualificationError:
+            continue
+        valid.append((path, content))
+
+    if len(valid) == 1:
+        selected_path, selected_content = valid[0]
+        for path in temporaries:
+            if path != selected_path:
+                _remove_publication_temporary(path)
+        publish_control_no_replace(selected_path.resolve(), selected_content)
+        return
+    for path in temporaries:
+        _remove_publication_temporary(path)
+
+
+def _reconcile_nonblocker_publication_temporaries(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+) -> None:
+    control = attempt_root / "control"
+    targets = [
+        attempt_root / "attempt-lock.json",
+        control / "formal_producer_invocation.json",
+        control / "terminal_verifier_invocation.json",
+        control / "formal_producer_exit.json",
+        control / "terminal_verifier_exit.json",
+        control / "consumption_push_receipt.json",
+        control / "terminal_push_receipt.json",
+        control / "consumption_push_observation.json",
+        control / "terminal_push_observation.json",
+        control / "terminal_verifier_result.json",
+        control / "recovery_observation.json",
+        repo_root / CONSUMPTION_RECEIPT_PATH,
+        repo_root / TERMINAL_RECEIPT_PATH,
+        repo_root / BUSINESS_REPORT_PATH,
+    ]
+    for path in targets:
+        _remove_publication_temporary(path.resolve())
+
+
+def _reconcile_artifact_blocker_temporary(attempt_root: Path) -> None:
+    path = _workflow_blocker_paths(attempt_root)["ARTIFACT_STATE_CORRUPTION"]
+    _remove_publication_temporary(path)
+
+
+def _reconcile_committed_recovery_start_temporary(attempt_root: Path) -> None:
+    path = attempt_root / "control" / "recovery_start.json"
+    if _committed_regular(path):
+        _remove_publication_temporary(path)
 
 
 def _recovery_controller_proof_stage(
@@ -5274,7 +5547,7 @@ def resolve_durable_terminal_state(
     }
 
 
-def _publish_artifact_corruption(
+def _artifact_corruption_payload(
     *,
     repo_root: Path,
     attempt_root: Path,
@@ -5299,19 +5572,57 @@ def _publish_artifact_corruption(
                     )
                 )
             ] = sha256_file(path)
+    baseline_root = repo_root / BASELINE_PATH
+    if baseline_root.is_dir() and not baseline_root.is_symlink():
+        for path in sorted(baseline_root.rglob("*")):
+            if path.is_file() and not path.is_symlink():
+                observed[str(path.relative_to(repo_root))] = sha256_file(path)
     terminal_path = repo_root / TERMINAL_RECEIPT_PATH
     report_path = repo_root / BUSINESS_REPORT_PATH
+    first_invalid_rule = str(resolution["first_invalid_rule"])
+    terminal_valid = (
+        terminal_path.exists()
+        and resolution.get("terminal_receipt") is not None
+        and first_invalid_rule != "A09_TERMINAL_RECEIPT_PROFILE_MISMATCH"
+    )
+    report_valid = (
+        report_path.exists()
+        and terminal_valid
+        and first_invalid_rule
+        not in {
+            "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT",
+            "A11_BUSINESS_REPORT_BYTES_MISMATCH",
+        }
+    )
     payload = {
         "artifact_presence_bits": resolution["artifact_presence_bits"],
         "blocker_code": "ARTIFACT_STATE_CORRUPTION",
-        "business_report_state": "INVALID" if report_path.exists() else "ABSENT",
-        "first_invalid_rule": resolution["first_invalid_rule"],
+        "business_report_state": ("VALID" if report_valid else "INVALID")
+        if report_path.exists()
+        else "ABSENT",
+        "first_invalid_rule": first_invalid_rule,
         "observed_artifact_sha256_json": canonical_json_bytes(
             dict(sorted(observed.items()))
         ).decode("ascii"),
         "schema_version": 1,
-        "terminal_receipt_state": "INVALID" if terminal_path.exists() else "ABSENT",
+        "terminal_receipt_state": ("VALID" if terminal_valid else "INVALID")
+        if terminal_path.exists()
+        else "ABSENT",
     }
+    return payload
+
+
+def _publish_artifact_corruption(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+    resolution: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = _artifact_corruption_payload(
+        repo_root=repo_root,
+        attempt_root=attempt_root,
+        resolution=resolution,
+    )
     publish_json(
         attempt_root / "control" / "artifact_state_corruption.json",
         payload,
@@ -5478,9 +5789,11 @@ def _match_git_phase(
     terminal_receipt_bytes: bytes | None = None,
     business_report_bytes: bytes | None = None,
     package_root: Path | None = None,
+    attempt_root: Path | None = None,
+    controller_token: str | None = None,
     skip_controller: bool = False,
 ) -> str:
-    errors = []
+    errors: list[tuple[str, QualificationError]] = []
     for action_phase, terminal_branch in candidates:
         try:
             verify_git_action_phase(
@@ -5493,12 +5806,37 @@ def _match_git_phase(
                 terminal_receipt_bytes=terminal_receipt_bytes,
                 business_report_bytes=business_report_bytes,
                 package_root=package_root,
+                attempt_root=attempt_root,
+                controller_token=controller_token,
                 skip_controller=skip_controller,
             )
             return action_phase
         except QualificationError as exc:
-            errors.append(f"{action_phase}:{exc.detail}")
-    raise QualificationError(GIT_DIRTY_RULE, "|".join(errors))
+            errors.append((action_phase, exc))
+    non_controller = [
+        (phase, exc)
+        for phase, exc in errors
+        if exc.code != "G01_CONTROLLER_REF_NOT_EXPECTED"
+    ]
+    selected_errors = non_controller or errors
+    rule_order = {
+        f"G0{index}_{name}": index
+        for index, name in (
+            (1, "CONTROLLER_REF_NOT_EXPECTED"),
+            (2, "CLAIM_STATE_MISMATCH"),
+            (3, "HEAD_MISMATCH"),
+            (4, "COMMIT_IDENTITY_MISMATCH"),
+            (5, "INDEX_OR_TRACKED_WORKTREE_DIRTY"),
+            (6, "CONSUMPTION_TAG_MISMATCH"),
+            (7, "TERMINAL_TAG_MISMATCH"),
+        )
+    }
+    _, selected = min(
+        selected_errors,
+        key=lambda item: rule_order.get(item[1].code, 99),
+    )
+    detail = "|".join(f"{phase}:{exc.code}:{exc.detail}" for phase, exc in errors)
+    raise QualificationError(selected.code, detail)
 
 
 def _attempt_lock_value(
@@ -5540,6 +5878,28 @@ def _ensure_attempt_lock(
     return value
 
 
+def _verify_committed_attempt_lock(
+    *,
+    attempt_root: Path,
+    claim: Mapping[str, Any],
+    claim_bytes: bytes,
+) -> None:
+    path = attempt_root / "attempt-lock.json"
+    if not _committed_regular(path):
+        return
+    expected = _attempt_lock_value(
+        claim=claim,
+        claim_bytes=claim_bytes,
+        attempt_root=attempt_root,
+    )
+    require(
+        strict_json_file(path) == expected
+        and path.read_bytes() == canonical_json_bytes(expected, trailing_lf=True),
+        "TERMINAL_CLOSURE",
+        "attempt lock bytes",
+    )
+
+
 def _ensure_local_consumption(
     *,
     repo_root: Path,
@@ -5568,6 +5928,7 @@ def _ensure_local_consumption(
             action_phase="BLOCKER_OBSERVATION_COMMITTED_ARMED",
             terminal_branch="NONE",
             claim_bytes=claim_bytes,
+            attempt_root=attempt_root,
             skip_controller=skip_controller,
         )
         claimed = repo_root / CLAIMED_PATH
@@ -5597,6 +5958,7 @@ def _ensure_local_consumption(
                 ("BLOCKER_CONSUMPTION_INDEX_STAGED", "NONE"),
             ),
             claim_bytes=claim_bytes,
+            attempt_root=attempt_root,
             skip_controller=skip_controller,
         )
         if phase == "BLOCKER_CLAIM_RENAMED":
@@ -5610,6 +5972,7 @@ def _ensure_local_consumption(
                 action_phase="BLOCKER_CONSUMPTION_INDEX_STAGED",
                 terminal_branch="NONE",
                 claim_bytes=claim_bytes,
+                attempt_root=attempt_root,
                 skip_controller=skip_controller,
             )
         git_write(
@@ -5638,6 +6001,7 @@ def _ensure_local_consumption(
             action_phase="BLOCKER_CONSUMPTION_COMMITTED",
             terminal_branch="NONE",
             claim_bytes=claim_bytes,
+            attempt_root=attempt_root,
             skip_controller=skip_controller,
         )
         git_write(
@@ -5694,6 +6058,7 @@ def _ensure_consumption_transition_receipt(
             action_phase="NORMAL_CONSUMPTION_PUSH_UNRECEIPTED",
             terminal_branch="NONE",
             claim_bytes=(repo_root / CLAIMED_PATH).read_bytes(),
+            attempt_root=attempt_root,
         )
         if controller_sha == consumption_commit:
             value = publish_push_observation(
@@ -5727,6 +6092,7 @@ def _ensure_consumption_transition_receipt(
         terminal_branch="NONE",
         claim_bytes=(repo_root / CLAIMED_PATH).read_bytes(),
         consumption_receipt_bytes=content,
+        attempt_root=attempt_root,
     )
     return value, content
 
@@ -6137,6 +6503,7 @@ def execute_formal_outer(
         action_phase="BLOCKER_CLAIM_RENAMED",
         terminal_branch="NONE",
         claim_bytes=claim_bytes,
+        attempt_root=attempt_root,
     )
     git_write(
         repo_root,
@@ -6148,6 +6515,7 @@ def execute_formal_outer(
         action_phase="BLOCKER_CONSUMPTION_INDEX_STAGED",
         terminal_branch="NONE",
         claim_bytes=claim_bytes,
+        attempt_root=attempt_root,
     )
     git_write(
         repo_root,
@@ -6160,6 +6528,7 @@ def execute_formal_outer(
         action_phase="BLOCKER_CONSUMPTION_COMMITTED",
         terminal_branch="NONE",
         claim_bytes=claim_bytes,
+        attempt_root=attempt_root,
     )
     git_write(
         repo_root,
@@ -6172,6 +6541,7 @@ def execute_formal_outer(
         action_phase="BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
         terminal_branch="NONE",
         claim_bytes=claim_bytes,
+        attempt_root=attempt_root,
     )
     verify_git_action_phase(
         repo_root=repo_root,
@@ -6179,6 +6549,7 @@ def execute_formal_outer(
         action_phase="NORMAL_CONSUMPTION_PUSH_UNRECEIPTED",
         terminal_branch="NONE",
         claim_bytes=claim_bytes,
+        attempt_root=attempt_root,
     )
     push_transition(
         repo_root=repo_root,
@@ -6201,6 +6572,7 @@ def execute_formal_outer(
         terminal_branch="NONE",
         claim_bytes=claim_bytes,
         consumption_receipt_bytes=consumption_receipt_bytes,
+        attempt_root=attempt_root,
     )
     formal_identity = _formal_identity(
         claim=claim,
@@ -6472,6 +6844,7 @@ def _recovery_committed_paths_json(attempt_root: Path) -> str:
             str(control_path.relative_to(attempt_root))
             for control_path in (attempt_root / "control").iterdir()
             if control_path.is_file()
+            and not control_path.name.endswith(".lock")
             and control_path.name
             not in {"recovery_start.json", "recovery_observation.json"}
             and not control_path.name.endswith(".publishing")
@@ -6589,6 +6962,208 @@ def observe_recovery_snapshot(
     }
 
 
+def _pre_recovery_artifact_resolution(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    claim: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    bits, _ = _artifact_presence(repo_root, attempt_root)
+    first_invalid = _presence_invalid_rule(bits)
+    if first_invalid != NONE:
+        return {
+            "artifact_presence_bits": bits,
+            "first_invalid_rule": first_invalid,
+        }
+    terminal_present = _committed_regular(repo_root / TERMINAL_RECEIPT_PATH)
+    report_present = _committed_regular(repo_root / BUSINESS_REPORT_PATH)
+    history = _history_ids(repo_root, str(claim["implementation_commit"]))
+    depth = int(history["depth"])
+    if depth < 2:
+        if terminal_present:
+            return {
+                "artifact_presence_bits": bits,
+                "first_invalid_rule": "A09_TERMINAL_RECEIPT_PROFILE_MISMATCH",
+            }
+        if report_present:
+            return {
+                "artifact_presence_bits": bits,
+                "first_invalid_rule": (
+                    "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT"
+                ),
+            }
+        return None
+    consumption_commit = str(history["consumption_commit"])
+    selected = _selected_push_receipt(
+        attempt_root=attempt_root,
+        surface=surface,
+        transition_kind="CONSUMPTION",
+        expected_old_sha=ABSENT,
+        expected_new_sha=consumption_commit,
+    )
+    if selected is None:
+        if terminal_present:
+            return {
+                "artifact_presence_bits": bits,
+                "first_invalid_rule": "A09_TERMINAL_RECEIPT_PROFILE_MISMATCH",
+            }
+        if report_present:
+            return {
+                "artifact_presence_bits": bits,
+                "first_invalid_rule": (
+                    "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT"
+                ),
+            }
+        return None
+    _, _, consumption_receipt_bytes = selected
+    resolution = resolve_durable_terminal_state(
+        repo_root=repo_root,
+        attempt_root=attempt_root,
+        surface=surface,
+        consumption_commit=consumption_commit,
+        consumption_receipt_sha256=sha256_bytes(consumption_receipt_bytes),
+        implementation_commit=str(claim["implementation_commit"]),
+    )
+    return resolution if resolution["first_invalid_rule"] != NONE else None
+
+
+def _verify_pre_recovery_git_state(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    claim: Mapping[str, Any],
+    claim_bytes: bytes,
+    controller_token: str,
+    skip_controller: bool = False,
+) -> str:
+    history = _history_ids(repo_root, str(claim["implementation_commit"]))
+    depth = int(history["depth"])
+    claim_state = _claim_state(repo_root, claim_bytes)
+    if depth == 1:
+        candidates = (
+            (("BLOCKER_OBSERVATION_COMMITTED_ARMED", "NONE"),)
+            if claim_state == "ARMED"
+            else (
+                ("BLOCKER_CLAIM_RENAMED", "NONE"),
+                ("BLOCKER_CONSUMPTION_INDEX_STAGED", "NONE"),
+            )
+        )
+        return _match_git_phase(
+            repo_root=repo_root,
+            surface=surface,
+            candidates=candidates,
+            claim_bytes=claim_bytes,
+            attempt_root=attempt_root,
+            controller_token=controller_token,
+            skip_controller=skip_controller,
+        )
+    require(depth in {2, 3}, "G03_HEAD_MISMATCH", f"pre-recovery:{depth}")
+    consumption_commit = str(history["consumption_commit"])
+    selected_consumption = _selected_push_receipt(
+        attempt_root=attempt_root,
+        surface=surface,
+        transition_kind="CONSUMPTION",
+        expected_old_sha=ABSENT,
+        expected_new_sha=consumption_commit,
+    )
+    consumption_receipt_bytes = (
+        selected_consumption[2] if selected_consumption is not None else None
+    )
+    terminal_path = repo_root / TERMINAL_RECEIPT_PATH
+    report_path = repo_root / BUSINESS_REPORT_PATH
+    terminal_receipt_bytes = (
+        terminal_path.read_bytes() if _committed_regular(terminal_path) else None
+    )
+    business_report_bytes = (
+        report_path.read_bytes() if _committed_regular(report_path) else None
+    )
+    branch = "NONE"
+    if terminal_receipt_bytes is not None:
+        terminal_receipt = strict_json_file(terminal_path)
+        branch = (
+            "PASS"
+            if terminal_receipt.get("classification") == FORMAL_CLASSIFICATION_PASS
+            else "FAIL"
+        )
+    if depth == 2:
+        consumption_tag = _tag_state(
+            repo_root,
+            name=CONSUMPTION_TAG,
+            expected_target=consumption_commit,
+            expected_message=surface["one_shot"]["annotated_tag_messages"][
+                "consumption"
+            ],
+        )
+        if terminal_receipt_bytes is not None:
+            require(
+                consumption_receipt_bytes is not None,
+                "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
+                "terminal without consumption receipt",
+            )
+            candidates = (
+                (("CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING", branch),)
+                if business_report_bytes is None
+                else (
+                    ("BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION", branch),
+                    ("BLOCKER_TERMINAL_COMMON_STAGED_PASS", branch),
+                    ("BLOCKER_TERMINAL_INDEX_STAGED", branch),
+                )
+            )
+        elif _committed_regular(repo_root / CONSUMPTION_RECEIPT_PATH):
+            require(
+                consumption_receipt_bytes is not None,
+                "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
+                "tracked consumption receipt source",
+            )
+            candidates = (("NORMAL_CONSUMPTION_RECEIPT_COMMITTED", "NONE"),)
+        elif consumption_tag == "ABSENT":
+            candidates = (("BLOCKER_CONSUMPTION_COMMITTED", "NONE"),)
+        else:
+            candidates = (
+                ("BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE", "NONE"),
+                ("NORMAL_CONSUMPTION_PUSH_UNRECEIPTED", "NONE"),
+            )
+    else:
+        require(
+            terminal_receipt_bytes is not None
+            and business_report_bytes is not None
+            and consumption_receipt_bytes is not None,
+            "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
+            "terminal history preimage",
+        )
+        terminal_commit = str(history["terminal_commit"])
+        terminal_tag = _tag_state(
+            repo_root,
+            name=TERMINAL_TAG,
+            expected_target=terminal_commit,
+            expected_message=surface["one_shot"]["annotated_tag_messages"]["terminal"],
+        )
+        candidates = (
+            (("BLOCKER_TERMINAL_COMMITTED", branch),)
+            if terminal_tag == "ABSENT"
+            else (
+                ("BLOCKER_POST_TERMINAL_LOCAL_COMPLETE", branch),
+                ("NORMAL_TERMINAL_PUSH_UNRECEIPTED", branch),
+                ("NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED", branch),
+            )
+        )
+    return _match_git_phase(
+        repo_root=repo_root,
+        surface=surface,
+        candidates=candidates,
+        claim_bytes=claim_bytes,
+        consumption_receipt_bytes=consumption_receipt_bytes,
+        terminal_receipt_bytes=terminal_receipt_bytes,
+        business_report_bytes=business_report_bytes,
+        package_root=attempt_root / "package",
+        attempt_root=attempt_root,
+        controller_token=controller_token,
+        skip_controller=skip_controller,
+    )
+
+
 def _recovery_start_payload(
     *,
     repo_root: Path,
@@ -6596,6 +7171,7 @@ def _recovery_start_payload(
     surface: Mapping[str, Any],
     crash_boundary: str,
     claim_path: Path,
+    attempt_lock_sha256: str,
     initial_committed_paths_json: str,
     initial_controller_sha: str,
 ) -> dict[str, Any]:
@@ -6609,7 +7185,7 @@ def _recovery_start_payload(
         f"crash boundary:{crash_boundary}",
     )
     base = {
-        "attempt_lock_sha256": sha256_file(attempt_root / "attempt-lock.json"),
+        "attempt_lock_sha256": attempt_lock_sha256,
         "claimed_or_armed_sha256": sha256_file(claim_path),
         "crash_boundary": crash_boundary,
         "initial_committed_paths_json": initial_committed_paths_json,
@@ -6648,10 +7224,184 @@ def _workflow_blocker_restart_states(surface: Mapping[str, Any]) -> list[str]:
     return states
 
 
-def _publish_local_git_corruption(
+def classify_workflow_blocker_restart_state(
+    snapshot: Mapping[str, Any],
+) -> str:
+    required = {
+        "blocker_code",
+        "business_report_state",
+        "claim_state",
+        "consumption_tag_state",
+        "first_invalid_rule",
+        "head_state",
+        "terminal_branch",
+        "terminal_receipt_state",
+        "terminal_tag_state",
+        "tracked_transition_state",
+    }
+    require(
+        set(snapshot) == required,
+        "TERMINAL_CLOSURE",
+        "workflow blocker snapshot schema",
+    )
+    blocker_code = str(snapshot["blocker_code"])
+    first_invalid = str(snapshot["first_invalid_rule"])
+    if first_invalid.startswith("G0"):
+        return "BLOCKER_LOCAL_GIT_STATE_CORRUPTION"
+    if blocker_code == "ARTIFACT_STATE_CORRUPTION":
+        if snapshot["head_state"] == "TERMINAL_COMMIT":
+            return "ARTIFACT_BLOCKER_TERMINAL_HISTORY_PRESENT"
+        if first_invalid in {
+            "A09_TERMINAL_RECEIPT_PROFILE_MISMATCH",
+            "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT",
+            "A11_BUSINESS_REPORT_BYTES_MISMATCH",
+        } and (
+            snapshot["terminal_receipt_state"] != "ABSENT"
+            or snapshot["business_report_state"] != "ABSENT"
+        ):
+            return "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT"
+        require(
+            first_invalid.startswith("A")
+            and int(first_invalid[1:3]) <= 8
+            and snapshot["head_state"] == "CONSUMPTION_COMMIT"
+            and snapshot["consumption_tag_state"] == "EXACT"
+            and snapshot["terminal_receipt_state"] == "ABSENT"
+            and snapshot["business_report_state"] == "ABSENT",
+            "TERMINAL_CLOSURE",
+            f"artifact blocker state:{first_invalid}",
+        )
+        return "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE"
+    require(
+        blocker_code in {"CONTROLLER_REF_DIVERGENCE", "CONTROLLER_OBSERVATION_FAILURE"},
+        "TERMINAL_CLOSURE",
+        f"controller blocker state:{blocker_code}",
+    )
+    key = (
+        snapshot["claim_state"],
+        snapshot["head_state"],
+        snapshot["consumption_tag_state"],
+        snapshot["terminal_tag_state"],
+        snapshot["terminal_receipt_state"],
+        snapshot["business_report_state"],
+        snapshot["tracked_transition_state"],
+    )
+    rows = {
+        (
+            "ARMED",
+            "ARMING_COMMIT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "CLEAN",
+        ): "BLOCKER_OBSERVATION_COMMITTED_ARMED",
+        (
+            "CLAIMED",
+            "ARMING_COMMIT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "EXACT_CONSUMPTION_RENAME_UNSTAGED",
+        ): "BLOCKER_CLAIM_RENAMED",
+        (
+            "CLAIMED",
+            "ARMING_COMMIT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "EXACT_CONSUMPTION_INDEX_STAGED",
+        ): "BLOCKER_CONSUMPTION_INDEX_STAGED",
+        (
+            "CLAIMED",
+            "CONSUMPTION_COMMIT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "CLEAN",
+        ): "BLOCKER_CONSUMPTION_COMMITTED",
+        (
+            "CLAIMED",
+            "CONSUMPTION_COMMIT",
+            "EXACT",
+            "ABSENT",
+            "ABSENT",
+            "ABSENT",
+            "CLEAN",
+        ): "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+        (
+            "CLAIMED",
+            "CONSUMPTION_COMMIT",
+            "EXACT",
+            "ABSENT",
+            "VALID",
+            "ABSENT",
+            "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED",
+        ): "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+        (
+            "CLAIMED",
+            "CONSUMPTION_COMMIT",
+            "EXACT",
+            "ABSENT",
+            "VALID",
+            "VALID",
+            "EXACT_TERMINAL_DELTA_UNSTAGED",
+        ): "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+        (
+            "CLAIMED",
+            "CONSUMPTION_COMMIT",
+            "EXACT",
+            "ABSENT",
+            "VALID",
+            "VALID",
+            "EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED",
+        ): "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
+        (
+            "CLAIMED",
+            "CONSUMPTION_COMMIT",
+            "EXACT",
+            "ABSENT",
+            "VALID",
+            "VALID",
+            "EXACT_TERMINAL_INDEX_STAGED",
+        ): "BLOCKER_TERMINAL_INDEX_STAGED",
+        (
+            "CLAIMED",
+            "TERMINAL_COMMIT",
+            "EXACT",
+            "ABSENT",
+            "VALID",
+            "VALID",
+            "CLEAN",
+        ): "BLOCKER_TERMINAL_COMMITTED",
+        (
+            "CLAIMED",
+            "TERMINAL_COMMIT",
+            "EXACT",
+            "EXACT",
+            "VALID",
+            "VALID",
+            "CLEAN",
+        ): "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+    }
+    require(key in rows, "TERMINAL_CLOSURE", f"controller restart row:{key}")
+    state = rows[key]
+    require(
+        state != "BLOCKER_TERMINAL_COMMON_STAGED_PASS"
+        or snapshot["terminal_branch"] == "PASS",
+        "TERMINAL_CLOSURE",
+        "terminal common branch",
+    )
+    return state
+
+
+def _local_git_corruption_resolution(
     *,
     repo_root: Path,
     attempt_root: Path,
+    surface: Mapping[str, Any],
     first_invalid_rule: str,
 ) -> dict[str, Any]:
     require(
@@ -6668,14 +7418,124 @@ def _publish_local_git_corruption(
         f"local git blocker:{first_invalid_rule}",
     )
     bits, _ = _artifact_presence(repo_root, attempt_root)
+    resolution: dict[str, Any] = {
+        "artifact_presence_bits": bits,
+        "first_invalid_rule": first_invalid_rule,
+        "terminal_receipt": None,
+    }
+    claim_candidates = [
+        path
+        for path in (repo_root / ARMED_CLAIM_PATH, repo_root / CLAIMED_PATH)
+        if _committed_regular(path)
+    ]
+    if len(claim_candidates) == 1:
+        claim = strict_json_file(claim_candidates[0])
+        history = _history_ids(repo_root, str(claim.get("implementation_commit", "")))
+        if int(history["depth"]) >= 2:
+            consumption_commit = str(history["consumption_commit"])
+            selected = _selected_push_receipt(
+                attempt_root=attempt_root,
+                surface=surface,
+                transition_kind="CONSUMPTION",
+                expected_old_sha=ABSENT,
+                expected_new_sha=consumption_commit,
+            )
+            if selected is not None:
+                durable = resolve_durable_terminal_state(
+                    repo_root=repo_root,
+                    attempt_root=attempt_root,
+                    surface=surface,
+                    consumption_commit=consumption_commit,
+                    consumption_receipt_sha256=sha256_bytes(selected[2]),
+                    implementation_commit=str(claim["implementation_commit"]),
+                )
+                resolution.update(durable)
+                resolution["first_invalid_rule"] = first_invalid_rule
+    return resolution
+
+
+def _publish_local_git_corruption(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+    first_invalid_rule: str,
+) -> dict[str, Any]:
+    surface = strict_json_file(repo_root / SURFACE_PATH)
+    resolution = _local_git_corruption_resolution(
+        repo_root=repo_root,
+        attempt_root=attempt_root,
+        surface=surface,
+        first_invalid_rule=first_invalid_rule,
+    )
     return _publish_artifact_corruption(
         repo_root=repo_root,
         attempt_root=attempt_root,
-        resolution={
-            "artifact_presence_bits": bits,
-            "first_invalid_rule": first_invalid_rule,
-        },
+        resolution=resolution,
     )
+
+
+def _verify_preserved_artifact_blocker(
+    *,
+    repo_root: Path,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    claim: Mapping[str, Any],
+    claim_bytes: bytes,
+    blocker_receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    first_invalid_rule = str(blocker_receipt["first_invalid_rule"])
+    if first_invalid_rule.startswith("G0"):
+        try:
+            _verify_pre_recovery_git_state(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim=claim,
+                claim_bytes=claim_bytes,
+                controller_token=ABSENT,
+                skip_controller=True,
+            )
+        except QualificationError as exc:
+            require(
+                exc.code == first_invalid_rule,
+                "TERMINAL_CLOSURE",
+                f"preserved local git blocker:{first_invalid_rule}:{exc.code}",
+            )
+        else:
+            raise QualificationError(
+                "TERMINAL_CLOSURE",
+                f"preserved local git blocker became legal:{first_invalid_rule}",
+            )
+        resolution = _local_git_corruption_resolution(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            first_invalid_rule=first_invalid_rule,
+        )
+    else:
+        resolution = _pre_recovery_artifact_resolution(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim=claim,
+        )
+        require(
+            resolution is not None
+            and resolution["first_invalid_rule"] == first_invalid_rule,
+            "TERMINAL_CLOSURE",
+            f"preserved artifact blocker:{first_invalid_rule}",
+        )
+    require(
+        _artifact_corruption_payload(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            resolution=resolution,
+        )
+        == blocker_receipt,
+        "TERMINAL_CLOSURE",
+        f"preserved artifact blocker bytes:{first_invalid_rule}",
+    )
+    return resolution
 
 
 def _resume_workflow_blocker(
@@ -6690,14 +7550,139 @@ def _resume_workflow_blocker(
     """Resume only frozen local blocker transitions; never observe or push."""
 
     restart_states = _workflow_blocker_restart_states(surface)
-    blocker_code, _, _ = selected_blocker
+    blocker_code, blocker_receipt, _ = selected_blocker
     if blocker_code == "ARTIFACT_STATE_CORRUPTION":
-        history = _history_ids(repo_root, str(claim["implementation_commit"]))
-        restart_state = (
-            "ARTIFACT_BLOCKER_TERMINAL_HISTORY_PRESENT"
-            if int(history["depth"]) == 3
-            else "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT"
+        _verify_preserved_artifact_blocker(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim=claim,
+            claim_bytes=claim_bytes,
+            blocker_receipt=blocker_receipt,
         )
+        history = _history_ids(repo_root, str(claim["implementation_commit"]))
+        depth = int(history["depth"])
+        first_invalid = str(blocker_receipt["first_invalid_rule"])
+        terminal_state = str(blocker_receipt["terminal_receipt_state"])
+        report_state = str(blocker_receipt["business_report_state"])
+        if first_invalid.startswith("G0"):
+            restart_state = "BLOCKER_LOCAL_GIT_STATE_CORRUPTION"
+        elif depth == 3:
+            require(
+                terminal_state != "ABSENT" and report_state != "ABSENT",
+                "TERMINAL_CLOSURE",
+                "artifact terminal history evidence",
+            )
+            restart_state = "ARTIFACT_BLOCKER_TERMINAL_HISTORY_PRESENT"
+        elif (
+            depth == 2
+            and first_invalid
+            in {
+                "A09_TERMINAL_RECEIPT_PROFILE_MISMATCH",
+                "A10_BUSINESS_REPORT_WITHOUT_VALID_TERMINAL_RECEIPT",
+                "A11_BUSINESS_REPORT_BYTES_MISMATCH",
+            }
+            and (terminal_state != "ABSENT" or report_state != "ABSENT")
+        ):
+            consumption_commit = str(history["consumption_commit"])
+            require(
+                _tag_state(
+                    repo_root,
+                    name=CONSUMPTION_TAG,
+                    expected_target=consumption_commit,
+                    expected_message=surface["one_shot"]["annotated_tag_messages"][
+                        "consumption"
+                    ],
+                )
+                == "EXACT"
+                and _tag_state(
+                    repo_root,
+                    name=TERMINAL_TAG,
+                    expected_target=None,
+                    expected_message=surface["one_shot"]["annotated_tag_messages"][
+                        "terminal"
+                    ],
+                )
+                == "ABSENT",
+                "TERMINAL_CLOSURE",
+                "artifact post-receipt tags",
+            )
+            restart_state = "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT"
+        elif (
+            depth == 2
+            and first_invalid.startswith("A")
+            and int(first_invalid[1:3]) <= 8
+            and terminal_state == report_state == "ABSENT"
+        ):
+            verify_git_action_phase(
+                repo_root=repo_root,
+                surface=surface,
+                action_phase="BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+                terminal_branch="NONE",
+                claim_bytes=claim_bytes,
+                attempt_root=attempt_root,
+                skip_controller=True,
+            )
+            restart_state = "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE"
+        else:
+            raise QualificationError(
+                "TERMINAL_CLOSURE",
+                f"artifact restart row:{first_invalid}:{depth}",
+            )
+        terminal_branch = "NONE"
+        terminal_path = repo_root / TERMINAL_RECEIPT_PATH
+        if terminal_state == "VALID" and _committed_regular(terminal_path):
+            receipt = strict_json_file(terminal_path)
+            terminal_branch = (
+                "PASS"
+                if receipt.get("classification") == FORMAL_CLASSIFICATION_PASS
+                else "FAIL"
+            )
+        classified = classify_workflow_blocker_restart_state(
+            {
+                "blocker_code": blocker_code,
+                "business_report_state": report_state,
+                "claim_state": _claim_state(repo_root, claim_bytes),
+                "consumption_tag_state": (
+                    "EXACT"
+                    if depth >= 2
+                    and _tag_state(
+                        repo_root,
+                        name=CONSUMPTION_TAG,
+                        expected_target=str(history["consumption_commit"]),
+                        expected_message=surface["one_shot"]["annotated_tag_messages"][
+                            "consumption"
+                        ],
+                    )
+                    == "EXACT"
+                    else "ABSENT"
+                ),
+                "first_invalid_rule": first_invalid,
+                "head_state": (
+                    "TERMINAL_COMMIT"
+                    if depth == 3
+                    else ("CONSUMPTION_COMMIT" if depth == 2 else "ARMING_COMMIT")
+                ),
+                "terminal_branch": terminal_branch,
+                "terminal_receipt_state": terminal_state,
+                "terminal_tag_state": (
+                    "EXACT"
+                    if depth == 3
+                    and _tag_state(
+                        repo_root,
+                        name=TERMINAL_TAG,
+                        expected_target=str(history["terminal_commit"]),
+                        expected_message=surface["one_shot"]["annotated_tag_messages"][
+                            "terminal"
+                        ],
+                    )
+                    == "EXACT"
+                    else "ABSENT"
+                ),
+                "tracked_transition_state": "CLEAN",
+            }
+        )
+        require(classified == restart_state, "TERMINAL_CLOSURE")
         require(restart_state in restart_states, "TERMINAL_CLOSURE")
         return {
             "blocker": blocker_code,
@@ -6769,10 +7754,24 @@ def _resume_workflow_blocker(
                 claim_bytes=claim_bytes,
                 skip_controller=True,
             )
+            restart_state = classify_workflow_blocker_restart_state(
+                {
+                    "blocker_code": blocker_code,
+                    "business_report_state": "ABSENT",
+                    "claim_state": "CLAIMED",
+                    "consumption_tag_state": "EXACT",
+                    "first_invalid_rule": "NONE",
+                    "head_state": "CONSUMPTION_COMMIT",
+                    "terminal_branch": "NONE",
+                    "terminal_receipt_state": "ABSENT",
+                    "terminal_tag_state": "ABSENT",
+                    "tracked_transition_state": "CLEAN",
+                }
+            )
             return {
                 "blocker": blocker_code,
                 "classification": NONE,
-                "restart_state": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+                "restart_state": restart_state,
             }
 
         selected_consumption = _selected_push_receipt(
@@ -6809,10 +7808,28 @@ def _resume_workflow_blocker(
         )
         if terminal_result.get("blocker") == "ARTIFACT_STATE_CORRUPTION":
             return terminal_result
+        restart_state = classify_workflow_blocker_restart_state(
+            {
+                "blocker_code": blocker_code,
+                "business_report_state": "VALID",
+                "claim_state": "CLAIMED",
+                "consumption_tag_state": "EXACT",
+                "first_invalid_rule": "NONE",
+                "head_state": "TERMINAL_COMMIT",
+                "terminal_branch": (
+                    "PASS"
+                    if terminal_result["classification"] == FORMAL_CLASSIFICATION_PASS
+                    else "FAIL"
+                ),
+                "terminal_receipt_state": "VALID",
+                "terminal_tag_state": "EXACT",
+                "tracked_transition_state": "CLEAN",
+            }
+        )
         return {
             **terminal_result,
             "blocker": blocker_code,
-            "restart_state": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+            "restart_state": restart_state,
         }
     except QualificationError as exc:
         if exc.code.startswith("G0") and exc.code != "G01_CONTROLLER_REF_NOT_EXPECTED":
@@ -6894,9 +7911,28 @@ def recover_formal(
                     "restart_state": "BLOCKER_LOCAL_GIT_STATE_CORRUPTION",
                 }
             raise
-        selected_blocker = _selected_workflow_blocker(
+        _reconcile_controller_blocker_temporaries(
+            repo_root=repo_root,
             attempt_root=attempt_root,
             surface=surface,
+            claim=claim,
+        )
+        _reconcile_artifact_blocker_temporary(attempt_root)
+        _reconcile_nonblocker_publication_temporaries(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+        )
+        _reconcile_committed_recovery_start_temporary(attempt_root)
+        _verify_committed_attempt_lock(
+            attempt_root=attempt_root,
+            claim=claim,
+            claim_bytes=claim_bytes,
+        )
+        selected_blocker = _selected_workflow_blocker(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim=claim,
         )
         if selected_blocker is not None:
             return _resume_workflow_blocker(
@@ -6950,8 +7986,10 @@ def recover_formal(
                 expected_tokens=expected_controller_tokens,
             )
             selected_blocker = _selected_workflow_blocker(
+                repo_root=repo_root,
                 attempt_root=attempt_root,
                 surface=surface,
+                claim=claim,
             )
             require(selected_blocker is not None, "TERMINAL_CLOSURE")
             return _resume_workflow_blocker(
@@ -6962,10 +8000,64 @@ def recover_formal(
                 claim_bytes=claim_bytes,
                 selected_blocker=selected_blocker,
             )
+        artifact_resolution = _pre_recovery_artifact_resolution(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim=claim,
+        )
+        if artifact_resolution is not None:
+            artifact = _publish_artifact_corruption(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                resolution=artifact_resolution,
+            )
+            return {
+                "blocker": artifact["blocker_code"],
+                "classification": NONE,
+                "first_invalid_rule": artifact["first_invalid_rule"],
+                "restart_state": (
+                    "ARTIFACT_BLOCKER_TERMINAL_HISTORY_PRESENT"
+                    if int(
+                        _history_ids(
+                            repo_root,
+                            str(claim["implementation_commit"]),
+                        )["depth"]
+                    )
+                    == 3
+                    else "ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT"
+                ),
+            }
+        try:
+            _verify_pre_recovery_git_state(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim=claim,
+                claim_bytes=claim_bytes,
+                controller_token=str(controller_observation["token"]),
+            )
+        except QualificationError as exc:
+            if exc.code.startswith("G0") and exc.code != (
+                "G01_CONTROLLER_REF_NOT_EXPECTED"
+            ):
+                artifact = _publish_local_git_corruption(
+                    repo_root=repo_root,
+                    attempt_root=attempt_root,
+                    first_invalid_rule=exc.code,
+                )
+                return {
+                    "blocker": artifact["blocker_code"],
+                    "classification": NONE,
+                    "first_invalid_rule": artifact["first_invalid_rule"],
+                    "restart_state": "BLOCKER_LOCAL_GIT_STATE_CORRUPTION",
+                }
+            raise
         recovery_start_path = attempt_root / "control" / "recovery_start.json"
         if recovery_start_path.is_file():
             committed_recovery_start = strict_json_file(recovery_start_path)
             crash_boundary = str(committed_recovery_start["crash_boundary"])
+            attempt_lock_sha256 = str(committed_recovery_start["attempt_lock_sha256"])
         else:
             snapshot = observe_recovery_snapshot(
                 repo_root=repo_root,
@@ -6977,18 +8069,20 @@ def recover_formal(
             )
             crash_boundary = classify_crash_boundary(snapshot)
             require(crash_boundary != "before_attempt_root", "TERMINAL_CLOSURE")
-            if not snapshot["attempt_lock_present"]:
-                _ensure_attempt_lock(
-                    attempt_root=attempt_root,
+            attempt_lock_sha256 = canonical_json_sha256(
+                _attempt_lock_value(
                     claim=claim,
                     claim_bytes=claim_bytes,
+                    attempt_root=attempt_root,
                 )
+            )
         recovery_start = _recovery_start_payload(
             repo_root=repo_root,
             attempt_root=attempt_root,
             surface=surface,
             crash_boundary=crash_boundary,
             claim_path=claim_path,
+            attempt_lock_sha256=attempt_lock_sha256,
             initial_committed_paths_json=initial_committed_paths_json,
             initial_controller_sha=str(controller_observation["token"]),
         )
@@ -6996,6 +8090,11 @@ def recover_formal(
             recovery_start_path,
             recovery_start,
             control=True,
+        )
+        _ensure_attempt_lock(
+            attempt_root=attempt_root,
+            claim=claim,
+            claim_bytes=claim_bytes,
         )
         os.close(terminal_push_runtime_fd)
         terminal_push_runtime_fd = None
@@ -7023,8 +8122,10 @@ def recover_formal(
             "CONTROLLER_OBSERVATION_FAILURE",
         }:
             selected_blocker = _selected_workflow_blocker(
+                repo_root=repo_root,
                 attempt_root=attempt_root,
                 surface=surface,
+                claim=claim,
             )
             require(selected_blocker is not None, "TERMINAL_CLOSURE")
             return _resume_workflow_blocker(

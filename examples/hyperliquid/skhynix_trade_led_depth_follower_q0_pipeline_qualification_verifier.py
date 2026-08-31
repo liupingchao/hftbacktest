@@ -47,12 +47,12 @@ CORE_PATH = Path(
 MASTER_SHA256 = "4ac0772ae4f2bdf29e6572e22092108de293ec05deeaa77679d606cf1e4c0d40"
 MASTER_BLOB = "69c5cdf51b7fdf07d55170ed58bc791ff37bd0af"
 MASTER_COMMIT = "2dcd1d95b7c6ff24cb5991e8dc1d3d97b2666b19"
-PLAN_SHA256 = "4d6cfa2d0d1adf442cdc716fc5a2b5315dec4b7032f134fd4b5c3c73c123edb6"
-PLAN_BLOB = "6c3576b5bd72016b35db8a4b47987c4108c94c20"
+PLAN_SHA256 = "0369379087dab0b1f2cd9ab4c6be5b6a34e56c6765a0a0b67e935c41384352ab"
+PLAN_BLOB = "858484e6bedcafc8a6a50aae5bc63e3c47f89e20"
 TRUTH_SHA256 = "c9e1c5dba760309add5e0debfdfff6be3387e8978b1e5506b6d1fff9df87f529"
 TRUTH_BLOB = "ea66f4ff2e7cddf9302215d62c3268299682add7"
-SURFACE_SHA256 = "b92d69e40e58f2c7277b3c2f11a29198274e6936992142c22eb6e7839a1de402"
-SURFACE_BLOB = "3d281f8430581c143c59d227ee3e259a23000236"
+SURFACE_SHA256 = "a77f6fd0d4a36b2be9974c8fcf2d2d920f7ab7b5a2e17b1eead81695bc98600a"
+SURFACE_BLOB = "74533850d2bf173c3d2acefb71f2d83bfe7a9999"
 EXPECTED_CWD = (
     "/Users/liu/Documents/hftbacktest-0831-leader-trigger-transition-hazard-protocol"
 )
@@ -1543,6 +1543,35 @@ def load_semantic_replay_arrays(path: Path) -> dict[str, np.ndarray]:
         raise VerificationError("TERMINAL_CLOSURE", f"semantic_npz:{path}") from exc
 
 
+def qf13_anchor_model_projection_bytes(core: Any, path: Path) -> bytes:
+    analysis = core.analyze_cache_in_stage(
+        path,
+        fixture_id="QF13",
+        stage="A_MINUS1A",
+    )
+    anchors = []
+    model_inputs = []
+    for anchor in analysis.anchor_analysis.anchors:
+        row = {
+            name: getattr(anchor, name)
+            for name in anchor.__dataclass_fields__
+            if name != "model_inputs"
+        }
+        anchors.append(row)
+        model_inputs.append(
+            {
+                "anchor_id": anchor.anchor_id,
+                "model_inputs": dict(anchor.model_inputs),
+            }
+        )
+    return canonical_json_bytes(
+        {
+            "anchors": anchors,
+            "model_inputs": model_inputs,
+        }
+    )
+
+
 def replay_qf13_causal_boundary(
     context: Mapping[str, Any],
 ) -> tuple[int, dict[str, Any]]:
@@ -1659,6 +1688,13 @@ def replay_qf13_causal_boundary(
         with mutated_path.open("xb") as handle:
             np.savez(handle, **arrays_for_mutation)
         core = load_production_core()
+        clean_path = attempt / "inputs" / "A" / "QF13.npz"
+        require(
+            qf13_anchor_model_projection_bytes(core, clean_path)
+            == qf13_anchor_model_projection_bytes(core, mutated_path),
+            "TERMINAL_CLOSURE",
+            "qf13_anchor_model_projection",
+        )
         bundle = core.build_features(mutated_path)
         causal = core.CausalView(
             bundle,
