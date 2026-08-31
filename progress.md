@@ -10213,3 +10213,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   tie-break for pre-push versus push-unreceipted states.
 - Revision 18 remains historical evidence only and does not unlock
   implementation or formal execution.
+
+## 2026-08-31 0831T001 Plan Amendment Round 19
+
+- Replaced the rejected inode seal with a controller-bare-repo witness ref
+  that CAS-binds the exact recovery-start Git blob before any local recovery
+  publication or state mutation.
+- Added a complete witness/local crash matrix and no-follow descriptor-based
+  durable publication semantics.
+- Added one missing untracked-receipt action phase and a total 16-row
+  durable-observation phase derivation.
+- Recomputed 23-variant mutation authority to 736 rows with aggregate
+  `4f28bc0e...`; recomputed 16-phase PRE_BLOCKER authority to 124,416 rows
+  with aggregate `8f1b2d43...`.
+- New plan/task/surface SHA256 values are `7d1d2751...`, `2c24aeca...` and
+  `54801b63...`. Implementation remains locked pending independent review.

@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_18_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_19_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -137,6 +137,20 @@ classification.
 | an invalid tracked receipt could advance controller proof-stage before G02-G07 | PRE_BLOCKER first evaluates the exact local Git phase; a receipt may select a proof-stage only after its canonical schema, transition tuple, source-union bytes and tracked-copy bytes validate |
 | `recovery_start.json` could be edited and re-self-hashed | the final target becomes recovery authority only after exact-byte hard-link publication, mode `0444`, macOS `UF_IMMUTABLE`, parent fsync and no-follow seal verification; no recovery mutation is legal before the seal, so an interrupted unsealed publication must be independently regenerated from the unchanged snapshot |
 | durable control publication accepted symlink targets | every target and sibling temporary is inspected with no-follow `lstat`; committed targets must be regular files, and callers may not resolve the final component before publication or validation |
+
+Revision 18 was rejected because inode sealing conflicted with temporary
+cleanup, lacked a complete crash matrix and was not an external trust anchor.
+It remains historical review evidence and is superseded by Revision 19.
+
+### 1.11 Revision 19 closure matrix
+
+| Round 18 finding | Revision 19 closure |
+|---|---|
+| inode seal crash states conflicted with generic publication | remove inode sealing entirely; use the existing controller bare repository as an external recovery witness before any local recovery-start path is created |
+| temporary cleanup conflicted with a shared immutable inode | witness ref points to an independent Git blob; local target and temporary retain the unchanged generic hard-link/unlink protocol |
+| observed state did not select one action phase | freeze a total ordered derivation over canonical receipt unions, tracked-copy equality, local Git state and the observed controller token; zero or multiple matches are G05 |
+| owner could clear and restore `UF_IMMUTABLE` | create `refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1` in the controller bare repo with CAS-from-ABSENT, pointing directly to the exact recovery-start blob; local bytes are accepted only when equal to that externally bound blob |
+| durable untracked consumption receipt had no action phase | add `NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED`; current machine has 16 action phases, 23 Git preimage variants, 736 mutation rows and a 124,416-row pre-blocker table |
 
 ## 2. Authorization Boundary
 
@@ -286,10 +300,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  6ed73252048a4e501580dac1a3b810f2a4f649d02f06dc361a6b71262ccb8e2a
+  54801b632b63fbfe7d091101bf4282d3c3276c61f87991fc697fcf19b0be11b4
 
 Git blob:
-  a2a83d89727346ecff184be261f64312c19aadcd
+  612867e8b22e54a4ddd89e1f34d4b9ed5cd6af1b
 ```
 
 It freezes:
@@ -1295,6 +1309,9 @@ controller bare repository:
 
 controller ref:
   refs/heads/codex/0831T001-controller-ledger
+
+recovery witness ref:
+  refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1
 ```
 
 The pre-formal Git chronology is exact:
@@ -1535,33 +1552,62 @@ tracked receipt cannot advance the phase unless its canonical receipt, exact
 transition tuple, selected untracked source bytes and tracked-copy bytes all
 validate.
 
-On a legal ref, recovery derives `recovery_start.json` from the unchanged
-initial state. The sibling-temporary hard-link is not yet recovery authority.
-Before any rename, commit, tag, push, receipt copy, child-state
-classification, baseline publication or terminalization, recovery must:
+On a legal ledger ref, recovery derives canonical `recovery_start.json` bytes
+from the unchanged initial state. Before any local recovery-start target or
+temporary exists, and before any rename, commit, tag, ledger-ref push,
+receipt copy, child-state classification, baseline publication or
+terminalization, recovery must create or verify:
 
 ```text
-lstat final target and sibling temporary without following symlinks
-verify the final target is a regular file with exact independently derived bytes
-chmod final target to 0444
-set macOS UF_IMMUTABLE
-fsync the parent directory
-lstat again and verify regular/no-symlink, mode 0444 and UF_IMMUTABLE
+controller repo:
+  /Users/liu/Documents/hftbacktest-0831t001-q0-controller.git
+
+witness ref:
+  refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1
+
+witness target:
+  one Git blob whose bytes are the exact canonical recovery_start.json,
+  including final LF
 ```
 
-Only the sealed final target is committed recovery authority. A crash before
-the seal cannot have advanced recovery state, so restart re-derives the same
-bytes from the still-unchanged snapshot and either seals that exact regular
-target or fails closed. A sealed target with missing mode/flag, a symlink, or
-different bytes is integrity corruption; it is never repaired or
-re-self-hashed.
+The exact Git command prefix writes the blob and creates the witness ref with
+`update-ref <witness-ref> <blob-oid> 000...000`; this is a CAS from ABSENT.
+The controller repository and parent are fsynced, then the ref object type and
+blob bytes are independently verified. Only after that external binding may
+the ordinary local sibling-temporary/hard-link publication begin.
 
-The sealed file's `recovery_id`, original crash boundary, initial controller
-SHA and committed-control path set never change even if recovery later
-advances refs or commits and then crashes. The terminal receipt contains no
-recovery hash and is never rewritten. Late recovery after terminal-receipt
-publication is represented only by the immutable recovery files and the
-independent QA evidence fields.
+The crash interpretation is exact:
+
+```text
+witness absent + all local recovery-start paths absent:
+  derive from unchanged snapshot, create witness, publish local target
+
+witness absent + any local recovery-start path present:
+  integrity corruption
+
+witness exact + local target absent:
+  witnessed blob is authority; reconcile temporary and publish exact bytes
+
+witness exact + local target exact regular:
+  accept through O_NOFOLLOW + fstat + descriptor read
+
+witness exact + local target mismatch/nonregular:
+  integrity corruption
+
+witness invalid type/unreadable/conflicting:
+  controller infrastructure corruption; no recovery mutation
+```
+
+The witness is part of the existing controller CAS trust boundary. Any
+out-of-protocol mutation of controller refs or objects is workflow integrity
+corruption and is never repaired by recovery.
+
+The witnessed file's `recovery_id`, original crash boundary, initial
+controller SHA and committed-control path set never change even if recovery
+later advances refs or commits and then crashes. The terminal receipt
+contains no recovery hash and is never rewritten. Late recovery after
+terminal-receipt publication is represented only by the witnessed recovery
+files and independent QA evidence fields.
 
 Before publishing a new `recovery_start.json`, recovery observes the
 controller ref under the corresponding push-runtime lock. The exact legal
@@ -1982,13 +2028,16 @@ Every legal tracked-transition state is classified from the exact raw, full
 index and physical inventory under the eight-way cross-product of
 `diff.renames`, `core.filemode` and `core.autocrlf`. Command-scoped values
 make repository configuration irrelevant, while physical hashing remains
-independent of Git normalization. The 22 variants times four path/mode/blob/
-staging-partition probes times eight configurations form 704 deterministic
+independent of Git normalization. The 23 variants times four path/mode/blob/
+staging-partition probes times eight configurations form 736 deterministic
 rows; all select G05 and their canonical aggregate SHA256 is
-`8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
+`4f28bc0e5f99e795600064219ceea2c5c192b2a5f8d80ae92b3822392f4504cd`.
 
-Revision 12 separates seven controller-proof stages from 15 exact Git action
-phases. The tracked transition state is one of:
+Revision 19 retains seven controller-proof stages and expands the machine to
+16 exact Git action phases. The new
+`NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED` phase represents a valid
+durable control receipt before its tracked byte-identical copy. The tracked
+transition state remains one of:
 
 ```text
 CLEAN
@@ -2002,9 +2051,9 @@ EXACT_TERMINAL_INDEX_STAGED
 INVALID
 ```
 
-The full pre-blocker cross-product has 116,640 rows: 17 legal and 116,623
+The full pre-blocker cross-product has 124,416 rows: 18 legal and 124,398
 invalid. Its canonical aggregate SHA256 is
-`c55f8ccabea22cd4e386f5cd2923b5cfd40eb2e028f1fc9b4b0385475ad0bd2e`.
+`8f1b2d435c2291aca90320827479dcb3ab847a33fb7a1873794aa32b11e8ecba`.
 
 The post-controller-blocker table skips G01 and enumerates the 11 executable
 restart action phases across local claim/HEAD/tag/commit/tracked-transition

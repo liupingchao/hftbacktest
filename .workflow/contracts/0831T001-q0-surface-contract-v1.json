@@ -1177,98 +1177,104 @@
             "tracked_transition_state": "CLEAN"
           },
           {
-            "action_phase": "NORMAL_CONSUMPTION_RECEIPT_COMMITTED",
+            "action_phase": "NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED",
             "variant_ordinal": 6,
+            "terminal_branch": "NONE",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "NORMAL_CONSUMPTION_RECEIPT_COMMITTED",
+            "variant_ordinal": 7,
             "terminal_branch": "NONE",
             "tracked_transition_state": "EXACT_CONSUMPTION_RECEIPT_UNSTAGED"
           },
           {
             "action_phase": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
-            "variant_ordinal": 7,
+            "variant_ordinal": 8,
             "terminal_branch": "PASS",
             "tracked_transition_state": "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED"
           },
           {
             "action_phase": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
-            "variant_ordinal": 8,
+            "variant_ordinal": 9,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
-            "variant_ordinal": 9,
+            "variant_ordinal": 10,
             "terminal_branch": "PASS",
             "tracked_transition_state": "EXACT_TERMINAL_DELTA_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
-            "variant_ordinal": 10,
+            "variant_ordinal": 11,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "EXACT_TERMINAL_DELTA_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
-            "variant_ordinal": 11,
+            "variant_ordinal": 12,
             "terminal_branch": "PASS",
             "tracked_transition_state": "EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_INDEX_STAGED",
-            "variant_ordinal": 12,
+            "variant_ordinal": 13,
             "terminal_branch": "PASS",
             "tracked_transition_state": "EXACT_TERMINAL_INDEX_STAGED"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_INDEX_STAGED",
-            "variant_ordinal": 13,
+            "variant_ordinal": 14,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "EXACT_TERMINAL_INDEX_STAGED"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_COMMITTED",
-            "variant_ordinal": 14,
+            "variant_ordinal": 15,
             "terminal_branch": "PASS",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_COMMITTED",
-            "variant_ordinal": 15,
-            "terminal_branch": "FAIL",
-            "tracked_transition_state": "CLEAN"
-          },
-          {
-            "action_phase": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
             "variant_ordinal": 16,
-            "terminal_branch": "PASS",
+            "terminal_branch": "FAIL",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
             "variant_ordinal": 17,
-            "terminal_branch": "FAIL",
+            "terminal_branch": "PASS",
             "tracked_transition_state": "CLEAN"
           },
           {
-            "action_phase": "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+            "action_phase": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
             "variant_ordinal": 18,
-            "terminal_branch": "PASS",
+            "terminal_branch": "FAIL",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
             "variant_ordinal": 19,
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+            "variant_ordinal": 20,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
-            "variant_ordinal": 20,
+            "variant_ordinal": 21,
             "terminal_branch": "PASS",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
-            "variant_ordinal": 21,
+            "variant_ordinal": 22,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "CLEAN"
           }
@@ -1299,7 +1305,7 @@
             "base": 0,
             "minimum": 0,
             "maximum": 21,
-            "identity_rule": "variant_ordinal equals the zero-based array index and every integer 0..21 appears exactly once"
+            "identity_rule": "variant_ordinal equals the zero-based array index and every integer 0..22 appears exactly once"
           },
           "mutation_kind_order": [
             "BLOB",
@@ -1364,7 +1370,7 @@
           "probe_rules": {
             "BLOB": "flip the final byte of the ASCII-first regular path in expected_physical_rows without staging",
             "MODE": "toggle the ASCII-first regular path in expected_physical_rows between 0644 and 0755 without staging",
-            "PATH": "create one extra untracked regular file .workflow/q0-observation-probes/<two-digit-variant-ordinal>.extra with exact bytes x LF; format is zero-based decimal variant_ordinal padded to exactly two ASCII digits, therefore 00 through 21",
+            "PATH": "create one extra untracked regular file .workflow/q0-observation-probes/<two-digit-variant-ordinal>.extra with exact bytes x LF; format is zero-based decimal variant_ordinal padded to exactly two ASCII digits, therefore 00 through 22",
             "STAGING_PARTITION": "when cached rows exist unstage the ASCII-first cached path; otherwise when a legal unstaged transition exists stage its ASCII-first path; for CLEAN, modify and stage the ASCII-first regular expected physical path then restore only its physical bytes from the expected blob, leaving an index-only delta"
           },
           "row_fields": [
@@ -1376,9 +1382,9 @@
             "tracked_transition_state",
             "variant_ordinal"
           ],
-          "row_count": 704,
+          "row_count": 736,
           "canonical_rows": "canonical compact sorted-key ASCII JSON array with no trailing LF",
-          "canonical_rows_sha256": "8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c",
+          "canonical_rows_sha256": "4f28bc0e5f99e795600064219ceea2c5c192b2a5f8d80ae92b3822392f4504cd",
           "expected_first_invalid_rule": "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY"
         }
       },
@@ -1700,6 +1706,7 @@
       "terminal_untracked": "<attempt_root>/control/terminal_push_receipt.json",
       "terminal_observation_untracked": "<attempt_root>/control/terminal_push_observation.json",
       "recovery_start_untracked": "<attempt_root>/control/recovery_start.json",
+      "recovery_start_witness_ref": "controller repo refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1 pointing directly to the exact recovery_start Git blob",
       "recovery_observation_untracked": "<attempt_root>/control/recovery_observation.json",
       "controller_divergence_untracked": "<attempt_root>/control/controller_ref_divergence.json",
       "controller_observation_failure_untracked": "<attempt_root>/control/controller_observation_failure.json",
@@ -1708,20 +1715,21 @@
       "terminal_qa_mirror": "docs/qa-acceptance-report.md",
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
       "terminal_push_ownership": "untracked immutable selected member of the terminal PUSH_CALL|REF_OBSERVATION receipt union; its SHA256 is recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md",
-      "recovery_ownership": "terminal receipt never contains a recovery hash; independent QA records recovery_start.json and recovery_observation.json SHA256, or NONE/NONE on the normal path"
+      "recovery_ownership": "terminal receipt never contains a recovery hash; independent QA records recovery witness ref/blob OID plus recovery_start.json and recovery_observation.json SHA256, or NONE/NONE/NONE on the normal path"
     },
     "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
     "control_publication": {
       "temporary_path": "<target>.publishing",
-      "temporary_creation": "open the sibling temporary path with O_WRONLY|O_CREAT|O_EXCL; never create the committed target directly",
-      "write_order": "write all expected bytes, verify full byte count, fsync temporary file, hard-link temporary to committed target no-replace, fsync parent, unlink temporary, fsync parent",
+      "temporary_creation": "open the sibling temporary path with O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC; fstat the descriptor as one regular file; never create the committed target directly",
+      "write_order": "write all expected bytes and verify the full byte count through the opened temporary descriptor, fsync that descriptor, hard-link temporary to committed target no-replace, open the final target O_RDONLY|O_NOFOLLOW|O_CLOEXEC and fstat/read the same descriptor, fsync parent, unlink temporary, fsync parent",
       "committed_definition": "only the final target path is committed; a .publishing path is never authority",
       "existing_target": "inspect with no-follow lstat and accept only a regular non-symlink final target whose bytes are exactly the independently derived expected bytes; callers must not resolve the final path component before publication or validation",
       "abandoned_deterministic_temporary": "while holding orchestrator flock and with target absent, remove a truncated or mismatched temporary only when expected bytes are independently derivable, fsync parent, then rebuild",
       "abandoned_observational_temporary": "for PUSH_CALL or child-exit bytes that cannot be reconstructed after interruption, remove the uncommitted temporary after the corresponding runtime lock is acquirable; select REF_OBSERVATION or interruption semantics instead",
       "claim_payloads": "attempt lock and invocation claims are deterministic payloads published by this same protocol; the atomic hard-link, not temporary creation, consumes the claim",
       "tracked_copy": "publish the exact source receipt bytes through a sibling temporary and hard-link no-replace using the same order",
-      "crash_interpretation": "crash before hard-link leaves no committed artifact and is recoverable from the temporary rule; crash after hard-link leaves a complete committed target whose bytes must verify exactly"
+      "fd_identity": "all existing-target, race-target and temporary verification uses O_NOFOLLOW plus fstat and descriptor reads; pathname exists/is_file/read_bytes and resolving the final component are forbidden authority",
+      "crash_interpretation": "crash before hard-link leaves no committed artifact and is recoverable from the temporary rule; crash after hard-link leaves a complete committed target whose bytes must verify exactly through one no-follow regular-file descriptor"
     },
     "control_publication_crash_states": {
       "attempt-lock.json": {
@@ -1773,8 +1781,9 @@
         "after_hard_link": "verify exact bytes and remove any temporary"
       },
       "recovery_start.json": {
-        "before_hard_link": "no recovery state change is permitted; remove/rebuild from the unchanged initial state",
-        "after_hard_link": "verify exact bytes and use it for every recovery restart"
+        "before_witness_ref": "recovery_start target and temporary must both be absent; derive exact bytes from the unchanged initial state and create the witness ref CAS from ABSENT before local publication",
+        "after_witness_before_hard_link": "the witness blob is authority; remove only a mismatched or truncated non-authority temporary and publish the exact witnessed bytes",
+        "after_hard_link": "require the witness ref, open the final target no-follow, verify regular kind and exact equality with the witnessed blob, then use those bytes for every recovery restart"
       },
       "controller_ref_divergence.json": {
         "before_hard_link": "if the temporary is complete and independently valid, link those exact bytes; otherwise remove it after parent fsync and rerun exact ls-remote under the controller runtime lock: publish a new blocker observation only if the current ref is still divergent, otherwise resume the legal remote-state rule because no blocker observation was committed",
@@ -2186,6 +2195,7 @@
           "BLOCKER_CONSUMPTION_COMMITTED",
           "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
           "NORMAL_CONSUMPTION_PUSH_UNRECEIPTED",
+          "NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED",
           "NORMAL_CONSUMPTION_RECEIPT_COMMITTED",
           "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
           "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
@@ -2308,6 +2318,14 @@
             "terminal_tag_state": "ABSENT",
             "tracked_transition_state": "CLEAN"
           },
+          "NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED": {
+            "proof_stage": "CONSUMPTION_RECEIPT_COMMITTED",
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "CLEAN"
+          },
           "NORMAL_CONSUMPTION_RECEIPT_COMMITTED": {
             "proof_stage": "CONSUMPTION_RECEIPT_COMMITTED",
             "claim_state": "CLAIMED",
@@ -2381,6 +2399,77 @@
             "tracked_transition_state": "CLEAN"
           }
         },
+        "pre_blocker_action_phase_derivation": {
+          "input_validation": "before selecting a row, inspect every claim, tracked receipt, untracked receipt-union member, terminal receipt and business report path with no-follow regular-file reads; canonical receipt schema, transition tuple, union cardinality and tracked-copy equality must validate. An invalid or source-mismatched receipt maps directly to G05 and cannot contribute a proof stage",
+          "controller_observation_tie_break": "only an exit-0 canonical observed token equal to the expected new commit selects a PUSH_UNRECEIPTED row when no durable receipt exists; ABSENT, the old commit, OTHER, command failure or malformed output selects the corresponding PRE_PUSH row before G01 or observation-failure classification",
+          "row_order": [
+            {
+              "action_phase": "BLOCKER_OBSERVATION_COMMITTED_ARMED",
+              "predicate": "history depth 1, claim ARMED and tracked transition CLEAN"
+            },
+            {
+              "action_phase": "BLOCKER_CLAIM_RENAMED",
+              "predicate": "history depth 1, claim CLAIMED and exact unstaged armed-delete/claimed-add transition"
+            },
+            {
+              "action_phase": "BLOCKER_CONSUMPTION_INDEX_STAGED",
+              "predicate": "history depth 1, claim CLAIMED and exact staged armed-delete/claimed-add transition"
+            },
+            {
+              "action_phase": "BLOCKER_CONSUMPTION_COMMITTED",
+              "predicate": "history depth 2 and consumption tag ABSENT"
+            },
+            {
+              "action_phase": "NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED",
+              "predicate": "history depth 2, exact consumption tag, one valid untracked consumption receipt-union member and tracked consumption receipt absent"
+            },
+            {
+              "action_phase": "NORMAL_CONSUMPTION_RECEIPT_COMMITTED",
+              "predicate": "history depth 2, exact consumption tag, one valid untracked consumption receipt-union member and byte-identical valid tracked consumption receipt present, with no terminal receipt"
+            },
+            {
+              "action_phase": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+              "predicate": "history depth 2, valid consumption source/tracked copy and valid terminal receipt present while business report is absent"
+            },
+            {
+              "action_phase": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+              "predicate": "history depth 2, valid terminal receipt and exact business report present with exact terminal delta unstaged"
+            },
+            {
+              "action_phase": "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
+              "predicate": "history depth 2, valid PASS terminal receipt/report and exact common terminal paths staged while exact baseline remains unstaged"
+            },
+            {
+              "action_phase": "BLOCKER_TERMINAL_INDEX_STAGED",
+              "predicate": "history depth 2, valid terminal receipt/report and exact complete PASS or FAIL terminal delta staged"
+            },
+            {
+              "action_phase": "NORMAL_CONSUMPTION_PUSH_UNRECEIPTED",
+              "predicate": "history depth 2, exact consumption tag, both consumption receipt-union members and tracked receipt absent, tracked transition CLEAN, and canonical controller token equals consumption SHA"
+            },
+            {
+              "action_phase": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+              "predicate": "history depth 2, exact consumption tag, both consumption receipt-union members and tracked receipt absent, tracked transition CLEAN, and controller observation does not canonically equal consumption SHA"
+            },
+            {
+              "action_phase": "BLOCKER_TERMINAL_COMMITTED",
+              "predicate": "history depth 3 and terminal tag ABSENT"
+            },
+            {
+              "action_phase": "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
+              "predicate": "history depth 3, exact terminal tag and one valid terminal receipt-union member"
+            },
+            {
+              "action_phase": "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+              "predicate": "history depth 3, exact terminal tag, both terminal receipt-union members absent, tracked transition CLEAN, and canonical controller token equals terminal SHA"
+            },
+            {
+              "action_phase": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+              "predicate": "history depth 3, exact terminal tag, both terminal receipt-union members absent, tracked transition CLEAN, and controller observation does not canonically equal terminal SHA"
+            }
+          ],
+          "totality": "exactly one row must match after input validation; zero or multiple rows are G05_INDEX_OR_TRACKED_WORKTREE_DIRTY and no controller blocker or A-rule may be selected"
+        },
         "ordered_invalid_rules": [
           {
             "rule_id": "G01_CONTROLLER_REF_NOT_EXPECTED",
@@ -2433,11 +2522,11 @@
           ],
           "first_invalid_rule": "first matching G01-G07, otherwise NONE",
           "restart_state_valid": "true iff first_invalid_rule is NONE",
-          "row_count": 116640,
+          "row_count": 124416,
           "canonical_rows": "canonical compact sorted-key ASCII JSON array with no trailing LF",
-          "canonical_rows_sha256": "c55f8ccabea22cd4e386f5cd2923b5cfd40eb2e028f1fc9b4b0385475ad0bd2e",
-          "valid_row_count": 17,
-          "invalid_row_count": 116623
+          "canonical_rows_sha256": "8f1b2d435c2291aca90320827479dcb3ab847a33fb7a1873794aa32b11e8ecba",
+          "valid_row_count": 18,
+          "invalid_row_count": 124398
         },
         "post_controller_restart_derivation": {
           "evaluation_mode": "POST_CONTROLLER_BLOCKER_OBSERVATION",
@@ -2818,7 +2907,7 @@
     },
     "recovery": {
       "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
-      "entry_precondition": "acquire the exclusive orchestrator flock; reconcile only registered non-authority publication temporaries; evaluate the exact PRE_BLOCKER local Git phase before artifact rules or proof-stage selection; exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed; otherwise publish and seal recovery_start.json before any recovery state change; for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
+      "entry_precondition": "acquire the exclusive orchestrator flock; reconcile only registered non-authority publication temporaries; mechanically derive the unique PRE_BLOCKER action phase from canonical durable observations before artifact rules or proof-stage selection; exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed; otherwise create or verify recovery_start_witness before publishing recovery_start.json and before any recovery state change; for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
       "recovery_start_fields": [
         "attempt_lock_sha256",
         "claimed_or_armed_sha256",
@@ -2837,14 +2926,48 @@
         "initial_committed_paths_json": "canonical compact JSON string array of all committed control target paths in ASCII order before recovery changes state",
         "recovery_id": "SHA256 of canonical compact sorted-key ASCII JSON over the other six fields excluding recovery_id"
       },
-      "recovery_start_rule": "on every legal controller-ref path derive recovery_start.json from the unchanged snapshot, hard-link the exact bytes no-replace, then complete recovery_start_seal before rename, commit, tag, push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses exact sealed bytes and original crash_boundary; all workflow_blockers codes are exceptions and follow workflow_blocker_restart_rows without creating a new recovery_start",
-      "recovery_start_seal": {
-        "platform": "the exact formal runtime is macOS and must expose os.chflags, stat.UF_IMMUTABLE and st_flags; absence fails before recovery mutation",
-        "pre_seal_authority": "a hard-linked but unsealed recovery_start.json is not recovery authority and no recovery state mutation is allowed after its link until the seal completes",
-        "seal_order": "no-follow lstat regular target and exact independently derived bytes; chmod 0444; set UF_IMMUTABLE while preserving other flags; fsync parent; no-follow lstat again",
-        "sealed_definition": "regular non-symlink final target, exact canonical bytes, permission mode 0444 and UF_IMMUTABLE set",
-        "interrupted_seal": "because no recovery mutation may precede the seal, restart re-derives exact bytes from the unchanged current snapshot; it may seal only an exact regular target, otherwise fail closed",
-        "sealed_restart": "verify exact bytes, mode and immutable flag before trusting any recovery_start field; missing flag/mode, symlink or byte mismatch is integrity corruption and is never repaired or re-self-hashed"
+      "recovery_start_rule": "on every legal controller-ref path derive canonical recovery_start bytes from the unchanged snapshot, create or verify recovery_start_witness in the controller bare repository, then publish the exact witnessed bytes locally before rename, commit, tag, ledger-ref push, receipt copy, child-state classification, baseline publication or terminalization; every restart reuses the exact witnessed bytes and original crash_boundary; all workflow_blockers codes are exceptions and follow workflow_blocker_restart_rows without creating a new recovery_start",
+      "recovery_start_witness": {
+        "controller_repo": "/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+        "witness_ref": "refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1",
+        "object_type": "the witness ref points directly to one Git blob whose bytes are exactly canonical recovery_start.json including final LF",
+        "blob_write_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "--git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+          "hash-object",
+          "-w",
+          "--stdin"
+        ],
+        "ref_create_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "--git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+          "update-ref",
+          "refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1",
+          "<recovery_start_blob_oid>",
+          "0000000000000000000000000000000000000000"
+        ],
+        "publication_order": "derive bytes from unchanged snapshot; hash bytes independently as a Git blob; write the blob; create witness_ref CAS from all-zero old OID; fsync controller repository and parent; verify ref object type blob and exact blob bytes; only then create or reconcile local recovery_start.json temporary/target",
+        "restart_matrix": {
+          "ref_absent_target_absent_temporary_absent": "derive from unchanged snapshot, create witness, then publish local target",
+          "ref_absent_any_local_recovery_start_path_present": "integrity corruption because local publication is forbidden before witness",
+          "ref_exact_target_absent": "witness bytes are authority; remove only a non-authority mismatched or truncated regular temporary and rebuild local target",
+          "ref_exact_target_exact_regular": "accept after no-follow descriptor verification; remove any regular temporary",
+          "ref_exact_target_mismatch_or_nonregular": "integrity corruption; never rewrite target or witness",
+          "ref_invalid_type_or_unreadable_or_conflicting": "controller integrity corruption; forbid recovery mutation"
+        },
+        "trust_boundary": "the controller bare repository is the existing external CAS trust root for this task; coordinated out-of-protocol mutation of its refs or objects is controller infrastructure corruption and is never repaired by recovery"
       },
       "consumption_receipt_union": "exactly one of consumption_push_receipt.json with receipt_kind PUSH_CALL or consumption_push_observation.json with receipt_kind REF_OBSERVATION; copy the chosen bytes to the tracked consumption receipt path",
       "terminal_receipt_union": "exactly one of terminal_push_receipt.json with receipt_kind PUSH_CALL or terminal_push_observation.json with receipt_kind REF_OBSERVATION",
