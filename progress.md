@@ -10396,3 +10396,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Witness CAS, A12, quarantine, action phases and all aggregate tables remain
   unchanged. Authority-dependent implementation and formal execution are
   locked pending independent plan review.
+
+## 2026-09-01 0831T001 Q0 Plan Review Round 26 Accepted
+
+- Independent review of exact commit `4106138d` passed with
+  `P0/P1/P2/P3 = 0/0/0/0`.
+- Apple Git 2.39.5 absent/present tuples, full-ref exactness, direct blob
+  type/bytes, annotated-tag rejection and unreadable-object routing were
+  independently reproduced.
+- Plan/task/surface SHA256 and Git blobs match Revision 26. Formal artifacts,
+  controller repo/ref, witness ref and task tags remain absent.
+- Authority-dependent implementation is unlocked; formal remains locked
+  pending independent implementation readiness.
