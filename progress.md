@@ -10175,3 +10175,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   predecessor regressions pass `410` with one expected skip.
 - Formal state remains absent and locked pending fresh exact-commit readiness
   and independent implementation review.
+
+## 2026-08-31 0831T001 Q0 Implementation Readiness Round 6
+
+- Exact-commit structural readiness passed with 57 feature calls, 37
+  byte-identical projection files and independently reproduced ASCII-order
+  tree SHA256 `05db53ca...b57b7`.
+- Independent implementation review nevertheless failed with three P1
+  findings: PRE_BLOCKER G-rule ordering can be bypassed by an invalid tracked
+  receipt, recovery-start identity can be rewritten and re-self-hashed, and
+  durable control publication accepts symlink targets.
+- `MALFORMED_OUTPUT` and ASCII projection ordering are closed; controller
+  temporary and recovery identity remain only partially closed.
+- Formal, arming, controller creation, receipts and task tags remain absent
+  and locked. No historical cache or future market outcome was accessed.
