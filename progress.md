@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 13 Plan Review Failed
+## 2026-08-31 0831T001 Q0 Revision 14 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -113,9 +113,20 @@
   mode mutation, exact worktree bytes are not independently rebound, the raw
   NUL parser contradicts Git framing, and only two legal dirty states have
   detailed row preimages.
+- Revision 14 freezes literal `metadata NUL path NUL` parsing, complete
+  HEAD-to-index and index-to-physical derivations, and exact no-follow
+  mode/byte verification for every stage-0 path.
+- Parser self-test corrected the zero-row boundary: Git emits empty bytes for
+  no raw/untracked records; only nonempty output requires a final NUL.
+- The 22 action-phase/terminal-branch variants expand to machine-readable
+  PASS/FAIL path sets. Four mutation axes across eight repository
+  configurations produce 704 deterministic expected-G05 rows with aggregate
+  `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
+- A full current-worktree inventory checked 6,057 indexed paths in 50.354s;
+  the only mismatch was the intentionally modified surface contract itself.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation and formal execution remain locked pending a corrected
-  revision and a new independent plan review.
+- Implementation and formal execution remain locked pending independent
+  Revision 14 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

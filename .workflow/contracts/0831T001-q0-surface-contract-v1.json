@@ -695,6 +695,23 @@
       "clean_precondition": "before the first stage command of each arming, consumption or terminal transition, index has no staged entry and tracked worktree is clean except the exact unstaged paths named by that transition",
       "staged_verification": "derive the complete tracked-transition state only through git_observation_contract. Its explicit --no-renames raw commands expose every deletion and addition separately; directory-collapsing porcelain, name-only output and rename similarity are forbidden as authority",
       "git_observation_contract": {
+        "command_config_prefix": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "-c",
+          "core.filemode=false",
+          "-c",
+          "core.autocrlf=false",
+          "-c",
+          "core.safecrlf=false",
+          "-c",
+          "diff.renames=false"
+        ],
         "cached_raw_command": [
           "git",
           "-c",
@@ -703,6 +720,14 @@
           "core.fsync=all",
           "-c",
           "core.fsyncMethod=fsync",
+          "-c",
+          "core.filemode=false",
+          "-c",
+          "core.autocrlf=false",
+          "-c",
+          "core.safecrlf=false",
+          "-c",
+          "diff.renames=false",
           "diff",
           "--cached",
           "--no-renames",
@@ -721,6 +746,14 @@
           "core.fsync=all",
           "-c",
           "core.fsyncMethod=fsync",
+          "-c",
+          "core.filemode=false",
+          "-c",
+          "core.autocrlf=false",
+          "-c",
+          "core.safecrlf=false",
+          "-c",
+          "diff.renames=false",
           "diff",
           "--no-renames",
           "--no-ext-diff",
@@ -737,20 +770,139 @@
           "core.fsync=all",
           "-c",
           "core.fsyncMethod=fsync",
+          "-c",
+          "core.filemode=false",
+          "-c",
+          "core.autocrlf=false",
+          "-c",
+          "core.safecrlf=false",
+          "-c",
+          "diff.renames=false",
           "ls-files",
           "--others",
           "--exclude-standard",
           "-z"
         ],
-        "untracked_blob_command": [
+        "head_tree_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "-c",
+          "core.filemode=false",
+          "-c",
+          "core.autocrlf=false",
+          "-c",
+          "core.safecrlf=false",
+          "-c",
+          "diff.renames=false",
+          "ls-tree",
+          "-r",
+          "-z",
+          "--full-tree",
+          "HEAD"
+        ],
+        "index_stage_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "-c",
+          "core.filemode=false",
+          "-c",
+          "core.autocrlf=false",
+          "-c",
+          "core.safecrlf=false",
+          "-c",
+          "diff.renames=false",
+          "ls-files",
+          "--stage",
+          "-z"
+        ],
+        "index_flags_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "-c",
+          "core.filemode=false",
+          "-c",
+          "core.autocrlf=false",
+          "-c",
+          "core.safecrlf=false",
+          "-c",
+          "diff.renames=false",
+          "ls-files",
+          "-v",
+          "-z"
+        ],
+        "exact_blob_command": [
           "git",
           "hash-object",
+          "--no-filters",
           "--stdin"
         ],
-        "raw_record_parser": "with --no-renames every NUL record has exactly one path and fields old_mode,new_mode,old_blob,new_blob,status,path; status domain is A,D,M,T,U and any U or non-one-letter status fails closed",
-        "untracked_parser": "split NUL paths, require strict ASCII path order, lstat each path without following symlinks, require registered regular-file mode, and pipe exact file bytes to untracked_blob_command",
+        "exact_blob_derivation": "SHA1 over ASCII bytes blob SPACE decimal_length NUL followed by exact physical bytes; implementation may use this direct derivation for the complete inventory and must cross-check it against exact_blob_command in focused tests",
+        "blob_bytes_command": [
+          "git",
+          "cat-file",
+          "blob",
+          "<blob>"
+        ],
+        "raw_record_parser": {
+          "framing": "an empty byte string is exactly zero records; otherwise require one final NUL, remove that final empty field, require a positive even count of remaining NUL fields, and pair fields as repeated metadata NUL path NUL records; odd fields, interior empty fields or trailing bytes fail closed",
+          "metadata_regex": "^:([0-7]{6}) ([0-7]{6}) ([0-9a-f]{40}) ([0-9a-f]{40}) ([ADMTU])$",
+          "pairing": "capture groups are old_mode,new_mode,old_blob,new_blob,status and the immediately following NUL field is path",
+          "path_rule": "path is nonempty strict ASCII, relative, slash-normalized, contains no dot or dot-dot component, and is unique within that command output",
+          "status_rule": "only one-letter A,D,M,T can enter a legal preimage; U or any other status fails closed"
+        },
+        "tree_record_parser": {
+          "framing": "require one final NUL and parse each nonempty field independently",
+          "record_regex": "^([0-7]{6}) (blob) ([0-9a-f]{40})\\t([^\\x00]+)$",
+          "allowed_modes": [
+            "100644",
+            "100755",
+            "120000"
+          ],
+          "path_rule": "same strict ASCII normalized unique path rule as raw_record_parser"
+        },
+        "index_record_parser": {
+          "framing": "require one final NUL and parse each nonempty field independently",
+          "record_regex": "^([0-7]{6}) ([0-9a-f]{40}) ([0-3])\\t([^\\x00]+)$",
+          "stage_rule": "every legal row has stage 0 exactly once; any stage 1,2,3, duplicate path or unsupported mode fails closed",
+          "path_rule": "same strict ASCII normalized unique path rule as raw_record_parser"
+        },
+        "index_flags_parser": {
+          "framing": "require one final NUL and exactly one flag record for every expected index path",
+          "record_regex": "^([A-Za-z?S]) ([^\\x00]+)$",
+          "path_rule": "same strict ASCII normalized unique path rule as raw_record_parser",
+          "flags_rule": "the captured prefix must be uppercase H for every indexed path; lowercase assume-unchanged, S skip-worktree, sparse, untracked or any other prefix fails closed"
+        },
+        "untracked_parser": "an empty byte string is exactly zero paths; otherwise require one final NUL, split nonempty paths, reject duplicates, apply the strict ASCII normalized path rule, lstat every path without following symlinks, and hash exact bytes with exact_blob_command plus SHA256",
+        "physical_inventory": {
+          "expected_index_derivation": "parse the complete HEAD tree, then apply the selected machine-readable cached_rows preimage in ASCII path order; D removes exactly the registered old row, A inserts exactly the registered new row, M/T replaces exactly the registered row; the resulting complete map is expected_index_rows",
+          "actual_index_verification": "parse the complete index_stage_command and require byte-for-byte equality with expected_index_rows after exact field ordering; no unmerged, duplicate, extra or missing row is legal",
+          "expected_physical_derivation": "start from expected_index_rows and exact blob bytes from blob_bytes_command, apply selected worktree_rows and untracked_rows in ASCII path order, and obtain the complete expected physical path map; D requires lstat ENOENT and A/M/T bytes come from the registered immutable byte source rather than filtered Git diff output",
+          "regular_file_rule": "for mode 100644 or 100755, every path component is checked without following symlinks, final lstat kind is regular, permission bits are exactly 0644 or 0755 respectively, SHA256 is over exact file bytes, and exact_blob_command over those bytes equals the expected blob",
+          "symlink_rule": "for mode 120000, every parent component is checked without following symlinks, final lstat kind is symlink, readlink bytes are strict filesystem bytes, and exact_blob_command over the link target bytes equals the expected blob",
+          "forbidden_modes": "gitlinks, devices, sockets, FIFOs and every mode outside 100644,100755,120000 fail closed",
+          "normalization_independence": "no path-aware hash, clean/smudge filter, autocrlf result or diff cleanliness is physical-byte authority"
+        },
         "canonical_observation_fields": [
           "cached_rows",
+          "expected_index_rows",
+          "expected_physical_rows",
+          "index_rows",
+          "physical_rows",
           "untracked_rows",
           "worktree_rows"
         ],
@@ -762,23 +914,391 @@
           "path",
           "status"
         ],
-        "row_order": "ASCII path ascending independently within cached_rows, worktree_rows and untracked_rows",
+        "physical_row_fields": [
+          "exact_blob",
+          "filesystem_kind",
+          "lstat_mode",
+          "path",
+          "sha256"
+        ],
+        "row_order": "ASCII path ascending independently within every row array; row order is part of byte equality",
         "zero_blob": "0000000000000000000000000000000000000000",
         "zero_mode": "000000",
-        "consumption_rename_unstaged": {
-          "cached_rows": [],
-          "worktree_rows": "one D row for armed with old_mode=100644 and old_blob=<claim_blob>; no claimed row because it is untracked",
-          "untracked_rows": "one A row for claimed with new_mode=100644 and new_blob=<claim_blob>"
+        "preimage_path_sets": {
+          "CLAIM_ARMED": [
+            ".workflow/attempt-claims/0831T001.armed.json"
+          ],
+          "CLAIM_CLAIMED": [
+            ".workflow/attempt-claims/0831T001.claimed.json"
+          ],
+          "CONSUMPTION_RECEIPT": [
+            ".workflow/attempt-receipts/0831T001.consumption-push.json"
+          ],
+          "TERMINAL_RECEIPT": [
+            ".workflow/attempt-receipts/0831T001.terminal.json"
+          ],
+          "BUSINESS_REPORT": [
+            ".workflow/reports/0831T001-business.md"
+          ],
+          "TERMINAL_COMMON": {
+            "source_json_pointer": "/one_shot/terminal_commit_tracked_delta/common_exact_paths",
+            "transform": "identity then ASCII sort"
+          },
+          "PASS_BASELINE": {
+            "source_json_pointer": "/package_layout/package_files",
+            "transform": "prefix baselines/skhynix_trade_led_depth_follower_q0_v1/ to every row, then ASCII sort"
+          },
+          "TERMINAL_DELTA_FAIL": {
+            "ordered_union": [
+              "TERMINAL_COMMON"
+            ]
+          },
+          "TERMINAL_DELTA_PASS": {
+            "ordered_union": [
+              "TERMINAL_COMMON",
+              "PASS_BASELINE"
+            ],
+            "transform": "deduplicate then ASCII sort"
+          }
         },
-        "consumption_index_staged": {
-          "cached_rows": "exactly two rows in ASCII path order: D armed from 100644/<claim_blob> to zero mode/blob, then A claimed from zero mode/blob to 100644/<claim_blob>",
-          "worktree_rows": [],
-          "untracked_rows": [],
-          "blob_identity": "armed old_blob equals claimed new_blob equals independently hashed claim bytes"
+        "expected_byte_sources": {
+          "CLAIM_BYTES": "exact immutable armed/claimed claim bytes; both names share one exact_blob and SHA256",
+          "CONSUMPTION_RECEIPT_BYTES": "exact immutable tracked copy of the selected consumption PUSH_CALL or REF_OBSERVATION receipt",
+          "TERMINAL_RECEIPT_BYTES": "exact immutable terminal result receipt",
+          "BUSINESS_REPORT_BYTES": "exact deterministic execution_report rendering from TERMINAL_RECEIPT_BYTES",
+          "PASS_BASELINE_BYTES": "exact verifier-accepted package bytes bound by terminal_manifest.json; every destination path maps one-to-one to its package_layout.package_files source",
+          "EXACT_TERMINAL_COMMON_BYTES(path)": {
+            ".workflow/attempt-receipts/0831T001.consumption-push.json": "CONSUMPTION_RECEIPT_BYTES",
+            ".workflow/attempt-receipts/0831T001.terminal.json": "TERMINAL_RECEIPT_BYTES",
+            ".workflow/reports/0831T001-business.md": "BUSINESS_REPORT_BYTES"
+          },
+          "EXACT_TERMINAL_DELTA_PASS_BYTES(path)": "EXACT_TERMINAL_COMMON_BYTES(path) when path is in TERMINAL_COMMON, otherwise PASS_BASELINE_BYTES(path)"
         },
-        "state_derivation": "compare all three observed row arrays byte-for-byte with the exact tracked_transition_state_semantics preimage for the selected action phase; no omitted or extra path is legal",
-        "rename_configuration_invariance": "run the same observation in isolated repositories with diff.renames=true and diff.renames=false; explicit --no-renames must produce byte-identical canonical observation and the same tracked-transition classification",
-        "mutation_probes": "for every legal tracked-transition state, mutate one path, mode, blob or staging partition at a time and require G05_INDEX_OR_TRACKED_WORKTREE_DIRTY"
+        "row_template_rule": "expand each path set to one row per path, resolve every *_BYTES token to an independently expected exact blob, require the six canonical_row_fields only, sort by ASCII path and reject every unresolved token",
+        "tracked_transition_preimages": {
+          "CLEAN": {
+            "cached_rows": [],
+            "worktree_rows": [],
+            "untracked_rows": []
+          },
+          "EXACT_CONSUMPTION_RENAME_UNSTAGED": {
+            "cached_rows": [],
+            "worktree_rows": [
+              {
+                "new_blob": "0000000000000000000000000000000000000000",
+                "new_mode": "000000",
+                "old_blob": "CLAIM_BYTES",
+                "old_mode": "100644",
+                "path": "CLAIM_ARMED",
+                "status": "D"
+              }
+            ],
+            "untracked_rows": [
+              {
+                "new_blob": "CLAIM_BYTES",
+                "new_mode": "100644",
+                "old_blob": "0000000000000000000000000000000000000000",
+                "old_mode": "000000",
+                "path": "CLAIM_CLAIMED",
+                "status": "A"
+              }
+            ]
+          },
+          "EXACT_CONSUMPTION_INDEX_STAGED": {
+            "cached_rows": [
+              {
+                "new_blob": "0000000000000000000000000000000000000000",
+                "new_mode": "000000",
+                "old_blob": "CLAIM_BYTES",
+                "old_mode": "100644",
+                "path": "CLAIM_ARMED",
+                "status": "D"
+              },
+              {
+                "new_blob": "CLAIM_BYTES",
+                "new_mode": "100644",
+                "old_blob": "0000000000000000000000000000000000000000",
+                "old_mode": "000000",
+                "path": "CLAIM_CLAIMED",
+                "status": "A"
+              }
+            ],
+            "worktree_rows": [],
+            "untracked_rows": []
+          },
+          "EXACT_CONSUMPTION_RECEIPT_UNSTAGED": {
+            "cached_rows": [],
+            "worktree_rows": [],
+            "untracked_rows": [
+              {
+                "new_blob": "CONSUMPTION_RECEIPT_BYTES",
+                "new_mode": "100644",
+                "old_blob": "0000000000000000000000000000000000000000",
+                "old_mode": "000000",
+                "path": "CONSUMPTION_RECEIPT",
+                "status": "A"
+              }
+            ]
+          },
+          "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED": {
+            "cached_rows": [],
+            "worktree_rows": [],
+            "untracked_rows": [
+              {
+                "new_blob": "CONSUMPTION_RECEIPT_BYTES",
+                "new_mode": "100644",
+                "old_blob": "0000000000000000000000000000000000000000",
+                "old_mode": "000000",
+                "path": "CONSUMPTION_RECEIPT",
+                "status": "A"
+              },
+              {
+                "new_blob": "TERMINAL_RECEIPT_BYTES",
+                "new_mode": "100644",
+                "old_blob": "0000000000000000000000000000000000000000",
+                "old_mode": "000000",
+                "path": "TERMINAL_RECEIPT",
+                "status": "A"
+              }
+            ],
+            "required_absent_paths": "BUSINESS_REPORT"
+          },
+          "EXACT_TERMINAL_DELTA_UNSTAGED": {
+            "cached_rows": [],
+            "worktree_rows": [],
+            "untracked_rows_by_terminal_branch": {
+              "FAIL": [
+                {
+                  "new_blob": "EXACT_TERMINAL_COMMON_BYTES(path)",
+                  "new_mode": "100644",
+                  "old_blob": "0000000000000000000000000000000000000000",
+                  "old_mode": "000000",
+                  "path": "TERMINAL_DELTA_FAIL",
+                  "status": "A"
+                }
+              ],
+              "PASS": [
+                {
+                  "new_blob": "EXACT_TERMINAL_DELTA_PASS_BYTES(path)",
+                  "new_mode": "100644",
+                  "old_blob": "0000000000000000000000000000000000000000",
+                  "old_mode": "000000",
+                  "path": "TERMINAL_DELTA_PASS",
+                  "status": "A"
+                }
+              ]
+            }
+          },
+          "EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED": {
+            "cached_rows": [
+              {
+                "new_blob": "EXACT_TERMINAL_COMMON_BYTES(path)",
+                "new_mode": "100644",
+                "old_blob": "0000000000000000000000000000000000000000",
+                "old_mode": "000000",
+                "path": "TERMINAL_COMMON",
+                "status": "A"
+              }
+            ],
+            "worktree_rows": [],
+            "untracked_rows": [
+              {
+                "new_blob": "PASS_BASELINE_BYTES(path)",
+                "new_mode": "100644",
+                "old_blob": "0000000000000000000000000000000000000000",
+                "old_mode": "000000",
+                "path": "PASS_BASELINE",
+                "status": "A"
+              }
+            ]
+          },
+          "EXACT_TERMINAL_INDEX_STAGED": {
+            "cached_rows_by_terminal_branch": {
+              "FAIL": [
+                {
+                  "new_blob": "EXACT_TERMINAL_COMMON_BYTES(path)",
+                  "new_mode": "100644",
+                  "old_blob": "0000000000000000000000000000000000000000",
+                  "old_mode": "000000",
+                  "path": "TERMINAL_DELTA_FAIL",
+                  "status": "A"
+                }
+              ],
+              "PASS": [
+                {
+                  "new_blob": "EXACT_TERMINAL_DELTA_PASS_BYTES(path)",
+                  "new_mode": "100644",
+                  "old_blob": "0000000000000000000000000000000000000000",
+                  "old_mode": "000000",
+                  "path": "TERMINAL_DELTA_PASS",
+                  "status": "A"
+                }
+              ]
+            },
+            "worktree_rows": [],
+            "untracked_rows": []
+          }
+        },
+        "action_phase_preimage_variants": [
+          {
+            "action_phase": "BLOCKER_OBSERVATION_COMMITTED_ARMED",
+            "terminal_branch": "NONE",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "BLOCKER_CLAIM_RENAMED",
+            "terminal_branch": "NONE",
+            "tracked_transition_state": "EXACT_CONSUMPTION_RENAME_UNSTAGED"
+          },
+          {
+            "action_phase": "BLOCKER_CONSUMPTION_INDEX_STAGED",
+            "terminal_branch": "NONE",
+            "tracked_transition_state": "EXACT_CONSUMPTION_INDEX_STAGED"
+          },
+          {
+            "action_phase": "BLOCKER_CONSUMPTION_COMMITTED",
+            "terminal_branch": "NONE",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+            "terminal_branch": "NONE",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "NORMAL_CONSUMPTION_PUSH_UNRECEIPTED",
+            "terminal_branch": "NONE",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "NORMAL_CONSUMPTION_RECEIPT_COMMITTED",
+            "terminal_branch": "NONE",
+            "tracked_transition_state": "EXACT_CONSUMPTION_RECEIPT_UNSTAGED"
+          },
+          {
+            "action_phase": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED"
+          },
+          {
+            "action_phase": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+            "terminal_branch": "FAIL",
+            "tracked_transition_state": "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED"
+          },
+          {
+            "action_phase": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "EXACT_TERMINAL_DELTA_UNSTAGED"
+          },
+          {
+            "action_phase": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+            "terminal_branch": "FAIL",
+            "tracked_transition_state": "EXACT_TERMINAL_DELTA_UNSTAGED"
+          },
+          {
+            "action_phase": "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED"
+          },
+          {
+            "action_phase": "BLOCKER_TERMINAL_INDEX_STAGED",
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "EXACT_TERMINAL_INDEX_STAGED"
+          },
+          {
+            "action_phase": "BLOCKER_TERMINAL_INDEX_STAGED",
+            "terminal_branch": "FAIL",
+            "tracked_transition_state": "EXACT_TERMINAL_INDEX_STAGED"
+          },
+          {
+            "action_phase": "BLOCKER_TERMINAL_COMMITTED",
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "BLOCKER_TERMINAL_COMMITTED",
+            "terminal_branch": "FAIL",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+            "terminal_branch": "FAIL",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+            "terminal_branch": "FAIL",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
+            "terminal_branch": "PASS",
+            "tracked_transition_state": "CLEAN"
+          },
+          {
+            "action_phase": "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
+            "terminal_branch": "FAIL",
+            "tracked_transition_state": "CLEAN"
+          }
+        ],
+        "state_derivation": "resolve the unique action_phase_preimage_variants row from action phase plus immutable terminal receipt branch, expand the selected tracked_transition_preimages row to exact six-field arrays, derive complete expected index and physical inventories, and compare every canonical array byte-for-byte; any ambiguity, omitted or extra path, mode, blob, stage, flag, kind or byte is G05",
+        "repository_configuration_matrix": {
+          "dimensions": {
+            "diff.renames": [
+              false,
+              true
+            ],
+            "core.filemode": [
+              false,
+              true
+            ],
+            "core.autocrlf": [
+              false,
+              true
+            ]
+          },
+          "command_scoped_authority": "command_config_prefix overrides every repository value, while exact physical inventory remains independent of Git normalization",
+          "required_result": "all eight repository configurations produce the same legal classification and every hostile mutation produces G05"
+        },
+        "mutation_probe_matrix": {
+          "variant_order": "action_phase_preimage_variants order",
+          "mutation_kind_order": [
+            "BLOB",
+            "MODE",
+            "PATH",
+            "STAGING_PARTITION"
+          ],
+          "repository_config_order": "diff.renames false/true outer, core.filemode false/true middle, core.autocrlf false/true inner",
+          "probe_rules": {
+            "BLOB": "flip the final byte of the ASCII-first regular path in expected_physical_rows without staging",
+            "MODE": "toggle the ASCII-first regular path in expected_physical_rows between 0644 and 0755 without staging",
+            "PATH": "create one extra untracked regular file .workflow/q0-observation-probes/<two-digit-variant-ordinal>.extra with exact bytes x LF",
+            "STAGING_PARTITION": "when cached rows exist unstage the ASCII-first cached path; otherwise when a legal unstaged transition exists stage its ASCII-first path; for CLEAN, modify and stage the ASCII-first regular expected physical path then restore only its physical bytes from the expected blob, leaving an index-only delta"
+          },
+          "row_fields": [
+            "action_phase",
+            "expected_first_invalid_rule",
+            "mutation_kind",
+            "repository_config",
+            "terminal_branch",
+            "tracked_transition_state",
+            "variant_ordinal"
+          ],
+          "row_count": 704,
+          "canonical_rows": "canonical compact sorted-key ASCII JSON array with no trailing LF",
+          "canonical_rows_sha256": "8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c",
+          "expected_first_invalid_rule": "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY"
+        }
       },
       "post_commit": "index and tracked worktree are clean and HEAD parent/message/tree satisfy this chronology"
     },

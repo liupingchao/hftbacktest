@@ -158,6 +158,20 @@
   latter, and only the two consumption states have detailed row preimages;
   the all-state mode/blob/staging mutation requirement is not yet
   executable-total.
+- Revision 14 removes Git diff cleanliness as physical authority. The complete
+  expected index is derived from the HEAD tree and cached preimage; the
+  complete expected physical map is derived from that index and the exact
+  worktree/untracked preimage.
+- Exact no-follow kind, mode, SHA256 and unfiltered Git-blob checks make
+  filemode and normalization defects observable even when Git porcelain is
+  clean. The current 6,057-path inventory had no pre-existing mismatch.
+- The phase space contains 22 action/terminal-branch variants. Four mutation
+  kinds across eight repository configurations yield 704 deterministic G05
+  probes with aggregate
+  `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
+- Git emits an empty byte string, not a lone NUL, when raw or untracked output
+  has zero rows. An executable parser must accept exactly that empty case and
+  require final-NUL framing only for nonempty output.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_13_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_14_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -99,6 +99,15 @@ classification.
 | staged armed-to-claimed proof depended on rename detection | all index/worktree observations use `git diff --no-renames --raw -z --full-index --abbrev=40`; rename and name-only output are forbidden authority |
 | destination-only output did not prove armed deletion | the consumption staged preimage is exactly `D armed` plus `A claimed`, both mode `100644`, with armed old blob equal to claimed new blob and independently hashed claim bytes |
 | unstaged additions lacked exact observation | untracked paths use NUL-delimited `git ls-files --others --exclude-standard`, no-follow `lstat`, exact mode and `git hash-object --stdin`; cached, worktree and untracked rows jointly define each transition state |
+
+### 1.6 Revision 14 closure matrix
+
+| Round 13 finding | Revision 14 closure |
+|---|---|
+| staged mode and normalized-byte mutations could remain invisible | derive the complete expected index from `HEAD tree + cached preimage`, derive the complete expected physical tree from `index + worktree/untracked preimage`, then no-follow `lstat` and exact-byte hash every stage-0 path; Git diff cleanliness is no longer physical authority |
+| raw parser contradicted actual NUL framing | freeze repeated `metadata NUL path NUL` pairs, exact metadata regex, final-NUL/even-field rules, stage-0 index grammar, ASCII path normalization and duplicate rejection |
+| only two dirty states had detailed preimages | map 22 action-phase/terminal-branch variants to seven machine-expandable transition preimages; PASS expands the exact 57 baseline paths and FAIL expands only the three common terminal paths |
+| mutation guarantee was not reproducible | freeze four one-field mutation recipes across all 22 variants and eight repository configurations: 704 rows, every row expects G05, canonical aggregate `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c` |
 
 ## 2. Authorization Boundary
 
@@ -248,10 +257,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  767f360e73859d98371c768cded65d06df676753af0672f20a7ce4ff41ef78dd
+  23b5b1bf67b0aab09d33757eba89ea047789fd826138af00e91414484e1a4e26
 
 Git blob:
-  f1f2d91d574429a35df6c105da501f2f73514c3a
+  97495dba843fd848aa5f52bce6a5e364a816d613
 ```
 
 It freezes:
@@ -1296,7 +1305,8 @@ PASS verifies the aggregate index only after `terminal_stage_common` and
 `terminal_stage_PASS`; terminal FAIL verifies after
 `terminal_stage_common`.
 
-The observation algorithm is exact and rename-invariant:
+The observation algorithm is exact, rename-invariant and independent of
+worktree normalization:
 
 ```text
 cached index:
@@ -1305,15 +1315,35 @@ cached index:
 unstaged tracked:
   git ... diff --no-renames --raw -z --full-index --abbrev=40
 
+complete HEAD tree:
+  git ... ls-tree -r -z --full-tree HEAD
+
+complete actual index:
+  git ... ls-files --stage -z
+  git ... ls-files -v -z
+
 untracked:
   git ... ls-files --others --exclude-standard -z
-  + no-follow lstat
-  + exact mode
-  + git hash-object --stdin over exact bytes
+
+physical inventory:
+  expected index = HEAD tree + exact cached preimage
+  expected physical = expected index + exact worktree/untracked preimage
+  no-follow lstat every expected path
+  exact 0644/0755/symlink kind and mode
+  SHA256 over exact bytes
+  Git blob over exact bytes with no filters
 ```
 
-The three row arrays are sorted by ASCII path and compared against the exact
-action-phase preimage. For consumption staging, the cached rows are exactly:
+Raw output is parsed as repeated `metadata NUL path NUL` pairs, never as one
+combined NUL field. Empty bytes mean zero records; nonempty output requires
+one final NUL and an even number of nonempty fields. The exact metadata
+regex, one-letter status, normalized strict-ASCII paths and unique paths are
+mandatory.
+
+The selected action phase plus immutable PASS/FAIL terminal branch resolves
+one of 22 registered preimage variants. Every row is expanded to the exact
+six fields, sorted by ASCII path and compared byte-for-byte. For consumption
+staging, the cached rows are exactly:
 
 ```text
 D .workflow/attempt-claims/0831T001.armed.json
@@ -1321,11 +1351,14 @@ A .workflow/attempt-claims/0831T001.claimed.json
 ```
 
 Both modes and blobs are bound, and the armed old blob equals the claimed new
-blob and the independent claim-byte Git blob. Rename similarity,
-`--name-only`, porcelain directory collapse and repository `diff.renames`
-configuration are never authority. The arming commit adds one `100644` claim,
-the consumption commit deletes armed and adds byte-identical claimed, and the
-terminal commit has only its registered PASS/FAIL delta.
+blob and the independent claim-byte Git blob. Every stage-0 index path is
+then rebound to the physical filesystem through no-follow `lstat`, exact mode,
+SHA256 and unfiltered Git-blob derivation. Thus `core.filemode=false`,
+autocrlf or attributes cannot hide a mode or byte mutation. Rename similarity,
+`--name-only`, porcelain directory collapse and repository configuration are
+never authority. The arming commit adds one `100644` claim, the consumption
+commit deletes armed and adds byte-identical claimed, and the terminal commit
+has only its registered PASS/FAIL delta.
 
 After readiness passes and before the armed claim is created, controller
 infrastructure is prepared in the retryable
@@ -1879,7 +1912,7 @@ G01 expected controller ref for the exact proof stage
 G02 armed/claimed state
 G03 exact HEAD
 G04 exact commit object, parent, message and tree delta
-G05 exact cached/worktree/untracked row arrays for the selected action phase
+G05 exact raw/index/untracked/physical arrays for the selected phase/branch
 G06 exact annotated consumption tag
 G07 exact annotated terminal tag
 ```
@@ -1889,11 +1922,14 @@ G01 produces controller divergence. G02-G07 produce
 controller blocker receipt is committed, its remote observation is frozen and
 restart evaluation skips G01 but still applies G02-G07.
 
-Every legal tracked-transition state is classified from the exact
-`--no-renames` raw observation under both `diff.renames=true` and
-`diff.renames=false`; the canonical observation and phase classification must
-be byte-identical. One-at-a-time path, mode, blob and staging-partition
-mutations must all select G05.
+Every legal tracked-transition state is classified from the exact raw, full
+index and physical inventory under the eight-way cross-product of
+`diff.renames`, `core.filemode` and `core.autocrlf`. Command-scoped values
+make repository configuration irrelevant, while physical hashing remains
+independent of Git normalization. The 22 variants times four path/mode/blob/
+staging-partition probes times eight configurations form 704 deterministic
+rows; all select G05 and their canonical aggregate SHA256 is
+`8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
 
 Revision 12 separates seven controller-proof stages from 15 exact Git action
 phases. The tracked transition state is one of:

@@ -56,6 +56,11 @@
   Explicit `--no-renames` closes rename collapse, but staged worktree mode
   and exact bytes are not independently bound, and the raw parser/all-state
   canonical preimages are not executable-total.
+- Revision 14 derives a complete expected index from HEAD plus the registered
+  cached delta and a complete physical inventory from that index plus the
+  registered unstaged/untracked delta. It freezes exact raw/index NUL grammar,
+  22 phase/branch preimages and a 704-row path/mode/blob/staging mutation
+  matrix across rename, filemode and autocrlf configurations.
 - Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
   negative boundaries, causal access proof, terminal verification and
   pre-consumption detached-worktree readiness.
@@ -64,8 +69,8 @@
   anchor.
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
-- Implementation and formal execution remain locked pending a corrected
-  revision and a new independent plan review.
+- Implementation and formal execution remain locked pending independent
+  Revision 14 plan review.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 
