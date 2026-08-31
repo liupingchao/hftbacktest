@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_20_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_21_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -164,6 +164,17 @@ witness architecture and phase authority were accepted and are retained.
 | ordinal schema still ended at 21 | set maximum `22` and update all current prose to 23 variants |
 | witness was absent from QA schema | add exact `recovery_witness_ref` and `recovery_witness_blob_oid` evidence fields; both are `NONE` only on the normal path |
 
+Revision 20 was rejected with three witness-boundary findings. Its corrected
+variant authority, aggregate tables and witness ownership split are retained.
+
+### 1.13 Revision 21 closure matrix
+
+| Round 20 finding | Revision 21 closure |
+|---|---|
+| invalid witness branch conflicted with `forbid recovery mutation` | define A12 blocker publication and deterministic local claim consumption as the only allowed blocker writes; explicitly forbid controller mutation, recovery-start/observation publication, terminalization and baseline mutation |
+| A12 receipt and QA evidence were not total | embed canonical `recovery_witness_evidence_json` in `artifact_state_corruption.json`; freeze command exit/output hashes plus ref/OID/object and no-follow target/temp observations; select exactly one QA mode from `NORMAL`, `RECOVERY`, `WITNESS_BLOCKED` |
+| exact temporary resume omitted final binding and race handling | retain the open temporary FD identity, require final no-follow FD bytes and matching `st_dev/st_ino` after successful link, and route `EEXIST` through the exact existing-target row before any temporary removal |
+
 ## 2. Authorization Boundary
 
 Permitted inputs:
@@ -312,10 +323,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  fe28103f5aaa265eb59598075e609bcf0953dc50ae93a810d1909fb5c3ee6aa6
+  2e470e647e85bc60249a6661cadf451c95735fbd655a693ddf5a3aeef84eb52e
 
 Git blob:
-  693d401ea40caf6b14d9df3c76cf68e9fea32716
+  eeb3e7345e9ae42ac169bf96b5ffe9d41dc8d559
 ```
 
 It freezes:
@@ -1541,11 +1552,14 @@ controller recovery witness
 
 independent QA report
   `.workflow/reports/0831T001-qa.md` and
-  `docs/qa-acceptance-report.md` record and verify
-  the selected terminal `PUSH_CALL | REF_OBSERVATION` receipt SHA256,
-  terminal-result receipt SHA256, and recovery-start/recovery-observation
-  SHA256 plus recovery witness ref/blob OID; all four recovery fields are
-  `NONE` on the normal path
+  `docs/qa-acceptance-report.md` select exactly one evidence mode:
+  `NORMAL`, `RECOVERY` or `WITNESS_BLOCKED`. Normal records terminal evidence
+  and no recovery fields. Recovery records terminal evidence, exact
+  recovery-start/recovery-observation SHA256 and witness ref/blob OID.
+  Witness-blocked records classification `NONE`, the exact artifact blocker
+  SHA256 and its frozen witness diagnostic evidence; recovery hashes are
+  `NONE`, while a valid pre-existing terminal receipt is recorded by exact
+  SHA256 and an absent or invalid one by `NONE`.
 ```
 
 The terminal push uses `--force-with-lease` expecting the exact consumption
@@ -1606,7 +1620,13 @@ witness exact + local target absent + temporary absent:
   publish witnessed bytes through the generic protocol
 
 witness exact + local target absent + exact regular temporary:
-  reopen O_NOFOLLOW, fstat/read/fsync exact bytes, hard-link, fsync, unlink
+  retain the open temporary FD and st_dev/st_ino, hard-link no-replace, reopen
+  final target O_NOFOLLOW, require exact bytes and the same st_dev/st_ino,
+  fsync final and parent, then unlink the still-regular temporary
+
+hard-link returns EEXIST:
+  reopen final target O_NOFOLLOW and reclassify through the exact-target row;
+  accept only exact regular witnessed bytes, otherwise A12 without unlink
 
 witness exact + local target absent + mismatched/truncated regular temporary:
   unlink and fsync, then rebuild from witnessed bytes
@@ -1623,12 +1643,23 @@ witness exact + local target mismatch/nonregular:
 
 witness invalid type/unreadable/conflicting:
   ARTIFACT_STATE_CORRUPTION / A12_RECOVERY_WITNESS_MISMATCH;
-  controller infrastructure corruption and no recovery mutation
+  freeze witness evidence first, then allow only blocker publication and
+  deterministic local claim consumption. No controller mutation,
+  recovery-start/observation publication, terminalization or baseline change.
 ```
 
 The witness is part of the existing controller CAS trust boundary. Any
 out-of-protocol mutation of controller refs or objects is workflow integrity
 corruption and is never repaired by recovery.
+
+Every A12 observation is frozen inside the canonical
+`artifact_state_corruption.json` as `recovery_witness_evidence_json`. The
+embedded object records exact ref/object/blob subprocess exit codes and
+stdout/stderr SHA256 values, observed OID and object type, plus no-follow
+state and SHA256 for the local target and temporary. Non-A12 blocker receipts
+must set this field to `NONE`. Once the A12 blocker target commits, its
+restart rows supersede the recovery matrix; later repair or drift cannot
+rewrite the recorded observation.
 
 The witnessed file's `recovery_id`, original crash boundary, initial
 controller SHA and committed-control path set never change even if recovery
@@ -1674,14 +1705,24 @@ recovery restart may never create a producer or verifier invocation claim.
 Every content-bearing control artifact is published as:
 
 ```text
-write complete canonical bytes to <target>.publishing with O_EXCL
+open <target>.publishing O_EXCL|O_NOFOLLOW and retain its descriptor identity
+-> write complete canonical bytes
 -> verify full write
 -> fsync temporary file
 -> hard-link temporary to target no-replace
+-> reopen target O_NOFOLLOW
+-> require regular exact bytes and matching st_dev/st_ino
+-> fsync final target
 -> fsync parent
 -> unlink temporary
 -> fsync parent
 ```
+
+If the hard-link returns `EEXIST`, the final target is reopened no-follow and
+classified independently as an existing target. Exact regular bytes may win
+the race; mismatch or nonregular kind fails closed and the temporary is not
+deleted. No pathname `exists/is_file/read_bytes` check or final-component
+`resolve()` is publication authority.
 
 Only the final target is committed authority. A truncated temporary is never
 authority. While holding the orchestrator lock, recovery removes and rebuilds
@@ -1834,7 +1875,9 @@ A09-A11:
   terminal-receipt authority
 
 A12:
-  reject any recovery witness ref/local-target/temporary matrix violation
+  reject any recovery witness ref/local-target/temporary matrix violation;
+  freeze the exact command/output hashes and no-follow local path evidence
+  in recovery_witness_evidence_json before any blocker restart write
 ```
 
 The 64 presence combinations have a canonical derived table: 7 legal shapes,

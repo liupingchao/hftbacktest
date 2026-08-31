@@ -10259,3 +10259,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   witness/local states, and exact-temporary resume omits final target
   no-follow FD/inode verification plus the `EEXIST` branch.
 - Revision 20 remains historical evidence and implementation stays locked.
+
+## 2026-08-31 0831T001 Plan Amendment Round 21
+
+- A12 now freezes exact witness command/output and no-follow local-path
+  evidence before entering the ordinary local blocker restart rows.
+- The only post-witness-failure writes are blocker publication and
+  deterministic local claim consumption; controller and recovery-progress
+  mutations are forbidden.
+- QA selects exactly one of NORMAL, RECOVERY and WITNESS_BLOCKED, closing
+  absent/invalid/conflicting witness evidence without inventing a Q0 result.
+- Successful hard-link publication now binds final and temporary descriptors
+  by bytes plus `st_dev/st_ino`; `EEXIST` is a separate existing-target row.
+- Accepted table aggregates remain unchanged. New plan/task/surface SHA256
+  values are `e4ac9db7...`, `be036540...` and `2e470e64...`.
+- Implementation and formal remain locked pending independent plan review.

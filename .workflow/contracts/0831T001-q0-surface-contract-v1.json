@@ -1715,20 +1715,21 @@
       "terminal_qa_mirror": "docs/qa-acceptance-report.md",
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
       "terminal_push_ownership": "untracked immutable selected member of the terminal PUSH_CALL|REF_OBSERVATION receipt union; its SHA256 is recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md",
-      "recovery_ownership": "terminal receipt never contains a recovery hash; independent QA records recovery witness ref/blob OID plus recovery_start.json and recovery_observation.json SHA256, or NONE/NONE/NONE/NONE on the normal path"
+      "recovery_ownership": "terminal receipt never contains a recovery hash; independent QA selects exactly one recovery_evidence_mode: NORMAL with all recovery/blocker fields NONE, RECOVERY with exact witness ref/blob OID plus recovery_start.json and recovery_observation.json SHA256, or WITNESS_BLOCKED with exact artifact blocker SHA256 and frozen witness diagnostic evidence"
     },
     "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
     "control_publication": {
       "temporary_path": "<target>.publishing",
       "temporary_creation": "open the sibling temporary path with O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC; fstat the descriptor as one regular file; never create the committed target directly",
-      "write_order": "write all expected bytes and verify the full byte count through the opened temporary descriptor, fsync that descriptor, hard-link temporary to committed target no-replace, open the final target O_RDONLY|O_NOFOLLOW|O_CLOEXEC and fstat/read the same descriptor, fsync parent, unlink temporary, fsync parent",
+      "write_order": "write all expected bytes and verify the full byte count through the opened temporary descriptor, fsync that descriptor, retain its fstat identity, hard-link temporary to committed target no-replace, open the final target O_RDONLY|O_NOFOLLOW|O_CLOEXEC and fstat/read the same descriptor, require exact bytes and the same st_dev/st_ino as the retained temporary descriptor after successful link, fsync the final descriptor and parent, unlink temporary, fsync parent",
       "committed_definition": "only the final target path is committed; a .publishing path is never authority",
       "existing_target": "inspect with no-follow lstat and accept only a regular non-symlink final target whose bytes are exactly the independently derived expected bytes; callers must not resolve the final path component before publication or validation",
       "abandoned_deterministic_temporary": "while holding orchestrator flock and with target absent, remove a truncated or mismatched temporary only when expected bytes are independently derivable, fsync parent, then rebuild",
       "abandoned_observational_temporary": "for PUSH_CALL or child-exit bytes that cannot be reconstructed after interruption, remove the uncommitted temporary after the corresponding runtime lock is acquirable; select REF_OBSERVATION or interruption semantics instead",
       "claim_payloads": "attempt lock and invocation claims are deterministic payloads published by this same protocol; the atomic hard-link, not temporary creation, consumes the claim",
       "tracked_copy": "publish the exact source receipt bytes through a sibling temporary and hard-link no-replace using the same order",
-      "fd_identity": "all existing-target, race-target and temporary verification uses O_NOFOLLOW plus fstat and descriptor reads; pathname exists/is_file/read_bytes and resolving the final component are forbidden authority",
+      "fd_identity": "all existing-target, race-target and temporary verification uses O_NOFOLLOW plus fstat and descriptor reads; after a successful hard-link the final descriptor must identify the same st_dev/st_ino as the still-open temporary descriptor; pathname exists/is_file/read_bytes and resolving the final component are forbidden authority",
+      "race_target": "if no-replace hard-link returns EEXIST, do not treat the temporary as source authority; reopen the final target O_RDONLY|O_NOFOLLOW|O_CLOEXEC and reclassify through existing_target. Accept only exact regular bytes, then remove only a no-follow verified regular temporary; a mismatched or nonregular race target fails closed without unlink or rewrite",
       "crash_interpretation": "crash before hard-link leaves no committed artifact and is recoverable from the temporary rule; crash after hard-link leaves a complete committed target whose bytes must verify exactly through one no-follow regular-file descriptor"
     },
     "control_publication_crash_states": {
@@ -1905,7 +1906,7 @@
         "claim_state": "consumed and never reusable",
         "classification": "NONE because the artifact chain or terminal receipt is not trustworthy",
         "artifact_state_corruption_observation": "required canonical artifact_state_corruption.json",
-        "allowed_actions": "complete missing local claim consumption commit/tag through the pre-terminal workflow_blocker_restart_rows, verify immutable artifacts and blocker observation, independent QA and workflow status update only",
+        "allowed_actions": "publish or verify the immutable artifact blocker observation, complete missing local claim consumption commit/tag through the pre-terminal workflow_blocker_restart_rows, independent QA and workflow status update only; for A12 these are explicit blocker actions and are the only mutations allowed after witness failure",
         "terminal_receipt": "do not create; never rewrite an existing invalid receipt",
         "business_execution_report": "do not create or rewrite",
         "terminal_commit": "do not create; preserve an already committed terminal commit only as immutable corruption evidence",
@@ -2005,6 +2006,7 @@
         "business_report_state",
         "first_invalid_rule",
         "observed_artifact_sha256_json",
+        "recovery_witness_evidence_json",
         "schema_version",
         "terminal_receipt_state"
       ],
@@ -2023,7 +2025,74 @@
           "INVALID"
         ],
         "first_invalid_rule": "one exact ordered artifact_state_machine A01-A12 or local_git_state_machine G01-G07 invalid rule id",
-        "observed_artifact_sha256_json": "canonical compact ASCII JSON object mapping every present committed process, result, baseline, terminal-receipt and business-report path to its exact SHA256 in ASCII path order"
+        "observed_artifact_sha256_json": "canonical compact ASCII JSON object mapping every present committed process, result, baseline, terminal-receipt and business-report path to its exact SHA256 in ASCII path order",
+        "recovery_witness_evidence_json": "NONE unless first_invalid_rule=A12_RECOVERY_WITNESS_MISMATCH; for A12 it is the exact canonical compact sorted-key ASCII JSON string object defined by recovery_witness_evidence_schema"
+      },
+      "recovery_witness_evidence_schema": {
+        "fields": [
+          "blob_read_exit_code",
+          "blob_read_stderr_sha256",
+          "blob_read_stdout_sha256",
+          "object_type",
+          "object_type_exit_code",
+          "object_type_stderr_sha256",
+          "object_type_stdout_sha256",
+          "observed_oid",
+          "ref_observation_exit_code",
+          "ref_observation_stderr_sha256",
+          "ref_observation_stdout_sha256",
+          "ref_state",
+          "target_sha256",
+          "target_state",
+          "temporary_sha256",
+          "temporary_state",
+          "witness_blob_oid",
+          "witness_ref"
+        ],
+        "value_domains": {
+          "witness_ref": "exact recovery_start_witness.witness_ref",
+          "ref_state": [
+            "ABSENT",
+            "EXACT_BLOB",
+            "INVALID_OBJECT_TYPE",
+            "UNREADABLE",
+            "CONFLICTING_BLOB"
+          ],
+          "observed_oid": "40 lowercase hex when the ref command returns one syntactically valid OID, otherwise NONE",
+          "witness_blob_oid": "the exact 40-hex observed_oid only when ref_state=EXACT_BLOB or CONFLICTING_BLOB, otherwise NONE",
+          "object_type": "blob when the object-type command proves a blob, another exact Git object type when readable but invalid, otherwise NONE",
+          "ref_observation_exit_code": "base-10 integer from the exact registered ref observation command",
+          "ref_observation_stdout_sha256": "64 lowercase hex over exact stdout bytes",
+          "ref_observation_stderr_sha256": "64 lowercase hex over exact stderr bytes",
+          "object_type_exit_code": "base-10 integer or NONE when no syntactically valid observed_oid exists",
+          "object_type_stdout_sha256": "64 lowercase hex over exact stdout bytes or NONE when the command is not run",
+          "object_type_stderr_sha256": "64 lowercase hex over exact stderr bytes or NONE when the command is not run",
+          "blob_read_exit_code": "base-10 integer only when object_type=blob, otherwise NONE",
+          "blob_read_stdout_sha256": "64 lowercase hex over exact blob bytes only when object_type=blob, otherwise NONE",
+          "blob_read_stderr_sha256": "64 lowercase hex over exact stderr bytes only when object_type=blob, otherwise NONE",
+          "target_state": [
+            "ABSENT",
+            "EXACT_REGULAR",
+            "MISMATCH_REGULAR",
+            "SYMLINK",
+            "DIRECTORY",
+            "FIFO",
+            "OTHER_NONREGULAR"
+          ],
+          "target_sha256": "64 lowercase hex only for EXACT_REGULAR or MISMATCH_REGULAR, otherwise NONE",
+          "temporary_state": [
+            "ABSENT",
+            "EXACT_REGULAR",
+            "MISMATCH_REGULAR",
+            "SYMLINK",
+            "DIRECTORY",
+            "FIFO",
+            "OTHER_NONREGULAR"
+          ],
+          "temporary_sha256": "64 lowercase hex only for EXACT_REGULAR or MISMATCH_REGULAR, otherwise NONE",
+          "cross_field_rules": "EXACT_BLOB means readable blob bytes equal the independently derived recovery-start bytes; CONFLICTING_BLOB means readable blob bytes differ; A12 is selected exactly when the witness/local restart matrix is not one of its legal rows"
+        },
+        "observation_authority": "the exact ref, object-type and blob-read subprocess exit codes plus stdout/stderr SHA256 values and no-follow local path observations are frozen in artifact_state_corruption.json before any blocker restart action; subsequent repair or drift cannot rewrite the receipt"
       },
       "expected_sha_sets_by_local_state": {
         "ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT": [
@@ -2962,18 +3031,61 @@
           "<recovery_start_blob_oid>",
           "0000000000000000000000000000000000000000"
         ],
+        "ref_observe_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "--git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+          "show-ref",
+          "--hash",
+          "--verify",
+          "refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1"
+        ],
+        "object_type_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "--git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+          "cat-file",
+          "-t",
+          "<observed_oid>"
+        ],
+        "blob_read_command": [
+          "git",
+          "-c",
+          "commit.gpgSign=false",
+          "-c",
+          "core.fsync=all",
+          "-c",
+          "core.fsyncMethod=fsync",
+          "--git-dir=/Users/liu/Documents/hftbacktest-0831t001-q0-controller.git",
+          "cat-file",
+          "blob",
+          "<observed_oid>"
+        ],
+        "diagnostic_observation_order": "run ref_observe_command exactly once; when it emits one 40-hex OID run object_type_command exactly once; only when type is blob run blob_read_command exactly once; record every executed exit code and exact stdout/stderr SHA256 in recovery_witness_evidence_json",
         "publication_order": "derive bytes from unchanged snapshot; hash bytes independently as a Git blob; write the blob; create witness_ref CAS from all-zero old OID; fsync controller repository and parent; verify ref object type blob and exact blob bytes; only then create or reconcile local recovery_start.json temporary/target",
         "restart_matrix": {
           "ref_absent_target_absent_temporary_absent": "derive from unchanged snapshot, create witness, then publish local target",
           "ref_absent_any_local_recovery_start_path_present": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; local publication is forbidden before witness",
           "ref_exact_target_absent_temporary_absent": "witness bytes are authority; create, fsync and hard-link a new exact regular temporary using control_publication",
-          "ref_exact_target_absent_temporary_exact_regular": "open temporary O_RDONLY|O_NOFOLLOW|O_CLOEXEC, fstat regular, verify exact witnessed bytes, fsync the same descriptor, hard-link it no-replace to target, fsync parent, unlink temporary, fsync parent",
+          "ref_exact_target_absent_temporary_exact_regular": "open temporary O_RDONLY|O_NOFOLLOW|O_CLOEXEC, fstat regular, verify exact witnessed bytes and retain st_dev/st_ino, fsync the same descriptor, hard-link it no-replace to target, then reopen target O_RDONLY|O_NOFOLLOW|O_CLOEXEC and require regular kind, exact witnessed bytes and the same st_dev/st_ino; fsync final descriptor and parent, unlink only the still-regular temporary, fsync parent",
+          "ref_exact_target_absent_temporary_exact_regular_link_eexist": "if hard-link returns EEXIST, reopen target no-follow and reclassify through ref_exact_target_exact_regular; accept only exact regular witnessed bytes, otherwise publish A12 without unlink or rewrite",
           "ref_exact_target_absent_temporary_mismatched_or_truncated_regular": "open no-follow and verify mismatch, unlink the non-authority temporary, fsync parent, then rebuild from witnessed bytes",
           "ref_exact_target_absent_temporary_nonregular": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; do not unlink or rewrite",
           "ref_exact_target_exact_regular": "accept after no-follow descriptor verification against witness; remove any regular temporary after no-follow kind validation, but a nonregular temporary is A12",
           "ref_exact_target_mismatch_or_nonregular": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; never rewrite target or witness",
-          "ref_invalid_type_or_unreadable_or_conflicting": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; classify as controller infrastructure corruption and forbid recovery mutation"
+          "ref_invalid_type_or_unreadable_or_conflicting": "freeze recovery_witness_evidence_json, publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH, then follow workflow_blocker_restart_rows; controller mutation, recovery-start/observation publication, terminalization and baseline mutation are forbidden, while blocker publication and deterministic local claim consumption are the only allowed writes"
         },
+        "a12_blocker_boundary": "every A12 path freezes recovery_witness_evidence_json in artifact_state_corruption.json before any claim rename, commit or tag. After that receipt commits, workflow_blocker_restart_rows are the sole restart authority. No observed recovery_start.json is accepted as recovery authority and no new recovery-start target is created; no recovery_observation or terminal artifact is created, and no controller ref is written",
         "trust_boundary": "the controller bare repository is the existing external CAS trust root for this task; coordinated out-of-protocol mutation of its refs or objects is controller infrastructure corruption and is never repaired by recovery"
       },
       "consumption_receipt_union": "exactly one of consumption_push_receipt.json with receipt_kind PUSH_CALL or consumption_push_observation.json with receipt_kind REF_OBSERVATION; copy the chosen bytes to the tracked consumption receipt path",
@@ -3023,15 +3135,21 @@
       "recovery_path": "<attempt_root>/control/recovery_observation.json",
       "qa_evidence_fields": [
         "classification",
+        "recovery_evidence_mode",
         "recovery_observation_sha256",
         "recovery_start_sha256",
         "recovery_witness_blob_oid",
         "recovery_witness_ref",
         "terminal_result_receipt_sha256",
-        "terminal_transition_receipt_sha256"
+        "terminal_transition_receipt_sha256",
+        "workflow_blocker_sha256"
       ],
-      "qa_evidence_normal_path": "recovery_start_sha256=NONE, recovery_observation_sha256=NONE, recovery_witness_ref=NONE and recovery_witness_blob_oid=NONE",
-      "qa_recovery_witness_rule": "on every recovery path recovery_witness_ref is the exact frozen witness ref and recovery_witness_blob_oid is the exact 40-hex blob OID read from that ref; the blob bytes must equal committed recovery_start.json and hash to recovery_start_sha256 under SHA256",
+      "qa_evidence_modes": {
+        "NORMAL": "classification is the immutable terminal classification; recovery_start_sha256, recovery_observation_sha256, recovery_witness_ref, recovery_witness_blob_oid and workflow_blocker_sha256 are all NONE",
+        "RECOVERY": "classification is the immutable terminal classification; workflow_blocker_sha256=NONE; recovery_witness_ref is exact, recovery_witness_blob_oid is one exact 40-hex blob OID, blob bytes equal committed recovery_start.json, and both recovery SHA256 fields are exact",
+        "WITNESS_BLOCKED": "classification=NONE; both recovery SHA256 fields are NONE; each terminal result/transition receipt SHA256 is its exact immutable SHA256 when a valid receipt is already committed and NONE when absent or invalid; recovery_witness_ref is exact; workflow_blocker_sha256 is the exact artifact_state_corruption.json SHA256; recovery_witness_blob_oid is the evidence object's exact witness_blob_oid when ref_state is EXACT_BLOB or CONFLICTING_BLOB and NONE otherwise; QA validates the embedded recovery_witness_evidence_json schema and A12 cross-field rule"
+      },
+      "qa_evidence_mode_totality": "exactly one of NORMAL, RECOVERY or WITNESS_BLOCKED applies; no evidence tuple may satisfy more than one mode",
       "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every content write uses control_publication or verifies exact committed bytes, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
       "remote_state_rules": {
         "ABSENT": "legal only in ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT, CONSUMPTION_COMMIT_PRE_PUSH or CONSUMPTION_PUSH_UNRECEIPTED; after a committed consumption receipt it is G01_CONTROLLER_REF_NOT_EXPECTED and enters CONTROLLER_REF_DIVERGENCE",
