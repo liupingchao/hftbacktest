@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 15 Plan Review Passed
+## 2026-08-31 0831T001 Q0 Implementation In Progress
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -148,6 +148,14 @@
 - Implementation may proceed under the frozen Revision 15 plan.
 - Formal execution remains locked pending independent implementation
   readiness.
+- Began implementation of the structural core, deterministic synthetic runner,
+  independent verifier and focused hostile test suite. No claim, receipt,
+  controller ref or formal attempt root has been created.
+- Implementation candidate round 1 now has 69 focused tests passing and one
+  explicit failure: producer-side negative-boundary evidence remains empty.
+- Independent review must also audit the still-incomplete crash recovery,
+  controller-blocker restart and Git G01-G07 closure before any implementation
+  freeze, tag or claim arming.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

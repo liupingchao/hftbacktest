@@ -1,0 +1,1956 @@
+from __future__ import annotations
+
+import ast
+import csv
+import hashlib
+import importlib
+import inspect
+import io
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
+import zipfile
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from dataclasses import fields, is_dataclass
+from pathlib import Path
+from types import ModuleType
+from typing import Any
+
+import numpy as np
+import pytest
+
+
+REPO = Path(__file__).resolve().parents[2]
+TRUTH_PATH = REPO / ".workflow/contracts/0831T001-fixture-truth-v1.json"
+SURFACE_PATH = REPO / ".workflow/contracts/0831T001-q0-surface-contract-v1.json"
+CORE_PATH = (
+    REPO / "examples/hyperliquid/skhynix_trade_led_depth_follower_transition_hazard.py"
+)
+RUNNER_PATH = (
+    REPO / "examples/hyperliquid/"
+    "skhynix_trade_led_depth_follower_q0_pipeline_qualification.py"
+)
+VERIFIER_PATH = (
+    REPO / "examples/hyperliquid/"
+    "skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier.py"
+)
+
+CORE_MODULE = "examples.hyperliquid.skhynix_trade_led_depth_follower_transition_hazard"
+RUNNER_MODULE = (
+    "examples.hyperliquid.skhynix_trade_led_depth_follower_q0_pipeline_qualification"
+)
+VERIFIER_MODULE = (
+    "examples.hyperliquid."
+    "skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier"
+)
+
+TRUTH_SHA256 = "c9e1c5dba760309add5e0debfdfff6be3387e8978b1e5506b6d1fff9df87f529"
+SURFACE_SHA256 = "b92d69e40e58f2c7277b3c2f11a29198274e6936992142c22eb6e7839a1de402"
+MUTATION_MATRIX_SHA256 = (
+    "8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c"
+)
+
+EXPECTED_CORE_SYMBOLS = (
+    "FeatureBundle",
+    "CausalView",
+    "AvailabilityView",
+    "OutcomeView",
+    "build_features",
+    "build_anchor_frame",
+    "finalize_anchor_availability",
+    "label_structural_outcomes",
+    "analyze_cache_in_stage",
+    "materialize_slice",
+    "compare_slice",
+    "build_raw_package",
+    "seal_package",
+    "verify_package",
+)
+EXPECTED_BUNDLE_FIELDS = (
+    "raw",
+    "event_masks",
+    "ratios_100",
+    "ratios_500",
+    "base_eligible",
+    "actions",
+    "memories",
+    "memory_ages_ms",
+    "trailing_realized_volatility",
+    "source_access_ledger",
+)
+MODEL_INPUT_NAMES = (
+    "is_causal_trade_onset",
+    "joint_threshold_overshoot",
+    "leader_background_run_length",
+    "log_activity",
+    "log_visible_depth",
+    "signed_fast_minus_medium_acceleration",
+    "signed_fast_trade_ratio",
+    "signed_medium_trade_ratio",
+    "signed_obi",
+    "spread_ticks",
+    "time_of_day_cos",
+    "time_of_day_sin",
+    "time_since_last_opposite_trade_update",
+    "trailing_realized_volatility",
+)
+
+
+def _json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    return _sha256_bytes(path.read_bytes())
+
+
+def _canonical_json_bytes(value: object, *, final_lf: bool = False) -> bytes:
+    payload = json.dumps(
+        value,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("ascii")
+    return payload + (b"\n" if final_lf else b"")
+
+
+def _required_module(module_name: str, path: Path) -> ModuleType:
+    assert path.is_file(), f"required implementation file is absent: {path}"
+    return importlib.import_module(module_name)
+
+
+@pytest.fixture(scope="session")
+def truth() -> dict[str, Any]:
+    return _json(TRUTH_PATH)
+
+
+@pytest.fixture(scope="session")
+def surface() -> dict[str, Any]:
+    return _json(SURFACE_PATH)
+
+
+@pytest.fixture(scope="session")
+def core() -> ModuleType:
+    return _required_module(CORE_MODULE, CORE_PATH)
+
+
+@pytest.fixture(scope="session")
+def runner() -> ModuleType:
+    return _required_module(RUNNER_MODULE, RUNNER_PATH)
+
+
+@pytest.fixture(scope="session")
+def verifier() -> ModuleType:
+    return _required_module(VERIFIER_MODULE, VERIFIER_PATH)
+
+
+def _dtype_for(spec: Mapping[str, Any]) -> np.dtype[Any]:
+    return np.dtype(str(spec["dtype"]))
+
+
+def _fixture_by_id(truth: Mapping[str, Any], fixture_id: str) -> dict[str, Any]:
+    return next(
+        dict(row) for row in truth["fixtures"] if row["fixture_id"] == fixture_id
+    )
+
+
+def _fixture_arrays(
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    fixture_id: str,
+    *,
+    poison: bool = False,
+    apply_qf13_post_anchor_mutation: bool = False,
+) -> dict[str, np.ndarray[Any, Any]]:
+    default = truth["default_fixture"]
+    row_count = int(default["row_count"])
+    defaults = default["defaults"]
+    schema = surface["source_schema_v4"]
+    arrays: dict[str, np.ndarray[Any, Any]] = {}
+
+    for name, spec in schema["row_fields"].items():
+        dtype = _dtype_for(spec)
+        if name == "ts_ns":
+            value = np.arange(row_count, dtype=np.int64) * int(
+                truth["clock"]["checkpoint_ns"]
+            )
+        elif name == "event_seq":
+            value = np.arange(row_count, dtype=dtype)
+        else:
+            value = np.full(row_count, defaults[name], dtype=dtype)
+        arrays[name] = value
+
+    fixture = _fixture_by_id(truth, fixture_id)
+    for patch in fixture["patches"]:
+        target = arrays[patch["field"]]
+        if "index" in patch:
+            target[int(patch["index"])] = patch["value"]
+        else:
+            target[int(patch["start"]) : int(patch["stop"])] = patch["value"]
+
+    if apply_qf13_post_anchor_mutation:
+        mutation = fixture["post_anchor_mutation"]
+        safe_globals = {"__builtins__": {}}
+        for index in range(int(mutation["start"]), int(mutation["stop"])):
+            for field, formula in mutation["formulas"].items():
+                arrays[field][index] = eval(  # noqa: S307 - frozen local formula DSL
+                    formula,
+                    safe_globals,
+                    {"i": index, "float": float},
+                )
+
+    segment_ids = arrays["segment_id"]
+    boundaries = np.flatnonzero(segment_ids[1:] != segment_ids[:-1]) + 1
+    metadata = default["metadata"]
+    unique_segments = sorted(int(value) for value in np.unique(segment_ids))
+    segment_end_ts = [
+        int(arrays["ts_ns"][segment_ids == segment_id].max())
+        for segment_id in unique_segments
+    ]
+    computed_metadata: dict[str, object] = {
+        "cache_schema_version": metadata["cache_schema_version"],
+        "bin_boundary_violations": metadata["bin_boundary_violations"],
+        "initial_bridge_failure_count": metadata["initial_bridge_failure_count"],
+        "non_admitted_message_contributions": metadata[
+            "non_admitted_message_contributions"
+        ],
+        "quality_boundary_count": metadata["quality_boundary_count"],
+        "reset_count": [len(boundaries)],
+        "sequence_gap_count": metadata["sequence_gap_count"],
+        "segment_end_ids": unique_segments,
+        "segment_end_ts": segment_end_ts,
+        "tick_size": metadata["tick_size"],
+    }
+    for name, spec in schema["metadata_fields"].items():
+        arrays[name] = np.asarray(computed_metadata[name], dtype=_dtype_for(spec))
+
+    if poison:
+        assert fixture_id == "QF10"
+        arrays["bin_boundary_violations"] = np.asarray(
+            fixture["poison_mutation"]["replacement"],
+            dtype=_dtype_for(schema["metadata_fields"]["bin_boundary_violations"]),
+        )
+    return arrays
+
+
+def _npy_bytes(array: np.ndarray[Any, Any]) -> bytes:
+    output = io.BytesIO()
+    np.lib.format.write_array(output, array, version=(1, 0), allow_pickle=False)
+    return output.getvalue()
+
+
+def _write_canonical_npz(
+    path: Path, arrays: Mapping[str, np.ndarray[Any, Any]]
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_STORED) as archive:
+        for name in sorted(arrays):
+            info = zipfile.ZipInfo(f"{name}.npy", (1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_STORED
+            info.create_system = 0
+            info.external_attr = 0
+            info.extra = b""
+            info.comment = b""
+            archive.writestr(info, _npy_bytes(np.asarray(arrays[name])))
+
+
+def _write_fixture(
+    root: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    fixture_id: str,
+    *,
+    poison: bool = False,
+    qf13_mutated: bool = False,
+) -> Path:
+    path = root / f"{fixture_id}.npz"
+    _write_canonical_npz(
+        path,
+        _fixture_arrays(
+            truth,
+            surface,
+            fixture_id,
+            poison=poison,
+            apply_qf13_post_anchor_mutation=qf13_mutated,
+        ),
+    )
+    return path
+
+
+def _call_build_features(core: ModuleType, cache_path: Path) -> Any:
+    function = core.build_features
+    signature = inspect.signature(function)
+    if "cache_path" in signature.parameters:
+        return function(cache_path=cache_path)
+    return function(cache_path)
+
+
+def _bundle_field_names(bundle: object) -> tuple[str, ...]:
+    if is_dataclass(bundle):
+        return tuple(field.name for field in fields(bundle))
+    annotations = getattr(type(bundle), "__annotations__", {})
+    return tuple(annotations)
+
+
+def _bundle_array_rows(bundle: object) -> Iterator[tuple[str, np.ndarray[Any, Any]]]:
+    for name in EXPECTED_BUNDLE_FIELDS:
+        value = getattr(bundle, name)
+        if name == "raw":
+            assert isinstance(value, Mapping)
+            for raw_name, raw_value in value.items():
+                yield f"raw.{raw_name}", np.asarray(raw_value)
+        elif isinstance(value, np.ndarray):
+            yield name, value
+
+
+def _exception_code(error: BaseException) -> str:
+    for attribute in ("code", "error_code", "first_error"):
+        value = getattr(error, attribute, None)
+        if isinstance(value, str):
+            return value
+    return str(error).split(":", 1)[0]
+
+
+def _construct_view(
+    view_class: type[Any],
+    *,
+    bundle: object,
+    fixture_id: str,
+    anchor_index: int,
+) -> object:
+    parameters = inspect.signature(view_class).parameters
+    values: dict[str, object] = {}
+    aliases: dict[str, object] = {
+        "bundle": bundle,
+        "features": bundle,
+        "feature_bundle": bundle,
+        "fixture_id": fixture_id,
+        "anchor_index": anchor_index,
+        "maximum_index": anchor_index,
+        "max_index": anchor_index,
+        "causal_index": anchor_index,
+    }
+    for name, parameter in parameters.items():
+        if name in aliases:
+            values[name] = aliases[name]
+        elif parameter.default is inspect.Parameter.empty:
+            pytest.fail(
+                f"unsupported required {view_class.__name__} constructor field: {name}"
+            )
+    view = view_class(**values)
+    setattr(view, "_q0_test_anchor_index", anchor_index)
+    return view
+
+
+def _view_read(view: object, *, field: str, index: int, purpose: str) -> object:
+    read = getattr(view, "read")
+    parameters = inspect.signature(read).parameters
+    kwargs: dict[str, object] = {}
+    aliases = {
+        "field": field,
+        "field_name": field,
+        "index": index,
+        "indices": index,
+        "row_index": index,
+        "anchor_index": getattr(view, "_q0_test_anchor_index"),
+        "purpose": purpose,
+        "authorization": purpose,
+    }
+    for name, parameter in parameters.items():
+        if name in aliases:
+            kwargs[name] = aliases[name]
+        elif parameter.default is inspect.Parameter.empty:
+            pytest.fail(f"unsupported required read() field: {name}")
+    return read(**kwargs)
+
+
+def _find_callable(module: ModuleType, names: Sequence[str]) -> Callable[..., Any]:
+    for name in names:
+        value = getattr(module, name, None)
+        if callable(value):
+            return value
+    pytest.fail(f"{module.__name__} exposes none of the required callables: {names}")
+
+
+def _invoke_fixture_analysis(
+    core: ModuleType,
+    *,
+    fixture_id: str,
+    cache_path: Path,
+) -> object:
+    stage_a = core.analyze_cache_in_stage(
+        cache_path,
+        fixture_id=fixture_id,
+        stage="A_MINUS1A",
+    )
+    return core.analyze_cache_in_stage(
+        cache_path,
+        fixture_id=fixture_id,
+        stage="A_MINUS1B",
+        accepted_anchor_manifest=stage_a.anchor_analysis,
+    )
+
+
+def _value(result: object, name: str, default: object = None) -> object:
+    if isinstance(result, Mapping):
+        return result.get(name, default)
+    return getattr(result, name, default)
+
+
+def _row_value(row: object, name: str, default: object = None) -> object:
+    if isinstance(row, Mapping):
+        return row.get(name, default)
+    return getattr(row, name, default)
+
+
+def _result_sequence(result: object, *names: str) -> list[object]:
+    for name in names:
+        value = _value(result, name)
+        if value is not None:
+            assert isinstance(value, Sequence) and not isinstance(value, (str, bytes))
+            return list(value)
+    return []
+
+
+def _analysis_anchor_rows(result: object) -> list[object]:
+    anchor_analysis = _value(result, "anchor_analysis")
+    if anchor_analysis is not None:
+        return list(_value(anchor_analysis, "anchors", ()))
+    return _result_sequence(result, "anchors", "anchor_rows", "anchor_ledger")
+
+
+def _analysis_outcome_rows(result: object) -> list[object]:
+    return _result_sequence(
+        result,
+        "outcomes",
+        "outcome_rows",
+        "structural_outcomes",
+    )
+
+
+def _analysis_reset_rows(result: object) -> list[object]:
+    return _result_sequence(result, "reset_rows", "reset_state")
+
+
+def _analysis_model_inputs(result: object) -> Mapping[str, object]:
+    direct = _value(result, "model_inputs")
+    if isinstance(direct, Mapping):
+        return direct
+    anchors = _analysis_anchor_rows(result)
+    if len(anchors) == 1:
+        anchor_inputs = _row_value(anchors[0], "model_inputs")
+        if isinstance(anchor_inputs, Mapping):
+            return anchor_inputs
+    rows = _result_sequence(result, "model_input_rows")
+    return {
+        str(_row_value(row, "input_name")): _row_value(
+            row,
+            "value",
+            _row_value(row, "canonical_value"),
+        )
+        for row in rows
+    }
+
+
+def _canonical_csv_bytes(
+    fieldnames: Sequence[str], rows: Sequence[Mapping[str, object]]
+) -> bytes:
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        output,
+        fieldnames=list(fieldnames),
+        delimiter=",",
+        quotechar='"',
+        quoting=csv.QUOTE_MINIMAL,
+        doublequote=True,
+        escapechar=None,
+        lineterminator="\n",
+    )
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(dict(row))
+    return output.getvalue().encode("ascii")
+
+
+def _git(
+    cwd: Path,
+    *args: str,
+    input_bytes: bytes | None = None,
+    check: bool = True,
+) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        input=input_bytes,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=check,
+    )
+
+
+def _init_git_repo(path: Path) -> None:
+    path.mkdir()
+    _git(path, "init", "-q")
+    _git(path, "config", "user.name", "Q0 Test")
+    _git(path, "config", "user.email", "q0@example.invalid")
+    (path / "tracked.txt").write_bytes(b"alpha\n")
+    _git(path, "add", "tracked.txt")
+    _git(path, "commit", "-q", "-m", "initial")
+
+
+def _raw_parser(module: ModuleType) -> Callable[[bytes], object]:
+    return _find_callable(
+        module,
+        (
+            "parse_git_raw_records",
+            "_parse_git_raw_records",
+            "parse_raw_git_records",
+            "_parse_raw_git_records",
+            "parse_raw_records",
+        ),
+    )
+
+
+def _call_raw_parser(parser: Callable[..., Any], payload: bytes) -> object:
+    parameters = inspect.signature(parser).parameters
+    if len(parameters) == 1:
+        return parser(payload)
+    kwargs: dict[str, object] = {}
+    for name, parameter in parameters.items():
+        if name in {"payload", "raw", "raw_bytes", "output"}:
+            kwargs[name] = payload
+        elif parameter.default is inspect.Parameter.empty:
+            pytest.fail(f"unsupported required raw-parser field: {name}")
+    return parser(**kwargs)
+
+
+def _rederive_mutation_rows(surface: Mapping[str, Any]) -> list[dict[str, Any]]:
+    contract = surface["one_shot"]["git_history_contract"]["git_observation_contract"]
+    variants = contract["action_phase_preimage_variants"]
+    matrix = contract["mutation_probe_matrix"]
+    rows = []
+    for variant in variants:
+        for mutation_kind in matrix["mutation_kind_order"]:
+            for repository_config in matrix["repository_config_rows"]:
+                rows.append(
+                    {
+                        "action_phase": variant["action_phase"],
+                        "expected_first_invalid_rule": matrix[
+                            "expected_first_invalid_rule"
+                        ],
+                        "mutation_kind": mutation_kind,
+                        "repository_config": repository_config,
+                        "terminal_branch": variant["terminal_branch"],
+                        "tracked_transition_state": variant["tracked_transition_state"],
+                        "variant_ordinal": variant["variant_ordinal"],
+                    }
+                )
+    return rows
+
+
+def _run_help(path: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(path), "--help"],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        timeout=30,
+    )
+
+
+def _module_function_graph(
+    path: Path,
+) -> tuple[dict[str, ast.FunctionDef | ast.AsyncFunctionDef], dict[str, set[str]]]:
+    tree = ast.parse(path.read_text(encoding="ascii"), filename=str(path))
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    calls: dict[str, set[str]] = {}
+    for name, node in functions.items():
+        callees = set()
+        for child in ast.walk(node):
+            if not isinstance(child, ast.Call):
+                continue
+            if isinstance(child.func, ast.Name):
+                callees.add(child.func.id)
+            elif isinstance(child.func, ast.Attribute):
+                callees.add(child.func.attr)
+        calls[name] = callees
+    return functions, calls
+
+
+def _reachable_call(
+    calls: Mapping[str, set[str]],
+    start: str,
+    targets: set[str],
+) -> bool:
+    return bool(_reachable_functions(calls, start) & targets)
+
+
+def _reachable_functions(
+    calls: Mapping[str, set[str]],
+    start: str,
+) -> set[str]:
+    pending = [start]
+    visited: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in visited:
+            continue
+        visited.add(name)
+        direct = calls.get(name, set())
+        pending.extend(direct - visited)
+    return visited
+
+
+def _function_text(
+    path: Path,
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> str:
+    source = path.read_text(encoding="ascii")
+    return ast.get_source_segment(source, node) or ""
+
+
+def _handoff_probe(
+    tmp_path: Path,
+    *,
+    child_kind: str,
+    mutation: str,
+) -> subprocess.CompletedProcess[str]:
+    script = r"""
+import fcntl
+import os
+import sys
+from pathlib import Path
+
+child_kind, mutation, root_text = sys.argv[1:4]
+root = Path(root_text)
+package_root = root / "package"
+package_root.mkdir(parents=True)
+control = root / "control"
+control.mkdir()
+expected_lock = control / (
+    "formal_producer_runtime.lock"
+    if child_kind == "producer"
+    else "terminal_verifier_runtime.lock"
+)
+expected_lock.touch()
+runtime_path = expected_lock
+if mutation == "wrong_lock":
+    runtime_path = control / "wrong_runtime.lock"
+    runtime_path.touch()
+runtime_fd = os.open(runtime_path, os.O_RDWR | os.O_CLOEXEC)
+if mutation != "unlocked":
+    fcntl.flock(runtime_fd, fcntl.LOCK_EX)
+ack_read, ack_write = os.pipe()
+ack_source = ack_write
+regular_ack = None
+if mutation == "ack_read_only":
+    ack_source = ack_read
+elif mutation == "ack_regular":
+    os.close(ack_write)
+    ack_write = -1
+    regular_ack = os.open(
+        root / "not_a_pipe.ack",
+        os.O_RDWR | os.O_CREAT | os.O_TRUNC,
+        0o600,
+    )
+    ack_source = regular_ack
+os.dup2(runtime_fd, 198, inheritable=True)
+os.dup2(ack_source, 199, inheritable=True)
+if runtime_fd != 198:
+    os.close(runtime_fd)
+if ack_source != 199:
+    os.close(ack_source)
+if ack_write >= 0 and ack_write != ack_source:
+    os.close(ack_write)
+if child_kind == "producer":
+    from examples.hyperliquid import (
+        skhynix_trade_led_depth_follower_q0_pipeline_qualification as module,
+    )
+    invoke = lambda: module.verify_child_handoff(198, 199, expected_lock)
+else:
+    from examples.hyperliquid import (
+        skhynix_trade_led_depth_follower_q0_pipeline_qualification_verifier as module,
+    )
+    invoke = lambda: module.acknowledge_handoff(
+        198,
+        199,
+        package_root=package_root,
+    )
+try:
+    invoke()
+except BaseException as exc:
+    print(getattr(exc, "code", type(exc).__name__))
+    raise SystemExit(42)
+else:
+    first = os.read(ack_read, 2)
+    second = os.read(ack_read, 1)
+    print(first.hex() + ":" + second.hex())
+"""
+    return subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            script,
+            child_kind,
+            mutation,
+            str(tmp_path / f"{child_kind}-{mutation}"),
+        ],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        timeout=30,
+    )
+
+
+def test_frozen_authority_hashes_and_complete_fixture_order(
+    truth: Mapping[str, Any], surface: Mapping[str, Any]
+) -> None:
+    assert _sha256_file(TRUTH_PATH) == TRUTH_SHA256
+    assert _sha256_file(SURFACE_PATH) == SURFACE_SHA256
+    assert truth["schema_version"] == 1
+    assert truth["fixture_order"] == [f"QF{ordinal:02d}" for ordinal in range(1, 16)]
+    assert [row["fixture_id"] for row in truth["fixtures"]] == truth["fixture_order"]
+    assert surface["authority_id"] == "TRADE_LED_DEPTH_FOLLOWER_Q0_SURFACE_CONTRACT_V1"
+
+
+def test_no_test_source_mentions_forbidden_real_data_or_one_shot_paths() -> None:
+    source = Path(__file__).read_text(encoding="ascii")
+    forbidden_literals = (
+        "local_live_" + "analysis/",
+        "29-" + "cache",
+        "0831T001." + "armed.json",
+        "0831T001." + "claimed.json",
+        "0831t001-q0-" + "controller.git",
+        "--formal" + " ",
+        "--recover" + " ",
+    )
+    for literal in forbidden_literals:
+        assert literal not in source
+
+
+def test_core_public_surface_and_explicit_feature_bundle(core: ModuleType) -> None:
+    for name in EXPECTED_CORE_SYMBOLS:
+        assert hasattr(core, name), f"missing frozen production symbol: {name}"
+    annotations = getattr(core.FeatureBundle, "__annotations__", {})
+    if is_dataclass(core.FeatureBundle):
+        field_names = tuple(field.name for field in fields(core.FeatureBundle))
+    else:
+        field_names = tuple(annotations)
+    assert field_names == EXPECTED_BUNDLE_FIELDS
+
+
+def test_core_ast_has_no_hidden_features_payload_and_stage_boundary_is_explicit(
+    core: ModuleType,
+) -> None:
+    source = CORE_PATH.read_text(encoding="ascii")
+    tree = ast.parse(source)
+    hidden_feature_nodes = [
+        node
+        for node in ast.walk(tree)
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr == "_features"
+            or isinstance(node, ast.Constant)
+            and node.value == "_features"
+        )
+    ]
+    assert not hidden_feature_nodes
+    required_parameter_sets = {
+        "build_anchor_frame": {"view"},
+        "finalize_anchor_availability": {"frame", "view"},
+        "label_structural_outcomes": {"anchors", "view"},
+        "compare_slice": {
+            "full_bundle",
+            "full_analysis",
+            "slice_bundle",
+            "slice_analysis",
+        },
+    }
+    functions = {
+        node.name: node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    for name, required_parameters in required_parameter_sets.items():
+        node = functions[name]
+        argument_names = {
+            argument.arg for argument in [*node.args.posonlyargs, *node.args.args]
+        }
+        argument_names.update(argument.arg for argument in node.args.kwonlyargs)
+        assert required_parameters <= argument_names, (
+            f"{name} lacks explicit typed dependencies: "
+            f"{sorted(required_parameters - argument_names)}"
+        )
+    analyze_source = (
+        ast.get_source_segment(source, functions["analyze_cache_in_stage"]) or ""
+    )
+    assert "A_MINUS1A" in analyze_source
+    assert "A_MINUS1B" in analyze_source
+
+
+@pytest.mark.parametrize("fixture_id", [f"QF{ordinal:02d}" for ordinal in range(1, 16)])
+def test_all_qf_caches_match_schema_and_build_explicit_read_only_features(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+    fixture_id: str,
+) -> None:
+    cache_path = _write_fixture(tmp_path, truth, surface, fixture_id)
+    with zipfile.ZipFile(cache_path) as archive:
+        assert archive.namelist() == [
+            f"{name}.npy"
+            for name in sorted(
+                [
+                    *surface["source_schema_v4"]["row_fields"],
+                    *surface["source_schema_v4"]["metadata_fields"],
+                ]
+            )
+        ]
+        assert all(
+            info.compress_type == zipfile.ZIP_STORED for info in archive.infolist()
+        )
+        assert all(
+            info.date_time == (1980, 1, 1, 0, 0, 0) for info in archive.infolist()
+        )
+    bundle = _call_build_features(core, cache_path)
+    assert isinstance(bundle, core.FeatureBundle)
+    assert _bundle_field_names(bundle) == EXPECTED_BUNDLE_FIELDS
+    assert not hasattr(bundle, "_features")
+    for name, value in _bundle_array_rows(bundle):
+        assert value.flags.writeable is False, f"{name} must be read-only"
+    assert np.asarray(bundle.event_masks).shape == (9000, 3)
+    assert np.asarray(bundle.ratios_100).shape == (9000, 3)
+    assert np.asarray(bundle.ratios_500).shape == (9000, 3)
+    assert np.asarray(bundle.actions).shape == (9000, 3)
+    assert np.asarray(bundle.memories).shape == (9000, 3)
+    assert np.asarray(bundle.memory_ages_ms).shape == (9000, 3)
+
+
+@pytest.mark.parametrize(
+    ("fixture_id", "expected_anchor_count", "expected_cause"),
+    [
+        ("QF01", 0, None),
+        ("QF02", 1, "DEPTH_FOLLOWER_SAME"),
+        ("QF03", 1, "EXPLICIT_CONTRADICTION"),
+        ("QF04", 1, "CENSOR_60S"),
+        ("QF05", 1, "EXPLICIT_CONTRADICTION"),
+        ("QF06", 1, "CENSOR_SEGMENT_BOUNDARY"),
+        ("QF07", 1, "DEPTH_FOLLOWER_SAME"),
+        ("QF08", 1, "DEPTH_FOLLOWER_SAME"),
+        ("QF09", 1, "DEPTH_FOLLOWER_SAME"),
+        ("QF10", 1, None),
+        ("QF11", 0, None),
+        ("QF12", 1, None),
+        ("QF13", 1, None),
+        ("QF14", 1, "CENSOR_60S"),
+        ("QF15", 1, "CENSOR_60S"),
+    ],
+)
+def test_qf01_qf15_production_analysis_matches_registered_anchor_and_cause(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+    fixture_id: str,
+    expected_anchor_count: int,
+    expected_cause: str | None,
+) -> None:
+    cache_path = _write_fixture(tmp_path, truth, surface, fixture_id)
+    result = _invoke_fixture_analysis(
+        core, fixture_id=fixture_id, cache_path=cache_path
+    )
+    anchors = _analysis_anchor_rows(result)
+    outcomes = _analysis_outcome_rows(result)
+    assert len(anchors) == expected_anchor_count
+    if expected_cause is not None:
+        assert len(outcomes) == 1
+        assert _row_value(outcomes[0], "cause") == expected_cause
+    expected = _fixture_by_id(truth, fixture_id)["expected"]
+    anchor_truth = expected.get("anchor")
+    if anchor_truth is not None:
+        assert _row_value(anchors[0], "anchor_id") == anchor_truth["anchor_id"]
+        assert int(_row_value(anchors[0], "anchor_ts_ns")) == anchor_truth["ts_ns"]
+    outcome_truth = expected.get("outcome")
+    if outcome_truth is not None:
+        assert _row_value(outcomes[0], "detail") == outcome_truth["detail"]
+        event_ts = _row_value(
+            outcomes[0],
+            "event_ts_ns",
+            _row_value(outcomes[0], "ts_ns"),
+        )
+        assert int(event_ts) == outcome_truth["ts_ns"]
+
+
+def test_qf13_causal_view_rejects_first_future_directional_read(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+) -> None:
+    cache_path = _write_fixture(tmp_path, truth, surface, "QF13")
+    bundle = _call_build_features(core, cache_path)
+    view = _construct_view(
+        core.CausalView,
+        bundle=bundle,
+        fixture_id="QF13",
+        anchor_index=4510,
+    )
+    _view_read(
+        view,
+        field="trade_signed",
+        index=4510,
+        purpose="boundary_control",
+    )
+    with pytest.raises(BaseException) as caught:
+        _view_read(
+            view,
+            field="trade_signed",
+            index=4511,
+            purpose="hostile_future_directional_read",
+        )
+    assert _exception_code(caught.value) == "CAUSAL_ACCESS_BOUNDARY"
+
+
+def test_a_minus1a_never_calls_structural_outcome_label(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache_path = _write_fixture(tmp_path, truth, surface, "QF02")
+
+    def forbidden(*args: object, **kwargs: object) -> object:
+        raise AssertionError(f"A_MINUS1A crossed outcome boundary: {args!r} {kwargs!r}")
+
+    monkeypatch.setattr(core, "label_structural_outcomes", forbidden)
+    result = core.analyze_cache_in_stage(
+        cache_path,
+        fixture_id="QF02",
+        stage="A_MINUS1A",
+    )
+    assert len(result.anchor_analysis.anchors) == 1
+    assert result.outcomes == ()
+
+
+def test_availability_and_outcome_views_enforce_disjoint_field_domains(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+) -> None:
+    cache_path = _write_fixture(tmp_path, truth, surface, "QF02")
+    bundle = _call_build_features(core, cache_path)
+    availability = core.AvailabilityView(bundle, fixture_id="QF02")
+    assert (
+        int(
+            availability.read(
+                "event_seq",
+                4511,
+                anchor_ts_ns=90_200_000_000,
+                purpose="future_availability_identity",
+            )
+        )
+        == 4511
+    )
+    with pytest.raises(core.StructuralCoreError) as caught:
+        availability.read(
+            "trade_signed",
+            4511,
+            anchor_ts_ns=90_200_000_000,
+            purpose="future_direction_forbidden",
+        )
+    assert caught.value.code == "OUTCOME_ACCESS_BOUNDARY"
+
+    outcome = core.OutcomeView(bundle, fixture_id="QF02")
+    assert (
+        int(
+            outcome.read(
+                "actions.depletion",
+                4514,
+                anchor_ts_ns=90_200_000_000,
+                purpose="registered_structural_endpoint",
+            )
+        )
+        == core.NEW_POS
+    )
+    with pytest.raises(core.StructuralCoreError) as caught:
+        outcome.read(
+            "midpoint",
+            4514,
+            anchor_ts_ns=90_200_000_000,
+            purpose="price_outcome_forbidden",
+        )
+    assert caught.value.code == "OUTCOME_ACCESS_BOUNDARY"
+
+
+def test_qf13_post_anchor_mutation_preserves_all_registered_model_inputs(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+) -> None:
+    clean = _write_fixture(tmp_path / "clean", truth, surface, "QF13")
+    mutated = _write_fixture(
+        tmp_path / "mutated",
+        truth,
+        surface,
+        "QF13",
+        qf13_mutated=True,
+    )
+    clean_result = _invoke_fixture_analysis(core, fixture_id="QF13", cache_path=clean)
+    mutated_result = _invoke_fixture_analysis(
+        core, fixture_id="QF13", cache_path=mutated
+    )
+    clean_inputs = _analysis_model_inputs(clean_result)
+    mutated_inputs = _analysis_model_inputs(mutated_result)
+    assert set(clean_inputs) == set(MODEL_INPUT_NAMES)
+    assert clean_inputs == mutated_inputs
+    expected = _fixture_by_id(truth, "QF13")["expected"]["model_inputs"]
+    for name, value in expected.items():
+        assert float(clean_inputs[name]) == pytest.approx(float(value), abs=1e-15)
+
+
+@pytest.mark.parametrize("fixture_id", ["QF14", "QF15"])
+def test_qf14_qf15_reset_is_non_vacuous_and_clears_cross_segment_memory(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+    fixture_id: str,
+) -> None:
+    cache_path = _write_fixture(tmp_path, truth, surface, fixture_id)
+    result = _invoke_fixture_analysis(
+        core, fixture_id=fixture_id, cache_path=cache_path
+    )
+    bundle = _value(result, "bundle")
+    if bundle is None:
+        bundle = _call_build_features(core, cache_path)
+    assert np.asarray(bundle.actions)[2999].tolist() == [3, 5, 5]
+    assert np.asarray(bundle.memories)[2999].tolist() == [-1, 0, 0]
+    assert np.asarray(bundle.memory_ages_ms)[2999].tolist() == [0, 80, 80]
+    assert np.asarray(bundle.memories)[3000].tolist() == [9, 9, 9]
+    reset_rows = _analysis_reset_rows(result)
+    assert len(reset_rows) == 1
+    assert int(_row_value(reset_rows[0], "cross_segment_carry_count")) == 0
+
+
+@pytest.mark.parametrize("fixture_id", ["QF07", "QF08", "QF15"])
+def test_registered_slices_have_nonempty_comparison_universe(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+    fixture_id: str,
+) -> None:
+    cache_path = _write_fixture(tmp_path / "full", truth, surface, fixture_id)
+    expected = _fixture_by_id(truth, fixture_id)["expected"]
+    slice_path = tmp_path / "slice" / f"{fixture_id}.npz"
+    materialize = core.materialize_slice
+    parameters = inspect.signature(materialize).parameters
+    kwargs: dict[str, object] = {}
+    aliases = {
+        "input_path": cache_path,
+        "cache_path": cache_path,
+        "source_path": cache_path,
+        "output_path": slice_path,
+        "destination_path": slice_path,
+        "segment_id": int(
+            _fixture_arrays(truth, surface, fixture_id)["segment_id"][3000]
+        ),
+        "nominal_start_ns": int(expected["slice_nominal_start_ns"]),
+        "nominal_start_ts_ns": int(expected["slice_nominal_start_ns"]),
+    }
+    for name, parameter in parameters.items():
+        if name in aliases:
+            kwargs[name] = aliases[name]
+        elif parameter.default is inspect.Parameter.empty:
+            pytest.fail(f"unsupported required materialize_slice field: {name}")
+    materialized = materialize(**kwargs)
+    assert slice_path.is_file()
+    full_result = _invoke_fixture_analysis(
+        core, fixture_id=fixture_id, cache_path=cache_path
+    )
+    slice_result = _invoke_fixture_analysis(
+        core, fixture_id=fixture_id, cache_path=slice_path
+    )
+    compare = core.compare_slice
+    compare_parameters = inspect.signature(compare).parameters
+    full_bundle = _value(full_result, "bundle")
+    if full_bundle is None:
+        full_bundle = _call_build_features(core, cache_path)
+    slice_bundle = _value(slice_result, "bundle")
+    if slice_bundle is None:
+        slice_bundle = _call_build_features(core, slice_path)
+    compare_aliases = {
+        "full_bundle": full_bundle,
+        "full_analysis": full_result,
+        "slice_bundle": slice_bundle,
+        "slice_analysis": slice_result,
+        "fixture_id": fixture_id,
+        "nominal_start_ns": int(expected["slice_nominal_start_ns"]),
+        "actual_start_ns": int(_row_value(materialized, "actual_start_ns")),
+    }
+    compare_kwargs: dict[str, object] = {}
+    for name, parameter in compare_parameters.items():
+        if name in compare_aliases:
+            compare_kwargs[name] = compare_aliases[name]
+        elif parameter.default is inspect.Parameter.empty:
+            pytest.fail(f"unsupported required compare_slice field: {name}")
+    comparison = compare(**compare_kwargs)
+    assert int(_row_value(comparison, "comparable_epoch_count")) >= 2
+    assert int(_row_value(comparison, "comparable_anchor_count")) >= 1
+    assert _row_value(comparison, "mismatch_reason") in ("", None, "NONE")
+
+
+def test_a_b_p_inputs_are_physically_distinct_and_poison_is_unconsumed(
+    tmp_path: Path,
+    truth: Mapping[str, Any],
+    surface: Mapping[str, Any],
+    core: ModuleType,
+    runner: ModuleType,
+) -> None:
+    paths: dict[str, dict[str, Path]] = {}
+    bundles: dict[str, dict[str, object]] = {}
+    for label in ("A", "B", "P"):
+        paths[label] = {}
+        bundles[label] = {}
+        for fixture_id in truth["fixture_order"]:
+            expected_arrays = _fixture_arrays(
+                truth,
+                surface,
+                fixture_id,
+                poison=(label == "P" and fixture_id == "QF10"),
+            )
+            runner_arrays = runner.construct_fixture_arrays(
+                truth,
+                surface,
+                fixture_id,
+                poison=(label == "P" and fixture_id == "QF10"),
+            )
+            assert set(runner_arrays) == set(expected_arrays)
+            for field in expected_arrays:
+                np.testing.assert_array_equal(
+                    runner_arrays[field],
+                    expected_arrays[field],
+                )
+            path = _write_fixture(
+                tmp_path / "inputs" / label,
+                truth,
+                surface,
+                fixture_id,
+                poison=(label == "P" and fixture_id == "QF10"),
+            )
+            paths[label][fixture_id] = path
+            bundles[label][fixture_id] = _call_build_features(core, path)
+
+    assert all(
+        paths[label][fixture_id]
+        .resolve()
+        .is_relative_to((tmp_path / "inputs" / label).resolve())
+        for label in ("A", "B", "P")
+        for fixture_id in truth["fixture_order"]
+    )
+    for fixture_id in truth["fixture_order"]:
+        assert (
+            paths["A"][fixture_id].read_bytes() == paths["B"][fixture_id].read_bytes()
+        )
+        if fixture_id == "QF10":
+            assert (
+                paths["A"][fixture_id].read_bytes()
+                != paths["P"][fixture_id].read_bytes()
+            )
+        else:
+            assert (
+                paths["A"][fixture_id].read_bytes()
+                == paths["P"][fixture_id].read_bytes()
+            )
+        for name, a_value in _bundle_array_rows(bundles["A"][fixture_id]):
+            p_value = dict(_bundle_array_rows(bundles["P"][fixture_id]))[name]
+            np.testing.assert_array_equal(a_value, p_value)
+
+    ledger_rows = [
+        row
+        for label in ("A", "B", "P")
+        for fixture_id in truth["fixture_order"]
+        for row in getattr(bundles[label][fixture_id], "source_access_ledger")
+    ]
+    assert all(
+        _row_value(row, "field") != "bin_boundary_violations" for row in ledger_rows
+    )
+
+
+def test_fixture_call_contract_is_exact_57_with_full_before_slice(
+    truth: Mapping[str, Any], surface: Mapping[str, Any]
+) -> None:
+    contract = surface["fixture_call_contract"]
+    expected = []
+    call_index = 0
+    for build_label in contract["build_labels"]:
+        for fixture_id in truth["fixture_order"]:
+            expected.append((build_label, call_index, fixture_id, "FULL"))
+            call_index += 1
+            if fixture_id in contract["slice_fixture_ids"]:
+                expected.append((build_label, call_index, fixture_id, "SLICE"))
+                call_index += 1
+    assert len(expected) == 57
+    assert call_index == contract["total_feature_calls"]
+    assert sum(row[3] == "FULL" for row in expected) == 45
+    assert sum(row[3] == "SLICE" for row in expected) == 12
+
+
+def test_canonical_json_csv_and_manifest_contract_rejects_alternate_bytes(
+    tmp_path: Path, surface: Mapping[str, Any], verifier: ModuleType
+) -> None:
+    validate_json = _find_callable(
+        verifier,
+        (
+            "read_canonical_json",
+            "_read_canonical_json",
+            "verify_canonical_json",
+            "_verify_canonical_json",
+            "read_json",
+        ),
+    )
+    validate_csv = _find_callable(
+        verifier,
+        (
+            "read_canonical_csv",
+            "_read_canonical_csv",
+            "verify_canonical_csv",
+            "_verify_canonical_csv",
+            "read_csv",
+        ),
+    )
+
+    json_path = tmp_path / "value.json"
+    json_path.write_bytes(_canonical_json_bytes({"a": 1, "b": 2}, final_lf=True))
+    _invoke_path_validator(validate_json, json_path)
+    json_path.write_bytes(b'{"a":1, "b":2}\n')
+    with pytest.raises(BaseException):
+        _invoke_path_validator(validate_json, json_path)
+
+    relative = "support/slice_invariance.csv"
+    fields_for_csv = surface["csv_contract"]["schemas"][relative]["fields"]
+    row = {field: "NONE" for field in fields_for_csv}
+    row.update(
+        {
+            "fixture_id": "QF07",
+            "nominal_start_ns": "60000000000",
+            "actual_start_ns": "60000000000",
+            "common_epoch_ids_json": "[1,2]",
+            "comparable_epoch_count": "2",
+            "comparable_anchor_count": "1",
+        }
+    )
+    csv_path = tmp_path / "slice_invariance.csv"
+    canonical = _canonical_csv_bytes(fields_for_csv, [row])
+    csv_path.write_bytes(canonical)
+    _invoke_path_validator(
+        validate_csv,
+        csv_path,
+        relative=relative,
+        fields=fields_for_csv,
+    )
+    csv_path.write_bytes(canonical.replace(b"\n", b"\r\n"))
+    with pytest.raises(BaseException):
+        _invoke_path_validator(
+            validate_csv,
+            csv_path,
+            relative=relative,
+            fields=fields_for_csv,
+        )
+    csv_path.write_bytes(_quote_all_csv_bytes(fields_for_csv, [row]))
+    with pytest.raises(BaseException):
+        _invoke_path_validator(
+            validate_csv,
+            csv_path,
+            relative=relative,
+            fields=fields_for_csv,
+        )
+
+    manifest_schema = surface["manifest_schema"]
+    assert manifest_schema["row_fields"] == ["path", "sha256", "size_bytes"]
+    rows = [
+        {"path": "a", "sha256": "a" * 64, "size_bytes": 1},
+        {"path": "b", "sha256": "b" * 64, "size_bytes": 2},
+    ]
+    manifest = {
+        "manifest_kind": "RAW",
+        "rows": rows,
+        "schema_version": 1,
+    }
+    manifest_root = tmp_path / "manifest_root"
+    manifest_root.mkdir()
+    (manifest_root / "a").write_bytes(b"x")
+    (manifest_root / "b").write_bytes(b"yy")
+    rows = [
+        {"path": "a", "sha256": _sha256_bytes(b"x"), "size_bytes": 1},
+        {"path": "b", "sha256": _sha256_bytes(b"yy"), "size_bytes": 2},
+    ]
+    manifest["rows"] = rows
+    manifest_path = manifest_root / "raw_manifest.json"
+    manifest_path.write_bytes(_canonical_json_bytes(manifest, final_lf=True))
+    validate_manifest = _find_callable(
+        verifier,
+        (
+            "validate_manifest",
+            "_validate_manifest",
+            "verify_manifest",
+            "_verify_manifest",
+        ),
+    )
+    _invoke_manifest_validator(
+        validate_manifest,
+        manifest_path,
+        "RAW",
+        root=manifest_root,
+        relatives=("a", "b"),
+    )
+    manifest["rows"] = list(reversed(rows))
+    manifest_path.write_bytes(_canonical_json_bytes(manifest, final_lf=True))
+    with pytest.raises(BaseException) as caught:
+        _invoke_manifest_validator(
+            validate_manifest,
+            manifest_path,
+            "RAW",
+            root=manifest_root,
+            relatives=("a", "b"),
+        )
+    assert (
+        "PACKAGE_LINEAGE_ORDER" in str(caught.value)
+        or "order" in str(caught.value).lower()
+    )
+
+
+def test_runner_canonical_npz_keeps_zero_external_attributes(
+    runner: ModuleType,
+) -> None:
+    payload = runner.canonical_npz_bytes(
+        {
+            "a": np.asarray([1, 2], dtype=np.int64),
+            "b": np.asarray([0.25], dtype=np.float64),
+        }
+    )
+    with zipfile.ZipFile(io.BytesIO(payload), "r") as archive:
+        assert [row.filename for row in archive.infolist()] == ["a.npy", "b.npy"]
+        assert all(row.external_attr == 0 for row in archive.infolist())
+
+
+def _invoke_path_validator(
+    function: Callable[..., Any],
+    path: Path,
+    *,
+    relative: str | None = None,
+    fields: Sequence[str] | None = None,
+) -> object:
+    kwargs: dict[str, object] = {}
+    aliases: dict[str, object] = {
+        "path": path,
+        "json_path": path,
+        "csv_path": path,
+        "relative_path": relative,
+        "schema_path": relative,
+        "fields": fields,
+        "fieldnames": fields,
+    }
+    for name, parameter in inspect.signature(function).parameters.items():
+        if name in aliases and aliases[name] is not None:
+            kwargs[name] = aliases[name]
+        elif parameter.default is inspect.Parameter.empty:
+            pytest.fail(f"unsupported required canonical validator field: {name}")
+    return function(**kwargs)
+
+
+def _invoke_manifest_validator(
+    function: Callable[..., Any],
+    path: Path,
+    manifest_kind: str,
+    *,
+    root: Path,
+    relatives: Sequence[str],
+) -> object:
+    kwargs: dict[str, object] = {}
+    aliases = {
+        "path": path,
+        "manifest_path": path,
+        "manifest_kind": manifest_kind,
+        "kind": manifest_kind,
+        "root": root,
+        "relatives": relatives,
+        "relative_paths": relatives,
+    }
+    for name, parameter in inspect.signature(function).parameters.items():
+        if name in aliases:
+            kwargs[name] = aliases[name]
+        elif parameter.default is inspect.Parameter.empty:
+            pytest.fail(f"unsupported required manifest validator field: {name}")
+    return function(**kwargs)
+
+
+def _quote_all_csv_bytes(
+    fieldnames: Sequence[str], rows: Sequence[Mapping[str, object]]
+) -> bytes:
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        output,
+        fieldnames=list(fieldnames),
+        quoting=csv.QUOTE_ALL,
+        lineterminator="\n",
+    )
+    writer.writeheader()
+    writer.writerows(rows)
+    return output.getvalue().encode("ascii")
+
+
+def test_registered_hostile_probe_order_and_first_errors_are_complete(
+    truth: Mapping[str, Any], surface: Mapping[str, Any]
+) -> None:
+    truth_rows = truth["negative_probe_order"]
+    surface_rows = surface["hostile_mutations"]
+    assert [row["probe_id"] for row in surface_rows] == [
+        row["probe_id"] for row in truth_rows
+    ]
+    assert [row["expected_first_error"] for row in surface_rows] == [
+        row["error_code"] for row in truth_rows
+    ]
+    assert len(surface_rows) == 14
+    assert {row["probe_id"] for row in surface_rows} >= {
+        "QF11_MISSING_ARTIFACT",
+        "QF11_EXTRA_ARTIFACT",
+        "QF11_REORDERED_MANIFEST",
+        "QF12_INTERRUPT_BEFORE_SLICE_PUBLICATION",
+        "QF12_INTERRUPT_AFTER_SLICE_PUBLICATION",
+        "QF13_CAUSAL_PREFIX_MUTATION",
+        "RESET_IDENTITY_MISMATCH",
+        "CROSS_SEGMENT_CARRY_NONZERO",
+    }
+
+
+def test_formal_pipeline_generates_nonempty_negative_boundary_evidence() -> None:
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    reachable = _reachable_functions(calls, "execute_pipeline")
+    reachable_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(reachable & set(functions))
+    )
+    assert "negative_boundary_results.csv" in reachable_text
+    assert "hostile_mutations" in reachable_text
+    assert "negative_probe_order" in reachable_text
+    assert not re.search(
+        r"publish_csv\(\s*package_root\s*/\s*"
+        r"[\"']negative_boundary_results\.csv[\"']\s*,\s*\[\]",
+        reachable_text,
+    )
+
+
+def test_terminal_verifier_independently_replays_negative_boundaries() -> None:
+    functions, calls = _module_function_graph(VERIFIER_PATH)
+    reachable = _reachable_functions(calls, "check_q11")
+    reachable_text = "\n".join(
+        _function_text(VERIFIER_PATH, functions[name])
+        for name in sorted(reachable & set(functions))
+    )
+    assert "hostile_mutations" in reachable_text
+    assert "negative_probe_order" in reachable_text
+    assert any(
+        marker in reachable_text
+        for marker in ("copytree", "TemporaryDirectory", "mkdtemp")
+    )
+    assert "observed_first_error" in reachable_text
+
+
+def test_raw_git_parser_accepts_exact_empty_and_nonempty_framing(
+    runner: ModuleType,
+) -> None:
+    parser = _raw_parser(runner)
+    assert _call_raw_parser(parser, b"") in ([], ())
+    metadata = b":100644 100644 " + b"0" * 40 + b" " + b"1" * 40 + b" M"
+    parsed = _call_raw_parser(parser, metadata + b"\x00tracked.txt\x00")
+    assert len(parsed) == 1
+    row = parsed[0]
+    assert row["path"] == "tracked.txt"
+    assert row["status"] == "M"
+    for bad in (
+        b"\x00",
+        metadata,
+        metadata + b"\x00",
+        metadata + b"\x00tracked.txt",
+        metadata + b"\x00../tracked.txt\x00",
+        metadata + b"\x00tracked.txt\x00" + metadata + b"\x00tracked.txt\x00",
+    ):
+        with pytest.raises(BaseException):
+            _call_raw_parser(parser, bad)
+
+
+def test_raw_git_parser_observes_delete_and_add_without_rename_collapse(
+    tmp_path: Path,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    repo = tmp_path / "repo"
+    _init_git_repo(repo)
+    (repo / "tracked.txt").rename(repo / "claimed.txt")
+    _git(repo, "add", "-A")
+    command = surface["one_shot"]["git_history_contract"]["git_observation_contract"][
+        "cached_raw_command"
+    ]
+    raw = subprocess.run(
+        command,
+        cwd=repo,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    ).stdout
+    rows = _call_raw_parser(_raw_parser(runner), raw)
+    assert [(row["status"], row["path"]) for row in rows] == [
+        ("A", "claimed.txt"),
+        ("D", "tracked.txt"),
+    ]
+
+
+def test_physical_inventory_detects_mode_and_exact_byte_mutations(
+    tmp_path: Path,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    repo = tmp_path / "repo"
+    _init_git_repo(repo)
+    canonical_fields = set(
+        surface["one_shot"]["git_history_contract"]["git_observation_contract"][
+            "canonical_observation_fields"
+        ]
+    )
+    baseline = runner.observe_git(repo, surface)
+    assert set(baseline) == canonical_fields
+    baseline_physical = {row["path"]: row for row in baseline["physical_rows"]}
+    assert baseline_physical["tracked.txt"]["lstat_mode"] == "0644"
+    assert baseline_physical["tracked.txt"]["sha256"] == _sha256_bytes(b"alpha\n")
+    assert baseline_physical["tracked.txt"]["exact_blob"] == runner.git_blob_oid(
+        b"alpha\n"
+    )
+
+    tracked = repo / "tracked.txt"
+    tracked.chmod(0o755)
+    mode_observation = runner.observe_git(repo, surface)
+    mode_physical = {row["path"]: row for row in mode_observation["physical_rows"]}
+    assert mode_physical["tracked.txt"]["lstat_mode"] == "0755"
+    assert mode_physical != baseline_physical
+
+    tracked.chmod(0o644)
+    tracked.write_bytes(b"alphA\n")
+    byte_observation = runner.observe_git(repo, surface)
+    byte_physical = {row["path"]: row for row in byte_observation["physical_rows"]}
+    assert byte_physical["tracked.txt"]["lstat_mode"] == "0644"
+    assert byte_physical["tracked.txt"]["sha256"] == _sha256_bytes(b"alphA\n")
+    assert byte_physical["tracked.txt"]["exact_blob"] == runner.git_blob_oid(b"alphA\n")
+    assert byte_physical != baseline_physical
+
+
+def test_revision15_22_variants_rederive_exact_704_row_aggregate(
+    surface: Mapping[str, Any], runner: ModuleType
+) -> None:
+    contract = surface["one_shot"]["git_history_contract"]["git_observation_contract"]
+    variants = contract["action_phase_preimage_variants"]
+    assert [row["variant_ordinal"] for row in variants] == list(range(22))
+    matrix = contract["mutation_probe_matrix"]
+    assert matrix["repository_config_rows"] == [
+        {
+            "core_autocrlf": False,
+            "core_filemode": False,
+            "diff_renames": False,
+        },
+        {
+            "core_autocrlf": True,
+            "core_filemode": False,
+            "diff_renames": False,
+        },
+        {
+            "core_autocrlf": False,
+            "core_filemode": True,
+            "diff_renames": False,
+        },
+        {
+            "core_autocrlf": True,
+            "core_filemode": True,
+            "diff_renames": False,
+        },
+        {
+            "core_autocrlf": False,
+            "core_filemode": False,
+            "diff_renames": True,
+        },
+        {
+            "core_autocrlf": True,
+            "core_filemode": False,
+            "diff_renames": True,
+        },
+        {
+            "core_autocrlf": False,
+            "core_filemode": True,
+            "diff_renames": True,
+        },
+        {
+            "core_autocrlf": True,
+            "core_filemode": True,
+            "diff_renames": True,
+        },
+    ]
+    rows = _rederive_mutation_rows(surface)
+    assert len(rows) == matrix["row_count"] == 704
+    assert _sha256_bytes(_canonical_json_bytes(rows)) == MUTATION_MATRIX_SHA256
+    assert matrix["canonical_rows_sha256"] == MUTATION_MATRIX_SHA256
+
+    runner_source = RUNNER_PATH.read_text(encoding="ascii")
+    assert MUTATION_MATRIX_SHA256 in runner_source
+    assert "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY" in runner_source
+
+
+def test_formal_and_recovery_reach_observe_git_backed_g01_g07_gate(
+    surface: Mapping[str, Any],
+) -> None:
+    machine = surface["one_shot"]["workflow_blockers"]["local_git_state_machine"]
+    rule_ids = {row["rule_id"] for row in machine["ordered_invalid_rules"]}
+    assert rule_ids == {
+        "G01_CONTROLLER_REF_NOT_EXPECTED",
+        "G02_CLAIM_STATE_MISMATCH",
+        "G03_HEAD_MISMATCH",
+        "G04_COMMIT_IDENTITY_MISMATCH",
+        "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
+        "G06_CONSUMPTION_TAG_MISMATCH",
+        "G07_TERMINAL_TAG_MISMATCH",
+    }
+
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    for entrypoint in ("execute_formal_outer", "recover_formal"):
+        assert entrypoint in functions
+        reachable = _reachable_functions(calls, entrypoint)
+        reachable_text = "\n".join(
+            _function_text(RUNNER_PATH, functions[name])
+            for name in sorted(reachable & set(functions))
+        )
+        assert "local_git_state_machine" in reachable_text
+        assert "expected_local_state_by_action_phase" in reachable_text
+        assert _reachable_call(calls, entrypoint, {"observe_git"})
+        missing_rules = sorted(rule_ids - set(reachable_text.split('"')))
+        assert not missing_rules, (
+            f"{entrypoint} can mutate or terminalize without the complete "
+            f"ordered G01-G07 gate: missing {missing_rules}"
+        )
+
+
+def test_shared_recovery_resolver_covers_legal_interruption_profiles(
+    surface: Mapping[str, Any],
+) -> None:
+    resolver_contract = surface["one_shot"]["formal_process_receipts"][
+        "terminal_state_resolver"
+    ]
+    valid_profiles = resolver_contract["artifact_state_machine"][
+        "valid_presence_profiles"
+    ]
+    assert valid_profiles == {
+        "000000": "FAIL_PRE_PRODUCER",
+        "100000": "FAIL_PRODUCER_INTERRUPTED",
+        "110000": "FAIL_PRE_VERIFIER",
+        "111000": "FAIL_VERIFIER_INTERRUPTED",
+        "111100": (
+            "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS only for a registered "
+            "verifier tuple that forbids result"
+        ),
+        "111110": (
+            "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS for verifier exit 2; "
+            "PASS_RECOVERY_PENDING_BASELINE for successful producer plus "
+            "accepted verifier exit 0"
+        ),
+        "111111": "PASS_COMPLETE only after A08 and exact baseline verification",
+    }
+
+    functions, calls = _module_function_graph(RUNNER_PATH)
+    required_markers = {
+        "FAIL_PRE_PRODUCER",
+        "FAIL_PRODUCER_INTERRUPTED",
+        "FAIL_PRE_VERIFIER",
+        "FAIL_VERIFIER_INTERRUPTED",
+        "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
+        "FORMAL_PRODUCER_INTERRUPTED",
+        "TERMINAL_VERIFIER_INTERRUPTED",
+    }
+    resolver_candidates = {
+        name
+        for name, node in functions.items()
+        if required_markers <= set(_function_text(RUNNER_PATH, node).split('"'))
+    }
+    assert resolver_candidates, (
+        "no shared resolver represents invocation-without-exit interruption states"
+    )
+    for entrypoint in ("execute_formal_outer", "recover_formal"):
+        assert _reachable_call(calls, entrypoint, resolver_candidates), (
+            f"{entrypoint} does not use the shared durable-state resolver"
+        )
+
+    recovery_reachable = _reachable_functions(calls, "recover_formal")
+    recovery_text = "\n".join(
+        _function_text(RUNNER_PATH, functions[name])
+        for name in sorted(recovery_reachable & set(functions))
+    )
+    for durable_artifact in (
+        "formal_producer_invocation.json",
+        "formal_producer_exit.json",
+        "terminal_verifier_invocation.json",
+        "terminal_verifier_exit.json",
+        "terminal_verifier_result.json",
+    ):
+        assert durable_artifact in recovery_text
+    assert "run_one_shot_child" not in recovery_text
+
+
+@pytest.mark.parametrize(
+    "profile",
+    [
+        "FAIL_PRE_PRODUCER",
+        "FAIL_PRODUCER_INTERRUPTED",
+        "FAIL_PRE_VERIFIER",
+        "FAIL_VERIFIER_INTERRUPTED",
+        "FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
+        "PASS_COMPLETE",
+    ],
+)
+def test_terminal_receipt_stage_profiles_are_deterministic_and_surface_owned(
+    profile: str,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    producer = {
+        "exit_code": 0,
+        "handoff_status": "ACKED",
+        "launch_status": "STARTED",
+    }
+    verifier = {
+        "exit_code": 0,
+        "first_error": "NONE",
+        "handoff_status": "ACKED",
+        "launch_status": "STARTED",
+        "package_terminal_manifest_sha256": "a" * 64,
+        "result_sha256": "b" * 64,
+    }
+    kwargs = {
+        "surface": surface,
+        "profile": profile,
+        "first_error": "NONE" if profile == "PASS_COMPLETE" else "TEST_ERROR",
+        "producer": producer,
+        "verifier": verifier,
+        "consumption_commit": "c" * 40,
+        "consumption_receipt_sha256": "d" * 64,
+    }
+    first = runner._terminal_receipt(**kwargs)
+    second = runner._terminal_receipt(**kwargs)
+    assert first == second
+    frozen = surface["one_shot"]["terminal_stage_profiles"][profile]
+    assert first["completed_stages_json"] == frozen["completed_stages_json"]
+    assert first["missing_stages_json"] == frozen["missing_stages_json"]
+
+
+@pytest.mark.parametrize("child_kind", ["producer", "verifier"])
+def test_child_handoff_accepts_only_exact_locked_runtime_and_one_byte_ack(
+    tmp_path: Path,
+    child_kind: str,
+) -> None:
+    accepted = _handoff_probe(tmp_path, child_kind=child_kind, mutation="valid")
+    assert accepted.returncode == 0, accepted.stderr
+    assert accepted.stdout.strip() == "41:"
+
+    for mutation in ("wrong_lock", "unlocked", "ack_read_only", "ack_regular"):
+        rejected = _handoff_probe(
+            tmp_path,
+            child_kind=child_kind,
+            mutation=mutation,
+        )
+        assert rejected.returncode == 42, (
+            f"{child_kind} accepted hostile handoff mutation {mutation}: "
+            f"stdout={rejected.stdout!r} stderr={rejected.stderr!r}"
+        )
+
+
+@pytest.mark.parametrize("script", [RUNNER_PATH, VERIFIER_PATH])
+def test_runner_and_verifier_help_are_side_effect_free(
+    tmp_path: Path, script: Path
+) -> None:
+    before = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
+    result = subprocess.run(
+        [sys.executable, str(script), "--help"],
+        cwd=tmp_path,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        timeout=30,
+        env={"PATH": os.environ.get("PATH", "")},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "usage:" in result.stdout.lower()
+    after = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
+    assert after == before
+
+
+def test_runner_cli_has_only_frozen_modes_and_no_external_input_root() -> None:
+    result = _run_help(RUNNER_PATH)
+    assert result.returncode == 0, result.stderr
+    help_text = result.stdout
+    for flag in ("--formal", "--formal-producer", "--recover", "--attempt-root"):
+        assert flag in help_text
+    for forbidden in (
+        "--input-root",
+        "--cache-root",
+        "--source-root",
+        "--historical",
+        "--outcome",
+    ):
+        assert forbidden not in help_text
+
+
+def test_verifier_cli_requires_package_root_and_result_only_from_tmp() -> None:
+    result = _run_help(VERIFIER_PATH)
+    assert result.returncode == 0, result.stderr
+    help_text = result.stdout
+    for flag in (
+        "--package-root",
+        "--result",
+        "--runtime-lock-fd",
+        "--handoff-ack-fd",
+    ):
+        assert flag in help_text
+    for forbidden in ("--input-root", "--cache-root", "--formal", "--recover"):
+        assert forbidden not in help_text
+
+
+def test_package_path_contract_is_exact_and_regular_file_only(
+    tmp_path: Path, surface: Mapping[str, Any]
+) -> None:
+    package = tmp_path / "package"
+    package.mkdir()
+    for directory in surface["package_directories"]:
+        (package / directory).mkdir(parents=True, exist_ok=True)
+    for relative in surface["package_layout"]["package_files"]:
+        path = package / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x\n")
+    files = sorted(
+        path.relative_to(package).as_posix()
+        for path in package.rglob("*")
+        if path.is_file()
+    )
+    directories = sorted(
+        path.relative_to(package).as_posix()
+        for path in package.rglob("*")
+        if path.is_dir()
+    )
+    assert files == sorted(surface["package_layout"]["package_files"])
+    assert directories == sorted(surface["package_directories"])
+    assert len(files) == 57
+    assert all(stat.S_ISREG((package / relative).lstat().st_mode) for relative in files)
+
+
+def test_package_verifier_rejects_missing_extra_symlink_and_fifo_first(
+    tmp_path: Path, surface: Mapping[str, Any], verifier: ModuleType
+) -> None:
+    verify_paths = _find_callable(
+        verifier,
+        (
+            "verify_package_paths",
+            "_verify_package_paths",
+            "verify_package_path_set",
+            "_verify_package_path_set",
+            "check_q07",
+        ),
+    )
+    baseline = tmp_path / "baseline"
+    _create_path_complete_package_skeleton(baseline, surface)
+    _invoke_package_path_verifier(verify_paths, baseline, surface)
+
+    missing = tmp_path / "missing"
+    _copy_tree_regular(baseline, missing)
+    (missing / "builds/A/structural/support/fixture_summary.csv").unlink()
+    with pytest.raises(BaseException) as caught:
+        _invoke_package_path_verifier(verify_paths, missing, surface)
+    assert _exception_code(caught.value) == "PACKAGE_PATH_SET_MISSING"
+
+    extra = tmp_path / "extra"
+    _copy_tree_regular(baseline, extra)
+    (extra / "unexpected.txt").write_bytes(b"")
+    with pytest.raises(BaseException) as caught:
+        _invoke_package_path_verifier(verify_paths, extra, surface)
+    assert _exception_code(caught.value) == "PACKAGE_PATH_SET_EXTRA"
+
+    symlink = tmp_path / "symlink"
+    _copy_tree_regular(baseline, symlink)
+    target = symlink / "builds/A/structural/support/fixture_summary.csv"
+    target.unlink()
+    target.symlink_to("anchor_ledger.csv")
+    with pytest.raises(BaseException) as caught:
+        _invoke_package_path_verifier(verify_paths, symlink, surface)
+    assert "PACKAGE_PATH_KIND" in _exception_code(caught.value)
+
+    if hasattr(os, "mkfifo"):
+        fifo = tmp_path / "fifo"
+        _copy_tree_regular(baseline, fifo)
+        target = fifo / "builds/A/structural/support/fixture_summary.csv"
+        target.unlink()
+        os.mkfifo(target)
+        with pytest.raises(BaseException) as caught:
+            _invoke_package_path_verifier(verify_paths, fifo, surface)
+        assert _exception_code(caught.value) == "PACKAGE_PATH_KIND_FIFO"
+
+
+def _create_path_complete_package_skeleton(
+    root: Path, surface: Mapping[str, Any]
+) -> None:
+    root.mkdir()
+    for directory in surface["package_directories"]:
+        (root / directory).mkdir(parents=True, exist_ok=True)
+    for relative in surface["package_layout"]["package_files"]:
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x\n")
+
+
+def _copy_tree_regular(source: Path, destination: Path) -> None:
+    destination.mkdir()
+    for path in source.rglob("*"):
+        relative = path.relative_to(source)
+        target = destination / relative
+        if path.is_dir():
+            target.mkdir()
+        else:
+            target.write_bytes(path.read_bytes())
+
+
+def _invoke_package_path_verifier(
+    function: Callable[..., Any],
+    package_root: Path,
+    surface: Mapping[str, Any],
+) -> object:
+    kwargs: dict[str, object] = {}
+    for name, parameter in inspect.signature(function).parameters.items():
+        if name in {"package_root", "root"}:
+            kwargs[name] = package_root
+        elif name == "context":
+            kwargs[name] = {"package_root": package_root, "surface": surface}
+        elif parameter.default is inspect.Parameter.empty:
+            pytest.fail(f"unsupported required package-path verifier field: {name}")
+    return function(**kwargs)
