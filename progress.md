@@ -10375,3 +10375,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - New plan/task/surface SHA256 values are `6b1e8040...`, `dba38d07...` and
   `da72d818...`. Implementation and formal remain locked pending independent
   plan review.
+
+## 2026-08-31 0831T001 Plan Review Round 25
+
+- Independent review reported P0/P1/P2/P3 all zero and accepted Revision 25.
+- The report-present A10 counterexample now uniquely derives the pre-terminal
+  phase, reaches A10 and selects only the post-receipt artifact restart row.
+- Adjacent receipt/report/controller combinations have no new overlap or
+  zero-match.
+- Authority-dependent implementation is unlocked. Formal execution remains
+  locked pending independent implementation readiness.
