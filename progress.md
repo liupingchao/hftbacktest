@@ -10274,3 +10274,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Accepted table aggregates remain unchanged. New plan/task/surface SHA256
   values are `e4ac9db7...`, `be036540...` and `2e470e64...`.
 - Implementation and formal remain locked pending independent plan review.
+
+## 2026-08-31 0831T001 Plan Review Round 21
+
+- Independent review accepted authority hashes, all table aggregates,
+  witness CAS and successful-link final FD/inode binding.
+- Review failed with four P1 findings: A12 has no post-terminal-receipt
+  artifact restart row, QA modes omit non-witness blockers and conflate
+  absent/invalid receipts, witness states lack mechanical derivation, and
+  temporary pathname cleanup remains vulnerable to replacement before unlink.
+- Revision 21 remains historical evidence and implementation stays locked.
