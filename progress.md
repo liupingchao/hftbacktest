@@ -10284,3 +10284,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   absent/invalid receipts, witness states lack mechanical derivation, and
   temporary pathname cleanup remains vulnerable to replacement before unlink.
 - Revision 21 remains historical evidence and implementation stays locked.
+
+## 2026-08-31 0831T001 Plan Amendment Round 22
+
+- A12 now uses the artifact post-receipt restart row when a valid terminal
+  receipt exists before terminal commit; all terminal bytes are preserved.
+- QA outcome and recovery evidence are orthogonal, with explicit
+  ABSENT/VALID/INVALID states and raw hashes for every terminal/recovery file.
+- Witness, local path and quarantine states now have ordered mechanical
+  derivation functions rather than implementation-selected labels.
+- Control publication now commits with Darwin `renamex_np(RENAME_EXCL)` and
+  performs no pathname unlink.
+- Abandoned regular temporaries move to content-addressed, inode-verified
+  quarantine paths that remain permanent non-authority evidence.
+- Accepted table aggregates remain unchanged. New plan/task/surface SHA256
+  values are `f6f196c1...`, `61da7f86...` and `8b7160d5...`.
+- Implementation and formal remain locked pending independent plan review.

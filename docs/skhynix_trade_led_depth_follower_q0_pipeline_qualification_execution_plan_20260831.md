@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_21_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_22_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -175,6 +175,18 @@ variant authority, aggregate tables and witness ownership split are retained.
 | A12 receipt and QA evidence were not total | embed canonical `recovery_witness_evidence_json` in `artifact_state_corruption.json`; freeze command exit/output hashes plus ref/OID/object and no-follow target/temp observations; select exactly one QA mode from `NORMAL`, `RECOVERY`, `WITNESS_BLOCKED` |
 | exact temporary resume omitted final binding and race handling | retain the open temporary FD identity, require final no-follow FD bytes and matching `st_dev/st_ino` after successful link, and route `EEXIST` through the exact existing-target row before any temporary removal |
 
+Revision 21 was rejected with four totality and cleanup findings. Its frozen
+A12 evidence payload and successful-commit FD identity check are retained.
+
+### 1.14 Revision 22 closure matrix
+
+| Round 21 finding | Revision 22 closure |
+|---|---|
+| A12 with a valid terminal receipt had no restart row | extend `ARTIFACT_BLOCKER_POST_RECEIPT_NO_TERMINAL_COMMIT` to A09-A12 while preserving all terminal bytes and forbidding terminal commit |
+| QA modes omitted non-witness blockers and conflated absent/invalid receipts | derive orthogonal `workflow_outcome_mode` and `recovery_evidence_state`; every terminal/recovery file has explicit `ABSENT`, `VALID` or `INVALID` state and raw SHA256 binding |
+| witness states lacked a mechanical derivation | freeze ordered ref/type/blob command tuple rules and an ordered no-follow `lstat/open/fstat/read` local path classifier, including exact observation-error stage/errno |
+| temporary cleanup could unlink a replacement inode | replace hard-link/unlink commit with Darwin `renamex_np(...,RENAME_EXCL)`; successful commit atomically removes the temporary name, while abandoned regular temporaries are atomically moved no-replace to a permanent sibling quarantine path and never deleted |
+
 ## 2. Authorization Boundary
 
 Permitted inputs:
@@ -323,10 +335,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  2e470e647e85bc60249a6661cadf451c95735fbd655a693ddf5a3aeef84eb52e
+  8b7160d57739e3bef23d70c91d75c870109b3ed108c883543697fb6d8998b847
 
 Git blob:
-  eeb3e7345e9ae42ac169bf96b5ffe9d41dc8d559
+  265cb49534754c2a12bb19e5675f19bea87cf896
 ```
 
 It freezes:
@@ -1552,14 +1564,12 @@ controller recovery witness
 
 independent QA report
   `.workflow/reports/0831T001-qa.md` and
-  `docs/qa-acceptance-report.md` select exactly one evidence mode:
-  `NORMAL`, `RECOVERY` or `WITNESS_BLOCKED`. Normal records terminal evidence
-  and no recovery fields. Recovery records terminal evidence, exact
-  recovery-start/recovery-observation SHA256 and witness ref/blob OID.
-  Witness-blocked records classification `NONE`, the exact artifact blocker
-  SHA256 and its frozen witness diagnostic evidence; recovery hashes are
-  `NONE`, while a valid pre-existing terminal receipt is recorded by exact
-  SHA256 and an absent or invalid one by `NONE`.
+  `docs/qa-acceptance-report.md` derive one `workflow_outcome_mode`
+  (`TERMINAL`, `ARTIFACT_BLOCKED`, `CONTROLLER_BLOCKED`) and one orthogonal
+  `recovery_evidence_state` (`NONE`, `START_ONLY`, `COMPLETE`,
+  `WITNESS_MISMATCH`). Terminal result/transition and recovery start/
+  observation each record `ABSENT`, `VALID` or `INVALID`; SHA256 is `NONE`
+  only for absence and is the exact raw-file hash for valid or invalid bytes.
 ```
 
 The terminal push uses `--force-with-lease` expecting the exact consumption
@@ -1605,7 +1615,7 @@ The exact Git command prefix writes the blob and creates the witness ref with
 `update-ref <witness-ref> <blob-oid> 000...000`; this is a CAS from ABSENT.
 The controller repository and parent are fsynced, then the ref object type and
 blob bytes are independently verified. Only after that external binding may
-the ordinary local sibling-temporary/hard-link publication begin.
+the ordinary local sibling-temporary/no-replace-rename publication begin.
 
 The crash interpretation is exact:
 
@@ -1620,23 +1630,26 @@ witness exact + local target absent + temporary absent:
   publish witnessed bytes through the generic protocol
 
 witness exact + local target absent + exact regular temporary:
-  retain the open temporary FD and st_dev/st_ino, hard-link no-replace, reopen
-  final target O_NOFOLLOW, require exact bytes and the same st_dev/st_ino,
-  fsync final and parent, then unlink the still-regular temporary
+  retain the open temporary FD and st_dev/st_ino, renamex_np RENAME_EXCL,
+  reopen final target O_NOFOLLOW, require exact bytes and the same
+  st_dev/st_ino, then fsync final and parent
 
-hard-link returns EEXIST:
+no-replace rename returns EEXIST:
   reopen final target O_NOFOLLOW and reclassify through the exact-target row;
-  accept only exact regular witnessed bytes, otherwise A12 without unlink
+  accept only exact regular witnessed target and temporary bytes; preserve
+  the temporary as non-authority race evidence
 
 witness exact + local target absent + mismatched/truncated regular temporary:
-  unlink and fsync, then rebuild from witnessed bytes
+  hash its retained FD bytes, atomically move it no-replace to
+  `<target>.abandoned.<sha256>`, reopen and verify inode/bytes/suffix,
+  preserve it permanently, fsync parent, then rebuild from witnessed bytes
 
 witness exact + local target absent + nonregular temporary:
   ARTIFACT_STATE_CORRUPTION / A12_RECOVERY_WITNESS_MISMATCH
 
 witness exact + local target exact regular:
-  accept through O_NOFOLLOW + fstat + descriptor read; remove only a regular
-  temporary
+  accept through O_NOFOLLOW + fstat + descriptor read; temporary must be
+  absent or exact regular EEXIST residue and is never unlinked
 
 witness exact + local target mismatch/nonregular:
   ARTIFACT_STATE_CORRUPTION / A12_RECOVERY_WITNESS_MISMATCH
@@ -1656,10 +1669,13 @@ Every A12 observation is frozen inside the canonical
 `artifact_state_corruption.json` as `recovery_witness_evidence_json`. The
 embedded object records exact ref/object/blob subprocess exit codes and
 stdout/stderr SHA256 values, observed OID and object type, plus no-follow
-state and SHA256 for the local target and temporary. Non-A12 blocker receipts
-must set this field to `NONE`. Once the A12 blocker target commits, its
-restart rows supersede the recovery matrix; later repair or drift cannot
-rewrite the recorded observation.
+state, SHA256 and observation-error stage/errno for the local target and
+temporary. Ordered rules uniquely map command and syscall observations to
+every state. Non-A12 blocker receipts must set this field to `NONE`. Once the
+A12 blocker target commits, its restart rows supersede the recovery matrix;
+later repair or drift cannot rewrite the recorded observation. A12 with an
+already committed terminal receipt uses the artifact post-receipt row and
+preserves all terminal bytes without rendering or committing terminal state.
 
 The witnessed file's `recovery_id`, original crash boundary, initial
 controller SHA and committed-control path set never change even if recovery
@@ -1709,29 +1725,37 @@ open <target>.publishing O_EXCL|O_NOFOLLOW and retain its descriptor identity
 -> write complete canonical bytes
 -> verify full write
 -> fsync temporary file
--> hard-link temporary to target no-replace
+-> renamex_np(<target>.publishing, <target>, RENAME_EXCL)
 -> reopen target O_NOFOLLOW
 -> require regular exact bytes and matching st_dev/st_ino
 -> fsync final target
 -> fsync parent
--> unlink temporary
--> fsync parent
 ```
 
-If the hard-link returns `EEXIST`, the final target is reopened no-follow and
-classified independently as an existing target. Exact regular bytes may win
-the race; mismatch or nonregular kind fails closed and the temporary is not
-deleted. No pathname `exists/is_file/read_bytes` check or final-component
-`resolve()` is publication authority.
+The frozen Darwin flag is `RENAME_EXCL=0x00000004`. A successful rename is
+the no-replace commit and atomically removes the temporary pathname. If it
+returns `EEXIST`, the final target is reopened no-follow and classified
+independently; exact regular target and temporary bytes may be preserved as
+the race result, while mismatch or nonregular kind fails closed.
+
+Pathname unlink is forbidden. A verified regular abandoned temporary is
+hashed through its retained FD, atomically renamed no-replace to
+content-addressed sibling `<target>.abandoned.<sha256>`, reopened no-follow
+and required to retain the original temporary FD `st_dev/st_ino`, exact bytes
+and matching path suffix. The parent inventory must contain at most one
+canonical quarantine. Multiple/noncanonical quarantine names, nonregular
+temporary, identity mismatch or observation failure block instead of deleting
+or overwriting any path. No pathname `exists/is_file/read_bytes` check or
+final-component `resolve()` is publication authority.
 
 Only the final target is committed authority. A truncated temporary is never
-authority. While holding the orchestrator lock, recovery removes and rebuilds
-a deterministic temporary from independently derived bytes. For an
-unreconstructable PUSH_CALL or child-exit temporary, it removes only the
-uncommitted temporary after the matching runtime lock is acquirable, then
-uses REF_OBSERVATION or interruption semantics. Attempt lock, invocation
-claim, tracked receipt copy, process exit receipt, recovery observation and
-terminal receipt all use this protocol.
+authority. While holding the orchestrator lock, recovery quarantines and
+rebuilds a deterministic regular temporary from independently derived bytes.
+For an unreconstructable PUSH_CALL or child-exit temporary, it quarantines
+only after the matching runtime lock is acquirable, then uses REF_OBSERVATION
+or interruption semantics. Attempt lock, invocation claim, tracked receipt
+copy, process exit receipt, recovery observation and terminal receipt all use
+this protocol.
 `one_shot.control_publication_crash_states` separately freezes before-link
 and after-link handling for every such artifact; a generic “file exists”
 test is never enough.
@@ -1876,8 +1900,9 @@ A09-A11:
 
 A12:
   reject any recovery witness ref/local-target/temporary matrix violation;
-  freeze the exact command/output hashes and no-follow local path evidence
-  in recovery_witness_evidence_json before any blocker restart write
+  mechanically derive and freeze exact command/output hashes plus no-follow
+  local path state/error evidence in recovery_witness_evidence_json before
+  any blocker restart write
 ```
 
 The 64 presence combinations have a canonical derived table: 7 legal shapes,
