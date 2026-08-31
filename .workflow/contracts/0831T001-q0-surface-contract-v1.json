@@ -1304,7 +1304,7 @@
             "json_type": "integer",
             "base": 0,
             "minimum": 0,
-            "maximum": 21,
+            "maximum": 22,
             "identity_rule": "variant_ordinal equals the zero-based array index and every integer 0..22 appears exactly once"
           },
           "mutation_kind_order": [
@@ -1715,7 +1715,7 @@
       "terminal_qa_mirror": "docs/qa-acceptance-report.md",
       "terminal_result_tracked": ".workflow/attempt-receipts/0831T001.terminal.json",
       "terminal_push_ownership": "untracked immutable selected member of the terminal PUSH_CALL|REF_OBSERVATION receipt union; its SHA256 is recorded by independent QA in .workflow/reports/0831T001-qa.md and docs/qa-acceptance-report.md",
-      "recovery_ownership": "terminal receipt never contains a recovery hash; independent QA records recovery witness ref/blob OID plus recovery_start.json and recovery_observation.json SHA256, or NONE/NONE/NONE on the normal path"
+      "recovery_ownership": "terminal receipt never contains a recovery hash; independent QA records recovery witness ref/blob OID plus recovery_start.json and recovery_observation.json SHA256, or NONE/NONE/NONE/NONE on the normal path"
     },
     "receipt_serialization": "canonical compact sorted-key ASCII JSON plus LF; publish with the control_publication protocol",
     "control_publication": {
@@ -1900,7 +1900,7 @@
         "CONTROLLER_REF_DIVERGENCE"
       ],
       "ARTIFACT_STATE_CORRUPTION": {
-        "trigger": "the first ordered artifact_state_machine A01-A11 predicate or local_git_state_machine G02-G07 predicate matches, including invalid process/report bytes, commit lineage, index/worktree state or task tag identity",
+        "trigger": "the first ordered artifact_state_machine A01-A12 predicate or local_git_state_machine G02-G07 predicate matches, including invalid process/report bytes, recovery witness identity, commit lineage, index/worktree state or task tag identity",
         "task_status": "阻塞",
         "claim_state": "consumed and never reusable",
         "classification": "NONE because the artifact chain or terminal receipt is not trustworthy",
@@ -2022,7 +2022,7 @@
           "VALID",
           "INVALID"
         ],
-        "first_invalid_rule": "one exact ordered artifact_state_machine A01-A11 or local_git_state_machine G01-G07 invalid rule id",
+        "first_invalid_rule": "one exact ordered artifact_state_machine A01-A12 or local_git_state_machine G01-G07 invalid rule id",
         "observed_artifact_sha256_json": "canonical compact ASCII JSON object mapping every present committed process, result, baseline, terminal-receipt and business-report path to its exact SHA256 in ASCII path order"
       },
       "expected_sha_sets_by_local_state": {
@@ -2172,10 +2172,10 @@
         "tag_identity": "every present task tag is one annotated tag object with the exact registered message and peeled target; any wrong, lightweight, duplicate/conflicting or unexpected tag is G06 or G07",
         "head": "must equal the exact commit named by the selected row; detached or additional successor HEAD is G03"
       },
-      "workflow_blocker_restart_authority": "first evaluate local_git_state_machine from canonical validated local inputs; an invalid or source-mismatched receipt cannot select a proof stage. G01 enters CONTROLLER_REF_DIVERGENCE and G02-G07 enter ARTIFACT_STATE_CORRUPTION. Only a row with no G-rule match may be selected, and A01-A11 artifact classification runs only after that PRE_BLOCKER evaluation. After any blocker observation target is committed, workflow_blocker_restart_rows supersede crash_recovery_matrix and repeat the exact selected row after interruption until its next_action commits",
+      "workflow_blocker_restart_authority": "first evaluate local_git_state_machine from canonical validated local inputs; an invalid or source-mismatched receipt cannot select a proof stage. G01 enters CONTROLLER_REF_DIVERGENCE and G02-G07 enter ARTIFACT_STATE_CORRUPTION. Only a row with no G-rule match may be selected, and A01-A12 artifact classification runs only after that PRE_BLOCKER evaluation. After any blocker observation target is committed, workflow_blocker_restart_rows supersede crash_recovery_matrix and repeat the exact selected row after interruption until its next_action commits",
       "local_git_state_machine": {
         "evaluation_modes": {
-          "PRE_BLOCKER_OBSERVATION": "derive candidate action phases only from canonical validated receipt unions and tracked-copy equality, then evaluate G01-G07 in order before A01-A11; G01 publishes CONTROLLER_REF_DIVERGENCE, while G02-G07 publish ARTIFACT_STATE_CORRUPTION",
+          "PRE_BLOCKER_OBSERVATION": "derive candidate action phases only from canonical validated receipt unions and tracked-copy equality, then evaluate G01-G07 in order before A01-A12; G01 publishes CONTROLLER_REF_DIVERGENCE, while G02-G07 publish ARTIFACT_STATE_CORRUPTION",
           "POST_CONTROLLER_BLOCKER_OBSERVATION": "verify the immutable controller blocker receipt, freeze its observed ref or unverifiable observation as evidence, skip G01, then evaluate G02-G07 against each restart state before selecting a workflow_blocker_restart_rows row",
           "POST_ARTIFACT_BLOCKER_OBSERVATION": "verify immutable ARTIFACT_STATE_CORRUPTION and perform no additional Git mutation other than a local claim consumption transition already authorized by a previously selected valid pre-terminal row"
         },
@@ -2820,10 +2820,14 @@
             {
               "rule_id": "A11_BUSINESS_REPORT_BYTES_MISMATCH",
               "predicate": "the committed terminal receipt is valid and the committed business report exists but its bytes differ from the exact execution_report rendering"
+            },
+            {
+              "rule_id": "A12_RECOVERY_WITNESS_MISMATCH",
+              "predicate": "the recovery witness ref/local-path restart matrix is violated, including ref absent with any local recovery-start path, invalid/unreadable/non-blob witness ref, witnessed bytes differing from a local target, or any recovery-start target/temporary with nonregular or symlink kind"
             }
           ],
           "presence_table_derivation": {
-            "scope": "rules A01-A05 only; tuple, receipt and report semantic rules A06-A11 are evaluated after the presence row",
+            "scope": "rules A01-A05 only; tuple, receipt, report and recovery-witness semantic rules A06-A12 are evaluated after the presence row",
             "row_order": "binary strings 000000 through 111111 in ascending integer order",
             "row_fields": [
               "artifact_presence_bits",
@@ -2899,7 +2903,7 @@
           "RESOLVE_FROM_DURABLE_STATE": "apply first_error_rules_in_precedence_order and stage_profile_rules to committed invocation and exit receipts; after verifier exit=0 but before baseline publication this resolves to PASS recovery only when producer also succeeded, otherwise to FAIL_CLASSIFIED_WITH_PROCESS_RECEIPTS",
           "FROM_COMMITTED_TERMINAL_RECEIPT": "use immutable classification, first_error, completed_stages_json and missing_stages_json from the committed terminal receipt"
         },
-        "result_totality": "first apply artifact_state_machine A01-A11 in order; every valid non-controller-blocked durable artifact combination resolves to one PASS or FAIL terminal tuple, while the first invalid rule deterministically enters ARTIFACT_STATE_CORRUPTION with classification/profile NONE"
+        "result_totality": "first apply artifact_state_machine A01-A12 in order; every valid non-controller-blocked durable artifact combination resolves to one PASS or FAIL terminal tuple, while the first invalid rule deterministically enters ARTIFACT_STATE_CORRUPTION with classification/profile NONE"
       },
       "missing_token": "NONE",
       "invocation_semantics": "acquire runtime flock, atomically publish the deterministic invocation claim, then call Popen exactly once; committed invocation existence consumes the sole launch right even if Popen fails; recovery never launches a child whose invocation claim exists and never creates a missing invocation claim",
@@ -2907,7 +2911,7 @@
     },
     "recovery": {
       "allowed_actions": "create missing attempt lock; rename armed to claimed; create missing consumption commit/tag; perform a not-yet-attempted consumption or terminal lease-CAS push; copy an existing receipt; write REF_OBSERVATION and recovery receipts; derive PASS/FAIL receipt/report; copy a verifier-accepted package for PASS; create missing terminal commit/tag; no child launch",
-      "entry_precondition": "acquire the exclusive orchestrator flock; reconcile only registered non-authority publication temporaries; mechanically derive the unique PRE_BLOCKER action phase from canonical durable observations before artifact rules or proof-stage selection; exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed; otherwise create or verify recovery_start_witness before publishing recovery_start.json and before any recovery state change; for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
+      "entry_precondition": "acquire the exclusive orchestrator flock; reconcile registered non-authority publication temporaries except recovery_start.json.publishing, whose fate is owned exclusively by recovery_start_witness.restart_matrix; mechanically derive the unique PRE_BLOCKER action phase from canonical durable observations before artifact rules or proof-stage selection; exit through the exact post-attempt blocker when observation is unexpected, nonzero or malformed; otherwise create or verify recovery_start_witness before publishing recovery_start.json and before any recovery state change; for each invocation claim lacking an exit receipt prove the child runtime flock is acquirable before terminal classification",
       "recovery_start_fields": [
         "attempt_lock_sha256",
         "claimed_or_armed_sha256",
@@ -2961,11 +2965,14 @@
         "publication_order": "derive bytes from unchanged snapshot; hash bytes independently as a Git blob; write the blob; create witness_ref CAS from all-zero old OID; fsync controller repository and parent; verify ref object type blob and exact blob bytes; only then create or reconcile local recovery_start.json temporary/target",
         "restart_matrix": {
           "ref_absent_target_absent_temporary_absent": "derive from unchanged snapshot, create witness, then publish local target",
-          "ref_absent_any_local_recovery_start_path_present": "integrity corruption because local publication is forbidden before witness",
-          "ref_exact_target_absent": "witness bytes are authority; remove only a non-authority mismatched or truncated regular temporary and rebuild local target",
-          "ref_exact_target_exact_regular": "accept after no-follow descriptor verification; remove any regular temporary",
-          "ref_exact_target_mismatch_or_nonregular": "integrity corruption; never rewrite target or witness",
-          "ref_invalid_type_or_unreadable_or_conflicting": "controller integrity corruption; forbid recovery mutation"
+          "ref_absent_any_local_recovery_start_path_present": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; local publication is forbidden before witness",
+          "ref_exact_target_absent_temporary_absent": "witness bytes are authority; create, fsync and hard-link a new exact regular temporary using control_publication",
+          "ref_exact_target_absent_temporary_exact_regular": "open temporary O_RDONLY|O_NOFOLLOW|O_CLOEXEC, fstat regular, verify exact witnessed bytes, fsync the same descriptor, hard-link it no-replace to target, fsync parent, unlink temporary, fsync parent",
+          "ref_exact_target_absent_temporary_mismatched_or_truncated_regular": "open no-follow and verify mismatch, unlink the non-authority temporary, fsync parent, then rebuild from witnessed bytes",
+          "ref_exact_target_absent_temporary_nonregular": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; do not unlink or rewrite",
+          "ref_exact_target_exact_regular": "accept after no-follow descriptor verification against witness; remove any regular temporary after no-follow kind validation, but a nonregular temporary is A12",
+          "ref_exact_target_mismatch_or_nonregular": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; never rewrite target or witness",
+          "ref_invalid_type_or_unreadable_or_conflicting": "publish or verify ARTIFACT_STATE_CORRUPTION with first_invalid_rule A12_RECOVERY_WITNESS_MISMATCH; classify as controller infrastructure corruption and forbid recovery mutation"
         },
         "trust_boundary": "the controller bare repository is the existing external CAS trust root for this task; coordinated out-of-protocol mutation of its refs or objects is controller infrastructure corruption and is never repaired by recovery"
       },
@@ -3018,10 +3025,13 @@
         "classification",
         "recovery_observation_sha256",
         "recovery_start_sha256",
+        "recovery_witness_blob_oid",
+        "recovery_witness_ref",
         "terminal_result_receipt_sha256",
         "terminal_transition_receipt_sha256"
       ],
-      "qa_evidence_normal_path": "recovery_start_sha256=NONE and recovery_observation_sha256=NONE",
+      "qa_evidence_normal_path": "recovery_start_sha256=NONE, recovery_observation_sha256=NONE, recovery_witness_ref=NONE and recovery_witness_blob_oid=NONE",
+      "qa_recovery_witness_rule": "on every recovery path recovery_witness_ref is the exact frozen witness ref and recovery_witness_blob_oid is the exact 40-hex blob OID read from that ref; the blob bytes must equal committed recovery_start.json and hash to recovery_start_sha256 under SHA256",
       "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every content write uses control_publication or verifies exact committed bytes, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
       "remote_state_rules": {
         "ABSENT": "legal only in ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT, CONSUMPTION_COMMIT_PRE_PUSH or CONSUMPTION_PUSH_UNRECEIPTED; after a committed consumption receipt it is G01_CONTROLLER_REF_NOT_EXPECTED and enters CONTROLLER_REF_DIVERGENCE",

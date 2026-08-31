@@ -10237,3 +10237,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   corruption outcome, incomplete exact-temporary resume, stale ordinal
   maximum/prose, and missing QA witness fields.
 - Revision 19 remains historical evidence and implementation stays locked.
+
+## 2026-08-31 0831T001 Plan Amendment Round 20
+
+- Registered witness/local matrix failures as
+  `ARTIFACT_STATE_CORRUPTION/A12_RECOVERY_WITNESS_MISMATCH`.
+- Completed exact, mismatched and nonregular recovery-start temporary crash
+  rows and made witness reconciliation the sole owner of that temporary.
+- Corrected the variant ordinal maximum to 22 and added frozen QA witness
+  ref/blob fields.
+- Accepted machine aggregates remain unchanged. New plan/task/surface
+  SHA256 values are `bf3162e9...`, `f8ea271a...` and `fe28103f...`.
+- Implementation and formal remain locked pending independent plan review.

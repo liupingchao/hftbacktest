@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_19_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_20_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -151,6 +151,18 @@ It remains historical review evidence and is superseded by Revision 19.
 | observed state did not select one action phase | freeze a total ordered derivation over canonical receipt unions, tracked-copy equality, local Git state and the observed controller token; zero or multiple matches are G05 |
 | owner could clear and restore `UF_IMMUTABLE` | create `refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1` in the controller bare repo with CAS-from-ABSENT, pointing directly to the exact recovery-start blob; local bytes are accepted only when equal to that externally bound blob |
 | durable untracked consumption receipt had no action phase | add `NORMAL_CONSUMPTION_UNTRACKED_RECEIPT_COMMITTED`; current machine has 16 action phases, 23 Git preimage variants, 736 mutation rows and a 124,416-row pre-blocker table |
+
+Revision 19 was rejected with four boundary-completeness findings. Its
+witness architecture and phase authority were accepted and are retained.
+
+### 1.12 Revision 20 closure matrix
+
+| Round 19 finding | Revision 20 closure |
+|---|---|
+| witness abnormal states had no workflow outcome | add `A12_RECOVERY_WITNESS_MISMATCH`; every witness/local matrix violation publishes or verifies `ARTIFACT_STATE_CORRUPTION`, classification `NONE`, and uses existing blocker restart/QA semantics |
+| exact temporary crash cut was missing | freeze separate absent/exact/mismatched/nonregular temporary rows; an exact regular temporary is reopened no-follow, fstat/read/fsync verified, then hard-linked and unlinked through the generic protocol |
+| ordinal schema still ended at 21 | set maximum `22` and update all current prose to 23 variants |
+| witness was absent from QA schema | add exact `recovery_witness_ref` and `recovery_witness_blob_oid` evidence fields; both are `NONE` only on the normal path |
 
 ## 2. Authorization Boundary
 
@@ -300,10 +312,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  54801b632b63fbfe7d091101bf4282d3c3276c61f87991fc697fcf19b0be11b4
+  fe28103f5aaa265eb59598075e609bcf0953dc50ae93a810d1909fb5c3ee6aa6
 
 Git blob:
-  612867e8b22e54a4ddd89e1f34d4b9ed5cd6af1b
+  693d401ea40caf6b14d9df3c76cf68e9fea32716
 ```
 
 It freezes:
@@ -1387,7 +1399,7 @@ regex, one-letter status, normalized strict-ASCII paths and unique paths are
 mandatory.
 
 The selected action phase plus immutable PASS/FAIL terminal branch resolves
-one of 22 registered preimage variants. Every row is expanded to the exact
+one of 23 registered preimage variants. Every row is expanded to the exact
 six fields, sorted by ASCII path and compared byte-for-byte. For consumption
 staging, the cached rows are exactly:
 
@@ -1520,15 +1532,20 @@ Receipt ownership is exact:
   required exactly once on every recovery path; forbidden on the normal path
 
 <attempt_root>/control/recovery_start.json
-  immutable recovery identity, published before any recovery state change;
-  reused byte-for-byte by every recovery restart
+  recovery identity published from the externally witnessed blob before any
+  recovery state change; reused byte-for-byte by every recovery restart
+
+controller recovery witness
+  `refs/tags/skhynix-trade-led-depth-follower-q0-recovery-start-v1`
+  points directly to the exact recovery-start Git blob
 
 independent QA report
   `.workflow/reports/0831T001-qa.md` and
   `docs/qa-acceptance-report.md` record and verify
   the selected terminal `PUSH_CALL | REF_OBSERVATION` receipt SHA256,
   terminal-result receipt SHA256, and recovery-start/recovery-observation
-  SHA256 or `NONE/NONE` in the QA commit
+  SHA256 plus recovery witness ref/blob OID; all four recovery fields are
+  `NONE` on the normal path
 ```
 
 The terminal push uses `--force-with-lease` expecting the exact consumption
@@ -1583,19 +1600,30 @@ witness absent + all local recovery-start paths absent:
   derive from unchanged snapshot, create witness, publish local target
 
 witness absent + any local recovery-start path present:
-  integrity corruption
+  ARTIFACT_STATE_CORRUPTION / A12_RECOVERY_WITNESS_MISMATCH
 
-witness exact + local target absent:
-  witnessed blob is authority; reconcile temporary and publish exact bytes
+witness exact + local target absent + temporary absent:
+  publish witnessed bytes through the generic protocol
+
+witness exact + local target absent + exact regular temporary:
+  reopen O_NOFOLLOW, fstat/read/fsync exact bytes, hard-link, fsync, unlink
+
+witness exact + local target absent + mismatched/truncated regular temporary:
+  unlink and fsync, then rebuild from witnessed bytes
+
+witness exact + local target absent + nonregular temporary:
+  ARTIFACT_STATE_CORRUPTION / A12_RECOVERY_WITNESS_MISMATCH
 
 witness exact + local target exact regular:
-  accept through O_NOFOLLOW + fstat + descriptor read
+  accept through O_NOFOLLOW + fstat + descriptor read; remove only a regular
+  temporary
 
 witness exact + local target mismatch/nonregular:
-  integrity corruption
+  ARTIFACT_STATE_CORRUPTION / A12_RECOVERY_WITNESS_MISMATCH
 
 witness invalid type/unreadable/conflicting:
-  controller infrastructure corruption; no recovery mutation
+  ARTIFACT_STATE_CORRUPTION / A12_RECOVERY_WITNESS_MISMATCH;
+  controller infrastructure corruption and no recovery mutation
 ```
 
 The witness is part of the existing controller CAS trust boundary. Any
@@ -1804,6 +1832,9 @@ A06-A08:
 A09-A11:
   reject a terminal receipt/profile mismatch or a report without exact
   terminal-receipt authority
+
+A12:
+  reject any recovery witness ref/local-target/temporary matrix violation
 ```
 
 The 64 presence combinations have a canonical derived table: 7 legal shapes,
@@ -2068,7 +2099,7 @@ instead records:
 workflow status = 阻塞
 classification = NONE
 blocker = ARTIFACT_STATE_CORRUPTION
-first_invalid_rule = first A01-A11 match
+first_invalid_rule = first A01-A12 match
 terminal receipt/report rewrite and controller push = forbidden
 ```
 
