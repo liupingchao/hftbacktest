@@ -10055,3 +10055,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `1dfd67e1...066f9`.
 - This amendment is pending independent plan review. Round 4 implementation
   and formal execution remain locked.
+
+## 2026-08-31 0831T001 Q0 Plan Review Round 16 Rejected
+
+- Independent review failed with `P0/P1/P2/P3 = 0/1/0/0`.
+- Expanding only the divergence receipt value domain was insufficient:
+  divergence trigger, POST_ATTEMPT_ROOT outcome and one plan statement still
+  treated `ABSENT` as globally legal instead of proof-stage-sensitive.
+- Revision 17 must define legality solely by
+  `expected_sha_sets_by_local_state`; any `ABSENT` or 40-hex token outside
+  that exact set is divergence.
+- Authority-dependent implementation and formal execution remain locked.
