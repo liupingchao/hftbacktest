@@ -10164,3 +10164,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   recomputation was `05db53ca...b57b7`.
 - Formal, arming, controller creation, receipts and task tags remain absent
   and locked. No historical cache or future market outcome was accessed.
+
+## 2026-08-31 0831T001 Q0 Implementation Candidate Round 6
+
+- `readiness_projection_manifest()` now sorts projection paths in ASCII order
+  before constructing rows and the canonical tree-hash preimage.
+- Added a regression with deliberately reversed `z.txt`, `a.txt` registration
+  order; the manifest must emit and hash `a.txt`, `z.txt`.
+- Targeted tests pass `10/10`; focused tests pass `107/107`; expanded
+  predecessor regressions pass `410` with one expected skip.
+- Formal state remains absent and locked pending fresh exact-commit readiness
+  and independent implementation review.

@@ -3021,6 +3021,38 @@ def test_package_path_contract_is_exact_and_regular_file_only(
     assert all(stat.S_ISREG((package / relative).lstat().st_mode) for relative in files)
 
 
+def test_readiness_projection_tree_uses_ascii_path_order(
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    (tmp_path / "z.txt").write_bytes(b"last\n")
+    (tmp_path / "a.txt").write_bytes(b"first\n")
+    surface = {
+        "readiness_comparison": {
+            "projection_files": ["z.txt", "a.txt"],
+            "tree_hash_preimage": (
+                "canonical compact sorted-key ASCII JSON array of "
+                "{path,size_bytes,sha256} rows in ASCII path order"
+            ),
+        }
+    }
+
+    manifest = runner.readiness_projection_manifest(tmp_path, surface)
+    expected_rows = [
+        {
+            "path": relative,
+            "sha256": _sha256_file(tmp_path / relative),
+            "size_bytes": (tmp_path / relative).stat().st_size,
+        }
+        for relative in ("a.txt", "z.txt")
+    ]
+
+    assert [row["path"] for row in manifest["rows"]] == ["a.txt", "z.txt"]
+    assert manifest["tree_sha256"] == _sha256_bytes(
+        _canonical_json_bytes(expected_rows)
+    )
+
+
 def test_package_verifier_rejects_missing_extra_symlink_and_fifo_first(
     tmp_path: Path, surface: Mapping[str, Any], verifier: ModuleType
 ) -> None:

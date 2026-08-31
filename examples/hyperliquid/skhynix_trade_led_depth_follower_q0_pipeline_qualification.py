@@ -2054,7 +2054,7 @@ def readiness_projection_manifest(
     surface: Mapping[str, Any],
 ) -> dict[str, Any]:
     rows = []
-    for relative in _comparison_projection_paths(surface):
+    for relative in sorted(_comparison_projection_paths(surface)):
         path = output_root / relative
         require(path.is_file() and not path.is_symlink(), "PACKAGE_PATH_SET", relative)
         rows.append(
