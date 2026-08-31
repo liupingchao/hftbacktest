@@ -1342,6 +1342,9 @@
         "CONSUMPTION_RECEIPT_COMMITTED": [
           "<consumption_sha>"
         ],
+        "TERMINAL_COMMIT_PRE_PUSH": [
+          "<consumption_sha>"
+        ],
         "TERMINAL_PUSH_UNRECEIPTED": [
           "<consumption_sha>",
           "<terminal_sha>"
@@ -1377,7 +1380,14 @@
           "state": "BLOCKER_CLAIM_RENAMED",
           "applies_to": "all workflow_blockers codes",
           "required": "blocker observation committed; claimed exists; armed absent; exact arming HEAD and commit identity; both task tags absent",
-          "next_action": "run exact consumption_stage and consumption_commit; no controller push",
+          "next_action": "run exact consumption_stage; no controller push",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_CONSUMPTION_INDEX_STAGED",
+          "applies_to": "all workflow_blockers codes",
+          "required": "claimed exists; armed absent; HEAD is exact arming commit; exact consumption rename delta is staged and no other index/worktree change exists; both task tags absent",
+          "next_action": "run exact consumption_commit; no controller push",
           "crash_restart": "same row"
         },
         {
@@ -1405,7 +1415,21 @@
           "state": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
           "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only; ARTIFACT_STATE_CORRUPTION forbids terminal commit",
           "required": "valid immutable terminal receipt/report exist; HEAD is exact consumption commit; annotated consumption tag exact; terminal tag absent",
-          "next_action": "stage exact terminal delta and create terminal commit locally; no controller push",
+          "next_action": "run exact terminal_stage_common and, for PASS, terminal_stage_PASS; no controller push",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
+          "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only",
+          "required": "valid immutable PASS terminal receipt/report and exact baseline files exist; HEAD is exact consumption commit; common terminal paths are staged, baseline paths remain exact unstaged additions, and no other change exists; annotated consumption tag exact; terminal tag absent",
+          "next_action": "run exact terminal_stage_PASS; no controller push",
+          "crash_restart": "same row"
+        },
+        {
+          "state": "BLOCKER_TERMINAL_INDEX_STAGED",
+          "applies_to": "CONTROLLER_REF_DIVERGENCE or CONTROLLER_OBSERVATION_FAILURE only",
+          "required": "valid immutable terminal receipt/report exist; HEAD is exact consumption commit; exact complete PASS or FAIL terminal delta is staged and no other index/worktree change exists; annotated consumption tag exact; terminal tag absent",
+          "next_action": "run exact terminal_commit locally; no controller push",
           "crash_restart": "same row"
         },
         {
@@ -1444,10 +1468,9 @@
           "crash_restart": "same row"
         }
       ],
-      "workflow_blocker_restart_row_count": 11,
+      "workflow_blocker_restart_row_count": 14,
       "workflow_blocker_restart_common_invariants": {
-        "index": "empty before and after each registered transition except while the exact next_action stage command is in progress",
-        "tracked_worktree": "clean outside the exact registered transition paths; any other tracked change is G05",
+        "index_and_tracked_worktree": "must equal the exact tracked_transition_state named by the selected action phase, including the registered unstaged or staged delta; any other path, mode, blob or staging partition is G05",
         "commit_identity": "every observed task commit has the exact registered parent, message, tree delta and object type; any mismatch is G04",
         "tag_identity": "every present task tag is one annotated tag object with the exact registered message and peeled target; any wrong, lightweight, duplicate/conflicting or unexpected tag is G06 or G07",
         "head": "must equal the exact commit named by the selected row; detached or additional successor HEAD is G03"
@@ -1464,8 +1487,39 @@
           "CONSUMPTION_COMMIT_PRE_PUSH",
           "CONSUMPTION_PUSH_UNRECEIPTED",
           "CONSUMPTION_RECEIPT_COMMITTED",
+          "TERMINAL_COMMIT_PRE_PUSH",
           "TERMINAL_PUSH_UNRECEIPTED",
           "TERMINAL_PUSH_RECEIPT_COMMITTED"
+        ],
+        "action_phase_order": [
+          "BLOCKER_OBSERVATION_COMMITTED_ARMED",
+          "BLOCKER_CLAIM_RENAMED",
+          "BLOCKER_CONSUMPTION_INDEX_STAGED",
+          "BLOCKER_CONSUMPTION_COMMITTED",
+          "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+          "NORMAL_CONSUMPTION_PUSH_UNRECEIPTED",
+          "NORMAL_CONSUMPTION_RECEIPT_COMMITTED",
+          "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+          "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+          "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
+          "BLOCKER_TERMINAL_INDEX_STAGED",
+          "BLOCKER_TERMINAL_COMMITTED",
+          "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+          "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+          "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED"
+        ],
+        "controller_blocker_restart_action_phases": [
+          "BLOCKER_OBSERVATION_COMMITTED_ARMED",
+          "BLOCKER_CLAIM_RENAMED",
+          "BLOCKER_CONSUMPTION_INDEX_STAGED",
+          "BLOCKER_CONSUMPTION_COMMITTED",
+          "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+          "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+          "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+          "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
+          "BLOCKER_TERMINAL_INDEX_STAGED",
+          "BLOCKER_TERMINAL_COMMITTED",
+          "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE"
         ],
         "controller_ref_domain": [
           "ABSENT",
@@ -1489,66 +1543,168 @@
           "EXACT",
           "INVALID"
         ],
+        "tracked_transition_state_domain": [
+          "CLEAN",
+          "EXACT_CONSUMPTION_RENAME_UNSTAGED",
+          "EXACT_CONSUMPTION_INDEX_STAGED",
+          "EXACT_CONSUMPTION_RECEIPT_UNSTAGED",
+          "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED",
+          "EXACT_TERMINAL_DELTA_UNSTAGED",
+          "EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED",
+          "EXACT_TERMINAL_INDEX_STAGED",
+          "INVALID"
+        ],
+        "tracked_transition_state_semantics": {
+          "CLEAN": "index empty and tracked worktree clean",
+          "EXACT_CONSUMPTION_RENAME_UNSTAGED": "only armed deletion plus byte-identical claimed addition are unstaged",
+          "EXACT_CONSUMPTION_INDEX_STAGED": "only armed deletion plus byte-identical claimed addition are staged; tracked worktree matches the index",
+          "EXACT_CONSUMPTION_RECEIPT_UNSTAGED": "only the exact tracked consumption-push receipt path is an unstaged addition",
+          "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED": "only the exact tracked consumption-push and terminal-result receipt paths are unstaged additions; business report is absent",
+          "EXACT_TERMINAL_DELTA_UNSTAGED": "the exact common terminal paths and, for PASS, exact 57 baseline paths are unstaged additions with an empty index",
+          "EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED": "the three exact common terminal paths are staged while the exact 57 PASS baseline paths remain unstaged additions",
+          "EXACT_TERMINAL_INDEX_STAGED": "the exact complete PASS or FAIL terminal delta is staged and tracked worktree matches the index",
+          "INVALID": "any other path, mode, blob, deletion, staging partition or unmerged entry"
+        },
         "binary_state_domains": {
           "commit_identity_valid": [
             false,
             true
-          ],
-          "index_and_tracked_worktree_clean": [
-            false,
-            true
           ]
         },
-        "expected_local_state_by_proof_stage": {
-          "ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT": {
-            "claim_state": "ARMED_OR_CLAIMED",
+        "expected_local_state_by_action_phase": {
+          "BLOCKER_OBSERVATION_COMMITTED_ARMED": {
+            "proof_stage": "ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT",
+            "claim_state": "ARMED",
             "head_state": "ARMING_COMMIT",
             "consumption_tag_state": "ABSENT",
-            "terminal_tag_state": "ABSENT"
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "CLEAN"
           },
-          "CONSUMPTION_COMMIT_PRE_PUSH": {
+          "BLOCKER_CLAIM_RENAMED": {
+            "proof_stage": "ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT",
+            "claim_state": "CLAIMED",
+            "head_state": "ARMING_COMMIT",
+            "consumption_tag_state": "ABSENT",
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "EXACT_CONSUMPTION_RENAME_UNSTAGED"
+          },
+          "BLOCKER_CONSUMPTION_INDEX_STAGED": {
+            "proof_stage": "ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT",
+            "claim_state": "CLAIMED",
+            "head_state": "ARMING_COMMIT",
+            "consumption_tag_state": "ABSENT",
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "EXACT_CONSUMPTION_INDEX_STAGED"
+          },
+          "BLOCKER_CONSUMPTION_COMMITTED": {
+            "proof_stage": "CONSUMPTION_COMMIT_PRE_PUSH",
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "ABSENT",
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "CLEAN"
+          },
+          "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE": {
+            "proof_stage": "CONSUMPTION_COMMIT_PRE_PUSH",
             "claim_state": "CLAIMED",
             "head_state": "CONSUMPTION_COMMIT",
             "consumption_tag_state": "EXACT",
-            "terminal_tag_state": "ABSENT"
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "CLEAN"
           },
-          "CONSUMPTION_PUSH_UNRECEIPTED": {
+          "NORMAL_CONSUMPTION_PUSH_UNRECEIPTED": {
+            "proof_stage": "CONSUMPTION_PUSH_UNRECEIPTED",
             "claim_state": "CLAIMED",
             "head_state": "CONSUMPTION_COMMIT",
             "consumption_tag_state": "EXACT",
-            "terminal_tag_state": "ABSENT"
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "CLEAN"
           },
-          "CONSUMPTION_RECEIPT_COMMITTED": {
+          "NORMAL_CONSUMPTION_RECEIPT_COMMITTED": {
+            "proof_stage": "CONSUMPTION_RECEIPT_COMMITTED",
             "claim_state": "CLAIMED",
             "head_state": "CONSUMPTION_COMMIT",
             "consumption_tag_state": "EXACT",
-            "terminal_tag_state": "ABSENT"
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "EXACT_CONSUMPTION_RECEIPT_UNSTAGED"
           },
-          "TERMINAL_PUSH_UNRECEIPTED": {
+          "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING": {
+            "proof_stage": "CONSUMPTION_RECEIPT_COMMITTED",
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED"
+          },
+          "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION": {
+            "proof_stage": "CONSUMPTION_RECEIPT_COMMITTED",
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "EXACT_TERMINAL_DELTA_UNSTAGED"
+          },
+          "BLOCKER_TERMINAL_COMMON_STAGED_PASS": {
+            "proof_stage": "CONSUMPTION_RECEIPT_COMMITTED",
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED"
+          },
+          "BLOCKER_TERMINAL_INDEX_STAGED": {
+            "proof_stage": "CONSUMPTION_RECEIPT_COMMITTED",
+            "claim_state": "CLAIMED",
+            "head_state": "CONSUMPTION_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "EXACT_TERMINAL_INDEX_STAGED"
+          },
+          "BLOCKER_TERMINAL_COMMITTED": {
+            "proof_stage": "TERMINAL_COMMIT_PRE_PUSH",
             "claim_state": "CLAIMED",
             "head_state": "TERMINAL_COMMIT",
             "consumption_tag_state": "EXACT",
-            "terminal_tag_state": "EXACT"
+            "terminal_tag_state": "ABSENT",
+            "tracked_transition_state": "CLEAN"
           },
-          "TERMINAL_PUSH_RECEIPT_COMMITTED": {
+          "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE": {
+            "proof_stage": "TERMINAL_COMMIT_PRE_PUSH",
             "claim_state": "CLAIMED",
             "head_state": "TERMINAL_COMMIT",
             "consumption_tag_state": "EXACT",
-            "terminal_tag_state": "EXACT"
+            "terminal_tag_state": "EXACT",
+            "tracked_transition_state": "CLEAN"
+          },
+          "NORMAL_TERMINAL_PUSH_UNRECEIPTED": {
+            "proof_stage": "TERMINAL_PUSH_UNRECEIPTED",
+            "claim_state": "CLAIMED",
+            "head_state": "TERMINAL_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "EXACT",
+            "tracked_transition_state": "CLEAN"
+          },
+          "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED": {
+            "proof_stage": "TERMINAL_PUSH_RECEIPT_COMMITTED",
+            "claim_state": "CLAIMED",
+            "head_state": "TERMINAL_COMMIT",
+            "consumption_tag_state": "EXACT",
+            "terminal_tag_state": "EXACT",
+            "tracked_transition_state": "CLEAN"
           }
         },
         "ordered_invalid_rules": [
           {
             "rule_id": "G01_CONTROLLER_REF_NOT_EXPECTED",
-            "predicate": "controller ref token is outside expected_sha_sets_by_local_state[proof_stage]"
+            "predicate": "controller ref token is outside expected_sha_sets_by_local_state[expected_local_state_by_action_phase[action_phase].proof_stage]"
           },
           {
             "rule_id": "G02_CLAIM_STATE_MISMATCH",
-            "predicate": "claim state is outside expected_local_state_by_proof_stage[proof_stage].claim_state"
+            "predicate": "claim state differs from expected_local_state_by_action_phase[action_phase].claim_state"
           },
           {
             "rule_id": "G03_HEAD_MISMATCH",
-            "predicate": "HEAD differs from expected_local_state_by_proof_stage[proof_stage].head_state"
+            "predicate": "HEAD differs from expected_local_state_by_action_phase[action_phase].head_state"
           },
           {
             "rule_id": "G04_COMMIT_IDENTITY_MISMATCH",
@@ -1556,15 +1712,15 @@
           },
           {
             "rule_id": "G05_INDEX_OR_TRACKED_WORKTREE_DIRTY",
-            "predicate": "index_and_tracked_worktree_clean is false"
+            "predicate": "tracked transition state differs from expected_local_state_by_action_phase[action_phase].tracked_transition_state"
           },
           {
             "rule_id": "G06_CONSUMPTION_TAG_MISMATCH",
-            "predicate": "consumption tag state differs from expected_local_state_by_proof_stage[proof_stage].consumption_tag_state"
+            "predicate": "consumption tag state differs from expected_local_state_by_action_phase[action_phase].consumption_tag_state"
           },
           {
             "rule_id": "G07_TERMINAL_TAG_MISMATCH",
-            "predicate": "terminal tag state differs from expected_local_state_by_proof_stage[proof_stage].terminal_tag_state"
+            "predicate": "terminal tag state differs from expected_local_state_by_action_phase[action_phase].terminal_tag_state"
           }
         ],
         "invalid_outcomes": {
@@ -1573,26 +1729,49 @@
         },
         "cross_product_derivation": {
           "evaluation_mode": "PRE_BLOCKER_OBSERVATION",
-          "row_order": "proof_stage_order, controller_ref_domain, claim_state_domain, head_state_domain, consumption tag state, terminal tag state, commit_identity_valid false/true, index_and_tracked_worktree_clean false/true",
+          "row_order": "action_phase_order, controller_ref_domain, claim_state_domain, head_state_domain, consumption tag state, terminal tag state, commit_identity_valid false/true, tracked_transition_state_domain",
           "row_fields": [
+            "action_phase",
             "claim_state",
             "commit_identity_valid",
             "consumption_tag_state",
             "controller_ref_state",
             "first_invalid_rule",
             "head_state",
-            "index_and_tracked_worktree_clean",
             "proof_stage",
             "restart_state_valid",
-            "terminal_tag_state"
+            "terminal_tag_state",
+            "tracked_transition_state"
           ],
           "first_invalid_rule": "first matching G01-G07, otherwise NONE",
           "restart_state_valid": "true iff first_invalid_rule is NONE",
-          "row_count": 10368,
+          "row_count": 116640,
           "canonical_rows": "canonical compact sorted-key ASCII JSON array with no trailing LF",
-          "canonical_rows_sha256": "624a7b61803cfdfb34715dee40fb4a52beea84f6202b885f856bcc2fe1edf138",
-          "valid_row_count": 9,
-          "invalid_row_count": 10359
+          "canonical_rows_sha256": "c55f8ccabea22cd4e386f5cd2923b5cfd40eb2e028f1fc9b4b0385475ad0bd2e",
+          "valid_row_count": 17,
+          "invalid_row_count": 116623
+        },
+        "post_controller_restart_derivation": {
+          "evaluation_mode": "POST_CONTROLLER_BLOCKER_OBSERVATION",
+          "row_order": "controller_blocker_restart_action_phases, claim_state_domain, head_state_domain, consumption tag state, terminal tag state, commit_identity_valid false/true, tracked_transition_state_domain",
+          "row_fields": [
+            "action_phase",
+            "claim_state",
+            "commit_identity_valid",
+            "consumption_tag_state",
+            "first_invalid_rule",
+            "head_state",
+            "restart_state_valid",
+            "terminal_tag_state",
+            "tracked_transition_state"
+          ],
+          "first_invalid_rule": "first matching G02-G07, otherwise NONE; G01 is skipped because immutable controller blocker evidence owns the remote observation",
+          "restart_state_valid": "true iff first_invalid_rule is NONE",
+          "row_count": 21384,
+          "canonical_rows": "canonical compact sorted-key ASCII JSON array with no trailing LF",
+          "canonical_rows_sha256": "d9e4682bf43d4516b276eb46760fd020196503af5dfd2edc6e8b90b4336d4356",
+          "valid_row_count": 11,
+          "invalid_row_count": 21373
         }
       }
     },
@@ -2027,7 +2206,7 @@
       "restart_semantics": "the exact recovery-driver argv may be restarted after a recovery-process crash; every content write uses control_publication or verifies exact committed bytes, every Git transition is guarded by observed state and lease-CAS, and no restart may create a producer or verifier invocation claim",
       "remote_state_rules": {
         "ABSENT": "legal only in ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT, CONSUMPTION_COMMIT_PRE_PUSH or CONSUMPTION_PUSH_UNRECEIPTED; after a committed consumption receipt it is G01_CONTROLLER_REF_NOT_EXPECTED and enters CONTROLLER_REF_DIVERGENCE",
-        "<consumption_sha>": "legal only in CONSUMPTION_PUSH_UNRECEIPTED, CONSUMPTION_RECEIPT_COMMITTED or TERMINAL_PUSH_UNRECEIPTED; complete or recover terminalization without erasing durable receipt proof",
+        "<consumption_sha>": "legal only in CONSUMPTION_PUSH_UNRECEIPTED, CONSUMPTION_RECEIPT_COMMITTED, TERMINAL_COMMIT_PRE_PUSH or TERMINAL_PUSH_UNRECEIPTED; complete or recover terminalization without erasing durable receipt proof",
         "<terminal_sha>": "legal only in TERMINAL_PUSH_UNRECEIPTED or TERMINAL_PUSH_RECEIPT_COMMITTED; write terminal REF_OBSERVATION only when normal receipt is absent, then finish QA handoff",
         "other": "an unexpected 40-hex SHA exits through CONTROLLER_REF_DIVERGENCE; command failure or malformed output exits through CONTROLLER_OBSERVATION_FAILURE; before a terminal receipt classification is NONE and terminal artifacts are forbidden, after a valid terminal receipt preserve its immutable Q0 classification and allow only missing local terminal commit/tag completion; controller push is always forbidden"
       }

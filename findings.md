@@ -134,6 +134,13 @@
   target are all bound. Revision 11 makes these G02-G07 integrity predicates;
   wrong tags and extra successor commits cannot be treated as local
   completion.
+- Revision 11's remaining defect was over-compression: a proof stage is not a
+  Git action phase. A clean commit-before-tag state and an exact staged index
+  are legitimate durable restart states, not corruption.
+- Revision 12 records unstaged rename, exact staged index, receipt-only
+  worktree, PASS two-stage terminal index and both pre-tag states separately.
+  G05 now rejects only a transition state different from the action phase's
+  exact expected path/mode/blob/staging partition.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

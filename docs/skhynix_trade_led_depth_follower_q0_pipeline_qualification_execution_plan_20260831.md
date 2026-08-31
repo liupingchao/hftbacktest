@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_11_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_12_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -83,6 +83,14 @@ classification.
 | `ABSENT` remained legal after durable consumption proof | expected ref sets are split into six receipt-sensitive proof stages; after consumption receipt only consumption SHA is legal, after terminal receipt only terminal SHA is legal |
 | wrong tag target or extra HEAD had no restart outcome | ordered G01-G07 rules bind claim, HEAD, commit parent/message/tree, index/worktree and both annotated tags; G02-G07 route to `ARTIFACT_STATE_CORRUPTION` |
 | restart authority was not machine-total | a 10,368-row proof-stage/ref/claim/HEAD/tag/commit/worktree cross-product freezes 9 legal rows, 10,359 invalid rows and one canonical aggregate SHA256 |
+
+### 1.4 Revision 12 closure matrix
+
+| Round 11 finding | Revision 12 closure |
+|---|---|
+| legal commit-before-tag states matched G06/G07 | consumption-commit-before-tag and terminal-commit-before-tag are distinct action phases with `ABSENT` as the exact expected tag state |
+| exact staged index states matched G05 | claim rename, consumption staged index, terminal receipt-only worktree, terminal unstaged delta, PASS common-stage split and complete terminal staged index each have a distinct exact tracked-transition state |
+| proof-stage table omitted restart substates | 15 action phases generate a 116,640-row pre-blocker table; the 11 controller restart phases also generate a separate 21,384-row post-blocker table that skips G01 |
 
 ## 2. Authorization Boundary
 
@@ -232,10 +240,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  e99920de66b90d558ef5bab697f3df424ab4e2d38a08c4e8bef6afad8ce8fe9a
+  16a9a6df6fad6dc367738e12641240b11253d18e13331d700ff218c7ac2be80f
 
 Git blob:
-  2a28f8a15632544ea52c7a8cb26d48c0d9b2f024
+  163b8eefdf56b24a6186d9809b9fa00b8ed32678
 ```
 
 It freezes:
@@ -1846,9 +1854,30 @@ G01 produces controller divergence. G02-G07 produce
 controller blocker receipt is committed, its remote observation is frozen and
 restart evaluation skips G01 but still applies G02-G07.
 
-The frozen cross-product has 10,368 rows, 9 legal rows and 10,359 invalid
-rows. Its canonical aggregate SHA256 is
-`624a7b61803cfdfb34715dee40fb4a52beea84f6202b885f856bcc2fe1edf138`.
+Revision 12 separates seven controller-proof stages from 15 exact Git action
+phases. The tracked transition state is one of:
+
+```text
+CLEAN
+EXACT_CONSUMPTION_RENAME_UNSTAGED
+EXACT_CONSUMPTION_INDEX_STAGED
+EXACT_CONSUMPTION_RECEIPT_UNSTAGED
+EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED
+EXACT_TERMINAL_DELTA_UNSTAGED
+EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED
+EXACT_TERMINAL_INDEX_STAGED
+INVALID
+```
+
+The full pre-blocker cross-product has 116,640 rows: 17 legal and 116,623
+invalid. Its canonical aggregate SHA256 is
+`c55f8ccabea22cd4e386f5cd2923b5cfd40eb2e028f1fc9b4b0385475ad0bd2e`.
+
+The post-controller-blocker table skips G01 and enumerates the 11 executable
+restart action phases across local claim/HEAD/tag/commit/tracked-transition
+state. It has 21,384 rows: 11 legal and 21,373 invalid, with aggregate
+SHA256
+`d9e4682bf43d4516b276eb46760fd020196503af5dfd2edc6e8b90b4336d4356`.
 
 Any invalid committed process/result/baseline/terminal/report artifact state
 instead records:
