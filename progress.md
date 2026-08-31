@@ -10027,3 +10027,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   checks pass.
 - Formal artifacts remain absent. This checkpoint requests independent
   implementation readiness review only; arming and formal remain locked.
+
+## 2026-08-31 0831T001 Q0 Implementation Readiness Round 3 Rejected
+
+- Independent review of immutable commit `3daeb4d8` failed with
+  `P0/P1/P2/P3 = 0/5/1/0`.
+- QF12/QF13 now execute the production hostile boundaries, but QF13 still
+  lacks formal mutated/unmutated anchor and model-input byte-equality evidence.
+- Control-publication temporary recovery, original crash-identity invariance,
+  post-attempt G01 blocker publication, executable 14-row predicates and
+  blocker receipt preserve semantics remain open.
+- Focused tests passed `83`; expanded accepted regressions passed `389` with
+  one skip, but these gaps are implementation-readiness blockers.
+- Formal execution, arming, controller creation and task tags remain
+  forbidden.
