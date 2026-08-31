@@ -2071,26 +2071,36 @@ def test_recovery_links_independently_valid_controller_blocker_temporary(
     attempt_root = tmp_path / "attempt"
     control = attempt_root / "control"
     control.mkdir(parents=True)
-    target = control / "controller_ref_divergence.json"
-    payload = {
-        "blocker_code": "CONTROLLER_REF_DIVERGENCE",
-        "controller_ref": runner.CONTROLLER_REF,
-        "expected_sha_set_json": '["ABSENT"]',
-        "observation_command": surface["one_shot"]["git_commands"][
-            "controller_observe"
-        ],
-        "observation_exit_code": 0,
-        "observation_stderr_sha256": "0" * 64,
-        "observation_stdout_sha256": "1" * 64,
-        "observed_sha": "a" * 40,
-        "schema_version": 1,
+    observation = {
+        "command": surface["one_shot"]["git_commands"]["controller_observe"],
+        "exit_code": 0,
+        "parse_status": "OK",
+        "stderr": b"",
+        "stdout": b"observed-controller-output",
+        "token": "a" * 40,
     }
+    target, payload = runner._controller_blocker_payload(
+        attempt_root=attempt_root,
+        surface=surface,
+        observation=observation,
+        expected_tokens=[runner.ABSENT],
+    )
     content = runner.canonical_json_bytes(payload, trailing_lf=True)
     Path(f"{target}.publishing").write_bytes(content)
     monkeypatch.setattr(
         runner,
         "_allowed_controller_expected_sets",
         lambda **_: {("ABSENT",)},
+    )
+    monkeypatch.setattr(
+        runner,
+        "_recovery_controller_proof_stage",
+        lambda **_: ("ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT", None, None),
+    )
+    monkeypatch.setattr(
+        runner,
+        "_observe_controller_status",
+        lambda *_: observation,
     )
 
     runner._reconcile_controller_blocker_temporaries(
@@ -2121,6 +2131,23 @@ def test_recovery_discards_invalid_controller_blocker_temporary(
         "_allowed_controller_expected_sets",
         lambda **_: {("ABSENT",)},
     )
+    monkeypatch.setattr(
+        runner,
+        "_recovery_controller_proof_stage",
+        lambda **_: ("ATTEMPT_ROOT_PRE_CONSUMPTION_COMMIT", None, None),
+    )
+    monkeypatch.setattr(
+        runner,
+        "_observe_controller_status",
+        lambda *_: {
+            "command": surface["one_shot"]["git_commands"]["controller_observe"],
+            "exit_code": 1,
+            "parse_status": "COMMAND_FAILED",
+            "stderr": b"failure",
+            "stdout": b"",
+            "token": runner.NONE,
+        },
+    )
 
     runner._reconcile_controller_blocker_temporaries(
         repo_root=tmp_path,
@@ -2131,6 +2158,111 @@ def test_recovery_discards_invalid_controller_blocker_temporary(
 
     assert not target.exists()
     assert not temporary.exists()
+
+
+@pytest.mark.parametrize("mutation", ["stale_stage", "observation_hash"])
+def test_recovery_rejects_controller_blocker_temporary_not_bound_to_current_state(
+    mutation: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    attempt_root = tmp_path / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    consumption_sha = "c" * 40
+    observation = {
+        "command": surface["one_shot"]["git_commands"]["controller_observe"],
+        "exit_code": 0,
+        "parse_status": "OK",
+        "stderr": b"",
+        "stdout": b"current-controller-output",
+        "token": "d" * 40,
+    }
+    expected_tokens = (
+        [runner.ABSENT] if mutation == "stale_stage" else [consumption_sha]
+    )
+    target, payload = runner._controller_blocker_payload(
+        attempt_root=attempt_root,
+        surface=surface,
+        observation=observation,
+        expected_tokens=expected_tokens,
+    )
+    if mutation == "observation_hash":
+        payload["observation_stdout_sha256"] = "0" * 64
+    temporary = Path(f"{target}.publishing")
+    temporary.write_bytes(runner.canonical_json_bytes(payload, trailing_lf=True))
+    monkeypatch.setattr(
+        runner,
+        "_allowed_controller_expected_sets",
+        lambda **_: {(runner.ABSENT,), (consumption_sha,)},
+    )
+    monkeypatch.setattr(
+        runner,
+        "_recovery_controller_proof_stage",
+        lambda **_: (
+            "CONSUMPTION_RECEIPT_COMMITTED",
+            consumption_sha,
+            None,
+        ),
+    )
+    monkeypatch.setattr(
+        runner,
+        "_observe_controller_status",
+        lambda *_: observation,
+    )
+
+    runner._reconcile_controller_blocker_temporaries(
+        repo_root=tmp_path,
+        attempt_root=attempt_root,
+        surface=surface,
+        claim={"implementation_commit": "b" * 40},
+    )
+
+    assert not target.exists()
+    assert not temporary.exists()
+
+
+def test_malformed_controller_observation_requires_zero_exit_code(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    monkeypatch.setattr(
+        runner,
+        "_allowed_controller_expected_sets",
+        lambda **_: {(runner.ABSENT,)},
+    )
+    base = {
+        "blocker_code": "CONTROLLER_OBSERVATION_FAILURE",
+        "controller_ref": runner.CONTROLLER_REF,
+        "expected_sha_set_json": '["ABSENT"]',
+        "observation_command": surface["one_shot"]["git_commands"][
+            "controller_observe"
+        ],
+        "observation_stderr_sha256": "0" * 64,
+        "observation_stdout_sha256": "1" * 64,
+        "parse_status": "MALFORMED_OUTPUT",
+        "schema_version": 1,
+    }
+    runner._validate_workflow_blocker_value(
+        repo_root=tmp_path,
+        surface=surface,
+        claim={"implementation_commit": "b" * 40},
+        code="CONTROLLER_OBSERVATION_FAILURE",
+        value={**base, "observation_exit_code": 0},
+    )
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._validate_workflow_blocker_value(
+            repo_root=tmp_path,
+            surface=surface,
+            claim={"implementation_commit": "b" * 40},
+            code="CONTROLLER_OBSERVATION_FAILURE",
+            value={**base, "observation_exit_code": 7},
+        )
+    assert caught.value.code == "TERMINAL_CLOSURE"
 
 
 def test_recovery_discards_only_registered_nonblocker_temporaries(
@@ -2200,6 +2332,81 @@ def test_recovery_removes_only_post_link_recovery_start_temporary(
     assert not temporary.exists()
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "schema",
+        "attempt_lock",
+        "claim_hash",
+        "recovery_id",
+        "committed_paths",
+    ],
+)
+def test_committed_recovery_start_rejects_identity_mutation(
+    mutation: str,
+    tmp_path: Path,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    attempt_root = tmp_path / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    claim_path = tmp_path / "claim.json"
+    claim_path.write_bytes(b"claim\n")
+    attempt_lock_sha256 = "a" * 64
+    payload = runner._recovery_start_payload(
+        repo_root=tmp_path,
+        attempt_root=attempt_root,
+        surface=surface,
+        crash_boundary="after_attempt_root_before_lock",
+        claim_path=claim_path,
+        attempt_lock_sha256=attempt_lock_sha256,
+        initial_committed_paths_json="[]",
+        initial_controller_sha=runner.ABSENT,
+    )
+    path = control / "recovery_start.json"
+    path.write_bytes(runner.canonical_json_bytes(payload, trailing_lf=True))
+    assert (
+        runner._recovery_start_payload(
+            repo_root=tmp_path,
+            attempt_root=attempt_root,
+            surface=surface,
+            crash_boundary="after_attempt_root_before_lock",
+            claim_path=claim_path,
+            attempt_lock_sha256=attempt_lock_sha256,
+            initial_committed_paths_json="[]",
+            initial_controller_sha=runner.ABSENT,
+        )
+        == payload
+    )
+
+    mutated = dict(payload)
+    if mutation == "schema":
+        mutated["schema_version"] = 999
+    elif mutation == "attempt_lock":
+        mutated["attempt_lock_sha256"] = "b" * 64
+    elif mutation == "claim_hash":
+        mutated["claimed_or_armed_sha256"] = "c" * 64
+    elif mutation == "recovery_id":
+        mutated["recovery_id"] = "d" * 64
+    else:
+        mutated["initial_committed_paths_json"] = '["control/z.json","control/a.json"]'
+    path.write_bytes(runner.canonical_json_bytes(mutated, trailing_lf=True))
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._recovery_start_payload(
+            repo_root=tmp_path,
+            attempt_root=attempt_root,
+            surface=surface,
+            crash_boundary="after_attempt_root_before_lock",
+            claim_path=claim_path,
+            attempt_lock_sha256=attempt_lock_sha256,
+            initial_committed_paths_json="[]",
+            initial_controller_sha=runner.ABSENT,
+        )
+    assert caught.value.code == "TERMINAL_CLOSURE"
+
+
 def test_artifact_restart_verifies_existing_attempt_lock_without_creating_one(
     tmp_path: Path,
     runner: ModuleType,
@@ -2241,6 +2448,7 @@ def test_artifact_restart_verifies_existing_attempt_lock_without_creating_one(
 
 def test_artifact_blocker_restart_recomputes_presence_and_hashes(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
     runner: ModuleType,
     surface: Mapping[str, Any],
 ) -> None:
@@ -2262,6 +2470,14 @@ def test_artifact_blocker_restart_recomputes_presence_and_hashes(
         attempt_root=attempt_root,
         resolution=resolution,
     )
+    git_checks = 0
+
+    def verify_git(**_: Any) -> str:
+        nonlocal git_checks
+        git_checks += 1
+        return "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE"
+
+    monkeypatch.setattr(runner, "_verify_pre_recovery_git_state", verify_git)
 
     runner._verify_preserved_artifact_blocker(
         repo_root=repo_root,
@@ -2271,6 +2487,7 @@ def test_artifact_blocker_restart_recomputes_presence_and_hashes(
         claim_bytes=b"claim",
         blocker_receipt=blocker,
     )
+    assert git_checks == 1
 
     producer_exit.write_bytes(b'{"state":"mutated"}\n')
     with pytest.raises(runner.QualificationError) as caught:
@@ -2283,6 +2500,44 @@ def test_artifact_blocker_restart_recomputes_presence_and_hashes(
             blocker_receipt=blocker,
         )
     assert caught.value.code == "TERMINAL_CLOSURE"
+
+
+def test_artifact_blocker_restart_rejects_local_git_drift_before_a_rule(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    repo_root = tmp_path / "repo"
+    attempt_root = repo_root / "attempt"
+    control = attempt_root / "control"
+    control.mkdir(parents=True)
+    (control / "formal_producer_exit.json").write_bytes(b"{}\n")
+    resolution = {
+        "artifact_presence_bits": "010000",
+        "first_invalid_rule": "A01_PRODUCER_EXIT_WITHOUT_INVOCATION",
+    }
+    blocker = runner._artifact_corruption_payload(
+        repo_root=repo_root,
+        attempt_root=attempt_root,
+        resolution=resolution,
+    )
+
+    def drift(**_: Any) -> None:
+        raise runner.QualificationError("G06_CONSUMPTION_TAG_MISMATCH")
+
+    monkeypatch.setattr(runner, "_verify_pre_recovery_git_state", drift)
+    with pytest.raises(runner.QualificationError) as caught:
+        runner._verify_preserved_artifact_blocker(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim={"implementation_commit": "a" * 40},
+            claim_bytes=b"claim",
+            blocker_receipt=blocker,
+        )
+    assert caught.value.code == "TERMINAL_CLOSURE"
+    assert "G06_CONSUMPTION_TAG_MISMATCH" in caught.value.detail
 
 
 def test_local_git_blocker_restart_requires_same_production_first_rule(

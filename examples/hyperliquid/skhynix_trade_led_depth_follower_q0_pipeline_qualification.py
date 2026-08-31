@@ -4179,13 +4179,13 @@ def _expected_controller_tokens(
     return result
 
 
-def _publish_controller_blocker(
+def _controller_blocker_payload(
     *,
     attempt_root: Path,
     surface: Mapping[str, Any],
     observation: Mapping[str, Any],
     expected_tokens: Sequence[str],
-) -> dict[str, Any]:
+) -> tuple[Path, dict[str, Any]]:
     expected_json = canonical_json_bytes(sorted(expected_tokens)).decode("ascii")
     common = {
         "blocker_code": (
@@ -4212,6 +4212,22 @@ def _publish_controller_blocker(
     else:
         payload = {**common, "parse_status": observation["parse_status"]}
         target = attempt_root / "control" / "controller_observation_failure.json"
+    return target, payload
+
+
+def _publish_controller_blocker(
+    *,
+    attempt_root: Path,
+    surface: Mapping[str, Any],
+    observation: Mapping[str, Any],
+    expected_tokens: Sequence[str],
+) -> dict[str, Any]:
+    target, payload = _controller_blocker_payload(
+        attempt_root=attempt_root,
+        surface=surface,
+        observation=observation,
+        expected_tokens=expected_tokens,
+    )
     publish_json(target, payload, control=True)
     return payload
 
@@ -4368,12 +4384,18 @@ def _validate_workflow_blocker_value(
                 "controller divergence receipt",
             )
         else:
+            parse_status = str(value.get("parse_status", ""))
             require(
-                str(value.get("parse_status", ""))
-                in {"COMMAND_FAILED", "MALFORMED_OUTPUT"}
+                parse_status in {"COMMAND_FAILED", "MALFORMED_OUTPUT"}
                 and (
-                    value["observation_exit_code"] != 0
-                    or value["parse_status"] == "MALFORMED_OUTPUT"
+                    (
+                        parse_status == "COMMAND_FAILED"
+                        and value["observation_exit_code"] != 0
+                    )
+                    or (
+                        parse_status == "MALFORMED_OUTPUT"
+                        and value["observation_exit_code"] == 0
+                    )
                 ),
                 "TERMINAL_CLOSURE",
                 "controller observation failure receipt",
@@ -4447,9 +4469,9 @@ def _reconcile_controller_blocker_temporaries(
             _remove_publication_temporary(path)
         return
 
-    valid: list[tuple[Path, bytes]] = []
     temporaries: list[Path] = []
-    for code, path in controller_paths.items():
+    contents: dict[Path, bytes] = {}
+    for path in controller_paths.values():
         temporary = _publication_temporary(path)
         if not temporary.exists():
             continue
@@ -4459,29 +4481,62 @@ def _reconcile_controller_blocker_temporaries(
             str(temporary),
         )
         temporaries.append(path)
-        content = temporary.read_bytes()
-        try:
-            value = strict_canonical_json_bytes(
-                content,
-                detail=str(temporary),
-            )
-            _validate_workflow_blocker_value(
-                repo_root=repo_root,
-                surface=surface,
-                claim=claim,
-                code=code,
-                value=value,
-            )
-        except QualificationError:
-            continue
-        valid.append((path, content))
+        contents[path] = temporary.read_bytes()
+    if not temporaries:
+        return
 
-    if len(valid) == 1:
-        selected_path, selected_content = valid[0]
+    try:
+        proof_stage, consumption_sha, terminal_sha = _recovery_controller_proof_stage(
+            repo_root=repo_root,
+            attempt_root=attempt_root,
+            surface=surface,
+            claim=claim,
+        )
+        expected_tokens = _expected_controller_tokens(
+            surface,
+            proof_stage,
+            consumption_sha=consumption_sha,
+            terminal_sha=terminal_sha,
+        )
+        observation = _observe_controller_status(repo_root, surface)
+        selected_path, expected_payload = _controller_blocker_payload(
+            attempt_root=attempt_root,
+            surface=surface,
+            observation=observation,
+            expected_tokens=expected_tokens,
+        )
+        expected_content = canonical_json_bytes(expected_payload, trailing_lf=True)
+        value = strict_canonical_json_bytes(
+            contents.get(selected_path, b""),
+            detail=str(_publication_temporary(selected_path)),
+        )
+        selected_code = str(expected_payload["blocker_code"])
+        _validate_workflow_blocker_value(
+            repo_root=repo_root,
+            surface=surface,
+            claim=claim,
+            code=selected_code,
+            value=value,
+        )
+        require(
+            json.loads(str(value["expected_sha_set_json"])) == sorted(expected_tokens),
+            "TERMINAL_CLOSURE",
+            "controller blocker temporary current proof stage",
+        )
+        require(
+            value == expected_payload and contents[selected_path] == expected_content,
+            "TERMINAL_CLOSURE",
+            "controller blocker temporary observation",
+        )
+    except (KeyError, QualificationError):
+        selected_path = None
+        expected_content = b""
+
+    if selected_path is not None:
         for path in temporaries:
             if path != selected_path:
                 _remove_publication_temporary(path)
-        publish_control_no_replace(selected_path.resolve(), selected_content)
+        publish_control_no_replace(selected_path.resolve(), expected_content)
         return
     for path in temporaries:
         _remove_publication_temporary(path)
@@ -7037,6 +7092,7 @@ def _verify_pre_recovery_git_state(
     claim_bytes: bytes,
     controller_token: str,
     skip_controller: bool = False,
+    artifact_tolerant_terminal_branch: bool = False,
 ) -> str:
     history = _history_ids(repo_root, str(claim["implementation_commit"]))
     depth = int(history["depth"])
@@ -7079,14 +7135,22 @@ def _verify_pre_recovery_git_state(
     business_report_bytes = (
         report_path.read_bytes() if _committed_regular(report_path) else None
     )
-    branch = "NONE"
+    branches = ("NONE",)
     if terminal_receipt_bytes is not None:
-        terminal_receipt = strict_json_file(terminal_path)
-        branch = (
-            "PASS"
-            if terminal_receipt.get("classification") == FORMAL_CLASSIFICATION_PASS
-            else "FAIL"
-        )
+        if artifact_tolerant_terminal_branch:
+            branches = ("PASS", "FAIL")
+        else:
+            try:
+                terminal_receipt = strict_json_file(terminal_path)
+            except QualificationError:
+                branches = ("PASS", "FAIL")
+            else:
+                branches = (
+                    "PASS"
+                    if terminal_receipt.get("classification")
+                    == FORMAL_CLASSIFICATION_PASS
+                    else "FAIL",
+                )
     if depth == 2:
         consumption_tag = _tag_state(
             repo_root,
@@ -7103,12 +7167,19 @@ def _verify_pre_recovery_git_state(
                 "terminal without consumption receipt",
             )
             candidates = (
-                (("CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING", branch),)
+                tuple(
+                    ("CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING", branch)
+                    for branch in branches
+                )
                 if business_report_bytes is None
-                else (
-                    ("BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION", branch),
-                    ("BLOCKER_TERMINAL_COMMON_STAGED_PASS", branch),
-                    ("BLOCKER_TERMINAL_INDEX_STAGED", branch),
+                else tuple(
+                    (phase, branch)
+                    for branch in branches
+                    for phase in (
+                        "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+                        "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
+                        "BLOCKER_TERMINAL_INDEX_STAGED",
+                    )
                 )
             )
         elif _committed_regular(repo_root / CONSUMPTION_RECEIPT_PATH):
@@ -7141,12 +7212,16 @@ def _verify_pre_recovery_git_state(
             expected_message=surface["one_shot"]["annotated_tag_messages"]["terminal"],
         )
         candidates = (
-            (("BLOCKER_TERMINAL_COMMITTED", branch),)
+            tuple(("BLOCKER_TERMINAL_COMMITTED", branch) for branch in branches)
             if terminal_tag == "ABSENT"
-            else (
-                ("BLOCKER_POST_TERMINAL_LOCAL_COMPLETE", branch),
-                ("NORMAL_TERMINAL_PUSH_UNRECEIPTED", branch),
-                ("NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED", branch),
+            else tuple(
+                (phase, branch)
+                for branch in branches
+                for phase in (
+                    "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+                    "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+                    "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
+                )
             )
         )
     return _match_git_phase(
@@ -7177,7 +7252,12 @@ def _recovery_start_payload(
 ) -> dict[str, Any]:
     path = attempt_root / "control" / "recovery_start.json"
     if path.is_file():
-        return strict_json_file(path)
+        return _validate_committed_recovery_start(
+            path=path,
+            surface=surface,
+            claim_path=claim_path,
+            attempt_lock_sha256=attempt_lock_sha256,
+        )
     require(
         crash_boundary in surface["one_shot"]["crash_recovery_matrix"]
         and crash_boundary != "before_attempt_root",
@@ -7193,6 +7273,87 @@ def _recovery_start_payload(
         "schema_version": 1,
     }
     return {**base, "recovery_id": canonical_json_sha256(base)}
+
+
+def _validate_committed_recovery_start(
+    *,
+    path: Path,
+    surface: Mapping[str, Any],
+    claim_path: Path,
+    attempt_lock_sha256: str,
+) -> dict[str, Any]:
+    content = path.read_bytes()
+    value = strict_canonical_json_bytes(content, detail=str(path))
+    recovery = surface["one_shot"]["recovery"]
+    require(
+        set(value) == set(recovery["recovery_start_fields"])
+        and value.get("schema_version") == 1,
+        "TERMINAL_CLOSURE",
+        "recovery start schema",
+    )
+    require(
+        value.get("attempt_lock_sha256") == attempt_lock_sha256
+        and HEX64_RE.fullmatch(attempt_lock_sha256) is not None
+        and value.get("claimed_or_armed_sha256") == sha256_file(claim_path),
+        "TERMINAL_CLOSURE",
+        "recovery start deterministic identity",
+    )
+    crash_boundary = str(value.get("crash_boundary", ""))
+    require(
+        crash_boundary in surface["one_shot"]["crash_recovery_matrix"]
+        and crash_boundary != "before_attempt_root",
+        "TERMINAL_CLOSURE",
+        "recovery start boundary",
+    )
+    initial_controller_sha = str(value.get("initial_controller_sha", ""))
+    require(
+        initial_controller_sha == ABSENT
+        or HEX40_RE.fullmatch(initial_controller_sha) is not None,
+        "TERMINAL_CLOSURE",
+        "recovery start controller token",
+    )
+    try:
+        committed_paths = json.loads(str(value["initial_committed_paths_json"]))
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise QualificationError(
+            "TERMINAL_CLOSURE",
+            "recovery start committed paths",
+        ) from exc
+    attempt_root = path.parent.parent
+    current_committed_paths = set(
+        json.loads(_recovery_committed_paths_json(attempt_root))
+    )
+    require(
+        isinstance(committed_paths, list)
+        and committed_paths == sorted(set(committed_paths))
+        and all(
+            isinstance(relative, str)
+            and not Path(relative).is_absolute()
+            and Path(relative).parts
+            and Path(relative).parts[0] == "control"
+            and all(part not in {"", ".", ".."} for part in Path(relative).parts)
+            and Path(relative).as_posix() == relative
+            and not relative.endswith((".lock", ".publishing"))
+            and relative
+            not in {
+                "control/recovery_start.json",
+                "control/recovery_observation.json",
+            }
+            for relative in committed_paths
+        )
+        and set(committed_paths).issubset(current_committed_paths)
+        and value["initial_committed_paths_json"]
+        == canonical_json_bytes(committed_paths).decode("ascii"),
+        "TERMINAL_CLOSURE",
+        "recovery start committed paths",
+    )
+    base = {key: item for key, item in value.items() if key != "recovery_id"}
+    require(
+        value.get("recovery_id") == canonical_json_sha256(base),
+        "TERMINAL_CLOSURE",
+        "recovery start id",
+    )
+    return value
 
 
 def _workflow_blocker_restart_states(surface: Mapping[str, Any]) -> list[str]:
@@ -7513,6 +7674,24 @@ def _verify_preserved_artifact_blocker(
             first_invalid_rule=first_invalid_rule,
         )
     else:
+        try:
+            _verify_pre_recovery_git_state(
+                repo_root=repo_root,
+                attempt_root=attempt_root,
+                surface=surface,
+                claim=claim,
+                claim_bytes=claim_bytes,
+                controller_token=ABSENT,
+                skip_controller=True,
+                artifact_tolerant_terminal_branch=True,
+            )
+        except QualificationError as exc:
+            if exc.code.startswith("G0"):
+                raise QualificationError(
+                    "TERMINAL_CLOSURE",
+                    f"artifact blocker local git drift:{exc.code}",
+                ) from exc
+            raise
         resolution = _pre_recovery_artifact_resolution(
             repo_root=repo_root,
             attempt_root=attempt_root,
@@ -8054,10 +8233,22 @@ def recover_formal(
                 }
             raise
         recovery_start_path = attempt_root / "control" / "recovery_start.json"
+        derived_attempt_lock_sha256 = canonical_json_sha256(
+            _attempt_lock_value(
+                claim=claim,
+                claim_bytes=claim_bytes,
+                attempt_root=attempt_root,
+            )
+        )
         if recovery_start_path.is_file():
-            committed_recovery_start = strict_json_file(recovery_start_path)
+            committed_recovery_start = _validate_committed_recovery_start(
+                path=recovery_start_path,
+                surface=surface,
+                claim_path=claim_path,
+                attempt_lock_sha256=derived_attempt_lock_sha256,
+            )
             crash_boundary = str(committed_recovery_start["crash_boundary"])
-            attempt_lock_sha256 = str(committed_recovery_start["attempt_lock_sha256"])
+            attempt_lock_sha256 = derived_attempt_lock_sha256
         else:
             snapshot = observe_recovery_snapshot(
                 repo_root=repo_root,
@@ -8069,13 +8260,7 @@ def recover_formal(
             )
             crash_boundary = classify_crash_boundary(snapshot)
             require(crash_boundary != "before_attempt_root", "TERMINAL_CLOSURE")
-            attempt_lock_sha256 = canonical_json_sha256(
-                _attempt_lock_value(
-                    claim=claim,
-                    claim_bytes=claim_bytes,
-                    attempt_root=attempt_root,
-                )
-            )
+            attempt_lock_sha256 = derived_attempt_lock_sha256
         recovery_start = _recovery_start_payload(
             repo_root=repo_root,
             attempt_root=attempt_root,

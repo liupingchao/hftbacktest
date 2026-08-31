@@ -10133,3 +10133,21 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   was accessed.
 - Per user instruction, task work pauses at this failed audit boundary.
   Formal, arming, controller creation and task tags remain locked.
+
+## 2026-08-31 0831T001 Q0 Implementation Candidate Round 5
+
+- User authorized work to resume from the round 4 failed audit boundary.
+- Controller blocker temporaries now require the unique current durable proof
+  stage and a fresh exact controller observation whose complete canonical
+  payload matches the temporary bytes.
+- Committed recovery-start records now receive full schema, deterministic
+  identity, path-set and recovery-ID validation on every restart.
+- A-rule artifact blocker restart now executes production G02-G07 before
+  artifact classification and treats damaged terminal receipts as
+  outcome-unknown for local Git verification.
+- `MALFORMED_OUTPUT` now requires exit code zero exactly.
+- Final focused tests pass `106/106`; expanded predecessor regressions pass
+  `410` with one expected skip. Static, compile, CLI, diff and Git integrity
+  checks pass.
+- No formal one-shot state exists. Round 5 exact-commit readiness and
+  independent review remain required before any arming or formal execution.
