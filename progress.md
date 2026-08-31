@@ -10111,3 +10111,25 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   independent implementation review remain required.
 - Per user instruction, work pauses after this audit regardless of PASS/FAIL;
   arming and formal execution remain locked.
+
+## 2026-08-31 0831T001 Q0 Implementation Readiness Round 4 Rejected
+
+- Independent review of exact commit `b895c29a` failed with
+  `P0/P1/P2/P3 = 0/3/1/0`.
+- Generic control-publication restart, recovery ordering, post-attempt G01
+  blocker publication, artifact hash preservation and QF13 projection
+  equality improved, but four readiness gaps remain.
+- Controller blocker temporary validation accepts any proof-stage set
+  reachable in the current history instead of the unique current stage and
+  does not independently bind observation hashes.
+- Committed `recovery_start.json` identity is not fully revalidated.
+- Existing A-rule artifact blocker restart does not first execute complete
+  G02-G07 durable Git predicates.
+- `MALFORMED_OUTPUT` incorrectly accepts nonzero observation exit codes.
+- Independent focused tests passed `97`; primary/fresh readiness each
+  completed 57 calls and produced byte-identical 37-file projections with
+  tree SHA256 `763e9a0d...e34f3`.
+- No formal state was created and no historical cache/future market outcome
+  was accessed.
+- Per user instruction, task work pauses at this failed audit boundary.
+  Formal, arming, controller creation and task tags remain locked.
