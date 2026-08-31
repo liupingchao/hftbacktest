@@ -181,6 +181,12 @@
 - A canonical aggregate cannot substitute for an exact row schema. The
   repository-configuration object keys, boolean representation, ordinal base
   and PATH-probe formatting must be frozen explicitly before implementation.
+- Revision 15 closes that byte-level ambiguity by storing ordinal `0..21`
+  directly in each phase/branch variant and listing all eight exact nested
+  snake_case configuration objects with JSON boolean values.
+- Under the frozen variant, mutation-kind and configuration orders, the
+  explicit row nesting reproduces exactly 704 rows and the existing aggregate
+  `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
 
 ## 2026-08-30 0830T003 Formal Execution Finding
 

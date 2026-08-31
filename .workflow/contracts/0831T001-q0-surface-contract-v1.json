@@ -1142,111 +1142,133 @@
         "action_phase_preimage_variants": [
           {
             "action_phase": "BLOCKER_OBSERVATION_COMMITTED_ARMED",
+            "variant_ordinal": 0,
             "terminal_branch": "NONE",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "BLOCKER_CLAIM_RENAMED",
+            "variant_ordinal": 1,
             "terminal_branch": "NONE",
             "tracked_transition_state": "EXACT_CONSUMPTION_RENAME_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_CONSUMPTION_INDEX_STAGED",
+            "variant_ordinal": 2,
             "terminal_branch": "NONE",
             "tracked_transition_state": "EXACT_CONSUMPTION_INDEX_STAGED"
           },
           {
             "action_phase": "BLOCKER_CONSUMPTION_COMMITTED",
+            "variant_ordinal": 3,
             "terminal_branch": "NONE",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "BLOCKER_PRE_TERMINAL_LOCAL_COMPLETE",
+            "variant_ordinal": 4,
             "terminal_branch": "NONE",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_CONSUMPTION_PUSH_UNRECEIPTED",
+            "variant_ordinal": 5,
             "terminal_branch": "NONE",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_CONSUMPTION_RECEIPT_COMMITTED",
+            "variant_ordinal": 6,
             "terminal_branch": "NONE",
             "tracked_transition_state": "EXACT_CONSUMPTION_RECEIPT_UNSTAGED"
           },
           {
             "action_phase": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+            "variant_ordinal": 7,
             "terminal_branch": "PASS",
             "tracked_transition_state": "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED"
           },
           {
             "action_phase": "CONTROLLER_BLOCKER_POST_RECEIPT_REPORT_MISSING",
+            "variant_ordinal": 8,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "EXACT_BOTH_RECEIPTS_REPORT_MISSING_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+            "variant_ordinal": 9,
             "terminal_branch": "PASS",
             "tracked_transition_state": "EXACT_TERMINAL_DELTA_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_POST_RECEIPT_HEAD_CONSUMPTION",
+            "variant_ordinal": 10,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "EXACT_TERMINAL_DELTA_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_COMMON_STAGED_PASS",
+            "variant_ordinal": 11,
             "terminal_branch": "PASS",
             "tracked_transition_state": "EXACT_TERMINAL_COMMON_INDEX_PASS_BASELINE_UNSTAGED"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_INDEX_STAGED",
+            "variant_ordinal": 12,
             "terminal_branch": "PASS",
             "tracked_transition_state": "EXACT_TERMINAL_INDEX_STAGED"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_INDEX_STAGED",
+            "variant_ordinal": 13,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "EXACT_TERMINAL_INDEX_STAGED"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_COMMITTED",
+            "variant_ordinal": 14,
             "terminal_branch": "PASS",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "BLOCKER_TERMINAL_COMMITTED",
+            "variant_ordinal": 15,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+            "variant_ordinal": 16,
             "terminal_branch": "PASS",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "BLOCKER_POST_TERMINAL_LOCAL_COMPLETE",
+            "variant_ordinal": 17,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+            "variant_ordinal": 18,
             "terminal_branch": "PASS",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_TERMINAL_PUSH_UNRECEIPTED",
+            "variant_ordinal": 19,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
+            "variant_ordinal": 20,
             "terminal_branch": "PASS",
             "tracked_transition_state": "CLEAN"
           },
           {
             "action_phase": "NORMAL_TERMINAL_PUSH_RECEIPT_COMMITTED",
+            "variant_ordinal": 21,
             "terminal_branch": "FAIL",
             "tracked_transition_state": "CLEAN"
           }
@@ -1271,18 +1293,78 @@
           "required_result": "all eight repository configurations produce the same legal classification and every hostile mutation produces G05"
         },
         "mutation_probe_matrix": {
-          "variant_order": "action_phase_preimage_variants order",
+          "variant_order": "strict ascending action_phase_preimage_variants.variant_ordinal",
+          "variant_ordinal_schema": {
+            "json_type": "integer",
+            "base": 0,
+            "minimum": 0,
+            "maximum": 21,
+            "identity_rule": "variant_ordinal equals the zero-based array index and every integer 0..21 appears exactly once"
+          },
           "mutation_kind_order": [
             "BLOB",
             "MODE",
             "PATH",
             "STAGING_PARTITION"
           ],
-          "repository_config_order": "diff.renames false/true outer, core.filemode false/true middle, core.autocrlf false/true inner",
+          "repository_config_schema": {
+            "json_type": "object",
+            "exact_keys": [
+              "core_autocrlf",
+              "core_filemode",
+              "diff_renames"
+            ],
+            "value_type": "JSON boolean true or false; strings and integers are forbidden",
+            "canonical_key_order": "canonical sorted-key JSON order"
+          },
+          "repository_config_rows": [
+            {
+              "core_autocrlf": false,
+              "core_filemode": false,
+              "diff_renames": false
+            },
+            {
+              "core_autocrlf": true,
+              "core_filemode": false,
+              "diff_renames": false
+            },
+            {
+              "core_autocrlf": false,
+              "core_filemode": true,
+              "diff_renames": false
+            },
+            {
+              "core_autocrlf": true,
+              "core_filemode": true,
+              "diff_renames": false
+            },
+            {
+              "core_autocrlf": false,
+              "core_filemode": false,
+              "diff_renames": true
+            },
+            {
+              "core_autocrlf": true,
+              "core_filemode": false,
+              "diff_renames": true
+            },
+            {
+              "core_autocrlf": false,
+              "core_filemode": true,
+              "diff_renames": true
+            },
+            {
+              "core_autocrlf": true,
+              "core_filemode": true,
+              "diff_renames": true
+            }
+          ],
+          "repository_config_order": "exact repository_config_rows array order",
+          "row_nesting_rule": "each canonical row is one JSON object with exactly row_fields; repository_config is the exact nested object from repository_config_rows and no dotted-key flattening is permitted",
           "probe_rules": {
             "BLOB": "flip the final byte of the ASCII-first regular path in expected_physical_rows without staging",
             "MODE": "toggle the ASCII-first regular path in expected_physical_rows between 0644 and 0755 without staging",
-            "PATH": "create one extra untracked regular file .workflow/q0-observation-probes/<two-digit-variant-ordinal>.extra with exact bytes x LF",
+            "PATH": "create one extra untracked regular file .workflow/q0-observation-probes/<two-digit-variant-ordinal>.extra with exact bytes x LF; format is zero-based decimal variant_ordinal padded to exactly two ASCII digits, therefore 00 through 21",
             "STAGING_PARTITION": "when cached rows exist unstage the ASCII-first cached path; otherwise when a legal unstaged transition exists stage its ASCII-first path; for CLEAN, modify and stage the ASCII-first regular expected physical path then restore only its physical bytes from the expected blob, leaving an index-only delta"
           },
           "row_fields": [

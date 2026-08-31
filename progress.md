@@ -1,6 +1,6 @@
 # Progress
 
-## 2026-08-31 0831T001 Q0 Revision 14 Plan Review Failed
+## 2026-08-31 0831T001 Q0 Revision 15 Candidate
 
 - Created the complete
   `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1` route.
@@ -131,9 +131,15 @@
   `P0/P1/P2/P3=0/1/0/0`: the registered 704-row hash is reproducible only
   with an unstated snake_case `repository_config` object and zero-based
   `variant_ordinal`; the surface does not freeze either encoding.
+- Revision 15 adds exact zero-based integer ordinals to the 22 variant rows,
+  enumerates the eight nested snake_case/JSON-boolean configuration objects,
+  forbids dotted flattening and freezes PATH ordinals as `00..21`.
+- Direct derivation from only those frozen rows reproduces all 704 rows and
+  aggregate
+  `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c`.
 - Historical-cache access and outcome access remain `NONE`.
-- Implementation and formal execution remain locked pending a corrected
-  revision and a new independent plan review.
+- Implementation and formal execution remain locked pending independent
+  Revision 15 plan review.
 
 ## 2026-08-30 0830T003 Formal Replacement Started
 

@@ -8,7 +8,7 @@ Qualification ID:
 `TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1`
 
 Status:
-`REVISION_14_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
+`REVISION_15_CANDIDATE_PENDING_INDEPENDENT_REVIEW`
 
 Parent protocol:
 `TRADE_LED_DEPTH_FOLLOWER_TRANSITION_HAZARD_MASTER_V1`
@@ -108,6 +108,15 @@ classification.
 | raw parser contradicted actual NUL framing | freeze repeated `metadata NUL path NUL` pairs, exact metadata regex, final-NUL/even-field rules, stage-0 index grammar, ASCII path normalization and duplicate rejection |
 | only two dirty states had detailed preimages | map 22 action-phase/terminal-branch variants to seven machine-expandable transition preimages; PASS expands the exact 57 baseline paths and FAIL expands only the three common terminal paths |
 | mutation guarantee was not reproducible | freeze four one-field mutation recipes across all 22 variants and eight repository configurations: 704 rows, every row expects G05, canonical aggregate `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c` |
+
+### 1.7 Revision 15 closure matrix
+
+| Round 14 finding | Revision 15 closure |
+|---|---|
+| `repository_config` nested schema was implicit | list all eight exact nested objects with snake_case keys `core_autocrlf`, `core_filemode`, `diff_renames`; values are JSON booleans and dotted-key flattening is forbidden |
+| `variant_ordinal` base/type was implicit | persist zero-based integer ordinals `0..21` directly in all 22 phase/branch rows and require equality with array index |
+| PATH probe formatting was ambiguous | freeze exactly two zero-padded ASCII decimal digits, yielding `00` through `21` |
+| aggregate preimage was not unique | freeze row nesting, exact fields and array orders; the explicit 704 rows independently rederive the unchanged aggregate `8b28971875e83b64fe10a185e15a4a6871004b435c84387fa8a8403b68ecc06c` |
 
 ## 2. Authorization Boundary
 
@@ -257,10 +266,10 @@ The executable schema, formula, package and provenance authority is:
 .workflow/contracts/0831T001-q0-surface-contract-v1.json
 
 SHA256:
-  23b5b1bf67b0aab09d33757eba89ea047789fd826138af00e91414484e1a4e26
+  b92d69e40e58f2c7277b3c2f11a29198274e6936992142c22eb6e7839a1de402
 
 Git blob:
-  97495dba843fd848aa5f52bce6a5e364a816d613
+  3d281f8430581c143c59d227ee3e259a23000236
 ```
 
 It freezes:

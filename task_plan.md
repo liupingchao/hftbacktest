@@ -65,6 +65,10 @@
   Raw framing, physical mode/byte binding and phase/path expansion passed,
   but the 704-row aggregate does not freeze the exact `repository_config`
   object schema or `variant_ordinal` encoding that produces its hash.
+- Revision 15 persists zero-based ordinals in all 22 variants and lists all
+  eight exact snake_case/JSON-boolean repository-config objects. The row
+  nesting and `00..21` PATH formatting now uniquely rederive the frozen
+  704-row aggregate.
 - Require QF01-QF15, full/slice/reset identity, A/B/P byte identity, exact
   negative boundaries, causal access proof, terminal verification and
   pre-consumption detached-worktree readiness.
@@ -73,8 +77,8 @@
   anchor.
 - Keep the formal 29-cache source root, all future outcomes and all live or
   private execution prohibited.
-- Implementation and formal execution remain locked pending a corrected
-  revision and a new independent plan review.
+- Implementation and formal execution remain locked pending independent
+  Revision 15 plan review.
 
 ## 2026-08-30 0830T003 Leader Trigger Formal Replacement
 
