@@ -1,5 +1,20 @@
 # Progress
 
+## 2026-09-02 0902T002 Project Authority Correction
+
+- Preserved accepted `0902T001` argv repair and exact target commit
+  `824e0431b96bda16515efb41544fd9e1feb78868`.
+- The hftbacktest Project Controller classified `workflow-proj` as the
+  upstream Kit development/release repository, not project execution
+  authority.
+- Marked `0902T002` `作废` and superseded its cross-repository authority route.
+- R1 remains rejected and immutable. R2 was absent when its authoring
+  authority was revoked.
+- No projection, preflight, governance root, execution ledger, claim, attempt,
+  arming, formal Q0 or business execution was created.
+- The next valid action is a separate project-local authorization for
+  `0902T003` V2.1.1 legacy-project adoption planning.
+
 ## 2026-09-02 0902T002 R1 Rejected And R2 Plan Authorized
 
 - Independent R1 review commit

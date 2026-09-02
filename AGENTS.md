@@ -15,25 +15,30 @@ continuous conditional-risk research workflow under:
 - `.workflow/reports/`
 - `baselines/`
 
-Controller route as of `2026-09-02`:
+Project Controller route as of `2026-09-02`:
 
 - This isolated worktree was created from exact accepted commit
   `824e0431b96bda16515efb41544fd9e1feb78868` for `0902T002`.
-- `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is the only
-  active engineering task, with status `待执行`.
+- `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` remains accepted and
+  closed at `P0/P1/P2/P3 = 0/0/0/0`.
+- `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is `作废`.
+  Its route incorrectly treated `workflow-proj`, the upstream Kit
+  development/release repository, as the hftbacktest Project Controller.
 - Revision-specific successor plan R1 is frozen at commit
   `698ee535474b3376b5561f2f6b539be8cad00eb4`, SHA256
   `2c8ca8e546ab3afed656f0f4867282264457239a39b8ca8735fac73eea3ecd4b`.
 - R1 was independently rejected at commit
   `0f61526289f4c98ba5929bf764a77cc1b648f078` with
   `P0/P1/P2/P3 = 0/4/1/0`.
-- External Controller disposition
+- The historical external disposition
   `0902T002-R1-CONTROLLER-DISPOSITION-01` is frozen at commit
   `a33426628ef6072b18406211c194db32f28dfeb1`, SHA256
-  `e954ae4aebbdcddf1309152e318695df20ec68b28a78daa70157de0d7dca62c2`.
-- The next actor is the successor R2 candidate/plan author. Projection
-  materialization, projected-byte review, effect-free preflight, controller
-  repository preparation, arming and formal Q0 execution remain locked.
+  `e954ae4aebbdcddf1309152e318695df20ec68b28a78daa70157de0d7dca62c2`,
+  but it is non-authoritative for hftbacktest project execution.
+- Project-local authority correction
+  `0902T002-PROJECT-CONTROLLER-AUTHORITY-CORRECTION-01` stops the route before
+  R2 creation. Projection, preflight, repository preparation, arming and
+  formal Q0 execution remain absent and locked.
 - The accepted `0902T001` worktree was created from exact commit
   `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is closed as
@@ -48,12 +53,10 @@ Controller route as of `2026-09-02`:
   cwd, `shell = false`, accepted repair commit and V2.1.1 release identity.
 - Business, scientific, historical-cache, future-outcome, private and live
   execution remain prohibited.
-- Every candidate, attempt, claim, arming, baseline, output-root,
-  controller-ref, tag and report identity must be new and `0902T002` scoped.
-- No `0831T001` mutable identity may be reused. Registration creates no claim,
-  attempt, receipt, baseline, ref, tag or output root.
+- No new identity may be created under `0902T002`. No `0831T001` mutable
+  identity may be reused.
 
-External scope authority:
+Historical cross-repository records, non-authoritative for project execution:
 
 ```text
 repository = /Users/liu/Documents/workflow-proj
@@ -73,7 +76,11 @@ controller_r2_boundary_commit =
   9c38c465ab9530e522c872e37202d6c88b5c54f2
 ```
 
-Historical controller route as of `2026-08-20`:
+The hftbacktest Project Controller remains project-local. `workflow-proj`
+provides immutable Kit release inputs only and cannot register, arm, accept or
+close hftbacktest tasks.
+
+Historical project route as of `2026-08-20`:
 
 - The user approved the continuous conditional-risk v2 framework as the
   active master research goal.
@@ -95,6 +102,7 @@ Before starting a non-trivial task, read:
 - `.workflow/workflow-kit/qa-acceptance-template.md`
 - `.workflow/tasks/0902T001.md`
 - `.workflow/tasks/0902T002.md`
+- `.workflow/reports/0902T002-project-controller-authority-correction-01.md`
 - `task_plan.md`
 - `progress.md`
 - `findings.md`

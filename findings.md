@@ -1,5 +1,22 @@
 # Findings
 
+## 2026-09-02 Cross-Repository Authority Source Mismatch
+
+- `workflow-proj` is a pure Workflow Governance Kit development and release
+  project. It may attest immutable release bytes but cannot act as the
+  hftbacktest Project Controller.
+- hftbacktest already has a legacy Workflow v1.0/C0 Project Controller and
+  historical coordination state. Project migration authority must originate
+  inside hftbacktest.
+- `.workflow/governance` is absent, so the narrow V2.1.1 path is creation of a
+  new G1 governance root for an existing legacy project. It is not a
+  V2.1.0-to-V2.1.1 online upgrade and does not require the deferred V2.2
+  upgrade protocol.
+- `0902T002` is therefore `作废`. Its R1 review evidence remains immutable,
+  but no R2 or execution-bearing descendant may consume the misbound external
+  authority.
+- `0902T001` remains valid target-project repair evidence.
+
 ## 2026-09-02 0902T002 R1 Review Disposition
 
 - Independent R1 review at commit
