@@ -3,11 +3,13 @@
 ## 2026-09-02 0902T002 Successor Q0 Recovery Registration
 
 - `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is the current
-  and only active engineering task, status `待执行`.
+  and only active engineering task, status `待验收`.
 - This worktree and branch were created from exact accepted target commit
   `824e0431b96bda16515efb41544fd9e1feb78868`.
-- Current authority is limited to revision-specific successor candidate/plan
-  authoring and independent review handoff.
+- Revision-specific successor plan R1 is frozen at commit
+  `698ee535474b3376b5561f2f6b539be8cad00eb4`, SHA256
+  `2c8ca8e546ab3afed656f0f4867282264457239a39b8ca8735fac73eea3ecd4b`.
+- Current authority is limited to independent read-only plan/readiness review.
 - Required later chain is:
   `candidate/plan -> independent plan/readiness review -> effect-free argv
   preflight -> Controller arming authorization -> exact one-shot formal Q0 ->
@@ -25,8 +27,9 @@
   `shell = false`.
 - Business, scientific, historical-cache, future-outcome, private and live
   execution are prohibited during registration and authoring.
-- Task registration is not project execution success. The next actor is the
-  successor candidate/plan author, not a Q0 executor.
+- Task registration and R1 freeze are not project execution success. The next
+  actor is the independent R1 plan/readiness reviewer, not a projection actor
+  or Q0 executor.
 
 ## 2026-09-02 0902T001 Target Project Argv Contract Repair
 

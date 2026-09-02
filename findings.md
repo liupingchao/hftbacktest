@@ -1,5 +1,30 @@
 # Findings
 
+## 2026-09-02 0902T002 R1 Constructibility Boundary
+
+- R1 is frozen at commit
+  `698ee535474b3376b5561f2f6b539be8cad00eb4`, SHA256
+  `2c8ca8e546ab3afed656f0f4867282264457239a39b8ca8735fac73eea3ecd4b`.
+- The accepted argv-repaired runner remains operationally bound to
+  `0831T001`; using it unchanged would require forbidden old task, claim,
+  worktree, controller, tag and report identities.
+- R1 therefore treats task-scoped projection materialization as a gated
+  subnode of the successor candidate route. This authoring turn did not
+  create that projection or modify source/contracts.
+- The future projection may change only operational identity bindings and
+  mechanically derived hashes. A Workflow Kit, schema or scientific-logic
+  change is a stop condition.
+- All reserved `0902T002` execution identities were absent locally; matching
+  origin refs/tags were absent; the future bare controller repository was
+  absent.
+- The sole unresolved construction token is the future projected runner
+  SHA256 in the effect-free preflight command. Formal and recovery commands
+  are fully concrete and contain no `0831T001` mutable identity.
+- Independent review must reconstruct the DAG, ownership and recovery matrix
+  and decide whether the allowed operational projection is sufficient.
+- No preflight, arming, claim, attempt, receipt, baseline, output, controller
+  state, business execution or locked-data access occurred.
+
 ## 2026-09-02 0902T002 Registration Boundary
 
 - The accepted target commit
@@ -21,8 +46,8 @@
 - Effect-free preflight must be independently authorized only after accepted
   candidate/plan and readiness review. Formal Q0 additionally requires a
   separate Controller arming authorization.
-- Task registration is not Q0 success. The next actor is the successor
-  candidate/plan author.
+- Task registration is not Q0 success. Its authoring handoff produced frozen
+  R1; the current next actor is the independent R1 plan/readiness reviewer.
 
 ## 2026-09-02 0902T001 Argv Repair Boundary
 

@@ -20,10 +20,13 @@ Controller route as of `2026-09-02`:
 - This isolated worktree was created from exact accepted commit
   `824e0431b96bda16515efb41544fd9e1feb78868` for `0902T002`.
 - `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is the only
-  active engineering task, with status `待执行`.
-- Current authority stops at revision-specific successor candidate/plan
-  authoring handoff. Effect-free preflight, arming and formal Q0 execution are
-  locked.
+  active engineering task, with status `待验收`.
+- Revision-specific successor plan R1 is frozen at commit
+  `698ee535474b3376b5561f2f6b539be8cad00eb4`, SHA256
+  `2c8ca8e546ab3afed656f0f4867282264457239a39b8ca8735fac73eea3ecd4b`.
+- The next actor is an independent read-only R1 plan/readiness reviewer.
+  Projection materialization, effect-free preflight, arming and formal Q0
+  execution remain locked.
 - The accepted `0902T001` worktree was created from exact commit
   `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is closed as

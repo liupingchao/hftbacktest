@@ -1,5 +1,26 @@
 # Progress
 
+## 2026-09-02 0902T002 R1 Frozen Pending Independent Review
+
+- Froze candidate
+  `.workflow/plans/0902T002/successor-q0-recovery-and-effect-free-preflight-r1.md`
+  in candidate-only commit
+  `698ee535474b3376b5561f2f6b539be8cad00eb4`.
+- Candidate Git-object and working-tree SHA256 are both
+  `2c8ca8e546ab3afed656f0f4867282264457239a39b8ca8735fac73eea3ecd4b`.
+- R1 defines all new `0902T002` identities, exact formal/recovery commands,
+  argv preflight, one-shot ownership and recovery gates.
+- R1 explicitly identifies the accepted runner's hard-coded `0831T001`
+  bindings and requires a later separately authorized task-scoped projection
+  before preflight.
+- Static authority, source SHA, namespace absence, DAG, ownership, recovery,
+  command and whitespace checks passed.
+- Task status is `待验收`; the next actor is an independent read-only R1
+  plan/readiness reviewer.
+- Projection, preflight, arming, claim, attempt, receipt, baseline, output,
+  controller ref/tag and formal Q0 remain absent and locked.
+- Business execution and locked-data access remain false.
+
 ## 2026-09-02 0902T002 Registered
 
 - Controller Authorization R1 is frozen at commit
@@ -10,13 +31,13 @@
 - Created branch `codex/0902t002-successor-q0-recovery` and this independent
   worktree from exact accepted target commit
   `824e0431b96bda16515efb41544fd9e1feb78868`.
-- Registered `0902T002` as the only active engineering task with status
-  `待执行`.
-- Current phase is successor candidate/plan authoring handoff.
+- Registered `0902T002` as the only active engineering task with initial
+  status `待执行`.
+- The registration phase handed off successor candidate/plan authoring.
 - No effect-free preflight, arming, claim, attempt, receipt, baseline,
   controller ref, tag, output root or formal Q0 was created or executed.
-- Business execution is false. The next actor is the successor candidate/plan
-  author.
+- Business execution remained false. The registration next actor was the
+  successor candidate/plan author.
 
 ## 2026-09-02 0902T001 Accepted And Closed
 
