@@ -17,25 +17,31 @@ continuous conditional-risk research workflow under:
 
 Controller route as of `2026-09-02`:
 
-- This isolated worktree was created from exact commit
-  `1051f2b29059e6b7465fe8051de01072f9ff7e19` for `0902T001`.
+- This isolated worktree was created from exact accepted commit
+  `824e0431b96bda16515efb41544fd9e1feb78868` for `0902T002`.
+- `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is the only
+  active engineering task, with status `待执行`.
+- Current authority stops at revision-specific successor candidate/plan
+  authoring handoff. Effect-free preflight, arming and formal Q0 execution are
+  locked.
+- The accepted `0902T001` worktree was created from exact commit
+  `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is closed as
   `已通过` after independent QA at `P0/P1/P2/P3 = 0/0/0/0`.
 - `0831T001` remains closed as `未通过`; its plan, implementation, tags,
   arming commit, claim and reports are immutable failure evidence.
-- `0902T001` may repair only the effect-free qualification runner/checker
-  contract:
+- The accepted `0902T001` repair established:
   `exec_argv = [python_executable, script_path, ...args]`,
   `program_argv = [script_path, ...args]`, and Python `sys.argv` must equal
   only `program_argv`.
-- The repair must preserve and reverify runtime, script, argv, cwd and
-  `shell = false` identity without creating an attempt, claim, Q0 identity or
-  business output.
+- A later effect-free preflight must freshly reverify runtime, script, argv,
+  cwd, `shell = false`, accepted repair commit and V2.1.1 release identity.
 - Business, scientific, historical-cache, future-outcome, private and live
   execution remain prohibited.
-- No engineering task is currently active. A successor Q0 remains locked and
-  requires a separate controller authorization, task ID, candidate, attempt,
-  claim and output root.
+- Every candidate, attempt, claim, arming, baseline, output-root,
+  controller-ref, tag and report identity must be new and `0902T002` scoped.
+- No `0831T001` mutable identity may be reused. Registration creates no claim,
+  attempt, receipt, baseline, ref, tag or output root.
 
 External scope authority:
 
@@ -43,6 +49,12 @@ External scope authority:
 repository = /Users/liu/Documents/workflow-proj
 scope_rebaseline_commit = d6f5147f4fd8d98b1a15d4cd90706f015fcc033a
 controller_boundary_commit = 45514a9a380552fe03c1a6c5fbdb7a7bf7585d86
+controller_authorization_commit =
+  288cf86ea4db8abc47477cae5f4a955020786190
+controller_authorization_sha256 =
+  5f3c1062b526884959240e28adb3684df08ab1f038526871f8b2e39e27d17334
+controller_active_boundary_commit =
+  8894646cea97b4c1e980b65ff0018d5e265e202b
 ```
 
 Historical controller route as of `2026-08-20`:
@@ -66,6 +78,7 @@ Before starting a non-trivial task, read:
 - `.workflow/workflow-kit/thread-report-template.md`
 - `.workflow/workflow-kit/qa-acceptance-template.md`
 - `.workflow/tasks/0902T001.md`
+- `.workflow/tasks/0902T002.md`
 - `task_plan.md`
 - `progress.md`
 - `findings.md`

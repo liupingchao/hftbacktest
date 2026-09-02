@@ -1,5 +1,33 @@
 # Task Plan
 
+## 2026-09-02 0902T002 Successor Q0 Recovery Registration
+
+- `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is the current
+  and only active engineering task, status `待执行`.
+- This worktree and branch were created from exact accepted target commit
+  `824e0431b96bda16515efb41544fd9e1feb78868`.
+- Current authority is limited to revision-specific successor candidate/plan
+  authoring and independent review handoff.
+- Required later chain is:
+  `candidate/plan -> independent plan/readiness review -> effect-free argv
+  preflight -> Controller arming authorization -> exact one-shot formal Q0 ->
+  business report -> independent QA -> Controller closure`.
+- Preflight, arming, claim creation, attempt creation, baseline/output-root
+  creation, controller refs/tags and formal Q0 execution remain locked.
+- Every mutable execution identity must be new and `0902T002` scoped.
+- Preserve all `0831T001` evidence and the accepted `0902T001` worktree
+  unchanged.
+- Preserve the accepted argv contract:
+  `exec_argv = [python_executable, script_path, ...args]`,
+  `program_argv = exec_argv[1:]`,
+  observed `sys.argv == program_argv`,
+  observed complete command equals `[sys.executable, *sys.argv]`, and
+  `shell = false`.
+- Business, scientific, historical-cache, future-outcome, private and live
+  execution are prohibited during registration and authoring.
+- Task registration is not project execution success. The next actor is the
+  successor candidate/plan author, not a Q0 executor.
+
 ## 2026-09-02 0902T001 Target Project Argv Contract Repair
 
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is the current and only
@@ -20,8 +48,8 @@
 - Preserve all `0831T001` evidence and identities unchanged.
 - Independent QA passed at `P0/P1/P2/P3 = 0/0/0/0`; controller closure is
   commit `680f23795426f4e7911df60d7151002a5127d811`.
-- No formal task is currently active. Successor Q0 remains locked pending a
-  separate controller dispatch.
+- `0902T001` remains closed; `0902T002` is the separately authorized successor
+  registration and authoring task.
 
 ## 2026-08-31 0831T001 Trade-Led Depth-Follower Q0
 

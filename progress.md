@@ -1,5 +1,23 @@
 # Progress
 
+## 2026-09-02 0902T002 Registered
+
+- Controller Authorization R1 is frozen at commit
+  `288cf86ea4db8abc47477cae5f4a955020786190`, SHA256
+  `5f3c1062b526884959240e28adb3684df08ab1f038526871f8b2e39e27d17334`.
+- Controller active-boundary commit is
+  `8894646cea97b4c1e980b65ff0018d5e265e202b`.
+- Created branch `codex/0902t002-successor-q0-recovery` and this independent
+  worktree from exact accepted target commit
+  `824e0431b96bda16515efb41544fd9e1feb78868`.
+- Registered `0902T002` as the only active engineering task with status
+  `待执行`.
+- Current phase is successor candidate/plan authoring handoff.
+- No effect-free preflight, arming, claim, attempt, receipt, baseline,
+  controller ref, tag, output root or formal Q0 was created or executed.
+- Business execution is false. The next actor is the successor candidate/plan
+  author.
+
 ## 2026-09-02 0902T001 Accepted And Closed
 
 - Independent QA commit
@@ -11,9 +29,8 @@
   closes `0902T001` as `已通过`.
 - Business execution remained false and successor Q0 remained absent
   throughout implementation, QA and closure.
-- No formal engineering task is currently active in this worktree.
-- Successor Q0 requires a separate controller dispatch and new execution
-  identities.
+- This was the closed `0902T001` state before the separate `0902T002`
+  Controller authorization and registration.
 
 ## 2026-09-02 0902T001 Pending Independent QA
 

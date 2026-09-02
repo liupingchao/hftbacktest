@@ -1,5 +1,29 @@
 # Findings
 
+## 2026-09-02 0902T002 Registration Boundary
+
+- The accepted target commit
+  `824e0431b96bda16515efb41544fd9e1feb78868` is the only base for this
+  successor worktree.
+- Immutable scientific protocol, Revision 26 plan-source, scientific
+  implementation and argv-repaired runner/verifier/test bytes are
+  determinable and match the Controller Authorization.
+- Those bytes are candidate source material only. Old `0831T001` fixture,
+  surface, plan, tag, claim and report identities cannot become successor
+  authority.
+- Every mutable execution identity must be new and `0902T002` scoped.
+- Registration and candidate authoring do not create preflight, arming, claim,
+  attempt, receipt, baseline, controller ref, tag or output-root state.
+- The accepted argv repair remains mandatory:
+  `program_argv = exec_argv[1:]`, observed Python
+  `sys.argv == program_argv`, observed complete command equals
+  `[sys.executable, *sys.argv]`, and `shell = false`.
+- Effect-free preflight must be independently authorized only after accepted
+  candidate/plan and readiness review. Formal Q0 additionally requires a
+  separate Controller arming authorization.
+- Task registration is not Q0 success. The next actor is the successor
+  candidate/plan author.
+
 ## 2026-09-02 0902T001 Argv Repair Boundary
 
 - The known defect is target-runner-local: the surface freezes a complete
