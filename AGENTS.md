@@ -27,8 +27,10 @@ Project Controller route as of `2026-09-02`:
   smoke task, successor Q0 and business execution remain locked.
 - The migration class is an existing legacy Workflow v1.0/C0 project creating
   a new V2.1.1 G1 governance root. It does not depend on V2.2.
-- This isolated worktree was created from exact accepted commit
-  `824e0431b96bda16515efb41544fd9e1feb78868` for `0902T002`.
+- This worktree was created from exact project-local supersession commit
+  `9287e1f392ca8d28d7217de32dd414ea47acee79`, which descends from accepted
+  `0902T001` target commit
+  `824e0431b96bda16515efb41544fd9e1feb78868`.
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` remains accepted and
   closed at `P0/P1/P2/P3 = 0/0/0/0`.
 - `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is `作废`.
@@ -50,9 +52,8 @@ Project Controller route as of `2026-09-02`:
   R2 creation. Projection, preflight, repository preparation, arming and
   formal Q0 execution remain absent and locked.
 - The accepted `0902T001` worktree was created from exact commit
-  `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
-- `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is closed as
-  `已通过` after independent QA at `P0/P1/P2/P3 = 0/0/0/0`.
+  `1051f2b29059e6b7465fe8051de01072f9ff7e19` and closed at target commit
+  `824e0431b96bda16515efb41544fd9e1feb78868`.
 - `0831T001` remains closed as `未通过`; its plan, implementation, tags,
   arming commit, claim and reports are immutable failure evidence.
 - The accepted `0902T001` repair established:
