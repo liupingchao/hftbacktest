@@ -1,5 +1,24 @@
 # Task Plan
 
+## 2026-09-02 0902T001 Target Project Argv Contract Repair
+
+- `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is the current and only
+  active engineering task in this isolated worktree.
+- Base identity is exact commit
+  `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
+- Repair only the deterministic Python argv qualification defect:
+  `exec_argv` includes the interpreter, while observed `sys.argv` begins with
+  the script and must be compared with derived `program_argv`.
+- Freeze and effect-free reverify runtime, script, argv, cwd and
+  `shell = false`.
+- Reproduce the original `SOURCE_ROOT_NOT_CLOSED:argv` failure and prove the
+  corrected comparison passes.
+- Require focused regression tests plus independent QA before controller
+  acceptance.
+- Do not create or execute a successor Q0, attempt, claim, arming identity,
+  business computation or output root.
+- Preserve all `0831T001` evidence and identities unchanged.
+
 ## 2026-08-31 0831T001 Trade-Led Depth-Follower Q0
 
 - `0831T001 / TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1` was the

@@ -1,5 +1,20 @@
 # Progress
 
+## 2026-09-02 0902T001 Registered
+
+- Scope rebaseline authority is frozen in `/Users/liu/Documents/workflow-proj`
+  at commit `d6f5147f4fd8d98b1a15d4cd90706f015fcc033a`.
+- Controller active-boundary authority is commit
+  `45514a9a380552fe03c1a6c5fbdb7a7bf7585d86`.
+- Created branch `codex/0902t001-argv-contract-repair` and this independent
+  worktree from exact target commit
+  `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
+- Registered `0902T001` as the only active engineering task.
+- `0831T001` remains closed as `未通过`; no prior mutable execution identity
+  may be reused.
+- Current phase is effect-free argv repair implementation. Business execution
+  and successor Q0 remain locked.
+
 ## 2026-08-31 0831T001 Q0 Implementation In Progress
 
 - Created the complete

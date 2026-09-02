@@ -15,19 +15,34 @@ continuous conditional-risk research workflow under:
 - `.workflow/reports/`
 - `baselines/`
 
-Controller route as of `2026-08-31`:
+Controller route as of `2026-09-02`:
 
-- This route supersedes the `2026-08-20` next-task statement for this
-  worktree.
-- `0831T001 / TRADE_LED_DEPTH_FOLLOWER_PIPELINE_QUALIFICATION_V1` is the
-  current and only formal task.
-- `0831T001` is synthetic Q0 software qualification only. It must not open
-  the formal historical cache root, future outcomes, private data or live
-  execution.
-- Implementation remains locked until independent plan review passes.
-- Formal Q0 remains locked until independent implementation readiness passes
-  and an exact armed claim is registered.
-- A-1a cannot be drafted until Q0 receives independent QA acceptance.
+- This isolated worktree was created from exact commit
+  `1051f2b29059e6b7465fe8051de01072f9ff7e19` for `0902T001`.
+- `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is the current and only
+  active engineering task.
+- `0831T001` remains closed as `未通过`; its plan, implementation, tags,
+  arming commit, claim and reports are immutable failure evidence.
+- `0902T001` may repair only the effect-free qualification runner/checker
+  contract:
+  `exec_argv = [python_executable, script_path, ...args]`,
+  `program_argv = [script_path, ...args]`, and Python `sys.argv` must equal
+  only `program_argv`.
+- The repair must preserve and reverify runtime, script, argv, cwd and
+  `shell = false` identity without creating an attempt, claim, Q0 identity or
+  business output.
+- Business, scientific, historical-cache, future-outcome, private and live
+  execution remain prohibited.
+- Independent QA and controller acceptance are required before any separately
+  authorized successor Q0 can be registered.
+
+External scope authority:
+
+```text
+repository = /Users/liu/Documents/workflow-proj
+scope_rebaseline_commit = d6f5147f4fd8d98b1a15d4cd90706f015fcc033a
+controller_boundary_commit = 45514a9a380552fe03c1a6c5fbdb7a7bf7585d86
+```
 
 Historical controller route as of `2026-08-20`:
 
@@ -49,6 +64,7 @@ Before starting a non-trivial task, read:
 - `.workflow/workflow-kit/task-dispatch-template.md`
 - `.workflow/workflow-kit/thread-report-template.md`
 - `.workflow/workflow-kit/qa-acceptance-template.md`
+- `.workflow/tasks/0902T001.md`
 - `task_plan.md`
 - `progress.md`
 - `findings.md`

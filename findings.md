@@ -1,5 +1,22 @@
 # Findings
 
+## 2026-09-02 0902T001 Argv Repair Boundary
+
+- The known defect is target-runner-local: the surface freezes a complete
+  executable command, but Python exposes `sys.argv` beginning at the script
+  path.
+- The correction must derive `program_argv = exec_argv[1:]`; removing the
+  interpreter from the authoritative executable command would weaken runtime
+  identity instead of fixing the comparison.
+- Qualification must reject a missing or drifted interpreter, script drift,
+  argv drift, cwd drift and any shell-mediated command.
+- This task is software qualification only. It cannot consume or reinterpret
+  the old armed claim, create a successor claim, or produce scientific
+  evidence.
+- Any discovery that the defect requires shared Workflow Kit schema, API,
+  template or release changes is a stop condition and must return control to
+  the scope authority.
+
 ## 2026-08-31 Q0 Qualification Boundary
 
 - The predecessor `_features` exception shows that passing unit tests and
