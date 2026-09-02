@@ -17,6 +17,16 @@ continuous conditional-risk research workflow under:
 
 Project Controller route as of `2026-09-02`:
 
+- `0902T003 / WORKFLOW_GOV_KIT_V2_1_1_LEGACY_PROJECT_ADOPTION` is the only
+  active engineering task, status `待执行`.
+- Project Controller Authorization R1 is frozen at commit
+  `91fe63fe28f634b3ea7ff32a0fda827c9865d7e0`, SHA256
+  `12a427027dfdef01bd96fe8fd261d813f9726471ffbceb11439fb89a70407f4e`.
+- The current phase authorizes only revision-specific migration plan
+  authoring. `gov init`, preflight, governance-root materialization, cutover,
+  smoke task, successor Q0 and business execution remain locked.
+- The migration class is an existing legacy Workflow v1.0/C0 project creating
+  a new V2.1.1 G1 governance root. It does not depend on V2.2.
 - This isolated worktree was created from exact accepted commit
   `824e0431b96bda16515efb41544fd9e1feb78868` for `0902T002`.
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` remains accepted and
@@ -102,7 +112,9 @@ Before starting a non-trivial task, read:
 - `.workflow/workflow-kit/qa-acceptance-template.md`
 - `.workflow/tasks/0902T001.md`
 - `.workflow/tasks/0902T002.md`
+- `.workflow/tasks/0902T003.md`
 - `.workflow/reports/0902T002-project-controller-authority-correction-01.md`
+- `.workflow/reports/0902T003-project-controller-authorization-r1.md`
 - `task_plan.md`
 - `progress.md`
 - `findings.md`

@@ -1,5 +1,25 @@
 # Task Plan
 
+## 2026-09-02 0902T003 V2.1.1 Legacy-Project Adoption
+
+- `0902T003 / WORKFLOW_GOV_KIT_V2_1_1_LEGACY_PROJECT_ADOPTION` is the current
+  and only active engineering task, status `待执行`.
+- Project-local Controller Authorization R1 is frozen at commit
+  `91fe63fe28f634b3ea7ff32a0fda827c9865d7e0`, SHA256
+  `12a427027dfdef01bd96fe8fd261d813f9726471ffbceb11439fb89a70407f4e`.
+- Current authority stops at revision-specific migration candidate/plan
+  authoring.
+- The target has legacy Workflow v1.0/C0 coordination and no
+  `.workflow/governance` root. The selected migration is a new V2.1.1 G1 root
+  adoption for an existing project, not an online Kit upgrade.
+- V2.1.1 release identity is
+  `346ae2d5232bc132de2189eb26219c6763480d05f74b298a85bdef2b3ca2509c`.
+- Existing Markdown history and accepted artifacts remain under historical
+  contracts and must not become canonical G1 authority automatically.
+- `gov init`, preflight, materialization, cutover, smoke task, successor Q0,
+  scientific execution and business execution remain locked.
+- The next actor is the migration candidate/plan author.
+
 ## 2026-09-02 0902T002 Authority Route Superseded
 
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` remains accepted and

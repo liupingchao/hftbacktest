@@ -1,5 +1,20 @@
 # Findings
 
+## 2026-09-02 V2.1.1 Adoption Boundary
+
+- V2.1.1 is a new-governance-root release. It cannot online-upgrade an
+  existing V2.1.0 root, but hftbacktest has no `.workflow/governance` root, so
+  that prohibition does not apply.
+- The target is an existing legacy Workflow v1.0/C0 project. Adoption must
+  preserve its Markdown history and historical contracts without importing
+  them as canonical transition-ledger or Accepted Registry authority.
+- `workflow-proj` is only the upstream Kit development/release repository.
+  The hftbacktest Project Controller owns migration authorization.
+- The fastest bounded recovery route is V2.1.1 plan, independent review,
+  effect-free preflight, controlled root creation, migration QA, and one
+  effect-free governed smoke task. V2.2 is not a predecessor.
+- `0902T001` remains accepted. `0902T002` remains `作废`.
+
 ## 2026-09-02 Cross-Repository Authority Source Mismatch
 
 - `workflow-proj` is a pure Workflow Governance Kit development and release

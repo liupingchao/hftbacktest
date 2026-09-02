@@ -1,5 +1,21 @@
 # Progress
 
+## 2026-09-02 0902T003 Registered For Plan Authoring
+
+- Created branch `codex/0902t003-workflow-v2-1-1-legacy-adoption` and this
+  worktree from exact project-local correction commit
+  `9287e1f392ca8d28d7217de32dd414ea47acee79`.
+- Froze Project Controller Authorization R1 at commit
+  `91fe63fe28f634b3ea7ff32a0fda827c9865d7e0`, SHA256
+  `12a427027dfdef01bd96fe8fd261d813f9726471ffbceb11439fb89a70407f4e`.
+- Registered `0902T003` as the only active engineering task.
+- Preserved accepted `0902T001` and the `作废` `0902T002` route.
+- Verified the immutable V2.1.1 release identity and confirmed
+  `.workflow/governance` remains absent.
+- No migration plan, preflight, G1 governance root, canonical object, smoke
+  task, successor Q0 or business execution was created.
+- Next actor: `0902T003_migration_candidate_plan_author`.
+
 ## 2026-09-02 0902T002 Project Authority Correction
 
 - Preserved accepted `0902T001` argv repair and exact target commit
