@@ -125,6 +125,7 @@ HANDOFF_ACK_FD = 199
 HANDOFF_ACK = b"A"
 HANDOFF_TIMEOUT_MS = 5000
 NEGATIVE_GATE_IDS = tuple(f"Q0-{index}" for index in range(13))
+ARGV_CONTRACT_TASK_ID = "0902T001"
 
 
 class QualificationError(RuntimeError):
@@ -4372,6 +4373,165 @@ def verify_exact_argv(actual: Sequence[str], expected: Sequence[str]) -> None:
     require(list(actual) == list(expected), "SOURCE_ROOT_NOT_CLOSED", "argv")
 
 
+def derive_program_argv(exec_argv: Sequence[str]) -> list[str]:
+    command = list(exec_argv)
+    require(
+        not isinstance(exec_argv, (str, bytes))
+        and len(command) >= 2
+        and all(isinstance(argument, str) and argument for argument in command),
+        "ARGV_CONTRACT_NOT_CLOSED",
+        "exec_argv",
+    )
+    return command[1:]
+
+
+def verify_python_exec_argv(
+    actual: Sequence[str],
+    exec_argv: Sequence[str],
+    *,
+    code: str = "SOURCE_ROOT_NOT_CLOSED",
+    runtime_executable: str | None = None,
+) -> list[str]:
+    program_argv = derive_program_argv(exec_argv)
+    command = list(exec_argv)
+    observed_runtime = (
+        sys.executable if runtime_executable is None else runtime_executable
+    )
+    require(command[0] == observed_runtime, code, "runtime")
+    require(list(actual) == program_argv, code, "argv")
+    require(list(actual) != command, code, "exec_argv_includes_runtime")
+    return program_argv
+
+
+def reconstruct_python_exec_argv(
+    program_argv: Sequence[str],
+    *,
+    runtime_executable: str | None = None,
+) -> list[str]:
+    observed_runtime = (
+        sys.executable if runtime_executable is None else runtime_executable
+    )
+    require(
+        isinstance(observed_runtime, str) and observed_runtime,
+        "ARGV_CONTRACT_NOT_CLOSED",
+        "runtime_path",
+    )
+    command = [observed_runtime, *list(program_argv)]
+    derive_program_argv(command)
+    return command
+
+
+def validate_python_argv_observation(
+    *,
+    exec_argv: Sequence[str],
+    observed_argv: Sequence[str],
+    observed_runtime: str,
+    observed_cwd: Path,
+    expected_runtime: Path,
+    expected_runtime_sha256: str,
+    expected_script_sha256: str,
+    expected_cwd: Path,
+    shell: bool,
+) -> dict[str, Any]:
+    program_argv = derive_program_argv(exec_argv)
+    command = list(exec_argv)
+    require(not shell, "ARGV_CONTRACT_NOT_CLOSED", "shell")
+    require(
+        expected_runtime.is_absolute()
+        and command[0] == str(expected_runtime)
+        and observed_runtime == str(expected_runtime),
+        "ARGV_CONTRACT_NOT_CLOSED",
+        "runtime_path",
+    )
+    require(
+        HEX64_RE.fullmatch(expected_runtime_sha256) is not None
+        and expected_runtime.is_file()
+        and sha256_file(expected_runtime) == expected_runtime_sha256,
+        "ARGV_CONTRACT_NOT_CLOSED",
+        "runtime_bytes",
+    )
+    expected_cwd = expected_cwd.resolve()
+    require(
+        observed_cwd.resolve() == expected_cwd,
+        "ARGV_CONTRACT_NOT_CLOSED",
+        "cwd",
+    )
+    script_argument = Path(program_argv[0])
+    script_path = (
+        script_argument
+        if script_argument.is_absolute()
+        else expected_cwd / script_argument
+    )
+    try:
+        script_stat = script_path.lstat()
+    except FileNotFoundError as exc:
+        raise QualificationError(
+            "ARGV_CONTRACT_NOT_CLOSED",
+            "script_missing",
+        ) from exc
+    require(
+        stat.S_ISREG(script_stat.st_mode),
+        "ARGV_CONTRACT_NOT_CLOSED",
+        "script_kind",
+    )
+    require(
+        HEX64_RE.fullmatch(expected_script_sha256) is not None
+        and sha256_file(script_path) == expected_script_sha256,
+        "ARGV_CONTRACT_NOT_CLOSED",
+        "script_bytes",
+    )
+    verify_python_exec_argv(
+        observed_argv,
+        command,
+        code="ARGV_CONTRACT_NOT_CLOSED",
+    )
+    return {
+        "cwd": str(expected_cwd),
+        "exec_argv": command,
+        "program_argv": program_argv,
+        "runtime_path": str(expected_runtime),
+        "runtime_resolved_path": str(expected_runtime.resolve()),
+        "runtime_sha256": expected_runtime_sha256,
+        "script_path": str(script_path),
+        "script_sha256": expected_script_sha256,
+        "shell": False,
+    }
+
+
+def execute_argv_contract_qualification(
+    *,
+    expected_runtime: Path,
+    expected_runtime_sha256: str,
+    expected_script_sha256: str,
+    expected_cwd: Path,
+) -> dict[str, Any]:
+    exec_argv = reconstruct_python_exec_argv(
+        sys.argv,
+        runtime_executable=sys.executable,
+    )
+    parent = validate_python_argv_observation(
+        exec_argv=exec_argv,
+        observed_argv=sys.argv,
+        observed_runtime=sys.executable,
+        observed_cwd=Path.cwd(),
+        expected_runtime=expected_runtime,
+        expected_runtime_sha256=expected_runtime_sha256,
+        expected_script_sha256=expected_script_sha256,
+        expected_cwd=expected_cwd,
+        shell=False,
+    )
+    return {
+        "business_execution": False,
+        "contract_id": "TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1",
+        "effectful_outputs": False,
+        "identity": parent,
+        "observed_sys_argv": list(sys.argv),
+        "schema_version": 1,
+        "successor_q0": "ABSENT",
+        "task_id": ARGV_CONTRACT_TASK_ID,
+    }
+
+
 def verify_child_handoff(runtime_lock_fd: int, ack_fd: int, lock_path: Path) -> None:
     require(runtime_lock_fd == RUNTIME_LOCK_FD, "TERMINAL_CLOSURE", "runtime fd")
     require(ack_fd == HANDOFF_ACK_FD, "TERMINAL_CLOSURE", "ack fd")
@@ -4421,7 +4581,7 @@ def execute_formal_producer(
 ) -> int:
     surface = strict_json_file(surface_path)
     expected = surface["one_shot"]["formal_process_receipts"]["producer_argv"]
-    verify_exact_argv(sys.argv, expected)
+    verify_python_exec_argv(sys.argv, expected)
     lock_path = attempt_root / "control" / "formal_producer_runtime.lock"
     verify_child_handoff(runtime_lock_fd, handoff_ack_fd, lock_path)
     identity = strict_json_file(
@@ -4461,7 +4621,7 @@ def verify_armed_claim(
         "TERMINAL_CLOSURE",
     )
     expected = {
-        "argv": list(sys.argv),
+        "argv": reconstruct_python_exec_argv(sys.argv),
         "attempt_root": str(attempt_root),
         "controller_ref": CONTROLLER_REF,
         "controller_repo": str(CONTROLLER_REPO),
@@ -7077,7 +7237,7 @@ def execute_formal_outer(
 ) -> dict[str, Any]:
     surface = strict_json_file(repo_root / SURFACE_PATH)
     expected_argv = surface["one_shot"]["formal_process_receipts"]["outer_driver_argv"]
-    verify_exact_argv(sys.argv, expected_argv)
+    verify_python_exec_argv(sys.argv, expected_argv)
     require(
         repo_root == FORMAL_CWD and Path.cwd().resolve() == FORMAL_CWD,
         "SOURCE_ROOT_NOT_CLOSED",
@@ -8970,7 +9130,7 @@ def recover_formal(
 
     surface = strict_json_file(repo_root / SURFACE_PATH)
     expected = surface["one_shot"]["formal_process_receipts"]["recovery_driver_argv"]
-    verify_exact_argv(sys.argv, expected)
+    verify_python_exec_argv(sys.argv, expected)
     require(
         attempt_root == FORMAL_ATTEMPT_ROOT and attempt_root.is_dir(),
         "TERMINAL_CLOSURE",
@@ -9420,6 +9580,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--formal", action="store_true")
     mode.add_argument("--formal-producer", action="store_true")
     mode.add_argument("--recover", action="store_true")
+    mode.add_argument("--qualify-argv-contract", action="store_true")
     parser.add_argument("--repo-root", type=Path, default=REPO_BOOTSTRAP)
     parser.add_argument("--output-root", type=Path)
     parser.add_argument("--claim", type=Path)
@@ -9429,6 +9590,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--surface-contract", type=Path, default=SURFACE_PATH)
     parser.add_argument("--runtime-lock-fd", type=int)
     parser.add_argument("--handoff-ack-fd", type=int)
+    parser.add_argument("--expected-runtime", type=Path)
+    parser.add_argument("--expected-runtime-sha256")
+    parser.add_argument("--expected-script-sha256")
+    parser.add_argument("--expected-cwd", type=Path)
     args = parser.parse_args(argv)
     if args.readiness:
         if args.output_root is None:
@@ -9458,6 +9623,27 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             )
     elif args.recover and args.attempt_root is None:
         parser.error("--recover requires --attempt-root")
+    elif args.qualify_argv_contract:
+        required = (
+            args.expected_runtime,
+            args.expected_runtime_sha256,
+            args.expected_script_sha256,
+            args.expected_cwd,
+        )
+        if any(value is None for value in required):
+            parser.error(
+                "--qualify-argv-contract requires expected runtime, hashes, and cwd"
+            )
+        forbidden = (
+            args.output_root,
+            args.claim,
+            args.attempt_root,
+            args.package_root,
+            args.runtime_lock_fd,
+            args.handoff_ack_fd,
+        )
+        if any(value is not None for value in forbidden):
+            parser.error("--qualify-argv-contract is effect-free")
     return args
 
 
@@ -9474,7 +9660,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.surface_contract.is_absolute()
         else (repo_root / args.surface_contract).resolve()
     )
-    if args.readiness:
+    if args.qualify_argv_contract:
+        result = execute_argv_contract_qualification(
+            expected_runtime=args.expected_runtime,
+            expected_runtime_sha256=args.expected_runtime_sha256,
+            expected_script_sha256=args.expected_script_sha256,
+            expected_cwd=args.expected_cwd,
+        )
+    elif args.readiness:
         result = execute_readiness(
             repo_root=repo_root,
             output_root=args.output_root.resolve(),

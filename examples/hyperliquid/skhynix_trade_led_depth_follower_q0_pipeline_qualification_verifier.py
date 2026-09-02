@@ -83,6 +83,39 @@ def require(condition: bool, code: str, detail: str = "") -> None:
         raise VerificationError(code, detail)
 
 
+def derive_program_argv(exec_argv: Sequence[str]) -> list[str]:
+    command = list(exec_argv)
+    require(
+        not isinstance(exec_argv, (str, bytes))
+        and len(command) >= 2
+        and all(isinstance(argument, str) and argument for argument in command),
+        "INVOCATION_ERROR",
+        "exec_argv",
+    )
+    return command[1:]
+
+
+def verify_python_exec_argv(
+    actual: Sequence[str],
+    exec_argv: Sequence[str],
+    *,
+    runtime_executable: str | None = None,
+) -> list[str]:
+    program_argv = derive_program_argv(exec_argv)
+    command = list(exec_argv)
+    observed_runtime = (
+        sys.executable if runtime_executable is None else runtime_executable
+    )
+    require(command[0] == observed_runtime, "INVOCATION_ERROR", "runtime")
+    require(list(actual) == program_argv, "INVOCATION_ERROR", "argv")
+    require(
+        list(actual) != command,
+        "INVOCATION_ERROR",
+        "exec_argv_includes_runtime",
+    )
+    return program_argv
+
+
 def load_production_core() -> Any:
     existing = sys.modules.get(PRODUCTION_CORE_MODULE)
     if existing is not None:
@@ -2096,6 +2129,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     runtime_fd: int | None = None
     try:
         args = parse_args(argv)
+        surface = read_json(REPO_ROOT / SURFACE_PATH, canonical=False)
+        verify_python_exec_argv(
+            sys.argv,
+            surface["one_shot"]["formal_process_receipts"]["verifier_argv"],
+        )
         runtime_fd = args.runtime_lock_fd
         acknowledge_handoff(
             runtime_fd,

@@ -3534,7 +3534,13 @@ def test_runner_cli_has_only_frozen_modes_and_no_external_input_root() -> None:
     result = _run_help(RUNNER_PATH)
     assert result.returncode == 0, result.stderr
     help_text = result.stdout
-    for flag in ("--formal", "--formal-producer", "--recover", "--attempt-root"):
+    for flag in (
+        "--formal",
+        "--formal-producer",
+        "--recover",
+        "--attempt-root",
+        "--qualify-argv-contract",
+    ):
         assert flag in help_text
     for forbidden in (
         "--input-root",
@@ -3544,6 +3550,256 @@ def test_runner_cli_has_only_frozen_modes_and_no_external_input_root() -> None:
         "--outcome",
     ):
         assert forbidden not in help_text
+
+
+@pytest.mark.parametrize(
+    "command_name",
+    ("outer_driver_argv", "producer_argv", "recovery_driver_argv"),
+)
+def test_python_exec_argv_derivation_repairs_frozen_runner_commands(
+    runner: ModuleType,
+    surface: Mapping[str, Any],
+    command_name: str,
+) -> None:
+    exec_argv = surface["one_shot"]["formal_process_receipts"][command_name]
+    program_argv = exec_argv[1:]
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner.verify_exact_argv(program_argv, exec_argv)
+
+    assert caught.value.code == "SOURCE_ROOT_NOT_CLOSED"
+    assert caught.value.detail == "argv"
+    assert runner.verify_python_exec_argv(program_argv, exec_argv) == program_argv
+    assert runner.reconstruct_python_exec_argv(program_argv) == exec_argv
+    assert program_argv != exec_argv
+
+
+def test_python_exec_argv_derivation_repairs_frozen_verifier_command(
+    verifier: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    exec_argv = surface["one_shot"]["formal_process_receipts"]["verifier_argv"]
+    program_argv = exec_argv[1:]
+
+    assert verifier.verify_python_exec_argv(program_argv, exec_argv) == program_argv
+    with pytest.raises(verifier.VerificationError) as caught:
+        verifier.verify_python_exec_argv(exec_argv, exec_argv)
+    assert caught.value.code == "INVOCATION_ERROR"
+    assert caught.value.detail == "argv"
+
+
+def test_python_exec_argv_rejects_interpreter_path_drift(
+    runner: ModuleType,
+    verifier: ModuleType,
+    surface: Mapping[str, Any],
+) -> None:
+    exec_argv = surface["one_shot"]["formal_process_receipts"]["outer_driver_argv"]
+    program_argv = exec_argv[1:]
+    drifted_runtime = str(Path(exec_argv[0]).resolve())
+
+    with pytest.raises(runner.QualificationError) as runner_error:
+        runner.verify_python_exec_argv(
+            program_argv,
+            exec_argv,
+            runtime_executable=drifted_runtime,
+        )
+    assert runner_error.value.detail == "runtime"
+
+    verifier_exec_argv = surface["one_shot"]["formal_process_receipts"]["verifier_argv"]
+    with pytest.raises(verifier.VerificationError) as verifier_error:
+        verifier.verify_python_exec_argv(
+            verifier_exec_argv[1:],
+            verifier_exec_argv,
+            runtime_executable=drifted_runtime,
+        )
+    assert verifier_error.value.detail == "runtime"
+
+
+def test_all_python_process_boundaries_use_exec_argv_derivation(
+    runner: ModuleType,
+    verifier: ModuleType,
+) -> None:
+    for function in (
+        runner.execute_formal_outer,
+        runner.execute_formal_producer,
+        runner.recover_formal,
+    ):
+        assert "verify_python_exec_argv" in inspect.getsource(function)
+
+    claim_source = ast.unparse(ast.parse(inspect.getsource(runner.verify_armed_claim)))
+    assert "reconstruct_python_exec_argv(sys.argv)" in claim_source
+    assert "'argv': list(sys.argv)" not in claim_source
+    assert "verify_python_exec_argv" in inspect.getsource(verifier.main)
+
+
+def _argv_contract_fixture(
+    tmp_path: Path,
+) -> tuple[list[str], Path, str, str]:
+    script = tmp_path / "qualified.py"
+    script.write_bytes(b"print('not executed')\n")
+    runtime = Path(sys.executable)
+    exec_argv = [str(runtime), script.name, "--effect-free"]
+    return (
+        exec_argv,
+        runtime,
+        _sha256_file(runtime),
+        _sha256_file(script),
+    )
+
+
+def test_argv_contract_observation_accepts_only_program_argv(
+    tmp_path: Path,
+    runner: ModuleType,
+) -> None:
+    exec_argv, runtime, runtime_sha256, script_sha256 = _argv_contract_fixture(tmp_path)
+    program_argv = exec_argv[1:]
+
+    identity = runner.validate_python_argv_observation(
+        exec_argv=exec_argv,
+        observed_argv=program_argv,
+        observed_runtime=str(runtime),
+        observed_cwd=tmp_path,
+        expected_runtime=runtime,
+        expected_runtime_sha256=runtime_sha256,
+        expected_script_sha256=script_sha256,
+        expected_cwd=tmp_path,
+        shell=False,
+    )
+
+    assert identity["exec_argv"] == exec_argv
+    assert identity["program_argv"] == program_argv
+    assert identity["shell"] is False
+    with pytest.raises(runner.QualificationError) as caught:
+        runner.validate_python_argv_observation(
+            exec_argv=exec_argv,
+            observed_argv=exec_argv,
+            observed_runtime=str(runtime),
+            observed_cwd=tmp_path,
+            expected_runtime=runtime,
+            expected_runtime_sha256=runtime_sha256,
+            expected_script_sha256=script_sha256,
+            expected_cwd=tmp_path,
+            shell=False,
+        )
+    assert caught.value.detail == "argv"
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_detail"),
+    (
+        ("missing_runtime", "runtime_bytes"),
+        ("runtime_path", "runtime_path"),
+        ("runtime_bytes", "runtime_bytes"),
+        ("missing_script", "script_missing"),
+        ("script_kind", "script_kind"),
+        ("script_bytes", "script_bytes"),
+        ("argv", "argv"),
+        ("cwd", "cwd"),
+        ("shell", "shell"),
+        ("shell_command_string", "exec_argv"),
+    ),
+)
+def test_argv_contract_hostile_mutations_fail_closed(
+    tmp_path: Path,
+    runner: ModuleType,
+    mutation: str,
+    expected_detail: str,
+) -> None:
+    exec_argv, runtime, runtime_sha256, script_sha256 = _argv_contract_fixture(tmp_path)
+    observed_argv: Sequence[str] = exec_argv[1:]
+    observed_runtime = str(runtime)
+    observed_cwd = tmp_path
+    expected_runtime = runtime
+    expected_cwd = tmp_path
+    shell = False
+
+    if mutation == "missing_runtime":
+        expected_runtime = tmp_path / "missing-python"
+        exec_argv[0] = str(expected_runtime)
+        observed_runtime = str(expected_runtime)
+    elif mutation == "runtime_path":
+        observed_runtime = str(runtime.resolve())
+    elif mutation == "runtime_bytes":
+        runtime_sha256 = "0" * 64
+    elif mutation == "missing_script":
+        exec_argv[1] = "missing.py"
+        observed_argv = exec_argv[1:]
+    elif mutation == "script_kind":
+        directory = tmp_path / "script-dir"
+        directory.mkdir()
+        exec_argv[1] = directory.name
+        observed_argv = exec_argv[1:]
+    elif mutation == "script_bytes":
+        script_sha256 = "0" * 64
+    elif mutation == "argv":
+        observed_argv = [*exec_argv[1:], "--drift"]
+    elif mutation == "cwd":
+        observed_cwd = tmp_path.parent
+    elif mutation == "shell":
+        shell = True
+    elif mutation == "shell_command_string":
+        exec_argv = " ".join(exec_argv)  # type: ignore[assignment]
+
+    with pytest.raises(runner.QualificationError) as caught:
+        runner.validate_python_argv_observation(
+            exec_argv=exec_argv,
+            observed_argv=observed_argv,
+            observed_runtime=observed_runtime,
+            observed_cwd=observed_cwd,
+            expected_runtime=expected_runtime,
+            expected_runtime_sha256=runtime_sha256,
+            expected_script_sha256=script_sha256,
+            expected_cwd=expected_cwd,
+            shell=shell,
+        )
+
+    assert caught.value.code == "ARGV_CONTRACT_NOT_CLOSED"
+    assert caught.value.detail == expected_detail
+
+
+def test_effect_free_argv_qualification_cli_records_exact_identity(
+    tmp_path: Path,
+) -> None:
+    script = tmp_path / "qualification.py"
+    script.write_bytes(RUNNER_PATH.read_bytes())
+    runtime = Path(sys.executable)
+    command = [
+        str(runtime),
+        script.name,
+        "--qualify-argv-contract",
+        "--expected-runtime",
+        str(runtime),
+        "--expected-runtime-sha256",
+        _sha256_file(runtime),
+        "--expected-script-sha256",
+        _sha256_file(script),
+        "--expected-cwd",
+        str(tmp_path),
+    ]
+    before = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
+
+    result = subprocess.run(
+        command,
+        cwd=tmp_path,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    evidence = json.loads(result.stdout)
+    assert evidence["task_id"] == "0902T001"
+    assert evidence["business_execution"] is False
+    assert evidence["effectful_outputs"] is False
+    assert evidence["successor_q0"] == "ABSENT"
+    assert evidence["identity"]["exec_argv"] == command
+    assert evidence["identity"]["program_argv"] == command[1:]
+    assert evidence["observed_sys_argv"] == command[1:]
+    assert evidence["identity"]["shell"] is False
+    after = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
+    assert after == before
 
 
 def test_verifier_cli_requires_package_root_and_result_only_from_tmp() -> None:
