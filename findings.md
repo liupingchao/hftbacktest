@@ -16,6 +16,14 @@
 - Any discovery that the defect requires shared Workflow Kit schema, API,
   template or release changes is a stop condition and must return control to
   the scope authority.
+- The same incorrect assumption also existed one step after the outer gate:
+  armed-claim verification compared the claim's complete command with
+  program-only `sys.argv`. The repair reconstructs
+  `[sys.executable, *sys.argv]` before comparing claim identity.
+- The closed base commit changes only the old task status byte relative to the
+  implementation freeze. Its old development-formal replay test therefore
+  fails authority binding before pipeline work; the exact frozen
+  implementation commit still passes its complete `130/130` baseline.
 
 ## 2026-08-31 Q0 Qualification Boundary
 

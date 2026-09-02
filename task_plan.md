@@ -3,7 +3,7 @@
 ## 2026-09-02 0902T001 Target Project Argv Contract Repair
 
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is the current and only
-  active engineering task in this isolated worktree.
+  active engineering task in this isolated worktree and is now `待验收`.
 - Base identity is exact commit
   `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
 - Repair only the deterministic Python argv qualification defect:

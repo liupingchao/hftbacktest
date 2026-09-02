@@ -1,5 +1,21 @@
 # Progress
 
+## 2026-09-02 0902T001 Pending Independent QA
+
+- Implementation commit
+  `5eed10e59dcab91657bd332ca2b94ba3d2b7476b` repairs Python program argv
+  validation across outer, producer, recovery and verifier boundaries.
+- Business report commit
+  `00ae475d3899011259f337411c9986abb0a9f3f6` records exact runtime/script
+  hashes, effect-free evidence and test results.
+- Applicable focused tests pass `147` with one inherited closure-state test
+  deselected; expanded predecessor tests pass `410` with one expected skip;
+  the exact old implementation baseline passes `130`.
+- New-task claims, receipts, baseline, output and successor controller ref
+  remain absent. No business execution occurred.
+- Task status is `待验收`; independent read-only QA is the next required
+  node.
+
 ## 2026-09-02 0902T001 Registered
 
 - Scope rebaseline authority is frozen in `/Users/liu/Documents/workflow-proj`
