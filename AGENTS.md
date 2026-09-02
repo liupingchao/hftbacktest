@@ -20,13 +20,20 @@ Controller route as of `2026-09-02`:
 - This isolated worktree was created from exact accepted commit
   `824e0431b96bda16515efb41544fd9e1feb78868` for `0902T002`.
 - `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is the only
-  active engineering task, with status `待验收`.
+  active engineering task, with status `待执行`.
 - Revision-specific successor plan R1 is frozen at commit
   `698ee535474b3376b5561f2f6b539be8cad00eb4`, SHA256
   `2c8ca8e546ab3afed656f0f4867282264457239a39b8ca8735fac73eea3ecd4b`.
-- The next actor is an independent read-only R1 plan/readiness reviewer.
-  Projection materialization, effect-free preflight, arming and formal Q0
-  execution remain locked.
+- R1 was independently rejected at commit
+  `0f61526289f4c98ba5929bf764a77cc1b648f078` with
+  `P0/P1/P2/P3 = 0/4/1/0`.
+- External Controller disposition
+  `0902T002-R1-CONTROLLER-DISPOSITION-01` is frozen at commit
+  `a33426628ef6072b18406211c194db32f28dfeb1`, SHA256
+  `e954ae4aebbdcddf1309152e318695df20ec68b28a78daa70157de0d7dca62c2`.
+- The next actor is the successor R2 candidate/plan author. Projection
+  materialization, projected-byte review, effect-free preflight, controller
+  repository preparation, arming and formal Q0 execution remain locked.
 - The accepted `0902T001` worktree was created from exact commit
   `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is closed as
@@ -58,6 +65,12 @@ controller_authorization_sha256 =
   5f3c1062b526884959240e28adb3684df08ab1f038526871f8b2e39e27d17334
 controller_active_boundary_commit =
   8894646cea97b4c1e980b65ff0018d5e265e202b
+controller_r1_disposition_commit =
+  a33426628ef6072b18406211c194db32f28dfeb1
+controller_r1_disposition_sha256 =
+  e954ae4aebbdcddf1309152e318695df20ec68b28a78daa70157de0d7dca62c2
+controller_r2_boundary_commit =
+  9c38c465ab9530e522c872e37202d6c88b5c54f2
 ```
 
 Historical controller route as of `2026-08-20`:

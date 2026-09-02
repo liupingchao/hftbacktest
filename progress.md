@@ -1,5 +1,24 @@
 # Progress
 
+## 2026-09-02 0902T002 R1 Rejected And R2 Plan Authorized
+
+- Independent R1 review commit
+  `0f61526289f4c98ba5929bf764a77cc1b648f078`, report SHA256
+  `f636cc24a4e88153c8e8ebf762b07a626f3637c63766f55337d8b5431e405418`,
+  rejected R1 at `P0/P1/P2/P3 = 0/4/1/0`.
+- External Controller disposition
+  `0902T002-R1-CONTROLLER-DISPOSITION-01` is frozen at commit
+  `a33426628ef6072b18406211c194db32f28dfeb1`, SHA256
+  `e954ae4aebbdcddf1309152e318695df20ec68b28a78daa70157de0d7dca62c2`.
+- R1 candidate, Request, Addendum and Review Report remain immutable.
+- R2 plan-only authoring is authorized at
+  `.workflow/plans/0902T002/successor-q0-recovery-and-effect-free-preflight-r2.md`.
+- Projection, projected-byte review, preflight, controller repository
+  preparation, arming, claim, attempt, receipt, baseline, output, ref, tag,
+  formal Q0 and business execution remain absent and locked.
+- Task status is `待执行`; next actor is
+  `successor_r2_candidate_plan_author`.
+
 ## 2026-09-02 0902T002 R1 Frozen Pending Independent Review
 
 - Froze candidate
@@ -15,8 +34,8 @@
   before preflight.
 - Static authority, source SHA, namespace absence, DAG, ownership, recovery,
   command and whitespace checks passed.
-- Task status is `待验收`; the next actor is an independent read-only R1
-  plan/readiness reviewer.
+- At that historical handoff, task status was `待验收` and the next actor was
+  an independent read-only R1 plan/readiness reviewer.
 - Projection, preflight, arming, claim, attempt, receipt, baseline, output,
   controller ref/tag and formal Q0 remain absent and locked.
 - Business execution and locked-data access remain false.

@@ -1,5 +1,31 @@
 # Findings
 
+## 2026-09-02 0902T002 R1 Review Disposition
+
+- Independent R1 review at commit
+  `0f61526289f4c98ba5929bf764a77cc1b648f078`, SHA256
+  `f636cc24a4e88153c8e8ebf762b07a626f3637c63766f55337d8b5431e405418`,
+  found `P0/P1/P2/P3 = 0/4/1/0` and rejected R1.
+- P1-01: projected bytes lacked an exhaustive AST/JSON transform register and
+  a post-projection independent acceptance node.
+- P1-02: the required claim identities and two-report model could not be
+  represented by the frozen inherited operational surface.
+- P1-03: the controller repository had no legal producer before formal
+  observation.
+- P1-04: the broader preflight evidence authority lacked an exact observer,
+  canonical terminalization and sole writer.
+- P2-01: ownership and recovery tables were not object-total.
+- Controller disposition at commit
+  `a33426628ef6072b18406211c194db32f28dfeb1` selects the exhaustive transform
+  register, task-local governance claim extension, single business report,
+  post-preflight controller preparation, dedicated preflight evidence
+  terminalizer and object-total operational register models.
+- R1 remains permanently rejected and immutable. R2 plan-only authoring is
+  authorized at its new revision-specific path.
+- Projection, preflight, controller repository preparation, arming, claims,
+  attempts, formal Q0 and business execution remain locked.
+- The next actor is `successor_r2_candidate_plan_author`.
+
 ## 2026-09-02 0902T002 R1 Constructibility Boundary
 
 - R1 is frozen at commit
@@ -20,8 +46,8 @@
 - The sole unresolved construction token is the future projected runner
   SHA256 in the effect-free preflight command. Formal and recovery commands
   are fully concrete and contain no `0831T001` mutable identity.
-- Independent review must reconstruct the DAG, ownership and recovery matrix
-  and decide whether the allowed operational projection is sufficient.
+- The later independent review reconstructed the DAG, ownership and recovery
+  matrix and rejected the allowed operational projection as insufficient.
 - No preflight, arming, claim, attempt, receipt, baseline, output, controller
   state, business execution or locked-data access occurred.
 
@@ -47,7 +73,7 @@
   candidate/plan and readiness review. Formal Q0 additionally requires a
   separate Controller arming authorization.
 - Task registration is not Q0 success. Its authoring handoff produced frozen
-  R1; the current next actor is the independent R1 plan/readiness reviewer.
+  R1; that historical review handoff is superseded by the R1 disposition.
 
 ## 2026-09-02 0902T001 Argv Repair Boundary
 

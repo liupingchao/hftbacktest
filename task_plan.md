@@ -3,18 +3,27 @@
 ## 2026-09-02 0902T002 Successor Q0 Recovery Registration
 
 - `0902T002 / SUCCESSOR_Q0_RECOVERY_AND_EFFECT_FREE_PREFLIGHT` is the current
-  and only active engineering task, status `待验收`.
+  and only active engineering task, status `待执行`.
 - This worktree and branch were created from exact accepted target commit
   `824e0431b96bda16515efb41544fd9e1feb78868`.
 - Revision-specific successor plan R1 is frozen at commit
   `698ee535474b3376b5561f2f6b539be8cad00eb4`, SHA256
   `2c8ca8e546ab3afed656f0f4867282264457239a39b8ca8735fac73eea3ecd4b`.
-- Current authority is limited to independent read-only plan/readiness review.
+- R1 was independently rejected at commit
+  `0f61526289f4c98ba5929bf764a77cc1b648f078`,
+  `P0/P1/P2/P3 = 0/4/1/0`.
+- Controller disposition commit
+  `a33426628ef6072b18406211c194db32f28dfeb1` preserves R1 and authorizes only
+  R2 plan authoring at
+  `.workflow/plans/0902T002/successor-q0-recovery-and-effect-free-preflight-r2.md`.
 - Required later chain is:
-  `candidate/plan -> independent plan/readiness review -> effect-free argv
-  preflight -> Controller arming authorization -> exact one-shot formal Q0 ->
-  business report -> independent QA -> Controller closure`.
-- Preflight, arming, claim creation, attempt creation, baseline/output-root
+  `R2 plan -> independent R2 review -> projection -> independent
+  projected-byte review -> effect-free preflight -> Controller preflight
+  acceptance -> controller repository preparation -> Controller arming
+  authorization -> exact one-shot formal Q0 -> business report -> independent
+  QA -> Controller closure`.
+- Projection, projected-byte review, preflight, controller repository
+  preparation, arming, claim creation, attempt creation, baseline/output-root
   creation, controller refs/tags and formal Q0 execution remain locked.
 - Every mutable execution identity must be new and `0902T002` scoped.
 - Preserve all `0831T001` evidence and the accepted `0902T001` worktree
@@ -27,9 +36,9 @@
   `shell = false`.
 - Business, scientific, historical-cache, future-outcome, private and live
   execution are prohibited during registration and authoring.
-- Task registration and R1 freeze are not project execution success. The next
-  actor is the independent R1 plan/readiness reviewer, not a projection actor
-  or Q0 executor.
+- R1 rejection is not project execution failure or scientific rejection. The
+  next actor is the successor R2 candidate/plan author, not a projection,
+  preflight, repository-preparation or Q0 actor.
 
 ## 2026-09-02 0902T001 Target Project Argv Contract Repair
 
