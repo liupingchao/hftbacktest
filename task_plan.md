@@ -3,7 +3,7 @@
 ## 2026-09-02 0902T001 Target Project Argv Contract Repair
 
 - `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is the current and only
-  active engineering task in this isolated worktree and is now `待验收`.
+  repair task in this isolated worktree and is closed as `已通过`.
 - Base identity is exact commit
   `1051f2b29059e6b7465fe8051de01072f9ff7e19`.
 - Repair only the deterministic Python argv qualification defect:
@@ -18,6 +18,10 @@
 - Do not create or execute a successor Q0, attempt, claim, arming identity,
   business computation or output root.
 - Preserve all `0831T001` evidence and identities unchanged.
+- Independent QA passed at `P0/P1/P2/P3 = 0/0/0/0`; controller closure is
+  commit `680f23795426f4e7911df60d7151002a5127d811`.
+- No formal task is currently active. Successor Q0 remains locked pending a
+  separate controller dispatch.
 
 ## 2026-08-31 0831T001 Trade-Led Depth-Follower Q0
 

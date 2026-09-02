@@ -19,8 +19,8 @@ Controller route as of `2026-09-02`:
 
 - This isolated worktree was created from exact commit
   `1051f2b29059e6b7465fe8051de01072f9ff7e19` for `0902T001`.
-- `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is the current and only
-  active engineering task.
+- `0902T001 / TARGET_PROJECT_ARGV_CONTRACT_REPAIR_V1` is closed as
+  `已通过` after independent QA at `P0/P1/P2/P3 = 0/0/0/0`.
 - `0831T001` remains closed as `未通过`; its plan, implementation, tags,
   arming commit, claim and reports are immutable failure evidence.
 - `0902T001` may repair only the effect-free qualification runner/checker
@@ -33,8 +33,9 @@ Controller route as of `2026-09-02`:
   business output.
 - Business, scientific, historical-cache, future-outcome, private and live
   execution remain prohibited.
-- Independent QA and controller acceptance are required before any separately
-  authorized successor Q0 can be registered.
+- No engineering task is currently active. A successor Q0 remains locked and
+  requires a separate controller authorization, task ID, candidate, attempt,
+  claim and output root.
 
 External scope authority:
 

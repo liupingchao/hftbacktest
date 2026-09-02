@@ -24,6 +24,9 @@
   implementation freeze. Its old development-formal replay test therefore
   fails authority binding before pipeline work; the exact frozen
   implementation commit still passes its complete `130/130` baseline.
+- Independent QA found no P0-P3 defects and accepted the target-local repair.
+  This acceptance closes only argv qualification; it does not rehabilitate
+  the old claim or authorize successor Q0 execution.
 
 ## 2026-08-31 Q0 Qualification Boundary
 
